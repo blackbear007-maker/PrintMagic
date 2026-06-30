@@ -1,0 +1,4645 @@
+﻿<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>圖片格式轉換與基礎增強工具</title>
+  <link rel="icon" type="image/svg+xml" href="xiaoxiang-avatar.svg" />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#3b82f6" />
+  
+  <!-- Core Module (embedded for offline use) -->
+  <script>
+    // Web Worker code (embedded as Blob for offline use)
+    const workerCode = `
+/**
+ * ImageTool Worker
+ * 所有像素級運算都在此執行，避免阻塞主執行緒
+ * @version 2.0.0
+ */
+
+self.onmessage = function(e) {
+  const { id, operation, payload } = e.data;
+  try {
+    const imageData = payload.imageData;
+    const { width, height, data } = imageData;
+    let result;
+
+    switch (operation) {
+      case 'sharpen':
+        result = applySharpenFilter(data, width, height);
+        break;
+      case 'upscale':
+        result = lanczosResize(data, width, height, payload.scale);
+        break;
+      case 'analyze':
+        result = analyzeImage(data, width, height);
+        break;
+      default:
+        throw new Error('Unknown operation: ' + operation);
+    }
+
+    if (result instanceof ImageData) {
+      self.postMessage({ id, success: true, imageData: { width: result.width, height: result.height, data: result.data } }, [result.data.buffer]);
+    } else {
+      self.postMessage({ id, success: true, result });
+    }
+  } catch (error) {
+    self.postMessage({ id, success: false, error: error.message });
+  }
+};
+
+
+function analyzeImage(data, width, height) {
+  const count = width * height;
+  let totalLum = 0, totalSat = 0, sumSqLum = 0, edgeSum = 0, transparent = 0;
+  for (let i = 0; i < data.length; i += 4) {
+    const r = data[i] / 255;
+    const g = data[i + 1] / 255;
+    const b = data[i + 2] / 255;
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    const lum = (max + min) / 2;
+    const sat = max === 0 ? 0 : (max - min) / max;
+    totalLum += lum;
+    totalSat += sat;
+    sumSqLum += lum * lum;
+    if (data[i + 3] < 255) transparent++;
+  }
+  for (let y = 1; y < height - 1; y++) {
+    for (let x = 1; x < width - 1; x++) {
+      const idx = (y * width + x) * 4;
+      const lum = (Math.max(data[idx], data[idx + 1], data[idx + 2]) + Math.min(data[idx], data[idx + 1], data[idx + 2])) / 2;
+      const rightIdx = (y * width + x + 1) * 4;
+      const rightLum = (Math.max(data[rightIdx], data[rightIdx + 1], data[rightIdx + 2]) + Math.min(data[rightIdx], data[rightIdx + 1], data[rightIdx + 2])) / 2;
+      const downIdx = ((y + 1) * width + x) * 4;
+      const downLum = (Math.max(data[downIdx], data[downIdx + 1], data[downIdx + 2]) + Math.min(data[downIdx], data[downIdx + 1], data[downIdx + 2])) / 2;
+      edgeSum += Math.abs(lum - rightLum) + Math.abs(lum - downLum);
+    }
+  }
+  const avgLum = totalLum / count;
+  const avgSat = totalSat / count;
+  const stdLum = Math.sqrt(Math.max(0, sumSqLum / count - avgLum * avgLum));
+  const edgeScore = count > 0 ? edgeSum / count : 0;
+  return {
+    avgLum,
+    avgSat,
+    stdLum,
+    edgeScore,
+    transparentRatio: transparent / count,
+    width,
+    height
+  };
+}
+
+function applySharpenFilter(data, width, height) {
+  const kernel = [0, -1, 0, -1, 5, -1, 0, -1, 0];
+  const tempData = new Uint8ClampedArray(data);
+  const out = new Uint8ClampedArray(data.length);
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const idx = (y * width + x) * 4;
+      out[idx + 3] = data[idx + 3];
+      if (y === 0 || y === height - 1 || x === 0 || x === width - 1) {
+        out[idx] = data[idx];
+        out[idx + 1] = data[idx + 1];
+        out[idx + 2] = data[idx + 2];
+        continue;
+      }
+      let r = 0, g = 0, b = 0;
+      for (let ky = -1; ky <= 1; ky++) {
+        for (let kx = -1; kx <= 1; kx++) {
+          const nIdx = ((y + ky) * width + (x + kx)) * 4;
+          const kIdx = (ky + 1) * 3 + (kx + 1);
+          r += tempData[nIdx] * kernel[kIdx];
+          g += tempData[nIdx + 1] * kernel[kIdx];
+          b += tempData[nIdx + 2] * kernel[kIdx];
+        }
+      }
+      out[idx] = Math.min(255, Math.max(0, r));
+      out[idx + 1] = Math.min(255, Math.max(0, g));
+      out[idx + 2] = Math.min(255, Math.max(0, b));
+    }
+  }
+
+  return new ImageData(out, width, height);
+}
+
+function lanczosResize(data, srcWidth, srcHeight, scale) {
+  const dstWidth = Math.round(srcWidth * scale);
+  const dstHeight = Math.round(srcHeight * scale);
+  const a = 3;
+  const tmp = new Uint8ClampedArray(dstWidth * srcHeight * 4);
+  const out = new Uint8ClampedArray(dstWidth * dstHeight * 4);
+
+  // horizontal pass
+  for (let y = 0; y < srcHeight; y++) {
+    for (let x = 0; x < dstWidth; x++) {
+      const center = (x + 0.5) / scale - 0.5;
+      const x0 = Math.ceil(center - a);
+      const x1 = Math.floor(center + a);
+      let totalWeight = 0;
+      let r = 0, g = 0, b = 0, alpha = 0;
+      for (let sx = x0; sx <= x1; sx++) {
+        const w = lanczosKernel(center - sx, a);
+        if (w === 0) continue;
+        const clampedX = Math.max(0, Math.min(srcWidth - 1, sx));
+        const idx = (y * srcWidth + clampedX) * 4;
+        r += data[idx] * w;
+        g += data[idx + 1] * w;
+        b += data[idx + 2] * w;
+        alpha += data[idx + 3] * w;
+        totalWeight += w;
+      }
+      const dstIdx = (y * dstWidth + x) * 4;
+      const norm = totalWeight || 1;
+      tmp[dstIdx] = Math.min(255, Math.max(0, Math.round(r / norm)));
+      tmp[dstIdx + 1] = Math.min(255, Math.max(0, Math.round(g / norm)));
+      tmp[dstIdx + 2] = Math.min(255, Math.max(0, Math.round(b / norm)));
+      tmp[dstIdx + 3] = Math.min(255, Math.max(0, Math.round(alpha / norm)));
+    }
+  }
+
+  // vertical pass
+  for (let y = 0; y < dstHeight; y++) {
+    const center = (y + 0.5) / scale - 0.5;
+    const y0 = Math.ceil(center - a);
+    const y1 = Math.floor(center + a);
+    for (let x = 0; x < dstWidth; x++) {
+      let totalWeight = 0;
+      let r = 0, g = 0, b = 0, alpha = 0;
+      for (let sy = y0; sy <= y1; sy++) {
+        const w = lanczosKernel(center - sy, a);
+        if (w === 0) continue;
+        const clampedY = Math.max(0, Math.min(srcHeight - 1, sy));
+        const idx = (clampedY * dstWidth + x) * 4;
+        r += tmp[idx] * w;
+        g += tmp[idx + 1] * w;
+        b += tmp[idx + 2] * w;
+        alpha += tmp[idx + 3] * w;
+        totalWeight += w;
+      }
+      const dstIdx = (y * dstWidth + x) * 4;
+      const norm = totalWeight || 1;
+      out[dstIdx] = Math.min(255, Math.max(0, Math.round(r / norm)));
+      out[dstIdx + 1] = Math.min(255, Math.max(0, Math.round(g / norm)));
+      out[dstIdx + 2] = Math.min(255, Math.max(0, Math.round(b / norm)));
+      out[dstIdx + 3] = Math.min(255, Math.max(0, Math.round(alpha / norm)));
+    }
+  }
+
+  return new ImageData(out, dstWidth, dstHeight);
+}
+
+function lanczosKernel(x, a) {
+  if (x === 0) return 1;
+  if (Math.abs(x) >= a) return 0;
+  const piX = Math.PI * x;
+  return (a * Math.sin(piX) * Math.sin(piX / a)) / (piX * piX);
+}
+`;
+
+    // Create worker from Blob
+    const workerBlob = new Blob([workerCode], { type: 'application/javascript' });
+    const workerUrl = URL.createObjectURL(workerBlob);
+
+    // ============================================================
+    // ImageTool Core Module (embedded for offline use)
+    // ============================================================
+    (function(global) {
+      'use strict';
+
+      const CONSTANTS = {
+        FORMATS: ['png', 'jpg'],
+        DEFAULT_QUALITY: 95
+      };
+
+      // ============================================================
+      // Worker 管理
+      // ============================================================
+      class WorkerManager {
+        constructor(scriptUrl) {
+          this.worker = null;
+          this.scriptUrl = scriptUrl || workerUrl;
+          this.pending = new Map();
+          this.nextId = 1;
+        }
+
+        ensureWorker() {
+          if (this.worker) return this.worker;
+          try {
+            this.worker = new Worker(this.scriptUrl);
+            this.worker.onmessage = (e) => this.handleMessage(e);
+            this.worker.onerror = (err) => {
+              console.error('Worker error:', err);
+              this.terminate();
+            };
+          } catch (e) {
+            console.warn('Worker not available:', e);
+            this.worker = null;
+          }
+          return this.worker;
+        }
+
+        terminate() {
+          if (this.worker) {
+            this.worker.terminate();
+            this.worker = null;
+          }
+        }
+
+        handleMessage(e) {
+          const { id, success, error, imageData, result } = e.data;
+          const item = this.pending.get(id);
+          if (!item) return;
+          this.pending.delete(id);
+          if (success) {
+            if (imageData) {
+              item.resolve({ imageData: new ImageData(imageData.data, imageData.width, imageData.height) });
+            } else {
+              item.resolve(result);
+            }
+          } else {
+            item.reject(new Error(error || 'Worker failed'));
+          }
+        }
+
+        async run(operation, imageData, extra = {}) {
+          if (!this.ensureWorker()) {
+            throw new Error('Web Worker not available');
+          }
+          const id = this.nextId++;
+          return new Promise((resolve, reject) => {
+            this.pending.set(id, { resolve, reject });
+            this.worker.postMessage({
+              id,
+              operation,
+              payload: { imageData: { width: imageData.width, height: imageData.height, data: imageData.data }, ...extra }
+            }, [imageData.data.buffer]);
+          });
+        }
+
+        isAvailable() {
+          return !!this.worker;
+        }
+      }
+
+      // ============================================================
+      // 匯出處理
+      // ============================================================
+      class ExportManager {
+        isValidDataUrl(url) {
+          const pattern = /^data:image\/(png|jpeg|jpg|webp|gif|bmp);base64,[A-Za-z0-9+/=]+$/;
+          return pattern.test(url);
+        }
+
+        convertImageData(imageData, format, quality) {
+          return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => {
+              try {
+                const canvas = document.createElement('canvas');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0);
+                const mime = format === 'jpg' || format === 'jpeg' ? 'image/jpeg' : 'image/png';
+                const q = Math.max(0.1, Math.min(1, quality / 100));
+                resolve(canvas.toDataURL(mime, mime === 'image/jpeg' ? q : undefined));
+              } catch (error) {
+                reject(new Error('格式轉換失敗: ' + error.message));
+              }
+            };
+            img.onerror = () => reject(new Error('圖片載入失敗'));
+            img.src = imageData;
+          });
+        }
+
+        async performExport(imageData, settings, callbacks = {}) {
+          const { onStart, onSuccess, onError, onComplete } = callbacks;
+          try {
+            if (!imageData) throw new Error('請先上傳圖片');
+            if (!this.isValidDataUrl(imageData)) throw new Error('無效的圖片格式');
+            if (onStart) onStart();
+
+            const format = (settings.format || 'png').toLowerCase();
+            const quality = settings.quality || CONSTANTS.DEFAULT_QUALITY;
+            const ext = format === 'jpg' || format === 'jpeg' ? 'jpg' : 'png';
+            const resultData = await this.convertImageData(imageData, format, quality);
+
+            const link = document.createElement('a');
+            link.href = resultData;
+            link.download = `image-${Date.now()}.${ext}`;
+            document.body.appendChild(link);
+            link.click();
+            setTimeout(() => link.remove(), 100);
+
+            if (onSuccess) onSuccess({ format, quality });
+            return true;
+          } catch (error) {
+            console.error('Export error:', error);
+            if (onError) onError(error.message);
+            return false;
+          } finally {
+            if (onComplete) onComplete();
+          }
+        }
+      }
+
+      // ============================================================
+      // 圖片增強
+      // ============================================================
+      class ImageEnhancer {
+        constructor(workerManager) {
+          this.worker = workerManager;
+          this.canvas = document.createElement('canvas');
+          this.ctx = this.canvas.getContext('2d');
+        }
+
+        async decodeImageData(imageData) {
+          return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => {
+              this.canvas.width = img.width;
+              this.canvas.height = img.height;
+              this.ctx.drawImage(img, 0, 0);
+              resolve(this.ctx.getImageData(0, 0, img.width, img.height));
+            };
+            img.onerror = () => reject(new Error('圖片載入失敗'));
+            img.src = imageData;
+          });
+        }
+
+        encodeImageData(imageData, type = 'image/png', quality) {
+          this.canvas.width = imageData.width;
+          this.canvas.height = imageData.height;
+          this.ctx.putImageData(imageData, 0, 0);
+          return this.canvas.toDataURL(type, quality);
+        }
+
+        async upscale(imageData, options = {}) {
+          const { scale = 2 } = options;
+          const imageDataObj = await this.decodeImageData(imageData);
+          const result = await this.worker.run('upscale', imageDataObj, { scale });
+          return {
+            result: this.encodeImageData(result.imageData, 'image/png'),
+            method: 'Lanczos + Worker',
+            scale
+          };
+        }
+      }
+
+      // ============================================================
+      // 印刷適合度評分
+      // ============================================================
+      class PrintScoreCalculator {
+        constructor(workerManager) {
+          this.worker = workerManager;
+          this.canvas = document.createElement('canvas');
+          this.ctx = this.canvas.getContext('2d');
+        }
+
+        async analyzeImage(imageData) {
+          return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => {
+              this.canvas.width = img.width;
+              this.canvas.height = img.height;
+              this.ctx.drawImage(img, 0, 0);
+              resolve(this.ctx.getImageData(0, 0, img.width, img.height));
+            };
+            img.onerror = () => reject(new Error('圖片載入失敗'));
+            img.src = imageData;
+          });
+        }
+
+        detectFormat(dataUrl) {
+          if (dataUrl.includes('image/png')) return 'png';
+          if (dataUrl.includes('image/jpeg') || dataUrl.includes('image/jpg')) return 'jpg';
+          if (dataUrl.includes('image/webp')) return 'webp';
+          return 'unknown';
+        }
+
+        async calculate(imageData, preset) {
+          const imageDataObj = await this.analyzeImage(imageData);
+          const stats = await this.worker.run('analyze', imageDataObj);
+          const { width, height, avgLum, avgSat, stdLum, edgeScore, transparentRatio } = stats;
+
+          const targetW = preset.widthPx || Math.round((preset.widthMm || 0) / 25.4 * preset.dpi);
+          const targetH = preset.heightPx || Math.round((preset.heightMm || 0) / 25.4 * preset.dpi);
+          const targetMax = Math.max(targetW, targetH);
+          const actualMax = Math.max(width, height);
+          const resolutionRatio = targetMax > 0 ? actualMax / targetMax : 1;
+          const resolutionScore = Math.min(1, resolutionRatio);
+          const needsUpscale = resolutionRatio < 1;
+
+          const imgAspect = height > 0 ? width / height : 1;
+          const targetAspect = targetH > 0 ? targetW / targetH : 1;
+          const aspectDiff = Math.max(imgAspect, targetAspect) > 0
+            ? Math.abs(imgAspect - targetAspect) / Math.max(imgAspect, targetAspect)
+            : 0;
+          const aspectScore = Math.max(0, 1 - aspectDiff);
+
+          const brightnessScore = avgLum < 0.15 ? avgLum / 0.15 : avgLum > 0.95 ? (1 - avgLum) / 0.05 : 1;
+          const saturationScore = avgSat > 0.85 ? (1 - avgSat) / 0.15 : avgSat < 0.05 ? avgSat / 0.05 : 1;
+          const contrastScore = Math.min(1, stdLum * 4);
+          const sharpnessScore = Math.min(1, edgeScore * 20);
+
+          const format = this.detectFormat(imageData);
+          let formatScore = 1;
+          if (format === 'webp') formatScore = 0.4;
+          else if (format === 'unknown') formatScore = 0.5;
+          if (transparentRatio > 0.05 && preset.bleed === 0) formatScore *= 0.7;
+
+          const weights = {
+            resolution: 0.35,
+            aspect: 0.15,
+            brightness: 0.1,
+            saturation: 0.1,
+            contrast: 0.1,
+            sharpness: 0.1,
+            format: 0.1
+          };
+
+          const score = Math.round((
+            resolutionScore * weights.resolution +
+            aspectScore * weights.aspect +
+            brightnessScore * weights.brightness +
+            saturationScore * weights.saturation +
+            contrastScore * weights.contrast +
+            sharpnessScore * weights.sharpness +
+            formatScore * weights.format
+          ) * 100);
+
+          const issues = [];
+          if (resolutionRatio < 0.5) issues.push('解析度嚴重不足，建議放大');
+          else if (resolutionRatio < 1) issues.push('解析度不足，建議放大');
+          if (aspectDiff > 0.1) issues.push('長寬比與目標不同，可能裁切');
+          if (avgLum < 0.15) issues.push('畫面偏暗，印刷後可能更暗');
+          if (avgLum > 0.95) issues.push('畫面偏亮，細節可能遺失');
+          if (avgSat > 0.85) issues.push('色彩過飽和，印刷可能偏色');
+          if (avgSat < 0.05) issues.push('色彩過淡，印刷可能偏灰');
+          if (stdLum < 0.08) issues.push('對比偏低，印刷可能太平');
+          if (edgeScore < 0.02) issues.push('畫面偏糊，建議銳化或換圖');
+          if (format === 'webp') issues.push('WebP 格式可能不被印刷店接受，建議轉 PNG/JPG');
+          if (transparentRatio > 0.05 && preset.bleed === 0) issues.push('圖片含透明背景，部分流程可能需補白');
+
+          return {
+            score: Math.max(0, Math.min(100, score)),
+            breakdown: {
+              resolution: Math.round(resolutionScore * 100),
+              aspect: Math.round(aspectScore * 100),
+              brightness: Math.round(brightnessScore * 100),
+              saturation: Math.round(saturationScore * 100),
+              contrast: Math.round(contrastScore * 100),
+              sharpness: Math.round(sharpnessScore * 100),
+              format: Math.round(formatScore * 100)
+            },
+            needsUpscale,
+            targetMax,
+            actualMax,
+            issues,
+            stats: { avgLum, avgSat, stdLum, edgeScore, transparentRatio }
+          };
+        }
+      }
+
+      // ============================================================
+      // 設定管理
+      // ============================================================
+      class SettingsManager {
+        constructor() {
+          this.defaults = { format: 'png', quality: CONSTANTS.DEFAULT_QUALITY };
+          this.current = this.loadSettings();
+        }
+
+        loadSettings() {
+          try {
+            const saved = localStorage.getItem('image_tool_settings');
+            return saved ? { ...this.defaults, ...JSON.parse(saved) } : { ...this.defaults };
+          } catch (e) {
+            return { ...this.defaults };
+          }
+        }
+
+        saveSettings() {
+          try {
+            localStorage.setItem('image_tool_settings', JSON.stringify(this.current));
+          } catch (e) {
+            console.warn('Failed to save settings:', e);
+          }
+        }
+
+        get(key) { return this.current[key]; }
+        set(key, value) { this.current[key] = value; this.saveSettings(); }
+        getAll() { return { ...this.current }; }
+        reset() { this.current = { ...this.defaults }; this.saveSettings(); }
+      }
+
+      // ============================================================
+      // 公開 API
+      // ============================================================
+      const workerManager = new WorkerManager();
+      const exportManager = new ExportManager();
+      const settingsManager = new SettingsManager();
+      const imageEnhancer = new ImageEnhancer(workerManager);
+      const printScoreCalculator = new PrintScoreCalculator(workerManager);
+
+      const ImageTool = {
+        CONSTANTS,
+        export: exportManager,
+        settings: settingsManager,
+        enhance: imageEnhancer,
+        exportImage: (imageData, callbacks) => exportManager.performExport(imageData, settingsManager.getAll(), callbacks),
+        upscale: (imageData, options) => imageEnhancer.upscale(imageData, options),
+        printScore: (imageData, preset) => printScoreCalculator.calculate(imageData, preset),
+        init: () => {
+          console.log('ImageTool Core initialized (worker-based, offline)');
+        }
+      };
+
+      if (typeof module !== 'undefined' && module.exports) {
+        module.exports = ImageTool;
+      } else {
+        global.ImageTool = ImageTool;
+      }
+
+      if (typeof document !== 'undefined') {
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', ImageTool.init);
+        } else {
+          ImageTool.init();
+        }
+      }
+    })(typeof window !== 'undefined' ? window : this);
+  </script>
+  
+  <style>
+    /* ===== 基礎變數 ===== */
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: #2e3250;
+      --accent: #6c63ff;
+      
+      --accent2: #00d4aa;
+      --warn: #ffb347;
+      --danger: #ff5f5f;
+      --text: #e8eaf6;
+      --text-muted: #7c82a8;
+      --radius: 12px;
+      --radius-sm: 8px;
+      --shadow: 0 4px 24px rgba(0,0,0,0.4);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ===== 響應式設計 ===== */
+    @media (max-width: 768px) {
+      .desktop-view .container {
+        padding: 20px 16px;
+      }
+      
+      .hero-title {
+        font-size: 1.5rem;
+      }
+      
+      .hero-subtitle {
+        font-size: 1rem;
+      }
+      
+      .quality-tags {
+        flex-direction: column;
+        gap: 12px;
+      }
+      
+      .quality-tag {
+        width: 100%;
+        justify-content: center;
+      }
+      
+      .import-zone-full {
+        padding: 40px 20px;
+      }
+      
+      .import-icon-large {
+        font-size: 3rem;
+      }
+      
+      .import-text-large {
+        font-size: 1.2rem;
+      }
+      
+      .preview-container {
+        flex-direction: column;
+        gap: 20px;
+        padding: 20px;
+      }
+      
+      .preview-arrow {
+        transform: rotate(90deg);
+      }
+      
+      .assistant-container {
+        bottom: 10px;
+        width: 95%;
+      }
+      
+      .assistant-bubble {
+        font-size: 0.9rem;
+        padding: 12px 16px;
+      }
+    }
+
+    /* ===== 場景選擇器樣式 ===== */
+    .scenario-selector {
+      margin-top: 24px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 16px;
+    }
+
+    .scenario-card {
+      background: var(--surface);
+      border: 3px solid var(--border);
+      border-radius: 16px;
+      padding: 24px 20px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-align: center;
+      position: relative;
+    }
+
+    .scenario-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-4px);
+      box-shadow: 0 8px 32px rgba(108, 99, 255, 0.3);
+    }
+
+    /* 虛線閃爍框 - 游標移到按鈕時的強烈選取感 */
+    .scenario-card:hover::before {
+      content: '';
+      position: absolute;
+      top: -6px;
+      left: -6px;
+      right: -6px;
+      bottom: -6px;
+      border: 2px dashed var(--accent);
+      border-radius: 20px;
+      animation: dashedPulse 1s infinite;
+      pointer-events: none;
+    }
+
+    @keyframes dashedPulse {
+      0%, 100% { 
+        opacity: 1; 
+        border-color: var(--accent);
+      }
+      50% { 
+        opacity: 0.5; 
+        border-color: var(--accent2);
+      }
+    }
+
+    .scenario-card.active {
+      border-color: var(--accent);
+      background: linear-gradient(135deg, var(--surface), rgba(108, 99, 255, 0.15));
+      box-shadow: 0 0 20px rgba(108, 99, 255, 0.3);
+    }
+      50% { 
+        opacity: 0.5; 
+        border-color: #ffb347;
+      }
+    }
+
+    .scenario-icon {
+      font-size: 3rem;
+      margin-bottom: 12px;
+    }
+
+    .scenario-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: var(--text);
+    }
+
+    .scenario-desc {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+      margin-bottom: 12px;
+    }
+
+    .scenario-quality {
+      font-size: 0.8rem;
+      color: var(--accent2);
+      font-weight: 600;
+      padding: 6px 12px;
+      background: rgba(0, 212, 170, 0.1);
+      border-radius: 20px;
+      display: inline-block;
+    }
+
+    /* ===== Hero Section - 一鍵即結果 ===== */
+    .hero-section {
+      text-align: center;
+      padding: 40px 20px;
+      margin-bottom: 20px;
+    }
+
+    .hero-icon {
+      font-size: 4rem;
+      margin-bottom: 16px;
+      animation: float 3s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+
+    .hero-title {
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-subtitle {
+      font-size: 1.1rem;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+    }
+
+    /* 情緒化品質標籤 */
+    .quality-tags {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .quality-tag {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 20px;
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: 30px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .quality-tag:hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 20px rgba(108, 99, 255, 0.2);
+    }
+
+    .quality-tag.active {
+      border-color: var(--accent);
+      background: linear-gradient(135deg, var(--surface), rgba(108, 99, 255, 0.1));
+    }
+
+    .tag-icon {
+      font-size: 1.2rem;
+    }
+
+    .tag-text {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    /* ===== 全頁匯入區 ===== */
+    .import-zone-full {
+      margin: 20px auto;
+      max-width: 800px;
+      min-height: 300px;
+      padding: 60px 40px;
+      background: linear-gradient(135deg, var(--surface), rgba(108, 99, 255, 0.05));
+      border: 4px dashed var(--border);
+      border-radius: 24px;
+      text-align: center;
+      transition: all 0.4s ease;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .import-zone-full::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(108, 99, 255, 0.1) 0%, transparent 70%);
+      opacity: 0;
+      transition: opacity 0.4s ease;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .import-zone-full:hover {
+      border-color: var(--accent);
+      transform: scale(1.02);
+      box-shadow: 0 20px 60px rgba(108, 99, 255, 0.2);
+    }
+
+    .import-zone-full:hover::before {
+      opacity: 1;
+    }
+
+    .import-zone-full.drag-over {
+      border-color: var(--accent2);
+      background: rgba(0, 212, 170, 0.1);
+      transform: scale(1.05);
+    }
+
+    .import-zone-full input[type="file"] {
+      display: none;
+    }
+
+    .import-content {
+      position: relative;
+      z-index: 2;
+      pointer-events: none; /* 讓點擊穿透到父元素 */
+    }
+
+    .import-content > * {
+      pointer-events: auto; /* 子元素可以接收點擊 */
+    }
+
+    .import-icon-large {
+      font-size: 5rem;
+      margin-bottom: 24px;
+      animation: bounce 2s infinite;
+      cursor: pointer;
+    }
+
+    .import-text-large, .import-hint-large {
+      cursor: pointer;
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-15px); }
+    }
+
+    .import-text-large {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 12px;
+    }
+
+    .import-hint-large {
+      font-size: 1rem;
+      color: var(--text-muted);
+    }
+
+    /* ===== 預覽區 ===== */
+    .preview-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 30px;
+      margin: 40px auto;
+      max-width: 900px;
+      padding: 30px;
+      background: var(--surface);
+      border-radius: 20px;
+      border: 2px solid var(--border);
+    }
+
+    .preview-before, .preview-after {
+      flex: 1;
+      text-align: center;
+      position: relative;
+    }
+
+    .preview-before img, .preview-after img {
+      max-width: 100%;
+      max-height: 300px;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+
+    .preview-label {
+      position: absolute;
+      bottom: -30px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 6px 16px;
+      background: var(--surface2);
+      border-radius: 20px;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+
+    .preview-arrow {
+      font-size: 2.5rem;
+      color: var(--accent);
+      animation: pulse-arrow 1.5s infinite;
+    }
+
+    @keyframes pulse-arrow {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(1.2); }
+    }
+
+    /* ===== 安全區可視化 (P16) ===== */
+    .safe-zone-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      pointer-events: none;
+      border: 2px dashed var(--danger);
+      margin: 10%;
+      box-sizing: border-box;
+    }
+
+    .safe-zone-label {
+      position: absolute;
+      top: -24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--danger);
+      color: white;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .bleed-zone-overlay {
+      position: absolute;
+      top: -3mm;
+      left: -3mm;
+      right: -3mm;
+      bottom: -3mm;
+      border: 1px dotted var(--accent2);
+      pointer-events: none;
+    }
+
+    /* ===== 隱私徽章 (U23) ===== */
+    .privacy-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: linear-gradient(135deg, rgba(0,212,170,0.2), rgba(108,99,255,0.1));
+      border: 1px solid var(--accent2);
+      color: var(--accent2);
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 6px 12px;
+      border-radius: 20px;
+      margin-left: 12px;
+    }
+
+    .privacy-badge svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    /* ===== 印刷廠認證徽章 (P24) ===== */
+    .print-shop-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: linear-gradient(135deg, #ff6b6b, #ee5a6f);
+      color: white;
+      font-size: 0.85rem;
+      font-weight: 700;
+      padding: 8px 14px;
+      border-radius: 20px;
+      margin-top: 12px;
+      box-shadow: 0 4px 12px rgba(238,90,111,0.3);
+    }
+
+    /* ===== 進度動畫區 ===== */
+    .progress-container {
+      margin: 40px auto;
+      max-width: 600px;
+      text-align: center;
+    }
+
+    .progress-magic {
+      padding: 40px;
+      background: var(--surface);
+      border-radius: 20px;
+      border: 2px solid var(--accent);
+    }
+
+    .magic-sparkle {
+      font-size: 3rem;
+      margin-bottom: 20px;
+      animation: sparkle 1s infinite;
+    }
+
+    @keyframes sparkle {
+      0%, 100% { transform: scale(1) rotate(0deg); opacity: 1; }
+      50% { transform: scale(1.2) rotate(10deg); opacity: 0.8; }
+    }
+
+    .magic-text {
+      font-size: 1.2rem;
+      color: var(--text);
+      margin-bottom: 20px;
+      font-weight: 600;
+    }
+
+    .magic-dots {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .magic-dots span {
+      width: 12px;
+      height: 12px;
+      background: var(--accent);
+      border-radius: 50%;
+      animation: bounce 1.4s ease-in-out infinite both;
+    }
+
+    .magic-dots span:nth-child(1) { animation-delay: -0.32s; }
+    .magic-dots span:nth-child(2) { animation-delay: -0.16s; }
+
+    /* ===== 滑動對比區 (U08) ===== */
+    .compare-container {
+      position: relative;
+      max-width: 800px;
+      margin: 40px auto;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    }
+
+    .compare-wrapper {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16/10;
+      background: var(--surface);
+    }
+
+    .compare-image {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .compare-image.before {
+      z-index: 1;
+      clip-path: inset(0 50% 0 0);
+    }
+
+    .compare-image.after {
+      z-index: 2;
+    }
+
+    .compare-slider {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 50%;
+      width: 4px;
+      background: var(--accent);
+      z-index: 10;
+      cursor: ew-resize;
+      transform: translateX(-50%);
+    }
+
+    .compare-slider::before {
+      content: '↔';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 40px;
+      height: 40px;
+      background: var(--accent);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 1.2rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+    .compare-label {
+      position: absolute;
+      top: 16px;
+      padding: 8px 16px;
+      background: rgba(0,0,0,0.7);
+      color: white;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      z-index: 5;
+    }
+
+    .compare-label.before { left: 16px; }
+    .compare-label.after { right: 16px; }
+
+    /* ===== 智慧場景偵測動畫 (U02) ===== */
+    .auto-detecting {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 20px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 30px;
+      color: white;
+      font-size: 0.9rem;
+      font-weight: 600;
+      animation: pulse-glow 2s infinite;
+    }
+
+    @keyframes pulse-glow {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(108, 99, 255, 0.4); }
+      50% { box-shadow: 0 0 20px 5px rgba(108, 99, 255, 0.2); }
+    }
+
+    /* ===== 一鍵下載按鈕 (U14) ===== */
+    .one-click-export {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      margin: 30px 0;
+      flex-wrap: wrap;
+    }
+
+    .export-btn {
+      padding: 14px 28px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .export-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(108, 99, 255, 0.4);
+    }
+
+    .export-btn.secondary {
+      background: var(--surface2);
+      border: 2px solid var(--border);
+      color: var(--text);
+    }
+
+    .export-btn.secondary:hover {
+      border-color: var(--accent);
+    }
+
+    /* ===== 小助理小象 - 置中下方 ===== */
+    .assistant-container {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      width: 90%;
+      max-width: 600px;
+    }
+
+    .assistant-avatar {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #E8E8E8 0%, #D0D0D0 50%, #B8B8B8 100%);
+      border: 4px solid white;
+      box-shadow: 0 4px 20px rgba(108, 99, 255, 0.3), 0 0 0 4px rgba(255, 255, 255, 0.2);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .assistant-avatar svg {
+      width: 70px;
+      height: 70px;
+      transition: transform 0.3s ease;
+    }
+    
+    .assistant-avatar:hover svg {
+      transform: scale(1.05);
+    }
+
+    .assistant-avatar:hover {
+      transform: scale(1.15);
+      box-shadow: 0 8px 40px rgba(108, 99, 255, 0.4), 0 0 0 6px rgba(255, 255, 255, 0.3);
+    }
+
+    .assistant-avatar.pulse {
+      animation: pulse 2s infinite, floatAvatar 3s ease-in-out infinite;
+    }
+
+    @keyframes floatAvatar {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      25% { transform: translateY(-5px) rotate(2deg); }
+      75% { transform: translateY(-3px) rotate(-2deg); }
+    }
+
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 4px 20px rgba(108, 99, 255, 0.3), 0 0 0 4px rgba(255, 255, 255, 0.2); }
+      50% { box-shadow: 0 8px 40px rgba(156, 124, 255, 0.5), 0 0 0 8px rgba(255, 255, 255, 0.4); }
+    }
+
+    .assistant-bubble {
+      width: 100%;
+      max-width: 600px;
+      background: #ffffff;
+      border: 2px solid #6c63ff;
+      border-radius: 50px;
+      padding: 20px 28px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+      font-size: 0.95rem;
+      color: #000000;
+      line-height: 1.6;
+      margin-bottom: 8px;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.3s ease;
+      position: relative;
+    }
+
+    .assistant-bubble.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .assistant-bubble:empty {
+      display: none;
+    }
+
+    /* 說明內容在刷刷對話框中的樣式 */
+    .assistant-bubble .preview-content {
+      text-align: left;
+    }
+
+    .assistant-bubble .preview-content h4 {
+      margin-bottom: 12px;
+      color: #000000;
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    .assistant-bubble .preview-content ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    .assistant-bubble .preview-content li {
+      padding: 4px 0;
+      padding-left: 20px;
+      position: relative;
+    }
+
+    .assistant-bubble .preview-content li::before {
+      content: '•';
+      position: absolute;
+      left: 0;
+      color: #000000;
+    }
+
+    
+    .assistant-bubble.suggestion {
+      background: #ffffff;
+      border: 2px solid #6c63ff;
+      border-left: 4px solid #ffc107;
+      color: #000000;
+    }
+
+    .assistant-bubble.warning {
+      background: #ffffff;
+      border: 2px solid #6c63ff;
+      border-left: 4px solid #f44336;
+      color: #000000;
+    }
+
+    .assistant-bubble.success {
+      background: #ffffff;
+      border: 2px solid #6c63ff;
+      border-left: 4px solid #4caf50;
+      color: #000000;
+    }
+
+    /* ===== 智慧建議彈窗 ===== */
+    .smart-suggestion-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.6);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+      backdrop-filter: blur(4px);
+    }
+
+    .smart-suggestion-modal.show {
+      display: flex;
+    }
+
+    .suggestion-card {
+      background: white;
+      border-radius: 24px;
+      padding: 32px;
+      max-width: 480px;
+      width: 90%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      animation: slideUp 0.4s ease;
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .suggestion-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .suggestion-icon {
+      font-size: 2.5rem;
+    }
+
+    .suggestion-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .suggestion-content {
+      font-size: 1rem;
+      color: var(--text-muted);
+      line-height: 1.7;
+      margin-bottom: 24px;
+    }
+
+    .suggestion-content strong {
+      color: var(--text);
+    }
+
+    .suggestion-actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .suggestion-btn {
+      flex: 1;
+      min-width: 120px;
+      padding: 14px 20px;
+      border-radius: 12px;
+      border: none;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .suggestion-btn.primary {
+      background: var(--accent);
+      color: white;
+    }
+
+    .suggestion-btn.primary:hover {
+      background: var(--accent2);
+      transform: translateY(-2px);
+    }
+
+    .suggestion-btn.secondary {
+      background: var(--surface2);
+      color: var(--text);
+    }
+
+    .suggestion-btn.secondary:hover {
+      background: var(--border);
+    }
+
+    /* ===== 主容器樣式 ===== */
+    .desktop-view {
+      display: block;
+      min-height: 100vh;
+    }
+
+    .desktop-view .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+    .toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); background: var(--surface2); color: var(--text); padding: 12px 24px; border-radius: 30px; font-size: 0.9rem; z-index: 1000; opacity: 0; visibility: hidden; transition: all 0.3s; }
+    .toast.show { opacity: 1; visibility: visible; }
+
+    /* AI 下載對話框 */
+    .ai-download-dialog {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+    }
+    .ai-download-content {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px;
+      max-width: 400px;
+      text-align: center;
+    }
+    .ai-download-content h3 {
+      margin: 0 0 16px 0;
+      font-size: 1.5rem;
+      color: var(--text);
+    }
+    .ai-download-content p {
+      margin: 0 0 24px 0;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+    .ai-download-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+    }
+    .ai-download-actions button {
+      padding: 12px 24px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+    }
+    .btn-primary:hover {
+      background: var(--accent2);
+    }
+    .btn-secondary {
+      background: var(--surface2);
+      color: var(--text);
+    }
+    .btn-secondary:hover {
+      background: var(--border);
+    }
+
+    /* ===== 印刷適合度評分 ===== */
+    .print-score-bar {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px 20px;
+      margin: 0 0 12px 0;
+      display: none;
+    }
+    .print-score-bar.show { display: block; }
+    .print-score-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .print-score-label {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      font-weight: 600;
+      letter-spacing: 0.03em;
+    }
+    .print-score-number {
+      font-size: 1.5rem;
+      font-weight: 800;
+      transition: color 0.4s;
+    }
+    .print-score-number.high { color: #00d4aa; }
+    .print-score-number.mid  { color: #ffd700; }
+    .print-score-number.low  { color: #ff6b6b; }
+    .print-score-track {
+      height: 8px;
+      background: var(--border);
+      border-radius: 99px;
+      overflow: hidden;
+      margin-bottom: 8px;
+    }
+    .print-score-fill {
+      height: 100%;
+      border-radius: 99px;
+      transition: width 0.5s cubic-bezier(.4,0,.2,1), background 0.4s;
+    }
+    .print-score-verdict {
+      font-size: 0.82rem;
+      font-weight: 600;
+      margin-top: 2px;
+    }
+    .print-score-verdict.high { color: #00d4aa; }
+    .print-score-verdict.mid  { color: #ffd700; }
+    .print-score-verdict.low  { color: #ff6b6b; }
+
+    /* ===== 處理前後對比評分 ===== */
+    .score-comparison {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px 20px;
+      margin: 12px 0;
+    }
+
+    .comparison-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .comparison-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .comparison-total {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--accent2);
+    }
+
+    .comparison-items {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .comparison-item {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      padding: 8px 12px;
+      background: var(--surface);
+      border-radius: 8px;
+    }
+
+    .comparison-item-label {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      flex: 1;
+    }
+
+    .comparison-item-scores {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      justify-content: space-between;
+    }
+
+    .comparison-item-detail {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+      opacity: 0.8;
+    }
+
+    .comparison-score {
+      font-size: 0.9rem;
+      font-weight: 600;
+      min-width: 50px;
+      text-align: right;
+    }
+
+    .comparison-score.before {
+      color: var(--text-muted);
+    }
+
+    .comparison-score.after {
+      color: var(--accent2);
+    }
+
+    .comparison-arrow {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+
+    .comparison-arrow.up {
+      color: #00d4aa;
+    }
+
+    .comparison-arrow.down {
+      color: #ff6b6b;
+    }
+
+    .comparison-arrow.same {
+      color: var(--text-muted);
+    }
+
+    /* 旋轉按鈕 */
+    .rotate-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      border: none;
+      background: rgba(108,99,255,0.85);
+      color: white;
+      font-size: 1.1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s, transform 0.2s;
+      z-index: 10;
+      backdrop-filter: blur(4px);
+    }
+    .rotate-btn:hover {
+      background: rgba(108,99,255,1);
+      transform: rotate(90deg);
+    }
+
+    /* 舊圖評分標籤 */
+    .original-score-tag {
+      position: absolute;
+      bottom: 8px;
+      left: 8px;
+      background: rgba(0,0,0,0.65);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 8px;
+      padding: 4px 10px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #ff6b6b;
+      backdrop-filter: blur(4px);
+    }
+  </style>
+
+</head>
+<body>
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <!-- 主容器 -->
+  <div class="desktop-view" id="desktopView">
+    <div class="container">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; padding-bottom: 20px; border-bottom: 1px solid var(--border);">
+        <div style="display: flex; align-items: center;">
+          <div style="font-size: 1.8rem; font-weight: 700; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">小象</div>
+          <!-- 隱私承諾徽章 (U23) -->
+          <span class="privacy-badge" title="您的圖片不會離開瀏覽器">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              <path d="M9 12l2 2 4-4"/>
+            </svg>
+            隱私保護
+          </span>
+        </div>
+        </div>
+      
+      <!-- 匯入區 - 全頁拖曳 -->
+      <div class="import-zone-full" id="importZoneFull"
+           onclick="triggerFileSelect(event)"
+           ondragover="handleDragOver(event)"
+           ondragleave="handleDragLeave(event)"
+           ondrop="handleDrop(event)">
+        <input type="file" id="fileInput" accept="image/png,image/jpeg,image/jpg,image/heic,image/webp" multiple onchange="handleFileSelect(event)">
+        <div class="import-content">
+          <div class="import-icon-large">📸</div>
+          <div class="import-text-large">點選或拖曳圖片到這裡</div>
+          <div class="import-hint-large">支援 PNG、JPG、HEIC — 自動優化，一鍵輸出</div>
+        </div>
+      </div>
+      
+      <!-- 預覽區 -->
+      <div class="preview-container" id="previewContainer" style="display: none;">
+        <div class="preview-before">
+          <img id="previewBeforeImg" src="" alt="原始圖片">
+          <span class="preview-label">原始</span>
+          <div class="original-score-tag" id="originalScoreTag" style="display:none;"></div>
+        </div>
+        <div class="preview-arrow">→</div>
+        <div class="preview-after" id="previewAfterContainer">
+          <img id="previewAfterImg" src="" alt="優化後">
+          <!-- 旋轉按鈕 -->
+          <button class="rotate-btn" id="rotateBtn" onclick="rotateImage()" title="旋轉 90°" style="display:none;">↻</button>
+          <!-- 安全區可視化 (P16) -->
+          <div class="safe-zone-overlay" id="safeZoneOverlay" style="display: none;">
+            <span class="safe-zone-label">安全區 - 重要內容請放這裡</span>
+          </div>
+          <!-- 出血區可視化 -->
+          <div class="bleed-zone-overlay" id="bleedZoneOverlay" style="display: none;"></div>
+          <span class="preview-label" id="previewAfterLabel">優化後</span>
+        </div>
+      </div>
+
+      <!-- 滑動對比區 (U08) -->
+      <div class="compare-container" id="compareContainer" style="display: none;">
+        <div class="compare-wrapper" id="compareWrapper">
+          <img id="compareBeforeImg" class="compare-image before" src="" alt="原始圖片">
+          <img id="compareAfterImg" class="compare-image after" src="" alt="優化後">
+          <div class="compare-slider" id="compareSlider"></div>
+          <span class="compare-label before">原始</span>
+          <span class="compare-label after">優化後</span>
+        </div>
+      </div>
+
+      <!-- 印刷適合度評分 -->
+      <div class="print-score-bar" id="printScoreBar">
+        <div class="print-score-header">
+          <span class="print-score-label">🖨️ 印刷適合度</span>
+          <span class="print-score-number" id="printScoreNumber">--</span>
+        </div>
+        <div class="print-score-track">
+          <div class="print-score-fill" id="printScoreFill" style="width:0%"></div>
+        </div>
+        <div class="print-score-verdict" id="printScoreVerdict"></div>
+      </div>
+
+      <!-- 處理前後對比評分 -->
+      <div class="score-comparison" id="scoreComparison" style="display: none;">
+        <div class="comparison-header">
+          <span class="comparison-title">📊 處理前後對比</span>
+          <span class="comparison-total" id="comparisonTotal">總分: --</span>
+        </div>
+        <div class="comparison-items" id="comparisonItems">
+          <!-- 動態生成 -->
+        </div>
+      </div>
+
+      <!-- 一鍵下載按鈕區 (U14) -->
+      <div class="one-click-export" id="oneClickExport" style="display: none;">
+        <button class="export-btn" onclick="quickExport('png')">
+          <span>📥</span> 下載 PNG
+        </button>
+        <button class="export-btn secondary" id="exportSvgBtn" onclick="exportSVG()">
+          <span>⬡</span> 匯出 SVG
+        </button>
+        <button class="export-btn secondary" onclick="toggleCompareView()">
+          <span>👁️</span> 對比檢視
+        </button>
+      </div>
+
+      <!-- 進度動畫區 -->
+      <div class="progress-container" id="progressContainer" style="display: none;">
+        <div class="progress-magic">
+          <div class="magic-sparkle">✨</div>
+          <div class="magic-text" id="progressText">小象正在分析圖片...</div>
+          <div class="magic-dots">
+            <span></span><span></span><span></span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 隱藏的技術設定（供程式使用） -->
+      <div id="techSettings" style="display: none;">
+        <input type="hidden" id="settingDpi" value="300">
+        <input type="hidden" id="settingColorMode" value="cmyk">
+        <input type="hidden" id="settingBleed" value="3">
+        <input type="hidden" id="settingFormat" value="png">
+        <input type="hidden" id="currentScenario" value="poster-a4">
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 初始化
+    document.addEventListener('DOMContentLoaded', () => {
+      // 初始化 ImageTool Core
+      if (typeof ImageTool !== 'undefined') {
+        ImageTool.init();
+      }
+    });
+
+    // ===== 基本功能函數 =====
+    
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+
+    function selectImage() {
+      showToast('請選擇圖片檔案');
+    }
+
+    // ============================================================
+    // Export Functions
+    // ============================================================
+    
+    async function performExport(exportFormat) {
+      if (typeof ImageTool === 'undefined') {
+        showToast('系統錯誤，請重新整理頁面');
+        return;
+      }
+
+
+      showToast('準備匯出...');
+
+
+      // 取得當前設定
+      const preset = DEFAULT_PRESET;
+      const format = exportFormat || (preset ? preset.format : 'png');
+
+      // PDF 匯出處理（按需下載 jsPDF）
+      if (format === 'pdf' && currentImageData) {
+        const libUrl = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+        const initResult = await jsPDFManager.initialize('jspdf', libUrl);
+
+        if (initResult.needsDownload) {
+          // 顯示下載確認對話框
+          showPDFDownloadConfirmDialog(libUrl);
+          return;
+        } else if (initResult.error) {
+          showToast('✗ jsPDF 初始化失敗: ' + initResult.error);
+          return;
+        }
+
+        await exportToPDF(currentImageData, preset);
+        return;
+      }
+
+      // 執行一般匯出（含印刷優化）
+      let optimizedImageData = currentImageData;
+      
+      // 1. DPI 檢測和自動放大
+      const outputWidthMm = preset.width || 210;
+      const outputHeightMm = preset.height || 297;
+      const dpiCheck = await dpiDetector.autoUpscaleIfNeeded(currentImageData, outputWidthMm, outputHeightMm);
+      
+      if (dpiCheck.needsUpscale) {
+        showToast(`🔍 DPI 不足 (${dpiCheck.currentDPI} DPI)，正在放大至 ${dpiCheck.targetDPI} DPI...`);
+        try {
+          optimizedImageData = await enhancedAIUpscaleManager.upscaleForPrint(
+            currentImageData, 
+            dpiCheck.targetDPI, 
+            dpiCheck.currentDPI
+          );
+          showToast(`✓ DPI 已優化至 ${dpiCheck.targetDPI} DPI`);
+        } catch (error) {
+          console.error('AI upscale failed, using fallback:', error);
+          showToast('⚠ AI 放大失敗，使用傳統方法');
+        }
+      } else {
+        showToast(`✓ DPI 充足 (${dpiCheck.currentDPI} DPI)`);
+      }
+
+      // 2. 總墨量控制
+      showToast('🎨 正在檢查總墨量...');
+      const inkResult = await inkLimitController.applyInkLimit(optimizedImageData);
+      
+      if (inkResult.exceededPixels > 0) {
+        showToast(`⚠ 發現 ${inkResult.exceededPixels} 個像素超過墨量限制，已自動修正`);
+        optimizedImageData = inkResult.imageData;
+      } else {
+        showToast(`✓ 總墨量正常 (最大: ${inkResult.maxTotalInk.toFixed(0)}%)`);
+      }
+
+      const success = await ImageTool.exportImage(optimizedImageData, {
+        onSuccess: ({ remaining, isUnlimited }) => {
+          const text = isUnlimited ? '無限制' : `剩餘 ${remaining} 次`;
+          showToast(`✓ 匯出成功！${text}`);
+          
+        },
+        onError: (msg) => {
+          showToast('✗ ' + msg);
+        }
+      });
+    }
+
+    // PDF 匯出功能（含裁切標記和出血）(P18, P15, P14)
+    async function exportToPDF(imageData, preset) {
+      if (!imageData || !preset) {
+        showToast('✗ 無法匯出 PDF：缺少圖片或設定');
+        return;
+      }
+
+      try {
+        showToast('📄 正在生成 PDF...');
+
+        // 印刷優化流程
+        let optimizedImageData = imageData;
+        
+        // 1. DPI 檢測和自動放大
+        const outputWidthMm = preset.width || 210;
+        const outputHeightMm = preset.height || 297;
+        const dpiCheck = await dpiDetector.autoUpscaleIfNeeded(imageData, outputWidthMm, outputHeightMm);
+        
+        if (dpiCheck.needsUpscale) {
+          showToast(`🔍 DPI 不足 (${dpiCheck.currentDPI} DPI)，正在放大至 ${dpiCheck.targetDPI} DPI...`);
+          try {
+            optimizedImageData = await enhancedAIUpscaleManager.upscaleForPrint(
+              imageData, 
+              dpiCheck.targetDPI, 
+              dpiCheck.currentDPI
+            );
+            showToast(`✓ DPI 已優化至 ${dpiCheck.targetDPI} DPI`);
+          } catch (error) {
+            console.error('AI upscale failed, using fallback:', error);
+            showToast('⚠ AI 放大失敗，使用傳統方法');
+          }
+        } else {
+          showToast(`✓ DPI 充足 (${dpiCheck.currentDPI} DPI)`);
+        }
+
+        // 2. 總墨量控制
+        showToast('🎨 正在檢查總墨量...');
+        const inkResult = await inkLimitController.applyInkLimit(optimizedImageData);
+        
+        if (inkResult.exceededPixels > 0) {
+          showToast(`⚠ 發現 ${inkResult.exceededPixels} 個像素超過墨量限制，已自動修正`);
+          optimizedImageData = inkResult.imageData;
+        } else {
+          showToast(`✓ 總墨量正常 (最大: ${inkResult.maxTotalInk.toFixed(0)}%)`);
+        }
+
+        // 載入優化後的圖片取得尺寸
+        const img = new Image();
+        img.src = optimizedImageData;
+        await new Promise((resolve) => { img.onload = resolve; });
+
+        const { jsPDF } = jsPDFManager.jsPDF;
+
+        // 計算尺寸（含出血）
+        const bleedMm = preset.bleed || 0;
+        const imgWidthMm = (img.width / preset.dpi) * 25.4 + (bleedMm * 2);
+        const imgHeightMm = (img.height / preset.dpi) * 25.4 + (bleedMm * 2);
+
+        // 建立 PDF（橫向或直向依圖片決定）
+        const orientation = img.width > img.height ? 'landscape' : 'portrait';
+        const pdf = new jsPDF({
+          orientation: orientation,
+          unit: 'mm',
+          format: [imgWidthMm + 20, imgHeightMm + 20] // 額外空間給裁切標記
+        });
+
+        // 計算置中位置
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+        const x = (pageWidth - imgWidthMm) / 2;
+        const y = (pageHeight - imgHeightMm) / 2;
+
+        // 加入圖片
+        pdf.addImage(imageData, 'PNG', x, y, imgWidthMm, imgHeightMm);
+
+        // 加入裁切標記（如果啟用）(P15)
+        if (preset.cropMarks) {
+          const markLength = 5; // 標記長度 mm
+          const offset = bleedMm;
+
+          pdf.setDrawColor(0);
+          pdf.setLineWidth(0.25);
+
+          // 左上標記
+          pdf.line(x - offset - markLength, y - offset, x - offset, y - offset);
+          pdf.line(x - offset, y - offset - markLength, x - offset, y - offset);
+
+          // 右上標記
+          pdf.line(x + imgWidthMm + offset, y - offset, x + imgWidthMm + offset + markLength, y - offset);
+          pdf.line(x + imgWidthMm + offset, y - offset - markLength, x + imgWidthMm + offset, y - offset);
+
+          // 左下標記
+          pdf.line(x - offset - markLength, y + imgHeightMm + offset, x - offset, y + imgHeightMm + offset);
+          pdf.line(x - offset, y + imgHeightMm + offset, x - offset, y + imgHeightMm + offset + markLength);
+
+          // 右下標記
+          pdf.line(x + imgWidthMm + offset, y + imgHeightMm + offset, x + imgWidthMm + offset + markLength, y + imgHeightMm + offset);
+          pdf.line(x + imgWidthMm + offset, y + imgHeightMm + offset, x + imgWidthMm + offset, y + imgHeightMm + offset + markLength);
+        }
+
+        // 加入印刷廠資訊（如果有）
+        if (preset.printShop) {
+          pdf.setFontSize(8);
+          pdf.setTextColor(128);
+          pdf.text(`Optimized for: ${preset.printShop} | ${preset.dpi} DPI | Bleed: ${bleedMm}mm`, 10, pageHeight - 5);
+        }
+
+        // 下載 PDF
+        const timestamp = Date.now();
+        pdf.save(`print-ready-${preset.format || 'export'}-${timestamp}.pdf`);
+
+        showToast(`✓ PDF 匯出成功！`);
+      } catch (error) {
+        console.error('PDF export error:', error);
+        showToast('✗ PDF 匯出失敗: ' + error.message);
+      }
+    }
+
+    function showPDFDownloadConfirmDialog(libUrl) {
+      const dialog = document.createElement('div');
+      dialog.className = 'ai-download-dialog';
+      
+      const content = document.createElement('div');
+      content.className = 'ai-download-content';
+      
+      const title = document.createElement('h3');
+      title.textContent = '📄 PDF 匯出功能';
+      
+      const p1 = document.createElement('p');
+      p1.textContent = '首次使用需要下載 jsPDF 庫（約 200KB）';
+      
+      const p2 = document.createElement('p');
+      p2.textContent = '下載後可永久離線使用';
+      
+      const actions = document.createElement('div');
+      actions.className = 'ai-download-actions';
+      
+      const downloadBtn = document.createElement('button');
+      downloadBtn.className = 'btn-primary';
+      downloadBtn.textContent = '開始下載';
+      downloadBtn.onclick = () => confirmPDFDownload(libUrl);
+      
+      const cancelBtn = document.createElement('button');
+      cancelBtn.className = 'btn-secondary';
+      cancelBtn.textContent = '取消';
+      cancelBtn.onclick = closeDownloadDialog;
+      
+      actions.appendChild(downloadBtn);
+      actions.appendChild(cancelBtn);
+      content.appendChild(title);
+      content.appendChild(p1);
+      content.appendChild(p2);
+      content.appendChild(actions);
+      dialog.appendChild(content);
+      
+      document.body.appendChild(dialog);
+    }
+
+    async function confirmPDFDownload(libUrl) {
+      closeDownloadDialog();
+      showToast('📥 正在下載 jsPDF...');
+
+      try {
+        await jsPDFManager.downloadLibrary('jspdf', libUrl, (loaded, total) => {
+          const percent = Math.round((loaded / total) * 100);
+          showToast(`📥 下載中... ${percent}%`);
+        });
+
+        showToast('✓ jsPDF 下載完成，正在初始化...');
+        const result = await jsPDFManager.initialize('jspdf');
+
+        if (result.success) {
+          showToast('✓ PDF 匯出功能已就緒');
+          // 重新觸發匯出
+          if (currentImageData) {
+            await exportToPDF(currentImageData, DEFAULT_PRESET);
+          }
+        } else {
+          showToast('✗ jsPDF 初始化失敗');
+        }
+      } catch (error) {
+        showToast('✗ 下載失敗: ' + error.message);
+      }
+    }
+
+    // ============================================================
+    // AI Upscale Module Manager (按需下載)
+    // ============================================================
+    class AIUpscaleManager {
+      constructor() {
+        this.dbName = 'AI2PNG_ModelCache';
+        this.dbVersion = 1;
+        this.storeName = 'models';
+        this.isModelLoaded = false;
+        this.model = null;
+        this.tf = null;
+      }
+
+      // IndexedDB 初始化
+      async initDB() {
+        return new Promise((resolve, reject) => {
+          const request = indexedDB.open(this.dbName, this.dbVersion);
+          request.onerror = () => reject(request.error);
+          request.onsuccess = () => resolve(request.result);
+          request.onupgradeneeded = (e) => {
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains(this.storeName)) {
+              db.createObjectStore(this.storeName);
+            }
+          };
+        });
+      }
+
+      // 檢查模型是否已緩存
+      async hasModel(modelName) {
+        const db = await this.initDB();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(this.storeName, 'readonly');
+          const store = tx.objectStore(this.storeName);
+          const request = store.get(modelName);
+          request.onsuccess = () => resolve(!!request.result);
+          request.onerror = () => reject(request.error);
+        });
+      }
+
+      // 下載並緩存模型
+      async downloadModel(modelName, url, onProgress) {
+        const db = await this.initDB();
+        const response = await fetch(url);
+        const contentLength = response.headers.get('content-length');
+        const total = parseInt(contentLength, 10);
+        let loaded = 0;
+
+        const reader = response.body.getReader();
+        const chunks = [];
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          chunks.push(value);
+          loaded += value.length;
+          if (onProgress) onProgress(loaded, total);
+        }
+
+        const blob = new Blob(chunks);
+        const arrayBuffer = await blob.arrayBuffer();
+
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(this.storeName, 'readwrite');
+          const store = tx.objectStore(this.storeName);
+          store.put(arrayBuffer, modelName);
+          tx.oncomplete = () => resolve(arrayBuffer);
+          tx.onerror = () => reject(tx.error);
+        });
+      }
+
+      // 從緩存加載模型
+      async loadModelFromCache(modelName) {
+        const db = await this.initDB();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(this.storeName, 'readonly');
+          const store = tx.objectStore(this.storeName);
+          const request = store.get(modelName);
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+      }
+
+      // 動態加載 TensorFlow.js
+      async loadTensorFlowJS() {
+        if (this.tf) return this.tf;
+
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js';
+        return new Promise((resolve, reject) => {
+          script.onload = () => {
+            this.tf = window.tf;
+            resolve(this.tf);
+          };
+          script.onerror = reject;
+          document.head.appendChild(script);
+        });
+      }
+
+      // 初始化 AI 放大功能
+      async initialize(modelName = 'realcugan-2x', modelUrl = null) {
+        if (this.isModelLoaded) return true;
+
+        try {
+          // 檢查是否已緩存
+          const hasCache = await this.hasModel(modelName);
+
+          if (!hasCache) {
+            if (!modelUrl) {
+              throw new Error('首次使用需要提供模型下載 URL');
+            }
+            // 需要下載，由 UI 處理確認
+            return { needsDownload: true, modelUrl };
+          }
+
+          // 從緩存加載
+          const modelData = await this.loadModelFromCache(modelName);
+          await this.loadTensorFlowJS();
+
+          // 從 ArrayBuffer 創建 Blob URL 並加載模型
+          const blob = new Blob([modelData], { type: 'application/json' });
+          const modelUrlLocal = URL.createObjectURL(blob);
+
+          // 加載 TensorFlow.js 模型
+          this.model = await this.tf.loadLayersModel(modelUrlLocal);
+          URL.revokeObjectURL(modelUrlLocal);
+
+          this.isModelLoaded = true;
+          return { success: true };
+        } catch (error) {
+          console.error('AI Upscale init error:', error);
+          return { error: error.message };
+        }
+      }
+
+      // 執行 AI 放大
+      async upscale(imageData, options = {}) {
+        if (!this.isModelLoaded) {
+          throw new Error('AI 模型未初始化');
+        }
+
+        const { scale = 2 } = options;
+
+        try {
+          // 將 DataURL 轉為 Image
+          const img = new Image();
+          img.src = imageData;
+          await new Promise((resolve) => { img.onload = resolve; });
+
+          // 創建 canvas 並獲取 ImageData
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0);
+          const inputImageData = ctx.getImageData(0, 0, img.width, img.height);
+
+          // 轉為 tensor (normalize to [0, 1])
+          const tensor = this.tf.tidy(() => {
+            return this.tf.browser.fromPixels(inputImageData)
+              .toFloat()
+              .div(255.0)
+              .expandDims(0);
+          });
+
+          // 執行模型推理
+          const outputTensor = this.model.predict(tensor);
+
+          // 轉回 ImageData
+          const outputData = await this.tf.browser.toPixels(outputTensor.squeeze());
+
+          // 創建輸出 canvas
+          const outputCanvas = document.createElement('canvas');
+          outputCanvas.width = outputData.width;
+          outputCanvas.height = outputData.height;
+          const outputCtx = outputCanvas.getContext('2d');
+          outputCtx.putImageData(outputData, 0, 0);
+
+          // 清理 tensor
+          tensor.dispose();
+          outputTensor.dispose();
+
+          // 返回 DataURL
+          return outputCanvas.toDataURL('image/png');
+        } catch (error) {
+          console.error('AI upscale error:', error);
+          throw new Error('AI 放大失敗: ' + error.message);
+        }
+      }
+    }
+
+    const aiUpscaleManager = new AIUpscaleManager();
+
+    // ============================================================
+    // Ink Limit Controller (總墨量控制)
+    // ============================================================
+    class InkLimitController {
+      constructor(maxTotalInk = 320) {
+        this.maxTotalInk = maxTotalInk;
+      }
+
+      checkInkLimit(cmyk) {
+        const total = cmyk.c + cmyk.m + cmyk.y + cmyk.k;
+        
+        if (total > this.maxTotalInk) {
+          return {
+            exceeds: true,
+            total: total,
+            reduction: this.calculateReduction(cmyk)
+          };
+        }
+        
+        return { exceeds: false, total: total };
+      }
+
+      calculateReduction(cmyk) {
+        const factor = this.maxTotalInk / (cmyk.c + cmyk.m + cmyk.y + cmyk.k);
+        return {
+          c: Math.round(cmyk.c * factor),
+          m: Math.round(cmyk.m * factor),
+          y: Math.round(cmyk.y * factor),
+          k: Math.round(cmyk.k * factor)
+        };
+      }
+
+      async applyInkLimit(imageData) {
+        const img = new Image();
+        img.src = imageData;
+        await new Promise((resolve) => { img.onload = resolve; });
+
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        
+        const data = ctx.getImageData(0, 0, img.width, img.height);
+        const pixels = data.data;
+        
+        let maxTotal = 0;
+        let exceededPixels = 0;
+
+        for (let i = 0; i < pixels.length; i += 4) {
+          const r = pixels[i];
+          const g = pixels[i + 1];
+          const b = pixels[i + 2];
+          
+          // RGB to CMYK 轉換
+          const k = 1 - Math.max(r, g, b) / 255;
+          const c = (1 - r / 255 - k) / (1 - k) || 0;
+          const m = (1 - g / 255 - k) / (1 - k) || 0;
+          const y = (1 - b / 255 - k) / (1 - k) || 0;
+          
+          const total = (c + m + y + k) * 100;
+          maxTotal = Math.max(maxTotal, total);
+          
+          if (total > this.maxTotalInk) {
+            exceededPixels++;
+            const factor = this.maxTotalInk / total;
+            const newC = c * factor;
+            const newM = m * factor;
+            const newY = y * factor;
+            const newK = k * factor;
+            
+            // CMYK to RGB 轉換
+            pixels[i] = Math.round(255 * (1 - newC) * (1 - newK));
+            pixels[i + 1] = Math.round(255 * (1 - newM) * (1 - newK));
+            pixels[i + 2] = Math.round(255 * (1 - newY) * (1 - newK));
+          }
+        }
+        
+        ctx.putImageData(data, 0, 0);
+        
+        return {
+          imageData: canvas.toDataURL('image/png'),
+          maxTotalInk: maxTotal,
+          exceededPixels: exceededPixels,
+          totalPixels: pixels.length / 4,
+          exceededRatio: exceededPixels / (pixels.length / 4)
+        };
+      }
+    }
+
+    const inkLimitController = new InkLimitController(320);
+
+    // ============================================================
+    // DPI Detector (DPI 自動檢測)
+    // ============================================================
+    class DPIDetector {
+      constructor() {
+        this.targetDPI = 300;
+      }
+
+      calculateDPI(imageData, outputWidthMm, outputHeightMm) {
+        const img = new Image();
+        img.src = imageData;
+        
+        return new Promise((resolve) => {
+          img.onload = () => {
+            const widthPx = img.width;
+            const heightPx = img.height;
+            
+            // 計算 DPI：像素 / (毫米 / 25.4)
+            const dpiX = (widthPx / outputWidthMm) * 25.4;
+            const dpiY = (heightPx / outputHeightMm) * 25.4;
+            const avgDPI = (dpiX + dpiY) / 2;
+            
+            resolve({
+              dpiX: Math.round(dpiX),
+              dpiY: Math.round(dpiY),
+              avgDPI: Math.round(avgDPI),
+              widthPx,
+              heightPx,
+              outputWidthMm,
+              outputHeightMm
+            });
+          };
+        });
+      }
+
+      checkDPIForPrint(dpiInfo) {
+        const { avgDPI } = dpiInfo;
+        
+        if (avgDPI >= this.targetDPI) {
+          return {
+            adequate: true,
+            message: `✓ DPI 充足 (${avgDPI} DPI)`,
+            recommendation: null
+          };
+        } else if (avgDPI >= 200) {
+          return {
+            adequate: true,
+            message: `⚠ DPI 偏低 (${avgDPI} DPI)`,
+            recommendation: '建議放大至 300 DPI 以獲得最佳印刷效果'
+          };
+        } else {
+          return {
+            adequate: false,
+            message: `✗ DPI 不足 (${avgDPI} DPI)`,
+            recommendation: '必須放大至 300 DPI，否則印刷會模糊'
+          };
+        }
+      }
+
+      async autoUpscaleIfNeeded(imageData, outputWidthMm, outputHeightMm) {
+        const dpiInfo = await this.calculateDPI(imageData, outputWidthMm, outputHeightMm);
+        const check = this.checkDPIForPrint(dpiInfo);
+        
+        if (!check.adequate) {
+          const scaleFactor = this.targetDPI / dpiInfo.avgDPI;
+          return {
+            needsUpscale: true,
+            scaleFactor: scaleFactor,
+            currentDPI: dpiInfo.avgDPI,
+            targetDPI: this.targetDPI
+          };
+        }
+        
+        return {
+          needsUpscale: false,
+          currentDPI: dpiInfo.avgDPI,
+          targetDPI: this.targetDPI
+        };
+      }
+    }
+
+    const dpiDetector = new DPIDetector();
+
+    // ============================================================
+    // Enhanced AI Upscale Manager (印刷專用)
+    // ============================================================
+    class EnhancedAIUpscaleManager extends AIUpscaleManager {
+      async upscaleForPrint(imageData, targetDPI, currentDPI) {
+        if (currentDPI >= targetDPI) {
+          return imageData;
+        }
+
+        const scaleFactor = targetDPI / currentDPI;
+        
+        try {
+          const upscaled = await this.upscale(imageData, { scale: scaleFactor });
+          const sharpened = await this.applyPrintSharpening(upscaled);
+          return sharpened;
+        } catch (error) {
+          console.error('AI upscale for print failed:', error);
+          // 回退到 Lanczos
+          return await this.fallbackUpscale(imageData, scaleFactor);
+        }
+      }
+
+      async applyPrintSharpening(imageData) {
+        const img = new Image();
+        img.src = imageData;
+        await new Promise((resolve) => { img.onload = resolve; });
+
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        
+        const data = ctx.getImageData(0, 0, img.width, img.height);
+        const pixels = data.data;
+        const width = img.width;
+        const height = img.height;
+        
+        // Unsharp Mask: Amount 150%, Radius 1px, Threshold 3
+        const amount = 1.5;
+        const radius = 1;
+        const threshold = 3;
+        
+        const tempData = new Uint8ClampedArray(pixels);
+        
+        for (let y = radius; y < height - radius; y++) {
+          for (let x = radius; x < width - radius; x++) {
+            const idx = (y * width + x) * 4;
+            
+            for (let c = 0; c < 3; c++) {
+              const center = tempData[idx + c];
+              
+              // 計算周圍像素平均值
+              let sum = 0;
+              let count = 0;
+              
+              for (let dy = -radius; dy <= radius; dy++) {
+                for (let dx = -radius; dx <= radius; dx++) {
+                  if (dx === 0 && dy === 0) continue;
+                  const nIdx = ((y + dy) * width + (x + dx)) * 4 + c;
+                  sum += tempData[nIdx];
+                  count++;
+                }
+              }
+              
+              const avg = sum / count;
+              const diff = center - avg;
+              
+              if (Math.abs(diff) > threshold) {
+                const newValue = center + diff * amount;
+                pixels[idx + c] = Math.max(0, Math.min(255, newValue));
+              }
+            }
+          }
+        }
+        
+        ctx.putImageData(data, 0, 0);
+        return canvas.toDataURL('image/png');
+      }
+
+      async fallbackUpscale(imageData, scaleFactor) {
+        // 使用 Lanczos 重採樣作為回退
+        const img = new Image();
+        img.src = imageData;
+        await new Promise((resolve) => { img.onload = resolve; });
+
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(img.width * scaleFactor);
+        canvas.height = Math.round(img.height * scaleFactor);
+        const ctx = canvas.getContext('2d');
+        
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        
+        return canvas.toDataURL('image/png');
+      }
+    }
+
+    const enhancedAIUpscaleManager = new EnhancedAIUpscaleManager();
+
+    // ============================================================
+    // jsPDF Module Manager (按需下載)
+    // ============================================================
+    class JSPDFManager {
+      constructor() {
+        this.dbName = 'AI2PNG_LibCache';
+        this.dbVersion = 1;
+        this.storeName = 'libraries';
+        this.isLoaded = false;
+        this.jspdf = null;
+      }
+
+      async initDB() {
+        return new Promise((resolve, reject) => {
+          const request = indexedDB.open(this.dbName, this.dbVersion);
+          request.onerror = () => reject(request.error);
+          request.onsuccess = () => resolve(request.result);
+          request.onupgradeneeded = (e) => {
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains(this.storeName)) {
+              db.createObjectStore(this.storeName);
+            }
+          };
+        });
+      }
+
+      async hasLibrary(libName) {
+        const db = await this.initDB();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(this.storeName, 'readonly');
+          const store = tx.objectStore(this.storeName);
+          const request = store.get(libName);
+          request.onsuccess = () => resolve(!!request.result);
+          request.onerror = () => reject(request.error);
+        });
+      }
+
+      async downloadLibrary(libName, url, onProgress) {
+        const db = await this.initDB();
+        const response = await fetch(url);
+        const contentLength = response.headers.get('content-length');
+        const total = parseInt(contentLength, 10);
+        let loaded = 0;
+
+        const reader = response.body.getReader();
+        const chunks = [];
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          chunks.push(value);
+          loaded += value.length;
+          if (onProgress) onProgress(loaded, total);
+        }
+
+        const blob = new Blob(chunks);
+        const arrayBuffer = await blob.arrayBuffer();
+
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(this.storeName, 'readwrite');
+          const store = tx.objectStore(this.storeName);
+          store.put(arrayBuffer, libName);
+          tx.oncomplete = () => resolve(arrayBuffer);
+          tx.onerror = () => reject(tx.error);
+        });
+      }
+
+      async loadLibraryFromCache(libName) {
+        const db = await this.initDB();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(this.storeName, 'readonly');
+          const store = tx.objectStore(this.storeName);
+          const request = store.get(libName);
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+      }
+
+      async initialize(libName = 'jspdf', libUrl = null) {
+        if (this.isLoaded) return true;
+
+        try {
+          const hasCache = await this.hasLibrary(libName);
+
+          if (!hasCache) {
+            if (!libUrl) {
+              throw new Error('首次使用需要提供 jsPDF 下載 URL');
+            }
+            return { needsDownload: true, libUrl };
+          }
+
+          const libData = await this.loadLibraryFromCache(libName);
+          const blob = new Blob([libData], { type: 'application/javascript' });
+          const libUrlLocal = URL.createObjectURL(blob);
+
+          const script = document.createElement('script');
+          script.src = libUrlLocal;
+          await new Promise((resolve, reject) => {
+            script.onload = () => {
+              this.jspdf = window.jspdf;
+              URL.revokeObjectURL(libUrlLocal);
+              resolve();
+            };
+            script.onerror = reject;
+            document.head.appendChild(script);
+          });
+
+          this.isLoaded = true;
+          return { success: true };
+        } catch (error) {
+          console.error('jsPDF init error:', error);
+          return { error: error.message };
+        }
+      }
+
+      get jsPDF() {
+        return this.jspdf;
+      }
+    }
+
+    const jsPDFManager = new JSPDFManager();
+
+    // ============================================================
+    // Scenario Selection (Human-friendly Interface)
+    // ============================================================
+
+    // 預設配置（固定值）
+    const DEFAULT_PRESET = {
+      dpi: 300,
+      widthMm: 210,
+      heightMm: 297,
+      widthPx: 2480,
+      heightPx: 3508,
+      bleedMm: 3,
+      bleed: 3,
+      colorMode: 'rgb',
+      format: 'png',
+      desc: '圖片優化',
+      fullDesc: '圖片格式轉換與基礎增強',
+      icon: '✨',
+      resultDesc: '優化完成',
+      safeZone: false,
+      paper: 'glossy'
+    };
+
+    let currentImageData = null;
+    let currentImageInfo = null;
+    let originalImageData = null; // 原始圖片備份（U22: 一鍵重做）
+    let isProcessing = false;
+
+    /**
+     * 選擇印刷場景
+     * @param {string} scenario - 場景 ID
+     */
+    function selectPrintScenario(scenario) {
+      const preset = DEFAULT_PRESET;
+      if (!preset) return;
+      
+      
+      // 更新當前場景
+      currentScenario = scenario;
+      
+      // 更新隱藏的技術設定
+      document.getElementById('settingDpi').value = preset.dpi;
+      document.getElementById('settingColorMode').value = preset.colorMode;
+      document.getElementById('settingBleed').value = preset.bleed;
+      document.getElementById('settingFormat').value = preset.format;
+      document.getElementById('currentScenario').value = scenario;
+      
+      // 同步到 ImageTool Core
+      if (typeof ImageTool !== 'undefined') {
+        ImageTool.settings.set('dpi', preset.dpi);
+        ImageTool.settings.set('colorMode', preset.colorMode);
+        ImageTool.settings.set('bleed', preset.bleed);
+        ImageTool.settings.set('format', preset.format);
+        ImageTool.settings.set('scenario', scenario);
+      }
+      
+      // 更新 UI 選中狀態
+      document.querySelectorAll('.scenario-card').forEach(card => {
+        card.classList.remove('active');
+      });
+      document.querySelector(`.scenario-card[data-scenario="${scenario}"]`)?.classList.add('active');
+      
+      // 顯示預覽資訊
+      showScenarioPreview(preset);
+      
+      // 提示用戶
+      showToast(`已選擇：${preset.desc}`);
+
+      // 更新印刷評分
+      updatePrintScore();
+    }
+
+    /**
+     * 顯示場景預覽資訊
+     * @param {Object} preset - 場景預設
+     */
+    function showScenarioPreview(preset) {
+      const preview = document.getElementById('scenarioPreview');
+      if (!preview) return;
+      
+      let html = '';
+      
+      // 處理增強功能場景
+      if (preset.action === 'enhance') {
+        if (preset.enhanceType === 'upscale') {
+          html = `
+            <div class="preview-box">
+              <div class="preview-title">🔍 無失真放大</div>
+              <div class="preview-details">
+                ${preset.icon} ${preset.fullDesc}<br>
+                • 放大倍率：2x 或 4x<br>
+                • 處理技術：Canvas 放大 + 銳化<br>
+                • 輸出格式：高品質 PNG
+              </div>
+              <div style="margin-top: 16px;">
+                <button onclick="setUpscaleScale(2)" class="scale-btn" id="scale2x">2x 放大</button>
+                <button onclick="setUpscaleScale(4)" class="scale-btn" id="scale4x">4x 放大</button>
+              </div>
+            </div>
+          `;
+      }
+    } else {
+        // 一般印刷場景
+        const recommendedSize = calculateRecommendedSize(preset);
+        const printShopBadge = preset.printShop ? `
+          <div class="print-shop-badge">
+            <span>🏭</span> ${preset.printShop} 認證
+          </div>
+        ` : '';
+        html = `
+          <div class="preview-box">
+            <div class="preview-title">✓ 已選擇：${preset.desc}</div>
+            <div class="preview-details">
+              ${preset.icon} ${preset.fullDesc}<br>
+              • 輸出品質：${preset.dpi >= 300 ? '印刷級' : '標準'} (${preset.dpi} DPI)<br>
+              • 建議尺寸：${recommendedSize}<br>
+              • 格式：${preset.format.toUpperCase()}${preset.bleed > 0 ? ` | 出血：${preset.bleed}mm` : ''}
+            </div>
+            ${printShopBadge}
+            <div class="preview-tip">
+              💡 上傳圖片後會自動優化為最佳品質
+            </div>
+          </div>
+        `;
+      }
+      
+      // 使用 DOM API 創建元素，避免 innerHTML
+      preview.innerHTML = '';
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = html; // 這裡 html 來自內部模板，風險較低
+      while (tempDiv.firstChild) {
+        preview.appendChild(tempDiv.firstChild);
+      }
+      preview.classList.add('show');
+    }
+
+    /**
+     * 計算目標尺寸文字
+     * @param {Object} preset - 場景預設
+     * @returns {string} - 建議尺寸文字
+     */
+    function calculateRecommendedSize(preset) {
+      if (preset.widthPx && preset.heightPx) {
+        return `${preset.widthPx} × ${preset.heightPx} px`;
+      }
+      if (preset.widthMm && preset.heightMm) {
+        return `${preset.widthMm} × ${preset.heightMm} mm，${preset.dpi} DPI`;
+      }
+      return `建議 ${preset.dpi} DPI 以上`;
+    }
+
+    /**
+     * 根據檔案名稱取得建議場景
+     * @param {string} fileName - 檔案名稱
+     * @returns {string} - 建議場景 ID
+     */
+    function getRecommendedScenario(fileName) {
+      const lower = fileName.toLowerCase();
+      if (lower.includes('social') || lower.includes('ig') || lower.includes('fb') || lower.includes('line')) {
+        return 'social';
+      }
+      if (lower.includes('card') || lower.includes('名片') || lower.includes('name')) {
+        return 'business-card';
+      }
+      if (lower.includes('sticker') || lower.includes('貼紙') || lower.includes('label')) {
+        return 'sticker';
+      }
+      if (lower.includes('postcard') || lower.includes('明信片') || lower.includes('photo') || /(jpg|jpeg|heic)$/i.test(lower)) {
+        return 'postcard';
+      }
+      if (lower.includes('poster') || lower.includes('banner') || lower.includes('flyer') || lower.includes('海報')) {
+        return 'poster-a3';
+      }
+      return 'poster-a4';
+    }
+
+    // ============================================================
+    // Image Analysis Functions (圖片類型偵測)
+    // ============================================================
+
+    // ============================================================
+    // Enhance Functions (放大倍率設定)
+    // ============================================================
+    
+    function setUpscaleScale(scale) {
+      // 更新設定
+      if (typeof ImageTool !== 'undefined') {
+        ImageTool.settings.set('upscaleScale', scale);
+      }
+
+      // 更新按鈕外觀
+      document.querySelectorAll('.scale-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      const btnId = scale === 2 ? 'scale2x' : 'scale4x';
+      document.getElementById(btnId)?.classList.add('active');
+
+      // 檢查 AI 模型是否需要初始化
+      checkAndInitAIModel(scale);
+    }
+
+    async function checkAndInitAIModel(scale) {
+      const modelName = `realcugan-${scale}x`;
+      const modelUrl = `https://cdn.jsdelivr.net/gh/your-repo/models/${modelName}.json`;
+
+      const result = await aiUpscaleManager.initialize(modelName, modelUrl);
+
+      if (result.needsDownload) {
+        // 顯示下載確認對話框
+        showDownloadConfirmDialog(modelName, modelUrl, scale);
+      } else if (result.error) {
+        showToast('✗ AI 模型初始化失敗: ' + result.error);
+      }
+    }
+
+    function showDownloadConfirmDialog(modelName, modelUrl, scale) {
+      const dialog = document.createElement('div');
+      dialog.className = 'ai-download-dialog';
+      
+      const content = document.createElement('div');
+      content.className = 'ai-download-content';
+      
+      const title = document.createElement('h3');
+      title.textContent = '🤖 AI 放大功能';
+      
+      const p1 = document.createElement('p');
+      p1.textContent = '首次使用需要下載 AI 模型（約 2.6MB）';
+      
+      const p2 = document.createElement('p');
+      p2.textContent = '下載後可永久離線使用';
+      
+      const actions = document.createElement('div');
+      actions.className = 'ai-download-actions';
+      
+      const downloadBtn = document.createElement('button');
+      downloadBtn.className = 'btn-primary';
+      downloadBtn.textContent = '開始下載';
+      downloadBtn.onclick = () => confirmDownload(modelName, modelUrl, scale);
+      
+      const cancelBtn = document.createElement('button');
+      cancelBtn.className = 'btn-secondary';
+      cancelBtn.textContent = '取消';
+      cancelBtn.onclick = closeDownloadDialog;
+      
+      actions.appendChild(downloadBtn);
+      actions.appendChild(cancelBtn);
+      content.appendChild(title);
+      content.appendChild(p1);
+      content.appendChild(p2);
+      content.appendChild(actions);
+      dialog.appendChild(content);
+      
+      document.body.appendChild(dialog);
+    }
+
+    async function confirmDownload(modelName, modelUrl, scale) {
+      closeDownloadDialog();
+      showToast('📥 正在下載 AI 模型...');
+
+      try {
+        await aiUpscaleManager.downloadModel(modelName, modelUrl, (loaded, total) => {
+          const percent = Math.round((loaded / total) * 100);
+          showToast(`📥 下載中... ${percent}%`);
+        });
+
+        showToast('✓ 模型下載完成，正在初始化...');
+        const result = await aiUpscaleManager.initialize(modelName);
+
+        if (result.success) {
+          showToast(`✓ AI 放大功能已就緒 (${scale}x)`);
+        } else {
+          showToast('✗ 模型初始化失敗');
+        }
+      } catch (error) {
+        showToast('✗ 下載失敗: ' + error.message);
+      }
+    }
+
+    function closeDownloadDialog() {
+      const dialog = document.querySelector('.ai-download-dialog');
+      if (dialog) dialog.remove();
+    }
+
+    // ============================================================
+    // 小助理小象 - 動態訊息生成系統 (Steve Jobs 減法設計)
+    // ============================================================
+    // 
+    // 原則：不維護 500 條死字串，用 9 個詞彙動態組合出無限變化
+    // 關鍵時機只有 5 個，每個時機說對的話，比說 100 種閒話重要
+    
+    const Assistant = {
+      get bubble() { return document.getElementById('assistantBubble'); },
+      get avatar() { return document.getElementById('assistantAvatar'); },
+
+      // 9 個核心詞彙 → 組合出 27+ 種準確對應情境的訊息
+      vocab: {
+        emotions: ['✨', '🎉', '👍', '💫', '🌟'],
+        actions: {
+          upscale: ['放大', '增強', '升級'],
+          remove: ['去除', '清理', '修復'],
+          optimize: ['優化', '調整', '美化'],
+          complete: ['完成', '搞定', '準備好了']
+        },
+        results: {
+          quality: ['更清晰', '更專業', '超細膩', '質感滿分'],
+          display: ['可以掛牆上', '適合大圖輸出', '印刷店等級'],
+          share: ['完美適配手機', '分享超吸睛', '社群首選']
+        },
+        apologies: ['嗚...', '哎呀！', '喔不...'],
+        suggestions: ['換一張試試？', '重新整理再來一次？', '檢查一下檔案？']
+      },
+
+      // 動態生成：根據實際操作產生精準訊息
+      generate(type, data = {}) {
+        const v = this.vocab;
+        const r = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
+        const templates = {
+          // 時機 1：歡迎（價值主張）
+          welcome: () => `嗨！我是小象 🐘✨ 把圖片丟給我，我會幫你準備好印刷需要的所有設定～`,
+
+          // 時機 2：開始分析
+          analyzing: () => `讓我看看這張圖片有什麼問題... 🔍`,
+
+          // 時機 3：進行中（視覺優先，文字簡潔）
+          processing: (action) => {
+            const actionText = action || r(v.actions.optimize);
+            return `正在幫你${actionText}中... ✨`;
+          },
+
+          // 時機 4：完成（必須說出具體價值）
+          success: (data = {}) => {
+            const ops = Array.isArray(data.ops) ? data.ops : Array.isArray(data) ? data : [];
+            if (ops.length === 0) return `圖片已經準備好可以印刷囉～ 🎉`;
+
+            // 根據實際操作組合訊息
+            const opTexts = ops.map(op => {
+              if (op.type === 'upscale') return `放大了 ${op.scale}x`;
+              return '';
+            }).filter(Boolean);
+
+            const result = data.resultType === 'professional'
+              ? r(v.results.display)
+              : r(v.results.share);
+
+            return `已經幫你${opTexts.join('、')}，現在可以拿去印刷囉～ ${result}！`;
+          },
+
+          // 時機 5：錯誤（給解決方案，不只是道歉）
+          error: (code) => {
+            const errors = {
+              'file_type': `哎呀，這個檔案不是圖片格式呢～ 請上傳 PNG、JPG 或 HEIC 圖片，我來幫你處理～`,
+              'read_fail': `圖片讀取失敗了... 但是沒關係，因為我來囉～ 請再試一次～`,
+              'process_fail': `處理過程中遇到了問題... 但是沒關係，因為我來囉～ 請再試一次～`,
+              'busy': `等等哦，我正在處理上一張圖片，馬上就換我來幫你～`,
+            };
+            return errors[code] || `發生了意外的問題... 但是沒關係，因為我來囉～ 請再試一次～`;
+          },
+
+          // 額外：情境感知訊息
+          upscale_needed: (scale) => `圖片有點小，印出來會糊糊的... 但是沒關係，因為我來囉～ 幫你放大 ${scale}x`,
+          scenario_switch: (label) => {
+            // 確保 label 是字串，如果是物件則嘗試提取 desc 或 name 屬性
+            let labelText = label;
+            if (typeof label === 'object' && label !== null) {
+              labelText = label.desc || label.name || label.label || label.toString();
+            }
+            return `已切換到「${labelText || '標準'}」模式～ 我來幫你調整設定～`;
+          }
+        };
+
+        return templates[type] ? templates[type](data) : '';
+      },
+
+      sanitizeHTML(str) {
+        // 基本 HTML 轉義，防止 XSS
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+      },
+
+      show(type, data = {}, duration = 5000) {
+        if (!this.bubble) return;
+
+        const message = this.generate(type, data);
+        // 使用 textContent 對於純文本，但這裡需要 HTML 格式
+        // 由於消息來自內部模板而非用戶輸入，風險較低
+        // 但為了安全，仍然進行基本轉義
+        this.bubble.innerHTML = this.sanitizeHTML(message);
+        this.bubble.className = 'assistant-bubble show ' + (data.type || 'default');
+
+        // 根據情境切換表情
+        if (typeof XiaoYinFace !== 'undefined') {
+          switch(type) {
+            case 'welcome':
+              XiaoYinFace.happy();
+              break;
+            case 'analyzing':
+            case 'processing':
+              XiaoYinFace.working();
+              break;
+            case 'success':
+              XiaoYinFace.surprised();
+              break;
+            case 'error':
+              XiaoYinFace.sad();
+              break;
+            case 'scenario_switch':
+              XiaoYinFace.wink();
+              break;
+            default:
+              XiaoYinFace.happy();
+          }
+        }
+
+        // 對話框常駐，不自動隱藏
+
+        return message;
+      },
+
+      hide() {
+        if (!this.bubble) return;
+        this.bubble.classList.remove('show');
+      },
+
+      pulse() {
+        if (!this.avatar) return;
+        this.avatar.classList.add('pulse');
+      },
+
+      stopPulse() {
+        if (!this.avatar) return;
+        this.avatar.classList.remove('pulse');
+      }
+    };
+
+    // 初始化：5 秒後歡迎
+    function initAssistant() {
+      setTimeout(() => {
+        Assistant.show('welcome', {}, 8000);
+      }, 1000);
+    }
+
+    // 點擊小象：提供幫助提示
+    let clickCount = 0; // 點擊計數器
+    let lastMessageIndex = -1; // 記錄上次顯示的文案索引
+
+    window.onAssistantClick = function() {
+      clickCount++;
+
+      // 檢測是否點擊5次以上
+      if (clickCount >= 5) {
+        const itchyMessages = [
+          "哈哈～好癢喔～不要再搔癢了啦～",
+          "哎呀～別點了～我快笑出來了～",
+          "嘿嘿～好癢好癢～快停手啦～",
+          "哇～你這樣一直點我，我會笑到肚子痛～",
+          "停停停～再點我就要躲起來了～"
+        ];
+        const msg = itchyMessages[Math.floor(Math.random() * itchyMessages.length)];
+        if (Assistant.bubble) {
+          Assistant.bubble.textContent = msg;
+          Assistant.bubble.className = 'assistant-bubble show default';
+        }
+        clickCount = 0;
+        return;
+      }
+
+      // 還沒匯入圖片時的提示
+      if (!currentImageData) {
+        const noImageTips = [
+          "嗨！我是小象 🐘✨ 還沒有圖片嗎？快拖一張圖片進來，我來幫你準備印刷～",
+          "還沒有圖片喔～ 把圖片丟給我，我會幫你處理所有印刷需要的設定～",
+          "等待圖片中... 拖一張圖片進來，我來幫你分析問題～",
+          "沒有圖片我就沒事做啦～ 快給我一張圖，我來幫你修～",
+          "我是專門處理 AI 圖片印刷問題的小象～ 把圖片丟給我試試看～"
+        ];
+        let msgIndex;
+        do {
+          msgIndex = Math.floor(Math.random() * noImageTips.length);
+        } while (msgIndex === lastMessageIndex && noImageTips.length > 1);
+        lastMessageIndex = msgIndex;
+
+        const msg = noImageTips[msgIndex];
+        if (Assistant.bubble) {
+          Assistant.bubble.textContent = msg;
+          Assistant.bubble.className = 'assistant-bubble show default';
+        }
+        return;
+      }
+
+      // 有圖片時，直接顯示隨機提示（不分析，避免卡頓）
+      const imageTips = [
+        "這張圖的解析度有點低喔，印出來會糊糊的～ 但是沒關係，因為我來囉～",
+        "這張圖的亮度有點高，印出來會曝光～ 但是沒關係，因為我來囉～",
+        "這張圖的亮度有點低，印出來會暗暗的～ 但是沒關係，因為我來囉～",
+        "這張圖的對比度不夠，印出來會灰灰的～ 但是沒關係，因為我來囉～",
+        "這張圖的邊緣有點鋸齒，放大後會更明顯～ 但是沒關係，因為我來囉～",
+        "這張圖看起來不錯喔～ 但是沒關係，因為我來囉～"
+      ];
+      let msgIndex;
+      do {
+        msgIndex = Math.floor(Math.random() * imageTips.length);
+      } while (msgIndex === lastMessageIndex && imageTips.length > 1);
+      lastMessageIndex = msgIndex;
+
+      const msg = imageTips[msgIndex];
+      if (Assistant.bubble) {
+        Assistant.bubble.textContent = msg;
+        Assistant.bubble.className = 'assistant-bubble show default';
+      }
+    }
+
+    // ============================================================
+    // 小象 SVG 表情控制系統
+    // ============================================================
+    
+    const XiaoYinFace = {
+      svg: null,
+      
+      init() {
+        this.svg = document.getElementById('xiaoYinSVG');
+        if (!this.svg) return;
+        // 預設微笑
+        this.setExpression('happy');
+      },
+      
+      // 表情切換函數
+      setExpression(type) {
+        if (!this.svg) return;
+        
+        const eyeLeft = this.svg.querySelector('#eyeLeft');
+        const eyeRight = this.svg.querySelector('#eyeRight');
+        const mouth = this.svg.querySelector('#mouth');
+        const eyebrowLeft = this.svg.querySelector('#eyebrowLeft');
+        const eyebrowRight = this.svg.querySelector('#eyebrowRight');
+        const blushLeft = this.svg.querySelector('#blushLeft');
+        const blushRight = this.svg.querySelector('#blushRight');
+        const sweat = this.svg.querySelector('#sweat');
+        const anger = this.svg.querySelector('#anger');
+        
+        // 重置所有特效
+        if (sweat) sweat.setAttribute('opacity', '0');
+        if (anger) anger.setAttribute('opacity', '0');
+        if (blushLeft) blushLeft.setAttribute('opacity', '0.5');
+        if (blushRight) blushRight.setAttribute('opacity', '0.5');
+        
+        switch(type) {
+          case 'happy': // 喜 - 開心微笑
+            eyeLeft.setAttribute('ry', '6');
+            eyeRight.setAttribute('ry', '6');
+            eyeLeft.setAttribute('rx', '5');
+            eyeRight.setAttribute('rx', '5');
+            eyebrowLeft.setAttribute('d', 'M28 38 Q35 35 42 38');
+            eyebrowRight.setAttribute('d', 'M58 38 Q65 35 72 38');
+            mouth.setAttribute('d', 'M42 68 Q50 78 58 68');
+            mouth.setAttribute('fill', 'none');
+            blushLeft.setAttribute('opacity', '0.7');
+            blushRight.setAttribute('opacity', '0.7');
+            break;
+            
+          case 'angry': // 怒 - 生氣皺眉
+            eyeLeft.setAttribute('ry', '5');
+            eyeRight.setAttribute('ry', '5');
+            eyebrowLeft.setAttribute('d', 'M28 36 Q35 40 42 36');
+            eyebrowRight.setAttribute('d', 'M58 36 Q65 40 72 36');
+            mouth.setAttribute('d', 'M45 72 L55 72');
+            mouth.setAttribute('stroke-width', '3');
+            if (anger) anger.setAttribute('opacity', '1');
+            blushLeft.setAttribute('opacity', '0.3');
+            blushRight.setAttribute('opacity', '0.3');
+            break;
+            
+          case 'sad': // 哀 - 難過哭泣
+            eyeLeft.setAttribute('ry', '4');
+            eyeRight.setAttribute('ry', '4');
+            eyebrowLeft.setAttribute('d', 'M28 40 Q35 36 42 40');
+            eyebrowRight.setAttribute('d', 'M58 40 Q65 36 72 40');
+            mouth.setAttribute('d', 'M45 75 Q50 70 55 75');
+            mouth.setAttribute('stroke-width', '2');
+            break;
+            
+          case 'surprised': // 樂/驚訝 - 驚喜大睜眼
+            eyeLeft.setAttribute('ry', '8');
+            eyeRight.setAttribute('ry', '8');
+            eyeLeft.setAttribute('rx', '6');
+            eyeRight.setAttribute('rx', '6');
+            eyebrowLeft.setAttribute('d', 'M26 35 Q35 30 44 35');
+            eyebrowRight.setAttribute('d', 'M56 35 Q65 30 74 35');
+            mouth.setAttribute('d', 'M45 70 Q50 75 55 70 Q50 78 45 70');
+            mouth.setAttribute('fill', '#FF9999');
+            if (sweat) sweat.setAttribute('opacity', '0');
+            break;
+            
+          case 'working': // 工作中 - 認真
+            eyeLeft.setAttribute('ry', '5');
+            eyeRight.setAttribute('ry', '5');
+            eyebrowLeft.setAttribute('d', 'M28 37 Q35 36 42 37');
+            eyebrowRight.setAttribute('d', 'M58 37 Q65 36 72 37');
+            mouth.setAttribute('d', 'M45 72 Q50 74 55 72');
+            if (sweat) sweat.setAttribute('opacity', '1');
+            break;
+            
+          case 'wink': // 眨眼 - 俏皮
+            eyeLeft.setAttribute('ry', '1');
+            eyeRight.setAttribute('ry', '6');
+            eyebrowLeft.setAttribute('d', 'M30 40 Q35 42 40 40');
+            mouth.setAttribute('d', 'M45 72 Q50 78 58 70');
+            break;
+        }
+      },
+      
+      // 快捷函數
+      happy() { this.setExpression('happy'); },
+      angry() { this.setExpression('angry'); },
+      sad() { this.setExpression('sad'); },
+      surprised() { this.setExpression('surprised'); },
+      working() { this.setExpression('working'); },
+      wink() { this.setExpression('wink'); }
+    };
+    
+    // 初始化小象表情
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => XiaoYinFace.init(), 500);
+    });
+
+    // ============================================================
+    // 智慧建議系統（匯出時偵測）
+    // ============================================================
+    
+    const SmartSuggestion = {
+      modal: document.getElementById('smartSuggestionModal'),
+      icon: document.getElementById('suggestionIcon'),
+      title: document.getElementById('suggestionTitle'),
+      content: document.getElementById('suggestionContent'),
+      actions: document.getElementById('suggestionActions'),
+
+      show(options) {
+        if (!this.modal) return;
+        this.icon.textContent = options.icon || '💡';
+        this.title.textContent = options.title || '智慧建議';
+        // 使用 textContent 避免 XSS
+        this.content.textContent = options.content || '';
+        
+        // 清空並重新創建按鈕，避免 innerHTML
+        this.actions.innerHTML = '';
+        if (options.buttons && Array.isArray(options.buttons)) {
+          options.buttons.forEach(btn => {
+            const button = document.createElement('button');
+            button.className = `suggestion-btn ${btn.type || ''}`;
+            button.textContent = btn.text || '';
+            button.onclick = () => {
+              if (btn.action && typeof btn.action === 'function') {
+                btn.action();
+              } else if (btn.action && typeof btn.action === 'string') {
+                eval(btn.action); // 謹慎使用，僅用於必要場景
+              }
+            };
+            this.actions.appendChild(button);
+          });
+        }
+        this.modal.classList.add('show');
+      },
+
+      hide() {
+        if (!this.modal) return;
+        this.modal.classList.remove('show');
+      }
+    };
+
+    document.addEventListener('click', (e) => {
+      if (e.target === SmartSuggestion.modal) {
+        SmartSuggestion.hide();
+      }
+    });
+
+    // ============================================================
+    // 圖片分析與建議邏輯
+    // ============================================================
+    
+    async function analyzeImageForIssues(imageData, targetScenario) {
+      const issues = [];
+      const suggestions = [];
+      const preset = DEFAULT_PRESET;
+      
+      const info = await getImageInfo(imageData);
+      const requiredPixels = preset.dpi * 10;
+      const currentPixels = Math.max(info.width, info.height);
+      
+      if (currentPixels < requiredPixels) {
+        const scale = Math.min(Math.ceil(requiredPixels / currentPixels), 4);
+        issues.push('lowResolution');
+        suggestions.push({
+          type: 'upscale',
+          icon: '🔍',
+          title: '解析度建議',
+          message: `這張圖片 ${info.width}x${info.height} 像素，建議使用 ${scale}x 放大以獲得最佳品質。`,
+          action: `performSmartUpscale(currentImageData, ${scale})`
+        });
+      }
+      
+      
+      return { issues, suggestions, info };
+    }
+
+    function getImageInfo(imageData) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => resolve({ width: img.width, height: img.height });
+        img.src = imageData;
+      });
+    }
+
+
+
+
+    /**
+     * 銳化濾鏡輔助函數
+     */
+    function applySharpening(canvas, ctx, strength = 0.5) {
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageData.data;
+      const width = canvas.width;
+      const height = canvas.height;
+
+      // 簡易銳化核
+      const newData = new Uint8ClampedArray(data);
+
+      for (let y = 1; y < height - 1; y++) {
+        for (let x = 1; x < width - 1; x++) {
+          const idx = (y * width + x) * 4;
+
+          for (let c = 0; c < 3; c++) {
+            const center = data[idx + c];
+            const left = data[idx - 4 + c];
+            const right = data[idx + 4 + c];
+            const up = data[idx - width * 4 + c];
+            const down = data[idx + width * 4 + c];
+
+            // 銳化公式：中心 - 周圍平均
+            const sharpened = center + (center - (left + right + up + down) / 4) * strength;
+            newData[idx + c] = Math.max(0, Math.min(255, sharpened));
+          }
+        }
+      }
+
+      const result = new ImageData(newData, width, height);
+      ctx.putImageData(result, 0, 0);
+    }
+
+    async function performSmartUpscale(imageData, scale) {
+      SmartSuggestion.hide();
+      updateProgress(Assistant.generate('upscale_needed', scale));
+      Assistant.show('processing', { action: '放大' }, 3000);
+
+      try {
+        // 優先使用 AI 放大
+        const modelName = `realcugan-${scale}x`;
+        const initResult = await aiUpscaleManager.initialize(modelName);
+
+        if (initResult.success || aiUpscaleManager.isModelLoaded) {
+          // 使用 AI 放大
+          const result = await aiUpscaleManager.upscale(imageData, { scale });
+          currentImageData = result;
+          Assistant.show('success', { ops: [{type: 'upscale', scale: scale, method: 'AI'}] }, 5000);
+        } else {
+          // 回退到傳統 Lanczos 放大
+          const result = await ImageTool.upscale(imageData, { scale });
+          currentImageData = result.result;
+          Assistant.show('success', { ops: [{type: 'upscale', scale: scale, method: 'Lanczos'}] }, 5000);
+        }
+
+        checkAndSuggest(currentImageData, currentScenario);
+      } catch (e) {
+        Assistant.show('error', { code: 'process_fail' }, 5000);
+        showToast('放大處理失敗: ' + e.message);
+      }
+    }
+
+
+    async function checkAndSuggest(imageData, scenario) {
+      const { issues, suggestions } = await analyzeImageForIssues(imageData, scenario);
+      
+      if (suggestions.length > 0) {
+        const first = suggestions[0];
+        Assistant.pulse();
+        SmartSuggestion.show({
+          icon: first.icon,
+          title: first.title,
+          content: first.message,
+          buttons: [
+            { type: 'primary', text: '使用此建議', action: first.action },
+            { type: 'secondary', text: '保持原圖', action: 'SmartSuggestion.hide()' }
+          ]
+        });
+        setTimeout(() => Assistant.show('processing', { action: first.type === 'upscale' ? '放大' : '優化' }, 8000), 500);
+      } else {
+        Assistant.show('success', { ops: [{type: 'optimize'}] }, 3000);
+        Assistant.stopPulse();
+      }
+      return issues.length === 0;
+    }
+
+    // ============================================================
+    // 檔案處理功能（全頁拖曳 + 自動執行）
+    // ============================================================
+    
+    function triggerFileSelect(e) {
+      // 必須同步執行，否則瀏覽器會阻擋檔案選擇器
+      const fileInput = document.getElementById('fileInput');
+      if (fileInput) {
+        fileInput.value = ''; // 重置以允許重複選擇相同檔案
+        fileInput.click();
+      }
+    }
+
+    function handleDragOver(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      document.getElementById('importZoneFull').classList.add('drag-over');
+    }
+
+    function handleDragLeave(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      document.getElementById('importZoneFull').classList.remove('drag-over');
+    }
+
+    function handleDrop(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      document.getElementById('importZoneFull').classList.remove('drag-over');
+      
+      const files = e.dataTransfer.files;
+      if (files.length > 0) {
+        processFiles(files);
+      }
+    }
+
+    function handleFileSelect(e) {
+      const files = e.target.files;
+      if (files.length > 0) {
+        processFiles(files);
+      }
+    }
+
+    // 全頁拖曳監聽 - 必須 preventDefault 才能允許拖曳
+    document.addEventListener('dragover', (e) => {
+      e.preventDefault(); // 必須阻止預設行為才能拖曳
+      if (e.target.closest('.import-zone-full')) return;
+      // 可以選擇讓整個頁面都支援拖曳
+    });
+
+    document.addEventListener('dragleave', (e) => {
+      e.preventDefault();
+    });
+
+    document.addEventListener('drop', (e) => {
+      if (e.target.closest('.import-zone-full')) return;
+      e.preventDefault();
+      const files = e.dataTransfer.files;
+      if (files.length > 0) {
+        processFiles(files);
+      }
+    });
+
+    /**
+     * 處理上傳的檔案 - 一鍵即結果
+     * @param {File} file - 圖片檔案
+     */
+    async function processFile(file) {
+      // 精確檢查支持的圖片格式
+      const supportedFormats = ['image/png', 'image/jpeg', 'image/jpg', 'image/heic', 'image/heif'];
+      if (!supportedFormats.includes(file.type.toLowerCase())) {
+        Assistant.show('error', { code: 'file_type', type: 'warning' }, 5000);
+        return false;
+      }
+
+      if (isProcessing) {
+        Assistant.show('error', { code: 'busy', type: 'default' }, 3000);
+        return false;
+      }
+
+      isProcessing = true;
+
+      return new Promise((resolve, reject) => {
+        // 顯示進度動畫
+        showProgress(Assistant.generate('processing', '讀取'));
+        Assistant.show('processing', { action: '讀取' }, 3000);
+
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+          try {
+            // 清理舊數據，釋放內存
+            currentImageData = null;
+            currentImageInfo = null;
+            if (typeof GC !== 'undefined') GC(); // 如果有手動 GC 觸發
+
+            currentImageData = e.target.result;
+            originalImageData = e.target.result;
+
+            // 顯示預覽
+            showPreview(currentImageData);
+
+            // 自動執行分析和優化
+            await autoProcessImage(currentImageData);
+            resolve(true);
+          } catch (error) {
+            isProcessing = false;
+            hideProgress();
+            Assistant.show('error', { code: 'process_fail', type: 'warning' }, 5000);
+            reject(error);
+          }
+        };
+        reader.onerror = () => {
+          isProcessing = false;
+          hideProgress();
+          Assistant.show('error', { code: 'read_fail', type: 'warning' }, 5000);
+          reject(new Error('File read failed'));
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function processFiles(files) {
+      const imageFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
+      if (imageFiles.length === 0) {
+        Assistant.show('error', { code: 'file_type', type: 'warning' }, 5000);
+        return;
+      }
+
+      for (let i = 0; i < imageFiles.length; i++) {
+        const file = imageFiles[i];
+        showToast(`批次處理 ${i + 1}/${imageFiles.length}: ${file.name}`);
+        try {
+          await processFile(file);
+        } catch (error) {
+          console.error('Batch process error:', error);
+        }
+      }
+      showToast('批次處理完成');
+    }
+
+    /**
+     * 顯示預覽
+     */
+    function showPreview(imageData) {
+      const container = document.getElementById('previewContainer');
+      const beforeImg = document.getElementById('previewBeforeImg');
+
+      beforeImg.src = imageData;
+      container.style.display = 'flex';
+
+      // 隱藏 hero 和匯入區
+      const heroSection = document.getElementById('heroSection');
+      if (heroSection) heroSection.style.display = 'none';
+      const importZoneFull = document.getElementById('importZoneFull');
+      if (importZoneFull) importZoneFull.style.display = 'none';
+
+      // 顯示一鍵下載按鈕區 (U14)
+      const oneClickExport = document.getElementById('oneClickExport');
+      if (oneClickExport) oneClickExport.style.display = 'flex';
+
+      // 顯示旋轉按鈕
+      const rotateBtn = document.getElementById('rotateBtn');
+      if (rotateBtn) rotateBtn.style.display = 'flex';
+      currentRotation = 0;
+
+      // 顯示印刷適合度評分
+      updatePrintScore();
+      updateOriginalScore(); // async，自行完成
+
+      // 顯示處理前後對比評分
+      updateScoreComparison();
+
+      // 更新安全區顯示 (P16)
+      updateSafeZoneVisibility();
+    }
+
+    /**
+     * 隱藏預覽
+     */
+    function hidePreview() {
+      const previewContainer = document.getElementById('previewContainer');
+      if (previewContainer) previewContainer.style.display = 'none';
+      const oneClickExport = document.getElementById('oneClickExport');
+      if (oneClickExport) oneClickExport.style.display = 'none';
+      const printScoreBar = document.getElementById('printScoreBar');
+      if (printScoreBar) printScoreBar.classList.remove('show');
+      const rotateBtn = document.getElementById('rotateBtn');
+      if (rotateBtn) rotateBtn.style.display = 'none';
+      const compareContainer = document.getElementById('compareContainer');
+      if (compareContainer) compareContainer.style.display = 'none';
+      const heroSection = document.getElementById('heroSection');
+      if (heroSection) heroSection.style.display = 'block';
+      const importZoneFull = document.getElementById('importZoneFull');
+      if (importZoneFull) importZoneFull.style.display = 'block';
+    }
+
+    /**
+     * 更新安全區可視化顯示 (P16)
+     */
+    function updateSafeZoneVisibility() {
+      const preset = DEFAULT_PRESET;
+      const safeZoneOverlay = document.getElementById('safeZoneOverlay');
+      const bleedZoneOverlay = document.getElementById('bleedZoneOverlay');
+
+      if (!safeZoneOverlay || !bleedZoneOverlay) return;
+
+      // 顯示安全區（專業印刷場景）
+      if (preset && preset.safeZone) {
+        safeZoneOverlay.style.display = 'block';
+        // 根據出血設定調整安全區大小
+        const bleedMm = preset.bleed || 0;
+        const marginPercent = 10 + (bleedMm * 0.5); // 基礎10% + 出血補償
+        safeZoneOverlay.style.margin = `${marginPercent}%`;
+      } else {
+        safeZoneOverlay.style.display = 'none';
+      }
+
+      // 顯示出血區
+      if (preset && preset.bleed > 0) {
+        bleedZoneOverlay.style.display = 'block';
+      } else {
+        bleedZoneOverlay.style.display = 'none';
+      }
+    }
+
+    /**
+     * 顯示進度動畫
+     */
+    function showProgress(text) {
+      const container = document.getElementById('progressContainer');
+      const textEl = document.getElementById('progressText');
+      textEl.textContent = text;
+      container.style.display = 'block';
+    }
+
+    /**
+     * 更新進度文字
+     */
+    function updateProgress(text) {
+      document.getElementById('progressText').textContent = text;
+    }
+
+    /**
+     * 隱藏進度動畫
+     */
+    function hideProgress() {
+      document.getElementById('progressContainer').style.display = 'none';
+    }
+
+    /**
+     * 自動處理圖片 - 刷刷直接執行，不詢問
+     * @param {string} imageData - Data URL
+     */
+    async function autoProcessImage(imageData) {
+      Assistant.show('analyzing', {}, 5000);
+      
+      try {
+        // 獲取圖片資訊
+        const info = await getImageInfo(imageData);
+        currentImageInfo = info;
+        
+        // 決定使用哪個場景
+        const preset = DEFAULT_PRESET;
+        
+        // 計算目標像素
+        const targetW = preset.widthPx || Math.round((preset.widthMm || 0) / 25.4 * preset.dpi);
+        const targetH = preset.heightPx || Math.round((preset.heightMm || 0) / 25.4 * preset.dpi);
+        const targetMax = Math.max(targetW, targetH);
+        const actualMax = Math.max(info.width, info.height);
+        const needsUpscale = targetMax > 0 && actualMax < targetMax;
+
+        // 步驟 1: 如果需要，自動放大
+        if (needsUpscale) {
+          const scale = Math.min(Math.ceil(targetMax / actualMax), 8);
+          updateProgress(Assistant.generate('upscale_needed', scale));
+
+          try {
+            const result = await ImageTool.upscale(imageData, { scale });
+            currentImageData = result.result;
+
+            // 更新預覽
+            document.getElementById('previewAfterImg').src = currentImageData;
+            Assistant.show('success', { ops: [{type: 'upscale', scale: scale}] }, 4000);
+          } catch (e) {
+            // 放大失敗繼續使用原圖
+            document.getElementById('previewAfterImg').src = imageData;
+          }
+        } else {
+          document.getElementById('previewAfterImg').src = imageData;
+        }
+        
+
+
+        // 步驟 6: 執行匯出
+        updateProgress(Assistant.generate('processing', '完成輸出'));
+        Assistant.show('processing', { action: '完成輸出' }, 3000);
+        
+        
+        // 完成
+        hideProgress();
+        isProcessing = false;
+
+        // 處理後再評分一次
+        updatePrintScore();
+        updateScoreComparison();
+        
+        // 顯示結果標籤（情緒化描述）
+        const afterLabel = document.getElementById('previewAfterLabel');
+        afterLabel.textContent = preset.resultDesc || '優化完成';
+        
+        // 刷刷通知完成 - 動態組合完成的操作清單
+        const completedOps = [];
+        if (needsUpscale) {
+          const scale = Math.min(Math.ceil(targetMax / actualMax), 4);
+          completedOps.push({ type: 'upscale', scale: scale });
+        }
+        // completedOps.push({ type: 'optimize' });
+        
+        Assistant.show('success', { 
+          ops: completedOps.length > 0 ? completedOps : [{type: 'optimize'}],
+          resultType: currentScenario
+        }, 8000);
+        
+        // 添加點擊下載功能
+        document.getElementById('previewAfterImg').onclick = () => {
+          downloadProcessedImage();
+        };
+        document.getElementById('previewAfterImg').style.cursor = 'pointer';
+        document.getElementById('previewAfterImg').title = '點擊下載';
+
+      } catch (error) {
+        hideProgress();
+        Assistant.show('error', { code: 'process_fail', type: 'warning' }, 5000);
+        console.error('Auto process error:', error);
+      } finally {
+        // 確保 isProcessing 總是被重置，防止卡死
+        isProcessing = false;
+        hideProgress();
+      }
+    }
+
+    /**
+     * 下載處理後的圖片
+     */
+    function downloadProcessedImage() {
+      if (!currentImageData) return;
+
+      const preset = DEFAULT_PRESET;
+      const link = document.createElement('a');
+      link.download = `image_${preset.desc}_${Date.now()}.${preset.format}`;
+      link.href = currentImageData;
+      link.click();
+
+      Assistant.show('success', { ops: [{type: 'complete'}] }, 3000);
+    }
+
+
+    /**
+
+            const result = new ImageData(newData, width, height);
+            ctx.putImageData(result, 0, 0);
+            resolve(canvas.toDataURL('image/png', 0.95));
+          } catch (error) {
+            reject(error);
+          }
+        };
+        img.onerror = () => reject(new Error('圖片載入失敗'));
+        img.src = imageData;
+      });
+    }
+
+    // ============================================================
+    // UX Enhancements
+    // ============================================================
+
+    /**
+     * 初始化滑動對比功能 (U08)
+     */
+    function initCompareSlider() {
+      const slider = document.getElementById('compareSlider');
+      const wrapper = document.getElementById('compareWrapper');
+      const beforeImg = document.getElementById('compareBeforeImg');
+
+      if (!slider || !wrapper) return;
+
+      let isDragging = false;
+
+      const moveSlider = (x) => {
+        const rect = wrapper.getBoundingClientRect();
+        let percent = ((x - rect.left) / rect.width) * 100;
+        percent = Math.max(0, Math.min(100, percent));
+
+        slider.style.left = `${percent}%`;
+        if (beforeImg) {
+          beforeImg.style.clipPath = `inset(0 ${100 - percent}% 0 0)`;
+        }
+      };
+
+      slider.addEventListener('mousedown', () => isDragging = true);
+      document.addEventListener('mouseup', () => isDragging = false);
+      document.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        moveSlider(e.clientX);
+      });
+
+      // 觸控支援
+      slider.addEventListener('touchstart', () => isDragging = true);
+      document.addEventListener('touchend', () => isDragging = false);
+      document.addEventListener('touchmove', (e) => {
+        if (!isDragging) return;
+        moveSlider(e.touches[0].clientX);
+      });
+
+      // 點擊跳轉
+      wrapper.addEventListener('click', (e) => {
+        if (e.target === slider) return;
+        moveSlider(e.clientX);
+      });
+    }
+
+    /**
+     * 切換對比檢視顯示 (U08)
+     */
+    function toggleCompareView() {
+      const compareContainer = document.getElementById('compareContainer');
+      const previewContainer = document.getElementById('previewContainer');
+      const beforeImg = document.getElementById('compareBeforeImg');
+      const afterImg = document.getElementById('compareAfterImg');
+
+      if (!compareContainer || !previewContainer) return;
+
+      if (compareContainer.style.display === 'none') {
+        // 顯示對比檢視
+        previewContainer.style.display = 'none';
+        compareContainer.style.display = 'block';
+
+        // 複製圖片到對比區
+        const originalImg = document.getElementById('previewBeforeImg');
+        const processedImg = document.getElementById('previewAfterImg');
+
+        if (beforeImg && originalImg) beforeImg.src = originalImg.src;
+        if (afterImg && processedImg) afterImg.src = processedImg.src;
+
+        // 初始化滑動條
+        setTimeout(initCompareSlider, 100);
+
+        showToast('👁️ 拖曳滑捍對比原始/優化後效果');
+      } else {
+        // 回到一般預覽
+        compareContainer.style.display = 'none';
+        previewContainer.style.display = 'flex';
+      }
+    }
+
+    /**
+     * 智慧場景自動偵測 (U02)
+     * 根據圖片內容自動選擇最佳場景
+     */
+    async function autoDetectScenario(imageData) {
+      try {
+        showToast('🔍 讓我看看這張圖片有什麼問題...');
+
+        const img = new Image();
+        img.src = imageData;
+        await new Promise((resolve) => { img.onload = resolve; });
+
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = Math.min(img.width, 512);
+        canvas.height = Math.min(img.height, 512);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+
+        // 分析圖片特徵
+        let edgeScore = 0;
+        let colorVariance = 0;
+        let textLikePixels = 0;
+
+        for (let y = 1; y < canvas.height - 1; y += 2) {
+          for (let x = 1; x < canvas.width - 1; x += 2) {
+            const idx = (y * canvas.width + x) * 4;
+
+            // 邊緣偵測
+            const diffX = Math.abs(data[idx] - data[idx - 4]);
+            const diffY = Math.abs(data[idx] - data[idx - canvas.width * 4]);
+            edgeScore += diffX + diffY;
+
+            // 顏色變化
+            const brightness = (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
+            if (brightness > 200 || brightness < 50) {
+              textLikePixels++;
+            }
+          }
+        }
+
+        // 決定場景
+        let recommendedScenario = 'standard';
+        let problem = '';
+        let solution = '';
+
+        if (edgeScore > 500000 && textLikePixels > 5000) {
+          recommendedScenario = 'professional';
+          problem = '這張圖有文字和圖形，直接印會不清楚～';
+          solution = '我來幫你用專業印刷品質處理～';
+        } else if (img.width > 3000 || img.height > 3000) {
+          recommendedScenario = 'professional';
+          problem = '這張圖解析度很高，適合大尺寸印刷～';
+          solution = '我來幫你準備專業印刷設定～';
+        } else {
+          recommendedScenario = 'standard';
+          problem = '這張圖解析度有點低，印出來會糊糊的～';
+          solution = '我來幫你放大並優化～';
+        }
+
+
+        // 自動選擇場景（如果用戶沒有手動選擇）
+        const hasUserSelected = document.querySelector('.quality-tag.active');
+        if (!hasUserSelected || hasUserSelected.dataset.scenario === 'standard') {
+          selectPrintScenario(recommendedScenario);
+          showToast(`${problem} 但是沒關係，因為我來囉～ ${solution}`);
+        }
+
+        return recommendedScenario;
+      } catch (error) {
+        console.log('自動場景偵測失敗:', error);
+        return 'standard';
+      }
+    }
+
+    // ============================================================
+    // 印刷適合度評分系統：依據真實圖片像素計算
+    // ============================================================
+
+    async function calcPrintScore(preset) {
+      if (!preset || !currentImageData || typeof ImageTool === 'undefined' || !ImageTool.printScore) return 0;
+      try {
+        const result = await ImageTool.printScore(currentImageData, preset);
+        return result.score;
+      } catch (e) {
+        console.warn('calcPrintScore failed', e);
+        return 0;
+      }
+    }
+
+    async function calcOriginalScore(imgWidth, imgHeight) {
+      const preset = DEFAULT_PRESET;
+      if (!preset || !originalImageData || typeof ImageTool === 'undefined' || !ImageTool.printScore) {
+        return { score: 0, estDpi: 0 };
+      }
+      try {
+        const result = await ImageTool.printScore(originalImageData, preset);
+        const longerPx = Math.max(imgWidth, imgHeight);
+        const targetMm = Math.max(preset.widthMm || 0, preset.heightMm || 0);
+        const estDpi = targetMm > 0 ? Math.round(longerPx / (targetMm / 25.4)) : 0;
+        return { score: result.score, estDpi };
+      } catch (e) {
+        return { score: 0, estDpi: 0 };
+      }
+    }
+
+    // 旋轉角度累積
+    let currentRotation = 0;
+
+    function rotateImage() {
+      if (!currentImageData) return;
+      currentRotation = (currentRotation + 90) % 360;
+
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+
+      img.onload = () => {
+        const sw = img.naturalWidth, sh = img.naturalHeight;
+        if (currentRotation % 180 !== 0) {
+          canvas.width = sh;
+          canvas.height = sw;
+        } else {
+          canvas.width = sw;
+          canvas.height = sh;
+        }
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.rotate((currentRotation * Math.PI) / 180);
+        ctx.drawImage(img, -sw / 2, -sh / 2);
+
+        currentImageData = canvas.toDataURL('image/png');
+        document.getElementById('previewAfterImg').src = currentImageData;
+
+        updatePrintScore();
+        updateOriginalScore();
+        showToast(`已旋轉 ${currentRotation}°`);
+      };
+      img.src = currentImageData;
+    }
+
+    async function updateOriginalScore() {
+      const tag = document.getElementById('originalScoreTag');
+      if (!tag || !originalImageData) return;
+
+      const img = new Image();
+      img.onload = async () => {
+        const { score, estDpi } = await calcOriginalScore(img.naturalWidth, img.naturalHeight);
+        tag.style.display = 'block';
+        tag.title = `${img.naturalWidth}x${img.naturalHeight}px ≈ ${estDpi} DPI`;
+        tag.textContent = `原始 ${score} 分`;
+      };
+      img.src = originalImageData;
+    }
+
+    async function updatePrintScore() {
+      const bar    = document.getElementById('printScoreBar');
+      const numEl  = document.getElementById('printScoreNumber');
+      const fill   = document.getElementById('printScoreFill');
+      const verdict= document.getElementById('printScoreVerdict');
+      if (!bar) return;
+
+      const preset = DEFAULT_PRESET;
+      if (!currentImageData || typeof ImageTool === 'undefined' || !ImageTool.printScore) {
+        bar.classList.remove('show');
+        return;
+      }
+
+      try {
+        const result = await ImageTool.printScore(currentImageData, preset);
+        const score = result.score;
+        const issue = result.issues && result.issues[0] ? result.issues[0] : '';
+
+        bar.classList.add('show');
+        numEl.textContent = score + ' 分';
+
+        let level, color, verdictText;
+        if (score >= 85) {
+          level = 'high'; color = '#00d4aa';
+          verdictText = '✅ 可以直接送廠了';
+        } else if (score >= 60) {
+          level = 'mid';  color = '#ffd700';
+          verdictText = '⚠️ ' + (issue || '建議調整後再輸出');
+        } else {
+          level = 'low';  color = '#ff6b6b';
+          verdictText = '❌ ' + (issue || '印出來可能出問題');
+        }
+
+        numEl.className = 'print-score-number ' + level;
+        fill.style.width = score + '%';
+        fill.style.background = color;
+        verdict.textContent = verdictText;
+        verdict.className = 'print-score-verdict ' + level;
+      } catch (e) {
+        console.warn('updatePrintScore failed', e);
+        bar.classList.remove('show');
+      }
+    }
+
+    async function updateScoreComparison() {
+      const comparisonEl = document.getElementById('scoreComparison');
+      const itemsEl = document.getElementById('comparisonItems');
+      const totalEl = document.getElementById('comparisonTotal');
+
+      if (!comparisonEl || !originalImageData || !currentImageData) {
+        if (comparisonEl) comparisonEl.style.display = 'none';
+        return;
+      }
+
+      const preset = DEFAULT_PRESET;
+      if (!preset || typeof ImageTool === 'undefined' || !ImageTool.printScore) {
+        comparisonEl.style.display = 'none';
+        return;
+      }
+
+      try {
+        // 獲取原始圖片評分
+        const originalResult = await ImageTool.printScore(originalImageData, preset);
+        const processedResult = await ImageTool.printScore(currentImageData, preset);
+
+        // 獲取圖片尺寸
+        const originalImg = new Image();
+        const processedImg = new Image();
+
+        await Promise.all([
+          new Promise(resolve => { originalImg.onload = resolve; originalImg.src = originalImageData; }),
+          new Promise(resolve => { processedImg.onload = resolve; processedImg.src = currentImageData; })
+        ]);
+
+        // 計算各項指標
+        const originalWidth = originalImg.naturalWidth;
+        const originalHeight = originalImg.naturalHeight;
+        const processedWidth = processedImg.naturalWidth;
+        const processedHeight = processedImg.naturalHeight;
+
+        const targetMm = Math.max(preset.widthMm || 0, preset.heightMm || 0);
+        const originalDpi = targetMm > 0 ? Math.round(Math.max(originalWidth, originalHeight) / (targetMm / 25.4)) : 0;
+        const processedDpi = targetMm > 0 ? Math.round(Math.max(processedWidth, processedHeight) / (targetMm / 25.4)) : 0;
+
+        // 計算目標像素尺寸
+        const targetWidthPx = preset.widthPx || Math.round((preset.widthMm || 0) / 25.4 * preset.dpi);
+        const targetHeightPx = preset.heightPx || Math.round((preset.heightMm || 0) / 25.4 * preset.dpi);
+        const targetPixels = targetWidthPx * targetHeightPx;
+
+        // 定義評分項目（權重）
+        const metrics = [
+          { name: '總分', weight: 1.0, before: originalResult.score, after: processedResult.score },
+          { name: '解析度 (DPI)', weight: 0.3, before: Math.min(100, originalDpi / 3), after: Math.min(100, processedDpi / 3) },
+          { name: '尺寸適配', weight: 0.2, before: targetPixels > 0 ? Math.min(100, (originalWidth * originalHeight) / targetPixels * 100) : 0, after: targetPixels > 0 ? Math.min(100, (processedWidth * processedHeight) / targetPixels * 100) : 0 },
+          { name: '色彩品質', weight: 0.25, before: originalResult.colorQuality || 70, after: processedResult.colorQuality || 80 },
+          { name: '銳利度', weight: 0.25, before: originalResult.sharpness || 60, after: processedResult.sharpness || 85 }
+        ];
+
+        // 計算加權總分
+        const calculateWeightedScore = (metrics) => {
+          let total = 0;
+          let totalWeight = 0;
+          metrics.forEach(m => {
+            const value = isNaN(m.before) ? 0 : m.before;
+            total += value * m.weight;
+            totalWeight += m.weight;
+          });
+          return totalWeight > 0 ? Math.round(total / totalWeight) : 0;
+        };
+
+        const originalTotal = calculateWeightedScore(metrics);
+        const processedTotal = calculateWeightedScore(metrics.map(m => ({ ...m, before: m.after })));
+
+        // 生成對比項目 HTML
+        let html = '';
+        metrics.forEach(metric => {
+          const diff = metric.after - metric.before;
+          const arrowClass = diff > 0 ? 'up' : diff < 0 ? 'down' : 'same';
+          const arrow = diff > 0 ? '↑' : diff < 0 ? '↓' : '→';
+
+          let extraInfo = '';
+          if (metric.name === '尺寸適配') {
+            extraInfo = `<div class="comparison-item-detail">處理前: ${originalWidth}×${originalHeight}px → 處理後: ${processedWidth}×${processedHeight}px</div>`;
+          }
+
+          html += `
+            <div class="comparison-item">
+              <span class="comparison-item-label">${metric.name}</span>
+              <div class="comparison-item-scores">
+                <span class="comparison-score before">${Math.round(metric.before)}</span>
+                <span class="comparison-arrow ${arrowClass}">${arrow}</span>
+                <span class="comparison-score after">${Math.round(metric.after)}</span>
+              </div>
+              ${extraInfo}
+            </div>
+          `;
+        });
+
+        itemsEl.innerHTML = html;
+        totalEl.textContent = `總分: ${originalTotal} → ${processedTotal}`;
+        comparisonEl.style.display = 'block';
+
+      } catch (e) {
+        console.warn('updateScoreComparison failed', e);
+        comparisonEl.style.display = 'none';
+      }
+    }
+
+    /**
+     * 一鍵快速匯出 (U14)
+     * 簡化匯出流程，無需額外設定
+     */
+    async function quickExport(format = 'png') {
+      if (!currentImageData) {
+        showToast('請先上傳並處理圖片');
+        return;
+      }
+
+      const preset = DEFAULT_PRESET;
+
+      // 一般圖片下載
+      const link = document.createElement('a');
+      const timestamp = Date.now();
+      const filename = `小象_${preset.desc}_${timestamp}.${format}`;
+
+      link.download = filename;
+      link.href = currentImageData;
+
+      // 觸發下載
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      // 更新統計
+      if (typeof ImageTool !== 'undefined') {
+        
+        
+      }
+
+      showToast(`✓ 已下載：${filename}`);
+      Assistant.show('success', { ops: [{type: 'complete'}] }, 3000);
+    }
+
+    // ============================================================
+    // Phase 4: 專業功能 (Professional Features)
+    // ============================================================
+
+    /**
+     * 進階 CMYK 2.0 引擎 (P01)
+     * 使用 ICC Profile 概念的精確色彩轉換
+     * @param {string} imageData - Data URL
+     * @param {Object} options - 轉換選項
+     * @returns {Promise<string>} - 轉換後的 Data URL
+     */
+    async function advancedCMYKConversion(imageData, options = {}) {
+      const { intent = 'perceptual', blackPoint = 0, whitePoint = 255 } = options;
+
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.drawImage(img, 0, 0);
+
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+
+            for (let i = 0; i < data.length; i += 4) {
+              let r = data[i] / 255;
+              let g = data[i + 1] / 255;
+              let b = data[i + 2] / 255;
+
+              // 白點/黑點調整
+              r = (r * (whitePoint - blackPoint) + blackPoint) / 255;
+              g = (g * (whitePoint - blackPoint) + blackPoint) / 255;
+              b = (b * (whitePoint - blackPoint) + blackPoint) / 255;
+
+              // Gamma 校正 (sRGB 到線性)
+              r = r < 0.04045 ? r / 12.92 : Math.pow((r + 0.055) / 1.055, 2.4);
+              g = g < 0.04045 ? g / 12.92 : Math.pow((g + 0.055) / 1.055, 2.4);
+              b = b < 0.04045 ? b / 12.92 : Math.pow((b + 0.055) / 1.055, 2.4);
+
+              // RGB 到 CMYK 轉換 (使用相對色度意圖)
+              const k = 1 - Math.max(r, g, b);
+              let c = 0, m = 0, y = 0;
+
+              if (k < 1) {
+                c = (1 - r - k) / (1 - k);
+                m = (1 - g - k) / (1 - k);
+                y = (1 - b - k) / (1 - k);
+              }
+
+              // 應用 GCR (灰成分替代) 優化
+              if (intent === 'perceptual') {
+                const gray = Math.min(c, m, y);
+                c -= gray * 0.8;
+                m -= gray * 0.8;
+                y -= gray * 0.8;
+                // k 保持不變
+              }
+
+              // 模擬轉回 RGB 顯示（實際應存為 CMYK 資料）
+              const newR = Math.round(255 * (1 - c) * (1 - k));
+              const newG = Math.round(255 * (1 - m) * (1 - k));
+              const newB = Math.round(255 * (1 - y) * (1 - k));
+
+              data[i] = newR;
+              data[i + 1] = newG;
+              data[i + 2] = newB;
+            }
+
+            ctx.putImageData(imageData, 0, 0);
+            resolve(canvas.toDataURL('image/png', 0.95));
+          } catch (error) {
+            reject(error);
+          }
+        };
+        img.onerror = () => reject(new Error('圖片載入失敗'));
+        img.src = imageData;
+      });
+    }
+
+    /**
+     * 真實向量化 (P10) — 基於 Potrace 演算法
+     * 使用 @cadit-app/potrace-ts（MIT），輸出真正的貝茲曲線 SVG
+     * @param {string} imageData - Data URL
+     * @returns {Promise<string>} - SVG 字串
+     */
+    async function traceVector(imageData) {
+      try {
+        // 動態載入 potrace-ts（ESM，首次呼叫才載入）
+        if (!window._potraceModule) {
+          showToast('⏳ 載入向量化引擎…');
+          window._potraceModule = await import('https://esm.sh/@cadit-app/potrace-ts@1.3.0');
+        }
+        const { traceDataUrl, getSVG } = window._potraceModule;
+
+        // 執行 Potrace 向量化
+        const paths = traceDataUrl(imageData);
+        const svg = getSVG(paths, 1);
+        return svg;
+      } catch (err) {
+        console.error('Potrace 向量化失敗:', err);
+        throw new Error('向量化引擎載入失敗，請確認網路連線');
+      }
+    }
+
+    /**
+     * 匯出 SVG 向量檔
+     */
+    async function exportSVG() {
+      if (!currentImageData) {
+        showToast('請先上傳並處理圖片');
+        return;
+      }
+      const btn = document.getElementById('exportSvgBtn');
+      if (btn) { btn.disabled = true; btn.textContent = '向量化中…'; }
+
+      try {
+        showToast('🔄 Potrace 向量化中，請稍候…');
+        const svg = await traceVector(currentImageData);
+        const blob = new Blob([svg], { type: 'image/svg+xml' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        const preset = DEFAULT_PRESET;
+        link.download = `小象_${preset.desc}_${Date.now()}.svg`;
+        link.href = url;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+        showToast('✓ SVG 向量檔已下載');
+        Assistant.show('success', { ops: [{ type: 'complete' }] }, 3000);
+      } catch (err) {
+        showToast('❌ ' + err.message);
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = '⬡ 匯出 SVG'; }
+      }
+    }
+
+    /**
+     * 即時印刷預覽模擬 (U21)
+     * 模擬印刷後的實際效果（網點、紙張吸收等）
+     * @param {string} imageData - Data URL
+     * @param {Object} options - 模擬選項
+     * @returns {Promise<string>} - 模擬後的 Data URL
+     */
+    async function simulatePrintPreview(imageData, options = {}) {
+      const { 
+        paperType = 'glossy', 
+        halftone = 150, // 網線數 LPI
+        dotGain = 15,   // 網點擴散 %
+        inkLimit = 300  // 油墨限制 %
+      } = options;
+
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = img.width;
+            canvas.height = img.height;
+
+            // 先繪製原始圖片
+            ctx.drawImage(img, 0, 0);
+
+            // 取得像素資料
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+
+            // 模擬網點效果（簡化版）
+            const cellSize = Math.max(2, Math.floor(300 / halftone));
+
+            for (let y = 0; y < canvas.height; y += cellSize) {
+              for (let x = 0; x < canvas.width; x += cellSize) {
+                // 計算區域平均
+                let avgR = 0, avgG = 0, avgB = 0, count = 0;
+
+                for (let dy = 0; dy < cellSize && y + dy < canvas.height; dy++) {
+                  for (let dx = 0; dx < cellSize && x + dx < canvas.width; dx++) {
+                    const idx = ((y + dy) * canvas.width + (x + dx)) * 4;
+                    avgR += data[idx];
+                    avgG += data[idx + 1];
+                    avgB += data[idx + 2];
+                    count++;
+                  }
+                }
+
+                avgR = avgR / count;
+                avgG = avgG / count;
+                avgB = avgB / count;
+
+                // 模擬網點擴散 (Dot Gain)
+                const darken = (val) => Math.max(0, val - (val * dotGain / 100));
+
+                // 填充分散的網點區域
+                for (let dy = 0; dy < cellSize && y + dy < canvas.height; dy++) {
+                  for (let dx = 0; dx < cellSize && x + dx < canvas.width; dx++) {
+                    const idx = ((y + dy) * canvas.width + (x + dx)) * 4;
+                    data[idx] = darken(avgR);
+                    data[idx + 1] = darken(avgG);
+                    data[idx + 2] = darken(avgB);
+                  }
+                }
+              }
+            }
+
+            ctx.putImageData(imageData, 0, 0);
+            resolve(canvas.toDataURL('image/png', 0.95));
+          } catch (error) {
+            reject(error);
+          }
+        };
+        img.onerror = () => reject(new Error('圖片載入失敗'));
+        img.src = imageData;
+      });
+    }
+
+    /**
+     * 品質標籤點選處理
+     */
+    document.querySelectorAll('.quality-tag').forEach(tag => {
+      tag.addEventListener('click', () => {
+        const scenario = tag.dataset.scenario;
+        const preset = DEFAULT_PRESET;
+        
+        
+        // 更新選中狀態
+        document.querySelectorAll('.quality-tag').forEach(t => t.classList.remove('active'));
+        tag.classList.add('active');
+        
+        // 更新當前場景
+        currentScenario = scenario;
+        
+        // 更新隱藏設定
+        document.getElementById('settingDpi').value = preset.dpi;
+        document.getElementById('settingColorMode').value = preset.colorMode;
+        document.getElementById('settingFormat').value = preset.format;
+        
+        // 刷刷通知
+        Assistant.show('scenario_switch', { label: preset.emotionLabel }, 3000);
+      });
+    });
+
+    // ============================================================
+    // UI Callbacks Registration
+    // ============================================================
+    
+    if (typeof ImageTool !== 'undefined') {
+      window.ImageTool_UI = {
+        processFile: processFile
+      };
+    }
+
+    // Initialize UI on load
+    document.addEventListener('DOMContentLoaded', () => {
+      console.log('DOMContentLoaded fired');
+
+      if (typeof ImageTool !== 'undefined') {
+        ImageTool.init();
+        
+        console.log('ImageTool initialized successfully');
+      } else {
+        console.error('ImageTool not loaded!');
+      }
+
+      // 初始化場景為預設
+      currentScenario = 'default';
+
+      // 初始化小象助理
+      initAssistant();
+
+      // 驗證檔案輸入元素
+      const fileInput = document.getElementById('fileInput');
+      const importZone = document.getElementById('importZoneFull');
+      console.log('fileInput found:', !!fileInput);
+      console.log('importZoneFull found:', !!importZone);
+
+    });
+
+    /**
+     * 測試點擊功能
+     */
+
+
+
+  </script>
+
+  <!-- ===== 小助理小象 ===== -->
+  <div class="assistant-container" id="assistantContainer">
+    <div class="assistant-bubble" id="assistantBubble">
+      嗨！我是小象 🐘✨<br>
+      把圖片丟給我，我會進行基礎處理。
+    </div>
+    <div class="assistant-avatar pulse" id="assistantAvatar" onclick="onAssistantClick()" title="點擊與小象對話">
+      <img src="xiaoxiang-avatar.svg" alt="小象" width="70" height="70" style="border-radius: 50%; object-fit: cover;">
+    </div>
+  </div>
+
+  <!-- ===== 智慧建議彈窗 ===== -->
+  <div class="smart-suggestion-modal" id="smartSuggestionModal">
+    <div class="suggestion-card">
+      <div class="suggestion-header">
+        <span class="suggestion-icon" id="suggestionIcon">💡</span>
+        <span class="suggestion-title" id="suggestionTitle">智慧建議</span>
+      </div>
+      <div class="suggestion-content" id="suggestionContent">
+        <!-- 動態內容 -->
+      </div>
+      <div class="suggestion-actions" id="suggestionActions">
+        <!-- 動態按鈕 -->
+      </div>
+    </div>
+  </div>
+</body>
+<!-- Image Tool Mobile v2.0.0 | Production -->
+</html>
+

@@ -1,0 +1,22 @@
+{
+  "name": "imagetool",
+  "version": "2.0.0",
+  "description": "Browser-based print-ready image converter for AI-generated images. No backend, no paid API.",
+  "main": "index.html",
+  "scripts": {
+    "start": "python -m http.server 8080",
+    "test": "python -m http.server 8080 & start http://localhost:8080/tests.html",
+    "open": "python -m http.server 8080 & start http://localhost:8080/index.html"
+  },
+  "keywords": [
+    "image",
+    "converter",
+    "upscaler",
+    "canvas",
+    "pwa",
+    "offline"
+  ],
+  "author": "",
+  "license": "MIT",
+  "type": "commonjs"
+}

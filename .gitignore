@@ -1,0 +1,55 @@
+# 備份文件
+backup/
+*.bak*
+
+# 臨時文件
+__extracted.js
+__extracted_single.js
+*.tmp
+*.temp
+
+# 測試報告
+test-report-*.txt
+check_result.txt
+single_check_result.txt
+
+# 舊版本
+OLD/
+
+# 工具目錄（開發用）
+tools/
+
+# 測試文件（開發用）
+auto-test.html
+auto-test.js
+tests.html
+print-test.html
+
+# Node modules
+node_modules/
+
+# 環境變量
+.env
+.env.local
+
+# IDE 配置
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 操作系統
+.DS_Store
+Thumbs.db
+
+# 日誌文件
+*.log
+
+# 審查報告（開發用）
+SECOND_REVIEW_REPORT.md
+THIRD_REVIEW_REPORT.md
+SECURITY_AUDIT.md
+PRE_LAUNCH_CHECKLIST.md
+
+# 空目錄
+elephants/

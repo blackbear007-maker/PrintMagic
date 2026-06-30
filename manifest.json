@@ -1,0 +1,17 @@
+{
+  "name": "ImageTool",
+  "short_name": "ImageTool",
+  "description": "圖片格式轉換、放大與基礎增強",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3b82f6",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "xiaoxiang-avatar.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

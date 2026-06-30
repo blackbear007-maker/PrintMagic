@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="400" height="400">
+  <defs>
+    <!-- 皮膚漸層 -->
+    <linearGradient id="skinGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFE4D6"/>
+      <stop offset="100%" style="stop-color:#FFD4C4"/>
+    </linearGradient>
+    <!-- 頭髮漸層 -->
+    <linearGradient id="hairGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#8B4513"/>
+      <stop offset="50%" style="stop-color:#A0522D"/>
+      <stop offset="100%" style="stop-color:#CD853F"/>
+    </linearGradient>
+    <!-- 臉紅 -->
+    <radialGradient id="blush" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#FFB6C1;stop-opacity:0.6"/>
+      <stop offset="100%" style="stop-color:#FFB6C1;stop-opacity:0"/>
+    </radialGradient>
+    <!-- 背景光暈 -->
+    <radialGradient id="bgGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#ff6b6b;stop-opacity:0.3"/>
+      <stop offset="70%" style="stop-color:#ff8e53;stop-opacity:0.1"/>
+      <stop offset="100%" style="stop-color:#ff6b9d;stop-opacity:0"/>
+    </radialGradient>
+  </defs>
+  
+  <!-- 背景圓形 -->
+  <circle cx="50" cy="50" r="48" fill="url(#bgGlow)"/>
+  
+  <!-- 頭髮後層 -->
+  <ellipse cx="50" cy="45" rx="42" ry="38" fill="url(#hairGrad)"/>
+  
+  <!-- 臉型 -->
+  <ellipse cx="50" cy="52" rx="32" ry="30" fill="url(#skinGrad)"/>
+  
+  <!-- 頭髮瀏海 -->
+  <path d="M20 35 Q30 25 40 32 Q50 20 60 32 Q70 25 80 35 L75 20 Q50 10 25 20 Z" fill="url(#hairGrad)"/>
+  
+  <!-- 臉紅 -->
+  <ellipse cx="25" cy="58" rx="8" ry="5" fill="url(#blush)" opacity="0.7"/>
+  <ellipse cx="75" cy="58" rx="8" ry="5" fill="url(#blush)" opacity="0.7"/>
+  
+  <!-- 眉毛（開心） -->
+  <g stroke="#8B4513" stroke-width="2.5" fill="none" stroke-linecap="round">
+    <path d="M28 38 Q35 35 42 38"/>
+    <path d="M58 38 Q65 35 72 38"/>
+  </g>
+  
+  <!-- 眼睛（驚喜睜大） -->
+  <g>
+    <!-- 左眼 -->
+    <ellipse cx="35" cy="48" rx="6" ry="8" fill="#2C1810"/>
+    <circle cx="37" cy="46" r="2.5" fill="white"/>
+    <!-- 右眼 -->
+    <ellipse cx="65" cy="48" rx="6" ry="8" fill="#2C1810"/>
+    <circle cx="67" cy="46" r="2.5" fill="white"/>
+  </g>
+  
+  <!-- 嘴巴（開心笑） -->
+  <path d="M42 68 Q50 80 58 68" stroke="#D2691E" stroke-width="3" fill="none" stroke-linecap="round"/>
+</svg>
