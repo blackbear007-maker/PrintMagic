@@ -2033,7 +2033,7 @@ function lanczosKernel(x, a) {
           const offset = bleedMm;
 
           pdf.setDrawColor(0);
-          pdf.setLineWidth(0.25);
+          pdf.setLineWidth(0.1); // 修正線寬：從 0.25mm 改為 0.1mm（符合印刷標準）
 
           // 左上標記
           pdf.line(x - offset - markLength, y - offset, x - offset, y - offset);
@@ -2050,6 +2050,33 @@ function lanczosKernel(x, a) {
           // 右下標記
           pdf.line(x + imgWidthMm + offset, y + imgHeightMm + offset, x + imgWidthMm + offset + markLength, y + imgHeightMm + offset);
           pdf.line(x + imgWidthMm + offset, y + imgHeightMm + offset, x + imgWidthMm + offset, y + imgHeightMm + offset + markLength);
+
+          // 添加套色標記（CMYK）- 專業印刷場景
+          if (preset.colorMarks) {
+            const cmykColors = [
+              { c: 100, m: 0, y: 0, k: 0 },   // C (青色)
+              { c: 0, m: 100, y: 0, k: 0 },  // M (洋紅)
+              { c: 0, m: 0, y: 100, k: 0 },  // Y (黃色)
+              { c: 0, m: 0, y: 0, k: 100 }   // K (黑色)
+            ];
+
+            cmykColors.forEach((color, i) => {
+              pdf.setDrawColor(color.c, color.m, color.y, color.k);
+              const markX = x - offset - 8 + (i * 2);
+              const markY = y - offset - 8;
+              pdf.circle(markX, markY, 1.5);
+            });
+          }
+
+          // 添加套準標記（十字）- 專業印刷場景
+          if (preset.registrationMarks) {
+            const regX = x + imgWidthMm / 2;
+            const regY = y - offset - 8;
+
+            pdf.setDrawColor(0);
+            pdf.line(regX - 2, regY, regX + 2, regY);
+            pdf.line(regX, regY - 2, regX, regY + 2);
+          }
         }
 
         // 加入印刷廠資訊（如果有）
@@ -2748,7 +2775,10 @@ function lanczosKernel(x, a) {
       icon: '✨',
       resultDesc: '優化完成',
       safeZone: false,
-      paper: 'glossy'
+      paper: 'glossy',
+      cropMarks: true,      // 裁切標記
+      colorMarks: false,    // 套色標記（CMYK）- 專業印刷場景啟用
+      registrationMarks: false // 套準標記 - 專業印刷場景啟用
     };
 
     let currentImageData = null;
