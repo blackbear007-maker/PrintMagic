@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8" />
@@ -3628,7 +3628,7 @@ function lanczosKernel(x, a) {
      * 處理上傳的檔案 - 一鍵即結果
      * @param {File} file - 圖片檔案
      */
-    async function processFile(file) {
+    async function processFile(file, isBatch = false) {
       // 精確檢查支持的圖片格式
       const supportedFormats = ['image/png', 'image/jpeg', 'image/jpg', 'image/heic', 'image/heif'];
       if (!supportedFormats.includes(file.type.toLowerCase())) {
@@ -3636,46 +3636,64 @@ function lanczosKernel(x, a) {
         return false;
       }
 
-      if (isProcessing) {
+      // 批次處理時不檢查 isProcessing
+      if (!isBatch && isProcessing) {
         Assistant.show('error', { code: 'busy', type: 'default' }, 3000);
         return false;
       }
 
-      isProcessing = true;
+      if (!isBatch) {
+        isProcessing = true;
+      }
 
       return new Promise((resolve, reject) => {
-        // 顯示進度動畫
-        showProgress(Assistant.generate('processing', '讀取'));
-        Assistant.show('processing', { action: '讀取' }, 3000);
+        // 批次處理時不顯示進度動畫
+        if (!isBatch) {
+          showProgress(Assistant.generate('processing', '讀取'));
+          Assistant.show('processing', { action: '讀取' }, 3000);
+        }
 
         const reader = new FileReader();
         reader.onload = async (e) => {
           try {
-            // 清理舊數據，釋放內存
-            currentImageData = null;
-            currentImageInfo = null;
-            if (typeof GC !== 'undefined') GC(); // 如果有手動 GC 觸發
+            const imageData = e.target.result;
 
-            currentImageData = e.target.result;
-            originalImageData = e.target.result;
+            if (isBatch) {
+              // 批次處理：直接處理並返回結果，不顯示預覽
+              const processedData = await autoProcessImage(imageData, true);
+              resolve({ file, processedData });
+            } else {
+              // 單張處理：顯示預覽
+              // 清理舊數據，釋放內存
+              currentImageData = null;
+              currentImageInfo = null;
+              if (typeof GC !== 'undefined') GC(); // 如果有手動 GC 觸發
 
-            // 顯示預覽
-            showPreview(currentImageData);
+              currentImageData = imageData;
+              originalImageData = imageData;
 
-            // 自動執行分析和優化
-            await autoProcessImage(currentImageData);
-            resolve(true);
+              // 顯示預覽
+              showPreview(currentImageData);
+
+              // 自動執行分析和優化
+              await autoProcessImage(currentImageData);
+              resolve(true);
+            }
           } catch (error) {
-            isProcessing = false;
-            hideProgress();
-            Assistant.show('error', { code: 'process_fail', type: 'warning' }, 5000);
+            if (!isBatch) {
+              isProcessing = false;
+              hideProgress();
+              Assistant.show('error', { code: 'process_fail', type: 'warning' }, 5000);
+            }
             reject(error);
           }
         };
         reader.onerror = () => {
-          isProcessing = false;
-          hideProgress();
-          Assistant.show('error', { code: 'read_fail', type: 'warning' }, 5000);
+          if (!isBatch) {
+            isProcessing = false;
+            hideProgress();
+            Assistant.show('error', { code: 'read_fail', type: 'warning' }, 5000);
+          }
           reject(new Error('File read failed'));
         };
         reader.readAsDataURL(file);
@@ -3689,16 +3707,61 @@ function lanczosKernel(x, a) {
         return;
       }
 
+      if (imageFiles.length === 1) {
+        // 單張圖片，使用單張處理模式
+        await processFile(imageFiles[0], false);
+        return;
+      }
+
+      // 批次處理模式
+      const results = [];
+      const preset = DEFAULT_PRESET;
+      const format = preset.format || 'png';
+
       for (let i = 0; i < imageFiles.length; i++) {
         const file = imageFiles[i];
         showToast(`批次處理 ${i + 1}/${imageFiles.length}: ${file.name}`);
         try {
-          await processFile(file);
+          const result = await processFile(file, true);
+          if (result && result.processedData) {
+            results.push({ file, data: result.processedData });
+          }
         } catch (error) {
           console.error('Batch process error:', error);
+          showToast(`✗ 處理失敗: ${file.name}`);
         }
       }
-      showToast('批次處理完成');
+
+      showToast(`批次處理完成，成功 ${results.length}/${imageFiles.length} 張`);
+
+      // 自動下載所有處理後的圖片
+      if (results.length > 0) {
+        await downloadBatchResults(results, format);
+      }
+    }
+
+    /**
+     * 下載批次處理結果
+     */
+    async function downloadBatchResults(results, format) {
+      const timestamp = Date.now();
+      const preset = DEFAULT_PRESET;
+
+      for (let i = 0; i < results.length; i++) {
+        const { file, data } = results[i];
+        const link = document.createElement('a');
+        const filename = `小象_${preset.desc}_${file.name}_${timestamp}.${format}`;
+        link.download = filename;
+        link.href = data;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+
+        // 延遲下載，避免瀏覽器阻止
+        if (i < results.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 200));
+        }
+      }
     }
 
     /**
@@ -3813,18 +3876,23 @@ function lanczosKernel(x, a) {
     /**
      * 自動處理圖片 - 刷刷直接執行，不詢問
      * @param {string} imageData - Data URL
+     * @param {boolean} isBatch - 是否批次處理模式
      */
-    async function autoProcessImage(imageData) {
-      Assistant.show('analyzing', {}, 5000);
-      
+    async function autoProcessImage(imageData, isBatch = false) {
+      if (!isBatch) {
+        Assistant.show('analyzing', {}, 5000);
+      }
+
       try {
         // 獲取圖片資訊
         const info = await getImageInfo(imageData);
-        currentImageInfo = info;
-        
+        if (!isBatch) {
+          currentImageInfo = info;
+        }
+
         // 決定使用哪個場景
         const preset = DEFAULT_PRESET;
-        
+
         // 計算目標像素
         const targetW = preset.widthPx || Math.round((preset.widthMm || 0) / 25.4 * preset.dpi);
         const targetH = preset.heightPx || Math.round((preset.heightMm || 0) / 25.4 * preset.dpi);
@@ -3832,26 +3900,43 @@ function lanczosKernel(x, a) {
         const actualMax = Math.max(info.width, info.height);
         const needsUpscale = targetMax > 0 && actualMax < targetMax;
 
+        let processedData = imageData;
+
         // 步驟 1: 如果需要，自動放大
         if (needsUpscale) {
           const scale = Math.min(Math.ceil(targetMax / actualMax), 8);
-          updateProgress(Assistant.generate('upscale_needed', scale));
+          if (!isBatch) {
+            updateProgress(Assistant.generate('upscale_needed', scale));
+          }
 
           try {
             const result = await ImageTool.upscale(imageData, { scale });
-            currentImageData = result.result;
+            processedData = result.result;
 
-            // 更新預覽
-            document.getElementById('previewAfterImg').src = currentImageData;
-            Assistant.show('success', { ops: [{type: 'upscale', scale: scale}] }, 4000);
+            if (!isBatch) {
+              currentImageData = processedData;
+              // 更新預覽
+              document.getElementById('previewAfterImg').src = processedData;
+              Assistant.show('success', { ops: [{type: 'upscale', scale: scale}] }, 4000);
+            }
           } catch (e) {
             // 放大失敗繼續使用原圖
-            document.getElementById('previewAfterImg').src = imageData;
+            if (!isBatch) {
+              document.getElementById('previewAfterImg').src = imageData;
+            }
           }
         } else {
-          document.getElementById('previewAfterImg').src = imageData;
+          if (!isBatch) {
+            document.getElementById('previewAfterImg').src = imageData;
+          }
         }
         
+        // 批次處理模式：返回處理後的數據
+        if (isBatch) {
+          return processedData;
+        }
+
+        // 單張處理模式：執行後續 UI 更新
 
 
         // 步驟 6: 執行匯出
