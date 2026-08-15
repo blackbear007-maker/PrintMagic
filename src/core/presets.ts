@@ -1,0 +1,123 @@
+import type { PrintPreset, PrintPresetId } from '../types';
+
+/**
+ * Standard Print Shop Presets
+ * Calibrated against ISO 216 standards and commercial print specifications
+ */
+export const PRINT_PRESETS: Record<PrintPresetId, PrintPreset> = {
+  'poster-a4': {
+    id: 'poster-a4',
+    name: 'A4 Poster',
+    nameZh: 'A4 經典海報',
+    desc: '最普遍的畫作、同人誌插畫與宣傳海報規格 (210 × 297 mm)',
+    category: 'commercial',
+    icon: '📄',
+    widthMm: 210,
+    heightMm: 297,
+    targetDpi: 300,
+    bleedMm: 3,
+    safeMarginMm: 5,
+    colorMode: 'cmyk',
+    recommendedPaper: 'glossy',
+    cropMarks: true,
+    colorBars: true,
+    registrationMarks: true
+  },
+  'poster-a3': {
+    id: 'poster-a3',
+    name: 'A3 Exhibition Poster',
+    nameZh: 'A3 大圖展示海報',
+    desc: '展覽級大尺寸海報，細節要求極高 (297 × 420 mm)',
+    category: 'art',
+    icon: '🖼️',
+    widthMm: 297,
+    heightMm: 420,
+    targetDpi: 300,
+    bleedMm: 3,
+    safeMarginMm: 8,
+    colorMode: 'cmyk',
+    recommendedPaper: 'matte',
+    cropMarks: true,
+    colorBars: true,
+    registrationMarks: true
+  },
+  'postcard': {
+    id: 'postcard',
+    name: 'Art Postcard',
+    nameZh: '藝術紀念明信片',
+    desc: '厚卡紙印刷標準尺寸，色彩要求飽滿鮮明 (148 × 100 mm)',
+    category: 'art',
+    icon: '✉️',
+    widthMm: 148,
+    heightMm: 100,
+    targetDpi: 300,
+    bleedMm: 2,
+    safeMarginMm: 4,
+    colorMode: 'cmyk',
+    recommendedPaper: 'cotton',
+    cropMarks: true,
+    colorBars: true,
+    registrationMarks: false
+  },
+  'business-card': {
+    id: 'business-card',
+    name: 'Standard Business Card',
+    nameZh: '專業商業名片',
+    desc: '標準名片尺寸，文字與精細線條邊緣清晰 (90 × 54 mm)',
+    category: 'commercial',
+    icon: '📇',
+    widthMm: 90,
+    heightMm: 54,
+    targetDpi: 350,
+    bleedMm: 1.5,
+    safeMarginMm: 3,
+    colorMode: 'cmyk',
+    recommendedPaper: 'linen',
+    cropMarks: true,
+    colorBars: false,
+    registrationMarks: false
+  },
+  'sticker': {
+    id: 'sticker',
+    name: 'Die-cut Sticker',
+    nameZh: '精緻模切貼紙',
+    desc: '高密度小物件印刷，需要超高 DPI 與精確出血 (50 × 50 mm)',
+    category: 'commercial',
+    icon: '🏷️',
+    widthMm: 50,
+    heightMm: 50,
+    targetDpi: 350,
+    bleedMm: 2,
+    safeMarginMm: 3,
+    colorMode: 'cmyk',
+    recommendedPaper: 'glossy',
+    cropMarks: true,
+    colorBars: false,
+    registrationMarks: false
+  },
+  'social': {
+    id: 'social',
+    name: 'HD Digital Social Share',
+    nameZh: '社群高畫質發布',
+    desc: 'Instagram / X / Facebook 最佳化色彩與尺寸 (1080 × 1080 px)',
+    category: 'digital',
+    icon: '📱',
+    widthMm: 0, // digital only
+    heightMm: 0,
+    targetDpi: 72,
+    bleedMm: 0,
+    safeMarginMm: 0,
+    colorMode: 'rgb',
+    recommendedPaper: 'glossy',
+    cropMarks: false,
+    colorBars: false,
+    registrationMarks: false
+  }
+};
+
+export const DEFAULT_PRESET_ID: PrintPresetId = 'poster-a4';
+export const DEFAULT_PRESET = PRINT_PRESETS[DEFAULT_PRESET_ID];
+
+export function getPresetById(id: string): PrintPreset {
+  return PRINT_PRESETS[id as PrintPresetId] || DEFAULT_PRESET;
+}

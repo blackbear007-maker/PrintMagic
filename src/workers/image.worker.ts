@@ -1,0 +1,127 @@
+import { LanczosResizer } from '../engines/lanczos';
+import { UnsharpMask } from '../core/unsharp-mask';
+import { InkLimiter } from '../core/ink-limiter';
+import { PrintScoreCalculator } from '../core/print-score';
+import type { WorkerRequest, WorkerResponse } from '../types';
+
+function createClampedImageData(data: Uint8ClampedArray, width: number, height: number): ImageData {
+  const copy = new Uint8ClampedArray(data.length);
+  copy.set(data);
+  return new ImageData(copy, width, height);
+}
+
+self.onmessage = (e: MessageEvent<WorkerRequest>) => {
+  const { id, operation, payload } = e.data;
+
+  try {
+    const { imageData } = payload;
+    const srcWidth = imageData.width;
+    const srcHeight = imageData.height;
+    const srcData = imageData.data;
+
+    let response: WorkerResponse;
+
+    switch (operation) {
+      case 'lanczos': {
+        const scale = payload.scale || 2;
+        const res = LanczosResizer.resize(srcData, srcWidth, srcHeight, scale);
+        response = {
+          id,
+          success: true,
+          imageData: {
+            width: res.width,
+            height: res.height,
+            data: res.data
+          }
+        };
+        // Transfer buffer
+        self.postMessage(response, [res.data.buffer]);
+        return;
+      }
+
+      case 'unsharp': {
+        const amount = payload.amount ?? 1.5;
+        const radius = payload.radius ?? 1;
+        const threshold = payload.threshold ?? 3;
+        const imgObj = createClampedImageData(srcData, srcWidth, srcHeight);
+        const sharpened = UnsharpMask.apply(imgObj, amount, radius, threshold);
+
+        response = {
+          id,
+          success: true,
+          imageData: {
+            width: sharpened.width,
+            height: sharpened.height,
+            data: sharpened.data
+          }
+        };
+        self.postMessage(response, [sharpened.data.buffer]);
+        return;
+      }
+
+      case 'clampInk': {
+        const maxInk = payload.maxInk ?? 300;
+        const imgObj = createClampedImageData(srcData, srcWidth, srcHeight);
+        const clamped = InkLimiter.clampInk(imgObj, maxInk);
+
+        response = {
+          id,
+          success: true,
+          result: { modifiedPixels: clamped.modifiedPixels },
+          imageData: {
+            width: clamped.clampedImageData.width,
+            height: clamped.clampedImageData.height,
+            data: clamped.clampedImageData.data
+          }
+        };
+        self.postMessage(response, [clamped.clampedImageData.data.buffer]);
+        return;
+      }
+
+      case 'generateHeatmap': {
+        const maxInk = payload.maxInk ?? 300;
+        const imgObj = createClampedImageData(srcData, srcWidth, srcHeight);
+        const heatmap = InkLimiter.generateHeatmap(imgObj, maxInk);
+
+        response = {
+          id,
+          success: true,
+          imageData: {
+            width: heatmap.width,
+            height: heatmap.height,
+            data: heatmap.data
+          }
+        };
+        self.postMessage(response, [heatmap.data.buffer]);
+        return;
+      }
+
+      case 'analyze': {
+        const imgObj = createClampedImageData(srcData, srcWidth, srcHeight);
+        const stats = PrintScoreCalculator.analyzePixels(imgObj);
+        const inkAnalysis = InkLimiter.analyze(imgObj);
+
+        response = {
+          id,
+          success: true,
+          result: {
+            stats,
+            inkAnalysis
+          }
+        };
+        self.postMessage(response);
+        return;
+      }
+
+      default:
+        throw new Error(`Unknown worker operation: ${operation}`);
+    }
+  } catch (error: any) {
+    const errorResponse: WorkerResponse = {
+      id,
+      success: false,
+      error: error?.message || 'Worker processing failed'
+    };
+    self.postMessage(errorResponse);
+  }
+};

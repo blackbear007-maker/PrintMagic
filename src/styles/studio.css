@@ -1,0 +1,381 @@
+/* ============================================================
+   PrintMagic v3.1 Pro - Studio Layout & Apple Minimalist Panels
+   Flat Solid Colors, Zero Gradients, Precision Hierarchy
+   ============================================================ */
+
+.pm-app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: var(--pm-bg-canvas);
+}
+
+/* Studio Header */
+.pm-header {
+  height: 56px;
+  border-bottom: 1px solid var(--pm-border-subtle);
+  background-color: var(--pm-bg-surface-glass);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.pm-header-inner {
+  max-width: 1440px;
+  height: 100%;
+  margin: 0 auto;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.pm-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pm-logo-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--pm-radius-sm);
+  background-color: var(--pm-bg-surface-elevated);
+  border: 1px solid var(--pm-border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  color: var(--pm-text-primary);
+}
+
+.pm-logo-text {
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  color: var(--pm-text-primary);
+}
+
+.pm-badge-pro {
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 2px 6px;
+  border-radius: var(--pm-radius-xs);
+  background-color: var(--pm-bg-surface-elevated);
+  border: 1px solid var(--pm-border-subtle);
+  color: var(--pm-text-secondary);
+}
+
+.pm-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pm-privacy-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--pm-text-secondary);
+  background-color: var(--pm-bg-surface-elevated);
+  border: 1px solid var(--pm-border-subtle);
+  padding: 4px 10px;
+  border-radius: var(--pm-radius-full);
+}
+
+.pm-privacy-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--pm-status-success);
+}
+
+.pm-sound-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--pm-radius-sm);
+  background-color: var(--pm-bg-surface-elevated);
+  border: 1px solid var(--pm-border-subtle);
+  color: var(--pm-text-secondary);
+  font-size: 0.85rem;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.pm-sound-btn:hover {
+  background-color: var(--pm-bg-surface-hover);
+  color: var(--pm-text-primary);
+  border-color: var(--pm-border-active);
+}
+
+/* Preset Navigation Bar (macOS Segmented Style) */
+.pm-preset-bar {
+  background-color: var(--pm-bg-surface);
+  border-bottom: 1px solid var(--pm-border-subtle);
+  padding: 8px 24px;
+}
+
+.pm-preset-bar-inner {
+  max-width: 1440px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.pm-preset-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--pm-text-muted);
+}
+
+.pm-preset-tabs {
+  display: flex;
+  gap: 4px;
+  background-color: var(--pm-bg-canvas);
+  padding: 3px;
+  border-radius: var(--pm-radius-sm);
+  border: 1px solid var(--pm-border-subtle);
+  flex-wrap: wrap;
+}
+
+.pm-preset-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: var(--pm-radius-xs);
+  background-color: transparent;
+  border: 1px solid transparent;
+  color: var(--pm-text-secondary);
+  font-size: 0.8rem;
+  font-weight: 500;
+  transition: all 0.15s ease;
+}
+
+.pm-preset-btn:hover {
+  color: var(--pm-text-primary);
+  background-color: var(--pm-bg-surface-hover);
+}
+
+.pm-preset-btn.active {
+  background-color: var(--pm-bg-surface-elevated);
+  border-color: var(--pm-border-active);
+  color: var(--pm-text-primary);
+  font-weight: 600;
+}
+
+/* Main Studio Layout */
+.pm-main {
+  flex: 1;
+  max-width: 1440px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.pm-studio-grid {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 1080px) {
+  .pm-studio-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Apple Solid Glass Card */
+.pm-card {
+  background-color: var(--pm-bg-surface);
+  border: 1px solid var(--pm-border-subtle);
+  border-radius: var(--pm-radius-md);
+  box-shadow: var(--pm-shadow-sm);
+  overflow: hidden;
+}
+
+/* Toolbar & View Controls */
+.pm-view-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background-color: var(--pm-bg-surface);
+  border-bottom: 1px solid var(--pm-border-subtle);
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.pm-toggle-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.pm-tool-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: var(--pm-radius-sm);
+  background-color: transparent;
+  border: 1px solid transparent;
+  color: var(--pm-text-secondary);
+  font-size: 0.78rem;
+  font-weight: 500;
+  transition: all 0.15s ease;
+}
+
+.pm-tool-btn:hover {
+  background-color: var(--pm-bg-surface-hover);
+  color: var(--pm-text-primary);
+}
+
+.pm-tool-btn.active {
+  background-color: var(--pm-bg-surface-elevated);
+  border-color: var(--pm-border-active);
+  color: var(--pm-text-primary);
+  font-weight: 600;
+}
+
+/* Paper Selector (Segmented) */
+.pm-paper-selector {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background-color: var(--pm-bg-canvas);
+  padding: 2px;
+  border-radius: var(--pm-radius-sm);
+  border: 1px solid var(--pm-border-subtle);
+}
+
+.pm-paper-btn {
+  padding: 3px 8px;
+  border-radius: var(--pm-radius-xs);
+  background-color: transparent;
+  border: 1px solid transparent;
+  color: var(--pm-text-muted);
+  font-size: 0.72rem;
+  font-weight: 500;
+  transition: all 0.15s ease;
+}
+
+.pm-paper-btn:hover {
+  color: var(--pm-text-secondary);
+}
+
+.pm-paper-btn.active {
+  background-color: var(--pm-bg-surface-elevated);
+  color: var(--pm-text-primary);
+  border-color: var(--pm-border-active);
+  font-weight: 600;
+}
+
+/* Export & Action Bar */
+.pm-export-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 16px;
+  background-color: var(--pm-bg-surface);
+  border-top: 1px solid var(--pm-border-subtle);
+  flex-wrap: wrap;
+}
+
+.pm-export-left-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pm-export-right-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Apple Solid Button System */
+.pm-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: var(--pm-radius-sm);
+  font-size: 0.82rem;
+  font-weight: 500;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.pm-btn-primary {
+  background-color: var(--pm-accent-blue);
+  color: #ffffff;
+  border: 1px solid transparent;
+}
+
+.pm-btn-primary:hover {
+  background-color: #0077ed;
+}
+
+.pm-btn-primary:active {
+  background-color: #006edb;
+}
+
+.pm-btn-secondary {
+  background-color: var(--pm-bg-surface-elevated);
+  border: 1px solid var(--pm-border-subtle);
+  color: var(--pm-text-primary);
+}
+
+.pm-btn-secondary:hover {
+  background-color: var(--pm-bg-surface-hover);
+  border-color: var(--pm-border-active);
+}
+
+.pm-btn-artisan {
+  background-color: var(--pm-bg-surface-elevated);
+  border: 1px solid var(--pm-border-subtle);
+  color: var(--pm-text-primary);
+}
+
+.pm-btn-artisan:hover {
+  background-color: var(--pm-bg-surface-hover);
+  border-color: var(--pm-border-active);
+}
+
+.pm-btn-ghost {
+  background-color: transparent;
+  color: var(--pm-text-secondary);
+  border: 1px solid transparent;
+}
+
+.pm-btn-ghost:hover {
+  color: var(--pm-text-primary);
+  background-color: var(--pm-bg-surface-hover);
+}
+
+/* Studio Footer */
+.pm-footer {
+  padding: 20px;
+  border-top: 1px solid var(--pm-border-subtle);
+  text-align: center;
+  color: var(--pm-text-muted);
+  font-size: 0.75rem;
+}
