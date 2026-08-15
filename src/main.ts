@@ -579,7 +579,7 @@ class App {
 
     store.setState({
       isProcessing: true,
-      processingStep: '1/4 正在分析物理解析度 (DPI) 與長寬比...'
+      processingStep: '1/4 正在分析原圖指標 (DPI、長寬比、溢墨與邊緣銳度)...'
     });
 
     if (activeId) {
@@ -590,40 +590,54 @@ class App {
       // Trigger Cinematic Laser Scanline
       void this.laserScan.triggerScan();
 
-      // Step 1: DPI Analysis
-      const dpiAnalysis = DpiCalculator.analyze(
+      // Step 0: Pre-Processing Diagnostic Evaluation
+      const originalDpiAnalysis = DpiCalculator.analyze(
         srcImageData.width,
         srcImageData.height,
         preset
       );
+      const { stats: originalStats, inkAnalysis: originalInkAnalysis } = await workerClient.analyze(srcImageData);
+      const originalScoreResult = PrintScoreCalculator.calculate(originalStats, preset, originalInkAnalysis);
+
+      store.setState({
+        originalStats,
+        originalDpiAnalysis,
+        originalInkAnalysis,
+        originalScoreResult
+      });
 
       let processedImgData = srcImageData;
       let appliedScale = 1;
 
-      // Step 2: Lanczos-3 Resampling (if needed)
-      if (dpiAnalysis.needsUpscale && dpiAnalysis.scaleFactor > 1) {
-        appliedScale = dpiAnalysis.scaleFactor;
+      // Step 1: Lanczos-3 Resampling (if needed)
+      if (originalDpiAnalysis.needsUpscale && originalDpiAnalysis.scaleFactor > 1) {
+        appliedScale = originalDpiAnalysis.scaleFactor;
         store.setState({
           processingStep: `2/4 正在執行 ${appliedScale}x Lanczos-3 印刷級超解析度放大...`
         });
         processedImgData = await workerClient.lanczos(srcImageData, appliedScale);
       }
 
-      // Step 3: Pre-press Unsharp Mask Sharpening
+      // Step 2: Pre-press Unsharp Mask Sharpening
       store.setState({
         processingStep: '3/4 正在套用印刷微細邊緣銳化補償 (USM)...'
       });
       processedImgData = await workerClient.unsharp(processedImgData, 1.5, 1, 3);
 
-      // Step 4: Total Area Coverage (TAC 300%) Clamp & Verification
+      // Step 3: Total Area Coverage (TAC 300%) Clamp & Verification
       store.setState({
         processingStep: '4/4 正在檢測並修正總墨量 TAC 限制 (300%)...'
       });
       const clampResult = await workerClient.clampInk(processedImgData, 300);
       processedImgData = clampResult.imageData;
 
-      // Step 5: Final Analysis & Scoring
+      // Step 4: Post-Processing Diagnostic Evaluation
       const { stats, inkAnalysis } = await workerClient.analyze(processedImgData);
+      const dpiAnalysis = DpiCalculator.analyze(
+        processedImgData.width,
+        processedImgData.height,
+        preset
+      );
       const scoreResult = PrintScoreCalculator.calculate(stats, preset, inkAnalysis);
 
       const processedDataUrl = this.imageDataToDataUrl(processedImgData);
@@ -646,6 +660,9 @@ class App {
       // Update active batch item
       if (activeId) {
         store.updateBatchItem(activeId, {
+          originalScoreResult,
+          originalDpiAnalysis,
+          originalInkAnalysis,
           processedDataUrl,
           processedImageData: processedImgData,
           processedWidth: processedImgData.width,
@@ -660,7 +677,9 @@ class App {
       }
 
       SoundEffects.purityChime();
-      Toast.success(`✓ 印刷優化完成！適合度評分：${scoreResult.score} 分`);
+      const delta = scoreResult.score - originalScoreResult.score;
+      const deltaStr = delta > 0 ? ` (+${delta}分提升)` : '';
+      Toast.success(`✓ 印刷優化完成！原圖 ${originalScoreResult.score}分 ➔ 優化後 ${scoreResult.score}分${deltaStr}`);
     } catch (err: any) {
       console.error('Optimization pipeline error:', err);
       store.setState({ isProcessing: false, processingStep: '' });

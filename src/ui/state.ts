@@ -21,6 +21,9 @@ export interface AppState {
   originalStats: ImagePixelStats | null;
   originalWidth: number;
   originalHeight: number;
+  originalScoreResult: PrintScoreResult | null;
+  originalDpiAnalysis: DpiAnalysis | null;
+  originalInkAnalysis: InkAnalysis | null;
 
   // Active Processed Output
   processedDataUrl: string | null;
@@ -84,6 +87,9 @@ class StateStore {
     originalStats: null,
     originalWidth: 0,
     originalHeight: 0,
+    originalScoreResult: null,
+    originalDpiAnalysis: null,
+    originalInkAnalysis: null,
 
     processedDataUrl: null,
     processedImageData: null,
@@ -281,6 +287,9 @@ class StateStore {
       originalImageData: item.originalImageData,
       originalWidth: item.originalWidth,
       originalHeight: item.originalHeight,
+      originalScoreResult: item.originalScoreResult || null,
+      originalDpiAnalysis: item.originalDpiAnalysis || null,
+      originalInkAnalysis: item.originalInkAnalysis || null,
       processedDataUrl: item.processedDataUrl || null,
       processedImageData: item.processedImageData || null,
       processedWidth: item.processedWidth || 0,
@@ -300,6 +309,9 @@ class StateStore {
       originalStats: null,
       originalWidth: 0,
       originalHeight: 0,
+      originalScoreResult: null,
+      originalDpiAnalysis: null,
+      originalInkAnalysis: null,
       processedDataUrl: null,
       processedImageData: null,
       processedStats: null,

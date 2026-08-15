@@ -44,6 +44,9 @@ export interface BatchItem {
   originalImageData: ImageData;
   originalWidth: number;
   originalHeight: number;
+  originalScoreResult?: PrintScoreResult;
+  originalDpiAnalysis?: DpiAnalysis;
+  originalInkAnalysis?: InkAnalysis;
   processedDataUrl?: string;
   processedImageData?: ImageData;
   processedWidth?: number;
