@@ -93,12 +93,12 @@ export class BatchBar {
           <div class="pm-batch-title-group">
             <span class="pm-batch-icon">🎞️</span>
             <span class="pm-batch-title">畫廊工作台</span>
-            <span class="pm-batch-count">(${items.length} 張作品)</span>
+            <span class="pm-batch-count">(${items.length}/20 張作品)</span>
           </div>
 
           <div class="pm-batch-actions">
-            <button id="btnBatchAdd" class="pm-btn pm-btn-ghost pm-btn-sm" title="加入更多圖片">
-              <span>＋</span> 加入圖片
+            <button id="btnBatchAdd" class="pm-btn pm-btn-ghost pm-btn-sm" ${items.length >= 20 ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''} title="${items.length >= 20 ? '已達批次處理上限 (最多 20 張)' : '加入更多圖片 (最多 20 張)'}">
+              <span>＋</span> ${items.length >= 20 ? '已達上限 (20/20)' : '加入圖片'}
             </button>
             <button id="btnBatchOptimize" class="pm-btn pm-btn-artisan pm-btn-sm" title="一鍵將全部作品自動分析並套用印刷優化">
               <span>⚡</span> 批次全優化

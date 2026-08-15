@@ -1,4 +1,5 @@
 import { Toast } from './toast';
+import { store } from './state';
 
 export interface LoadedImageResult {
   file: File;
@@ -9,9 +10,11 @@ export interface LoadedImageResult {
 export type MultiFileLoadHandler = (results: LoadedImageResult[]) => void;
 
 /**
- * DropZone Component with Multi-Format Batch Support and Direct Clipboard Paste (Ctrl+V)
+ * DropZone Component with Multi-Format Batch Support (Max 20 Images) and Direct Clipboard Paste (Ctrl+V)
  */
 export class DropZone {
+  public static readonly MAX_BATCH_LIMIT = 20;
+
   private el: HTMLElement;
   private fileInput: HTMLInputElement;
   private onFilesLoaded: MultiFileLoadHandler;
@@ -95,10 +98,24 @@ export class DropZone {
   }
 
   public async handleFiles(files: File[]): Promise<void> {
-    const validFiles = files.filter((f) => f.type.startsWith('image/'));
+    let validFiles = files.filter((f) => f.type.startsWith('image/'));
     if (validFiles.length === 0) {
       Toast.error('請上傳有效的圖片檔案 (PNG, JPG, WebP 等)');
       return;
+    }
+
+    // Enforce 20-image maximum batch limit
+    const currentCount = store.getState().batchItems.length;
+    const availableSlots = DropZone.MAX_BATCH_LIMIT - currentCount;
+
+    if (availableSlots <= 0) {
+      Toast.warning(`⚠️ 批次處理已達上限 (最多 ${DropZone.MAX_BATCH_LIMIT} 張作品)，請先移除部分作品`);
+      return;
+    }
+
+    if (validFiles.length > availableSlots) {
+      Toast.warning(`⚠️ 批次處理上限為 ${DropZone.MAX_BATCH_LIMIT} 張，已自動為您載入前 ${availableSlots} 張作品`);
+      validFiles = validFiles.slice(0, availableSlots);
     }
 
     const loadPromises = validFiles.map((file) => {
