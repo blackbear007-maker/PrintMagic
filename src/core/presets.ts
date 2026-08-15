@@ -117,6 +117,7 @@ export const PRINT_PRESETS: Record<PrintPresetId, PrintPreset> = {
 
 export const DEFAULT_PRESET_ID: PrintPresetId = 'poster-a4';
 export const DEFAULT_PRESET = PRINT_PRESETS[DEFAULT_PRESET_ID];
+export const ALL_PRESETS = Object.values(PRINT_PRESETS);
 
 export function getPresetById(id: string): PrintPreset {
   return PRINT_PRESETS[id as PrintPresetId] || DEFAULT_PRESET;
