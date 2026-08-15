@@ -1,8 +1,10 @@
 import type {
   BatchItem,
+  CloudHealthStatus,
   CropAnchor,
   CropOffset,
   DpiAnalysis,
+  EngineMode,
   ImagePixelStats,
   InkAnalysis,
   PaperType,
@@ -43,6 +45,10 @@ export interface AppState {
   // Smart Focal Crop
   cropAnchor: CropAnchor;
   cropOffset: CropOffset;
+
+  // Hybrid Dual-Engine Architecture
+  engineMode: EngineMode;
+  cloudStatus: CloudHealthStatus;
 
   // Settings & Modes
   currentPreset: PrintPreset;
@@ -102,6 +108,9 @@ class StateStore {
       offsetYPercent: 0
     },
 
+    engineMode: 'local',
+    cloudStatus: 'offline',
+
     currentPreset: DEFAULT_PRESET,
     selectedPaper: 'glossy',
     showHeatmap: false,
@@ -134,6 +143,18 @@ class StateStore {
     for (const listener of this.listeners) {
       listener(this.state);
     }
+  }
+
+  // --- Hybrid Dual-Engine Actions ---
+
+  public toggleEngineMode(): EngineMode {
+    const next: EngineMode = this.state.engineMode === 'local' ? 'cloud' : 'local';
+    this.setState({ engineMode: next });
+    return next;
+  }
+
+  public setEngineMode(mode: EngineMode): void {
+    this.setState({ engineMode: mode });
   }
 
   // --- Preset & Paper Actions ---

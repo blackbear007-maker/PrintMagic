@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>PrintMagic — 專業客戶端 AI 圖片印刷準備工作室</title>
-  <meta name="description" content="專為 AI 生成圖打造的專業印刷出圖準備工作室。100% 離線本機運算、3D 物理紙材傾斜、20x CMYK 網點顯微鏡、0.1mm 向量角線 PDF 匯出、美術館 Mockup 生成、1:1 實體真尺寸校準與多圖批次工作台。" />
+  <title>PrintMagic — 專業雙引擎 AI 圖片印刷準備工作室</title>
+  <meta name="description" content="專為 AI 生成圖打造的專業印刷出圖準備工作室。雙引擎混合架構：100% 離線本機極速運算 + 雲端工業級 PDF/X 國際印刷規範輸出。" />
   <link rel="icon" type="image/svg+xml" href="xiaoxiang-avatar.svg" />
   <meta name="theme-color" content="#090a0d" />
 </head>
@@ -20,10 +20,11 @@
         </div>
 
         <div class="pm-header-actions">
-          <div class="pm-privacy-pill" title="所有像素處理均在瀏覽器本機 Web Worker 執行，絕不上傳伺服器">
-            <span class="pm-privacy-dot"></span>
-            <span>100% 本機離線安全</span>
-          </div>
+          <!-- Hybrid Dual-Engine Status Switcher -->
+          <button id="btnToggleEngine" class="pm-privacy-pill" title="點擊切換 🖥️ 本機極速 (100% 離線) / ☁️ 雲端工業 PDF/X 引擎">
+            <span class="pm-privacy-dot" id="engineStatusDot"></span>
+            <span id="engineStatusText">本機極速模式</span>
+          </button>
 
           <button id="btnOpenCalibration" class="pm-tool-btn" title="拿一張信用卡貼在螢幕上校準 1:1 真實物理尺寸 PPI">
             <span>📏</span> 螢幕校準
@@ -80,13 +81,12 @@
             自動檢測 DPI、壓制溢墨總量 (TAC)、補足 3mm 出血與標準裁切十字，一鍵輸出符合印刷廠規格的專業作品。
           </p>
           <div class="pm-dropzone-tags">
-            <span class="pm-dropzone-tag">PNG</span>
-            <span class="pm-dropzone-tag">JPG / JPEG</span>
-            <span class="pm-dropzone-tag">WebP</span>
-            <span class="pm-dropzone-tag">HEIC / AVIF</span>
-            <span class="pm-dropzone-tag">支援多圖同時上傳</span>
+            <span class="pm-dropzone-tag">雙引擎混合架構</span>
+            <span class="pm-dropzone-tag">100% 離線隱私安全</span>
+            <span class="pm-dropzone-tag">PNG / JPG / WebP</span>
             <span class="pm-dropzone-tag">無失真 300+ DPI</span>
             <span class="pm-dropzone-tag">TAC 300% 墨量防溢</span>
+            <span class="pm-dropzone-tag">PDF/X-1a 工業標準</span>
           </div>
           <div class="pm-dropzone-paste-hint">
             💡 提示：支援直接使用鍵盤 <span class="pm-kbd">Ctrl + V</span> 或 <span class="pm-kbd">Cmd + V</span> 貼上剪貼簿圖片
@@ -168,8 +168,11 @@
               <button id="btnOpenMockup" class="pm-btn pm-btn-artisan" title="一鍵生成現代美術館畫框、北歐書桌情境宣傳圖">
                 <span>🖼️</span> 美術館 Mockup
               </button>
-              <button id="btnOpenSpec" class="pm-btn pm-btn-secondary" title="送印溝通小抄，一鍵複製專業規格給印刷師傅">
+              <button id="btnOpenSpec" class="pm-btn pm-btn-secondary" title="送印溝小抄，一鍵複製專業規格給印刷師傅">
                 <span>📋</span> 送印小抄
+              </button>
+              <button id="btnOpenShops" class="pm-btn pm-btn-secondary" title="以 GPS 定位即時尋找離您最近的專業商業印刷廠 (100% 免費導航與線上傳檔)">
+                <span>📍</span> 附近印刷廠
               </button>
             </div>
 
@@ -180,8 +183,11 @@
               <button id="btnExportPng" class="pm-btn pm-btn-secondary" title="匯出 300 DPI 高解析度 PNG">
                 <span>📥</span> 下載 PNG
               </button>
-              <button id="btnExportPdf" class="pm-btn pm-btn-primary" title="匯出含 0.1mm 裁切十字標記、CMYK 色條與出血之印刷廠專用標準 PDF">
-                <span>📄</span> 一鍵匯出標準 PDF
+              <button id="btnExportPdf" class="pm-btn pm-btn-secondary" title="匯出含 0.1mm 裁切十字標記、CMYK 色條與出血之標準 PDF (本機極速)">
+                <span>📄</span> 本機標準 PDF
+              </button>
+              <button id="btnExportPdfx" class="pm-btn pm-btn-primary" title="透過雲端工業級引擎生成符合 ISO 15930 規範之 PDF/X-1a 印刷標準檔 (若離線則自動降級本機輸出)">
+                <span>⚡</span> 雲端 PDF/X 工業檔
               </button>
             </div>
           </div>
@@ -197,7 +203,7 @@
 
     <!-- Studio Footer -->
     <footer class="pm-footer">
-      PrintMagic Studio v3.1 Pro &nbsp;|&nbsp; 專業印刷標準 (ISO 216 / ISO 12647) &nbsp;|&nbsp; 100% 瀏覽器本機運算 &nbsp;|&nbsp; MIT License
+      PrintMagic Studio v3.1 Pro (雙引擎混合架構) &nbsp;|&nbsp; 專業印刷標準 (ISO 216 / ISO 12647 / ISO 15930) &nbsp;|&nbsp; MIT License
     </footer>
   </div>
 

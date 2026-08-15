@@ -86,6 +86,14 @@
   border: 1px solid var(--pm-border-subtle);
   padding: 4px 10px;
   border-radius: var(--pm-radius-full);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pm-privacy-pill:hover {
+  background-color: var(--pm-bg-surface-hover);
+  border-color: var(--pm-border-active);
+  color: var(--pm-text-primary);
 }
 
 .pm-privacy-dot {
@@ -93,6 +101,15 @@
   height: 6px;
   border-radius: 50%;
   background-color: var(--pm-status-success);
+  transition: background-color 0.2s ease;
+}
+
+.pm-engine-cloud .pm-privacy-dot {
+  background-color: var(--pm-accent-blue);
+}
+
+.pm-engine-offline .pm-privacy-dot {
+  background-color: var(--pm-status-warning);
 }
 
 .pm-sound-btn {

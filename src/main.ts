@@ -13,8 +13,10 @@ import { LaserScanController } from './ui/laser-scan';
 import { MockupModal } from './ui/mockup-modal';
 import { SpecModal } from './ui/spec-modal';
 import { RulerCalibrationModal } from './ui/ruler-calibration';
+import { NearbyShopsModal } from './ui/nearby-shops-modal';
 import { BatchBar } from './ui/batch-bar';
 import { CropController } from './ui/crop-controller';
+import { CloudClient } from './services/cloud-client';
 import { Toast } from './ui/toast';
 import { SoundEffects } from './core/sound-effects';
 import { DpiCalculator } from './core/dpi-calculator';
@@ -26,7 +28,7 @@ import { workerClient } from './workers/worker-client';
 import type { BatchItem, PaperType, PrintPresetId } from './types';
 
 /**
- * PrintMagic Studio 3.1 Pro Main Application Controller
+ * PrintMagic Studio 3.1 Pro Dual-Engine Main Controller
  */
 class App {
   public diagnosticCard!: DiagnosticCard;
@@ -38,6 +40,7 @@ class App {
   public mockupModal!: MockupModal;
   public specModal!: SpecModal;
   public calibrationModal!: RulerCalibrationModal;
+  public shopsModal!: NearbyShopsModal;
   public batchBar!: BatchBar;
   public cropController!: CropController;
 
@@ -47,6 +50,8 @@ class App {
   private btnNewArtwork = document.getElementById('btnNewArtwork')!;
   private btnToggleSound = document.getElementById('btnToggleSound')!;
   private soundIcon = document.getElementById('soundIcon')!;
+  private btnToggleEngine = document.getElementById('btnToggleEngine')!;
+  private engineStatusText = document.getElementById('engineStatusText')!;
   private btnOpenCalibration = document.getElementById('btnOpenCalibration')!;
   private mainPreviewImg = document.getElementById('mainPreviewImg') as HTMLImageElement;
   private canvasSheet = document.getElementById('canvasSheet')!;
@@ -66,10 +71,12 @@ class App {
   private btnToggleSoftProof = document.getElementById('btnToggleSoftProof')!;
   private btnToggleSafeZone = document.getElementById('btnToggleSafeZone')!;
 
-  // Artisan Action buttons
+  // Action buttons
   private btnOpenMockup = document.getElementById('btnOpenMockup')!;
   private btnOpenSpec = document.getElementById('btnOpenSpec')!;
+  private btnOpenShops = document.getElementById('btnOpenShops')!;
   private btnExportPdf = document.getElementById('btnExportPdf')!;
+  private btnExportPdfx = document.getElementById('btnExportPdfx')!;
   private btnExportPng = document.getElementById('btnExportPng')!;
   private btnExportSvg = document.getElementById('btnExportSvg')!;
 
@@ -87,6 +94,9 @@ class App {
     this.bindKeyboardShortcuts();
     this.subscribeState();
     this.updateSoundIcon();
+
+    // Check Cloud Backend status on startup
+    void CloudClient.checkHealth();
   }
 
   private initUIComponents(): void {
@@ -117,6 +127,7 @@ class App {
     this.mockupModal = new MockupModal();
     this.specModal = new SpecModal();
     this.calibrationModal = new RulerCalibrationModal();
+    this.shopsModal = new NearbyShopsModal();
 
     // 9. Crop Controller
     this.cropController = new CropController('cropToolbarRoot', 'mainPreviewImg');
@@ -136,6 +147,25 @@ class App {
   }
 
   private bindEvents(): void {
+    // Hybrid Dual-Engine Switcher
+    this.btnToggleEngine.addEventListener('click', async () => {
+      const current = store.getState().engineMode;
+      SoundEffects.sliderTick();
+
+      if (current === 'local') {
+        const isOnline = await CloudClient.checkHealth();
+        if (isOnline) {
+          store.setEngineMode('cloud');
+          Toast.info('⚡ 已切換至 雲端工業引擎模式 (支援 ISO 15930 PDF/X-1a 與 ICC 規範)');
+        } else {
+          Toast.info('⚠️ 雲端後端伺服器 (port 3001) 未啟動，維持 100% 本機極速模式');
+        }
+      } else {
+        store.setEngineMode('local');
+        Toast.info('🖥️ 已切換至 100% 離線本機極速模式 (零資料上傳)');
+      }
+    });
+
     // Screen Calibration
     this.btnOpenCalibration.addEventListener('click', () => {
       SoundEffects.sliderTick();
@@ -281,7 +311,13 @@ class App {
       this.specModal.open(state);
     });
 
-    // Export PDF (0.1mm standard vector crop marks)
+    // Open Nearby Commercial Print Shops Finder
+    this.btnOpenShops.addEventListener('click', () => {
+      SoundEffects.sliderTick();
+      this.shopsModal.open();
+    });
+
+    // Export Standard PDF (Client Engine)
     this.btnExportPdf.addEventListener('click', async () => {
       const state = store.getState();
       if (!state.processedDataUrl) {
@@ -291,12 +327,27 @@ class App {
 
       try {
         SoundEffects.shutterClick();
-        Toast.info('📄 正在生成印刷廠標準 PDF (含 0.1mm 裁切標記與 CMYK 色條)...');
+        Toast.info('📄 正在以本機極速引擎生成標準 PDF (含 0.1mm 裁切標記與 CMYK 色條)...');
         await PdfExporter.export(state.processedDataUrl, state.currentPreset, undefined, state.cropAnchor);
-        Toast.success('✓ PDF 已成功輸出！');
+        Toast.success('✓ 本機標準 PDF 已成功輸出！');
       } catch (err: any) {
         Toast.error(`PDF 匯出失敗: ${err?.message || err}`);
       }
+    });
+
+    // Export Cloud Pro PDF/X-1a (Hybrid Backend + Auto Fallback)
+    this.btnExportPdfx.addEventListener('click', async () => {
+      const state = store.getState();
+      if (!state.processedDataUrl) {
+        Toast.error('請先上傳並優化圖片');
+        return;
+      }
+
+      SoundEffects.shutterClick();
+      const activeBatch = state.batchItems.find((b) => b.id === state.activeBatchId);
+      const artworkName = activeBatch ? activeBatch.name : 'Artwork';
+
+      await CloudClient.exportPdfx(state.processedDataUrl, state.currentPreset, artworkName);
     });
 
     // Export High-Res PNG
@@ -393,16 +444,25 @@ class App {
     store.subscribe((state) => {
       const hasImage = !!state.originalDataUrl;
 
-      // 1. Switch View Containers
+      // 1. Update Hybrid Engine Pill UI
+      this.btnToggleEngine.classList.toggle('pm-engine-cloud', state.engineMode === 'cloud');
+      this.btnToggleEngine.classList.toggle('pm-engine-offline', state.cloudStatus === 'offline');
+      if (state.engineMode === 'cloud') {
+        this.engineStatusText.textContent = state.cloudStatus === 'online' ? '雲端工業模式 (在線)' : '雲端工業模式 (離線降級)';
+      } else {
+        this.engineStatusText.textContent = '本機極速模式 (100% 離線)';
+      }
+
+      // 2. Switch View Containers
       this.dropZoneContainer.style.display = hasImage ? 'none' : 'block';
       this.studioWorkspace.style.display = hasImage ? 'grid' : 'none';
       this.btnNewArtwork.style.display = hasImage ? 'inline-flex' : 'none';
 
-      // 2. Processing Overlay
+      // 3. Processing Overlay
       this.processingOverlay.style.display = state.isProcessing ? 'flex' : 'none';
       this.processingText.textContent = state.processingStep || '正在處理中...';
 
-      // 3. Comparison Mode
+      // 4. Comparison Mode
       if (state.isComparing) {
         this.canvasSheet.style.display = 'none';
         this.compareSliderRoot.style.display = 'block';
@@ -416,7 +476,7 @@ class App {
         this.btnToggleCompare.classList.remove('active');
       }
 
-      // 4. Update Main Preview Image
+      // 5. Update Main Preview Image
       if (!state.isComparing && state.processedDataUrl) {
         if (state.showHeatmap && this.heatmapDataUrl) {
           this.mainPreviewImg.src = this.heatmapDataUrl;
@@ -427,7 +487,7 @@ class App {
         }
       }
 
-      // 5. 1:1 Physical Scale Override
+      // 6. 1:1 Physical Scale Override
       this.btnToggle1to1.classList.toggle('active', state.is1to1Scale);
       if (state.is1to1Scale && state.currentPreset.widthMm > 0) {
         this.stageContainer.classList.add('pm-stage-1to1');
@@ -441,13 +501,13 @@ class App {
         this.canvasSheet.style.height = '';
       }
 
-      // 6. Button Active States
+      // 7. Button Active States
       this.btnToggleHeatmap.classList.toggle('active', state.showHeatmap);
       this.btnToggleSoftProof.classList.toggle('active', state.showSoftProof);
       this.btnToggleSafeZone.classList.toggle('active', state.showSafeZone);
       this.btnFlipBack.classList.toggle('active', this.paper3D.getIsFlipped());
 
-      // 7. Bleed & Safe Frame Overlays
+      // 8. Bleed & Safe Frame Overlays
       if (state.showSafeZone && state.currentPreset.widthMm > 0) {
         this.bleedFrame.style.display = 'block';
         this.safeFrame.style.display = 'block';
@@ -467,12 +527,12 @@ class App {
         this.safeFrame.style.display = 'none';
       }
 
-      // 8. Update Loupe Image Data
+      // 9. Update Loupe Image Data
       if (state.processedImageData) {
         this.loupe.setImageData(state.processedImageData);
       }
 
-      // 9. Diagnostic Card
+      // 10. Diagnostic Card
       this.diagnosticCard.render(state);
     });
   }
@@ -640,7 +700,6 @@ class App {
       try {
         await PdfExporter.export(dataUrl, state.currentPreset, filename, state.cropAnchor);
         count++;
-        // Small delay to allow browser download thread
         await new Promise((r) => setTimeout(r, 200));
       } catch (err: any) {
         console.error(`Export failed for ${item.name}:`, err);
@@ -673,7 +732,7 @@ class App {
   }
 }
 
-// Clean up obsolete Service Workers and stale caches from previous monolithic versions
+// Clean up obsolete Service Workers and stale caches
 function cleanupLegacyServiceWorkers(): void {
   if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
     navigator.serviceWorker.getRegistrations().then((registrations) => {

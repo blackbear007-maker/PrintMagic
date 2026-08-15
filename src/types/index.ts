@@ -21,6 +21,10 @@ export type DpiQualityTier = 'excellent' | 'good' | 'warning' | 'critical';
 
 export type CropAnchor = 'center' | 'top' | 'bottom' | 'left' | 'right';
 
+export type EngineMode = 'local' | 'cloud';
+
+export type CloudHealthStatus = 'online' | 'offline' | 'checking';
+
 export interface CropOffset {
   anchor: CropAnchor;
   offsetXPercent: number; // -50 to +50

@@ -1,22 +1,28 @@
 {
   "name": "printmagic",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "private": true,
-  "description": "Professional client-side print-ready image converter and preparation studio for AI artwork. 100% offline, zero data upload.",
+  "description": "Professional Dual-Engine Hybrid Print Studio for AI Artwork. Instant Client-Side Processing + Industrial Cloud PDF/X Engine.",
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "server": "tsx server/index.ts",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
     "jspdf": "^2.5.2"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
     "@types/jspdf": "^2.0.0",
     "@types/node": "^22.13.4",
+    "tsx": "^4.19.3",
     "typescript": "^5.7.3",
     "vite": "^6.1.0",
     "vitest": "^3.0.5"
