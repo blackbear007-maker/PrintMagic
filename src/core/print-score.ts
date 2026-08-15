@@ -56,7 +56,7 @@ export class PrintScoreCalculator {
     }
 
     // ─────────────────────────────────────────────────────────────
-    // 2. Aspect Ratio Match Score (Weight: 15%) - Auto-Orientation Supported
+    // 2. Aspect Ratio Match Score (Weight: 15%) - Auto-Orientation + Extreme Advisory
     // ─────────────────────────────────────────────────────────────
     let aspectRatioScore = 100;
 
@@ -75,9 +75,29 @@ export class PrintScoreCalculator {
         recommendations.push('系統已自動為您匹配最佳橫向/直向旋轉排版，以完整保留畫面主體');
       }
 
-      if (optimalDiff > 0.15) {
+      // Detect extreme aspect ratio mismatch (>2.5x ratio gap, e.g. 21:9 panorama vs A4 portrait)
+      const imgRatioExtreme = Math.max(imgAspect, 1 / imgAspect);
+      const targetRatioExtreme = Math.max(targetAspectNormal, 1 / targetAspectNormal);
+      const ratioGap = Math.max(imgRatioExtreme, targetRatioExtreme) / Math.min(imgRatioExtreme, targetRatioExtreme);
+      const isExtremeMismatch = ratioGap > 1.8;
+
+      if (isExtremeMismatch) {
+        // Advisory mode: honest about mismatch but floor at 75 since it's a deliberate user choice
+        aspectRatioScore = 75;
+        const isWide = imgAspect > 2;
+        const isTall = imgAspect < 0.5;
+        if (isWide) {
+          issues.push('偵測到超寬版型 (21:9 全景)，建議改用「A4 橫向」或「A3 橫向」版面以完整保留畫面');
+          recommendations.push('💡 建議規格：A4 Landscape (297×210mm) 或 A3 Landscape (420×297mm)');
+        } else if (isTall) {
+          issues.push('偵測到超長直條版型 (書籤/書卡)，建議改用「明信片」或自訂尺寸版面');
+          recommendations.push('💡 建議規格：藝術明信片 (148×100mm 橫式) 或自訂長條版型');
+        } else {
+          issues.push('圖片長寬比與目標規格差異極大，送印可能裁切大量內容');
+        }
+      } else if (optimalDiff > 0.15) {
         const cropLossPct = Math.round(optimalDiff * 100);
-        aspectRatioScore = Math.max(50, Math.round((1 - optimalDiff * 0.7) * 100));
+        aspectRatioScore = Math.max(75, Math.round((1 - optimalDiff * 0.5) * 100));
         issues.push(`圖片長寬比與目標印刷品有差異 (預計裁切約 ${cropLossPct}% 邊緣填滿出血框)`);
         recommendations.push('建議使用頂部「智慧主體對齊」按鈕 (⬚ 居中 / ⬆ 靠上 / ⬇ 靠下) 微調重要主體');
       } else {
