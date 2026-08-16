@@ -104,15 +104,15 @@ export class DpiCalculator {
       message = `❌ 解析度嚴重不足 (${currentDpi} DPI)，實體印刷將出現馬賽克`;
     }
 
-    // Determine recommended integer upscale factor (2x, 4x, etc.) with safe memory capping (max 4500px)
+    // Determine recommended integer upscale factor (2x, 4x, 8x) with safe memory capping (max 6000px)
     let scaleFactor = 1;
     const targetDpi = preset.targetDpi;
     const maxCurrentDim = Math.max(widthPx, heightPx);
-    const MAX_SAFE_DIM = 4500;
+    const MAX_SAFE_DIM = 6000;
 
     if (currentDpi < targetDpi && maxCurrentDim < MAX_SAFE_DIM) {
       const ratio = targetDpi / Math.max(1, currentDpi);
-      let calculatedScale = Math.min(4, Math.max(2, Math.ceil(ratio)));
+      let calculatedScale = Math.min(8, Math.max(2, Math.ceil(ratio)));
       
       // Ensure we do not scale beyond safe memory limits
       while (calculatedScale > 1 && maxCurrentDim * calculatedScale > MAX_SAFE_DIM) {
