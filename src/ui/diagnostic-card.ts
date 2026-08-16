@@ -77,18 +77,9 @@ export class DiagnosticCard {
         <!-- Before vs After Total Score Header -->
         <div class="pm-diagnostic-header">
           <div class="pm-score-summary-box">
-            <div class="pm-score-circle ${levelClass}">
-              <svg viewBox="0 0 36 36" class="pm-circular-chart">
-                <path class="pm-circle-bg"
-                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                />
-                <path class="pm-circle-fill"
-                  stroke="${levelColor}"
-                  stroke-dasharray="${currentScore}, 100"
-                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                />
-                <text x="18" y="20.35" class="pm-circle-text">${currentScore}</text>
-              </svg>
+            <div class="pm-score-circle" style="border-color: ${levelColor}">
+              <span class="pm-score-value" style="color: ${levelColor}">${currentScore}</span>
+              <span class="pm-score-max">/100分</span>
             </div>
 
             <div class="pm-score-meta">
@@ -101,8 +92,9 @@ export class DiagnosticCard {
               <div class="pm-score-verdict ${levelClass}">${scoreResult.verdict}</div>
             </div>
           </div>
+        </div>
 
-          <!-- Target Print Specs Grid -->
+        <!-- Target Print Specs Grid -->
           <div class="pm-target-specs">
             <div class="pm-spec-item">
               <span class="pm-spec-label">目標規格</span>

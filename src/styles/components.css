@@ -716,6 +716,7 @@
   border-bottom: 1px solid var(--pm-border-subtle);
 }
 
+.pm-score-summary-box,
 .pm-score-display {
   display: flex;
   align-items: center;
@@ -725,6 +726,7 @@
 .pm-score-circle {
   width: 64px;
   height: 64px;
+  min-width: 64px;
   border-radius: 50%;
   border: 3.5px solid var(--pm-status-success);
   display: flex;
@@ -732,6 +734,7 @@
   align-items: center;
   justify-content: center;
   background-color: #fbfbfd;
+  box-shadow: var(--pm-shadow-xs);
 }
 
 .pm-score-value {
