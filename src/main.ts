@@ -35,6 +35,9 @@ import { ImpositionModal } from './ui/imposition-modal';
 import { DielineModal } from './ui/dieline-modal';
 import { VectorOverlayModal } from './ui/vector-overlay-modal';
 import { AiSettingsModal } from './ui/ai-settings-modal';
+import { PricingModal } from './ui/pricing-modal';
+import { SubscriptionManager } from './core/subscription-tier';
+import { VipAiClient } from './services/vip-ai-client';
 import { PdfExporter } from './engines/pdf-exporter';
 import { VectorTracer } from './engines/vector-tracer';
 import { workerClient } from './workers/worker-client';
@@ -63,6 +66,7 @@ class App {
   public dielineModal!: DielineModal;
   public vectorOverlayModal!: VectorOverlayModal;
   public aiSettingsModal!: AiSettingsModal;
+  public pricingModal!: PricingModal;
   public batchBar!: BatchBar;
   public cropController!: CropController;
 
@@ -168,12 +172,21 @@ class App {
     this.vectorOverlayModal = new VectorOverlayModal(this.vectorOverlayEngine, () => {
       this.renderVectorOverlayOnCanvas();
     });
-    this.aiSettingsModal = new AiSettingsModal(() => {
-      const state = store.getState();
-      if (state.originalImageData && state.aiUpscaleMode === 'cloud-ai' && state.engineMode === 'cloud') {
-        this.runOptimizationPipeline(state.originalImageData);
-      }
+    this.pricingModal = new PricingModal(() => {
+      this.updatePlanBadge();
     });
+    this.aiSettingsModal = new AiSettingsModal(
+      () => {
+        const state = store.getState();
+        if (state.originalImageData && state.aiUpscaleMode === 'cloud-ai' && state.engineMode === 'cloud') {
+          this.runOptimizationPipeline(state.originalImageData);
+        }
+      },
+      () => {
+        this.pricingModal.open();
+      }
+    );
+    this.updatePlanBadge();
 
     // 10. Crop Controller
     this.cropController = new CropController('cropToolbarRoot', 'mainPreviewImg');
@@ -248,6 +261,11 @@ class App {
     // Open AI Super-Resolution Settings & Token Modal
     document.getElementById('btnOpenAiSettings')?.addEventListener('click', () => {
       this.aiSettingsModal.open();
+    });
+
+    // Open Commercial Subscription & Pricing Modal
+    document.getElementById('btnOpenPricing')?.addEventListener('click', () => {
+      this.pricingModal.open();
     });
 
     // Screen Calibration
@@ -841,23 +859,42 @@ class App {
         const isCloudAiAllowed = state.engineMode === 'cloud' && state.aiUpscaleMode === 'cloud-ai';
 
         if (isCloudAiAllowed) {
-          store.setState({
-            processingStep: '2/4 正在呼叫雲端 AI 深度學習神經網路進行 4x 細節重建 (Real-ESRGAN)...'
-          });
           const srcDataUrl = state.originalDataUrl || this.imageDataToDataUrl(srcImageData);
-          const aiResult = await AiUpscaleClient.upscale(srcDataUrl);
+          let upscaleDone = false;
 
-          if (aiResult.success && aiResult.imageData) {
-            processedImgData = aiResult.imageData;
-            appliedScale = aiResult.scale || 4;
-            Toast.success('🧠 AI 深度學習細節重建完成 (Real-ESRGAN 4x)！');
-          } else {
-            // Graceful automatic fallback to local Lanczos-3 8x pyramid engine
+          // Check if VIP Commercial AI Engine is enabled
+          if (SubscriptionManager.canUseFeature('vipAi')) {
+            const vipConfig = VipAiClient.getModelConfig();
             store.setState({
-              processingStep: `2/4 正在啟用本機 ${appliedScale}x 金字塔超解析度放大 (0 延遲備援)...`
+              processingStep: `2/4 正在呼叫 VIP 頂級 GPU 叢集進行 8K 細節重構 (${vipConfig.name})...`
             });
-            processedImgData = await workerClient.lanczos(srcImageData, appliedScale);
-            Toast.info('⚡ 雲端 AI 忙碌中，已無縫啟用本機 8x 金字塔超解析度引擎！');
+            const vipResult = await VipAiClient.upscale(srcDataUrl);
+            if (vipResult.success && vipResult.imageData) {
+              processedImgData = vipResult.imageData;
+              appliedScale = vipResult.scale || 4;
+              upscaleDone = true;
+              Toast.success(`💎 VIP 頂級 AI 重建完成 (${vipResult.modelName})！`);
+            }
+          }
+
+          if (!upscaleDone) {
+            store.setState({
+              processingStep: '2/4 正在呼叫雲端 AI 深度學習神經網路進行 4x 細節重建 (Real-ESRGAN)...'
+            });
+            const aiResult = await AiUpscaleClient.upscale(srcDataUrl);
+
+            if (aiResult.success && aiResult.imageData) {
+              processedImgData = aiResult.imageData;
+              appliedScale = aiResult.scale || 4;
+              Toast.success('🧠 AI 深度學習細節重建完成 (Real-ESRGAN 4x)！');
+            } else {
+              // Graceful automatic fallback to local Lanczos-3 8x pyramid engine
+              store.setState({
+                processingStep: `2/4 正在啟用本機 ${appliedScale}x 金字塔超解析度放大 (0 延遲備援)...`
+              });
+              processedImgData = await workerClient.lanczos(srcImageData, appliedScale);
+              Toast.info('⚡ 雲端 AI 忙碌中，已無縫啟用本機 8x 金字塔超解析度引擎！');
+            }
           }
         } else {
           // Strictly 100% Local Engine (Zero Network Calls)
@@ -1041,6 +1078,27 @@ class App {
     this.paperButtons.forEach((btn) => {
       btn.classList.toggle('active', btn.dataset.paper === activePaper);
     });
+  }
+
+  public updatePlanBadge(): void {
+    const state = SubscriptionManager.getSubscriptionState();
+    const badgeEl = document.getElementById('planBadgeText');
+    const btnEl = document.getElementById('btnOpenPricing');
+    if (badgeEl && btnEl) {
+      if (state.planId === 'vip') {
+        badgeEl.textContent = '💎 VIP 企業版';
+        btnEl.style.background = 'linear-gradient(135deg, #5856d6, #af52de)';
+        btnEl.style.color = '#ffffff';
+      } else if (state.planId === 'pro') {
+        badgeEl.textContent = '👑 PRO 設計版';
+        btnEl.style.background = 'rgba(0, 113, 227, 0.12)';
+        btnEl.style.color = 'var(--pm-accent)';
+      } else {
+        badgeEl.textContent = 'FREE 免費版';
+        btnEl.style.background = 'rgba(142, 142, 147, 0.12)';
+        btnEl.style.color = 'var(--pm-text-muted)';
+      }
+    }
   }
 }
 
