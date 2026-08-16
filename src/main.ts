@@ -109,9 +109,15 @@ class App {
     });
 
     // 2. Diagnostic Card
-    this.diagnosticCard = new DiagnosticCard('diagnosticCardRoot', () => {
-      this.directPrintModal.open();
-    });
+    this.diagnosticCard = new DiagnosticCard(
+      'diagnosticCardRoot',
+      () => {
+        this.directPrintModal.open();
+      },
+      () => {
+        this.btnExportPdf.click();
+      }
+    );
 
     // 3. Compare Slider
     this.compareSlider = new CompareSlider('compareSliderRoot');

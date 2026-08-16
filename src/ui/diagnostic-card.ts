@@ -1,17 +1,25 @@
 import type { AppState } from './state';
 
 /**
- * Pre-press Diagnostic Card Component (Before vs After Weighted Indicators Comparison)
+ * PrintPass™ Pre-press Diagnostic Certificate Component
+ * Apple Minimalist Progressive Disclosure Design
  */
 export class DiagnosticCard {
   private container: HTMLElement;
   private onDirectPrintClick?: () => void;
+  private onExportPdfClick?: () => void;
+  private isDetailsExpanded = false;
 
-  constructor(containerId: string, onDirectPrintClick?: () => void) {
+  constructor(
+    containerId: string,
+    onDirectPrintClick?: () => void,
+    onExportPdfClick?: () => void
+  ) {
     const el = document.getElementById(containerId);
     if (!el) throw new Error(`Diagnostic card #${containerId} not found`);
     this.container = el;
     this.onDirectPrintClick = onDirectPrintClick;
+    this.onExportPdfClick = onExportPdfClick;
   }
 
   public render(state: AppState): void {
@@ -39,12 +47,12 @@ export class DiagnosticCard {
     const deltaScore = currentScore - initialScore;
 
     const levelClass = currentScore >= 88 ? 'pm-score-high' : currentScore >= 70 ? 'pm-score-mid' : 'pm-score-low';
-    const levelColor = currentScore >= 88 ? '#30d158' : currentScore >= 70 ? '#ff9f0a' : '#ff453a';
+    const levelColor = currentScore >= 88 ? '#34c759' : currentScore >= 70 ? '#ff9500' : '#ff3b30';
 
     const { breakdown, issues, recommendations } = scoreResult;
     const initialBreakdown = originalScoreResult ? originalScoreResult.breakdown : breakdown;
 
-    // Physical millimeter text
+    // Millimeter dimensions
     const physicalSizeText = currentPreset.widthMm > 0
       ? `${currentPreset.widthMm} × ${currentPreset.heightMm} mm`
       : `${dpiAnalysis.targetWidthPx} × ${dpiAnalysis.targetHeightPx} px`;
@@ -63,18 +71,16 @@ export class DiagnosticCard {
       ? `${initTac}% ➔ ${finalTac}%`
       : `${finalTac}%`;
 
-    const tacClass = inkAnalysis && inkAnalysis.hasOverflow ? 'pm-badge-warning' : 'pm-badge-success';
-
     // Delta badge
     const deltaBadge = deltaScore > 0
-      ? `<span class="pm-score-delta-badge">+${deltaScore} 分提升</span>`
+      ? `<span class="pm-score-delta-badge">+${deltaScore} 分升級</span>`
       : deltaScore === 0
       ? `<span class="pm-score-delta-badge pm-delta-neutral">最佳化維持</span>`
       : '';
 
     this.container.innerHTML = `
       <div class="pm-card pm-diagnostic-panel">
-        <!-- Before vs After Total Score Header -->
+        <!-- 1. Hero Certificate Header -->
         <div class="pm-diagnostic-header">
           <div class="pm-score-summary-box">
             <div class="pm-score-circle" style="border-color: ${levelColor}">
@@ -94,57 +100,93 @@ export class DiagnosticCard {
           </div>
         </div>
 
-        <!-- Target Print Specs Grid -->
-          <div class="pm-target-specs">
-            <div class="pm-spec-item">
-              <span class="pm-spec-label">目標規格</span>
-              <span class="pm-spec-val">${currentPreset.nameZh}</span>
-            </div>
-            <div class="pm-spec-item">
-              <span class="pm-spec-label">物理尺寸</span>
-              <span class="pm-spec-val">${physicalSizeText}</span>
-            </div>
-            <div class="pm-spec-item">
-              <span class="pm-spec-label">實體解析度</span>
-              <span class="pm-spec-val ${dpiAnalysis.needsUpscale ? 'pm-text-warning' : 'pm-text-success'}">
-                ${dpiCompText}
-              </span>
-            </div>
-            <div class="pm-spec-item">
-              <span class="pm-spec-label">總墨量 TAC</span>
-              <span class="pm-spec-val ${tacClass}">${tacCompText}</span>
-            </div>
+        <!-- 2. Clean Specs Pills -->
+        <div class="pm-target-specs">
+          <div class="pm-spec-item">
+            <span class="pm-spec-label">目標規格</span>
+            <span class="pm-spec-val">${currentPreset.nameZh}</span>
+          </div>
+          <div class="pm-spec-item">
+            <span class="pm-spec-label">物理尺寸</span>
+            <span class="pm-spec-val">${physicalSizeText}</span>
+          </div>
+          <div class="pm-spec-item">
+            <span class="pm-spec-label">實體解析度</span>
+            <span class="pm-spec-val ${dpiAnalysis.needsUpscale ? 'pm-text-warning' : 'pm-text-success'}">
+              ${dpiCompText}
+            </span>
+          </div>
+          <div class="pm-spec-item">
+            <span class="pm-spec-label">總墨量 TAC</span>
+            <span class="pm-spec-val">${tacCompText}</span>
           </div>
         </div>
 
-        <!-- 7-Factor Weighted Indicator Comparison Table -->
-        <div class="pm-weighted-section">
-          <div class="pm-section-title-row">
-            <span class="pm-section-title">📊 各項指標加權評分對比表</span>
-            <span class="pm-section-sub">原圖 ➔ 自動處理後</span>
-          </div>
-
-          <div class="pm-metrics-grid">
-            ${this.renderWeightedRow('解析度適配', '35%', initialBreakdown.resolution, breakdown.resolution, 'Lanczos-3 重採樣補足 300 DPI')}
-            ${this.renderWeightedRow('長寬比契合', '15%', initialBreakdown.aspectRatio, breakdown.aspectRatio, '3mm 出血與安全框裁切保護')}
-            ${this.renderWeightedRow('總墨量安全', '10%', initialBreakdown.inkSafety, breakdown.inkSafety, 'TAC ≤300% 防吸墨背印沾黏')}
-            ${this.renderWeightedRow('微細邊緣銳度', '10%', initialBreakdown.sharpness, breakdown.sharpness, 'USM 印刷微細邊緣銳化補償')}
-            ${this.renderWeightedRow('亮部與暗階', '10%', initialBreakdown.brightness, breakdown.brightness, '階調校正防止印刷暗沉')}
-            ${this.renderWeightedRow('色彩飽和度', '10%', initialBreakdown.saturation, breakdown.saturation, 'CMYK 印刷色域適配軟打樣')}
-            ${this.renderWeightedRow('反差與層次', '10%', initialBreakdown.contrast, breakdown.contrast, '動態對比度增強')}
-          </div>
+        <!-- 3. Key Hero Action Buttons (Direct Print & Standard PDF) -->
+        <div class="pm-diag-hero-actions">
+          <button class="pm-btn pm-btn-artisan pm-btn-lg btn-diag-direct-print" title="一鍵即時試算健豪、卡之屋等台灣在地四大印刷廠價格並打包送印工單">
+            <span>🏭</span> 台灣四大印刷廠一鍵估價 & 直通送印 ➔
+          </button>
+          <button class="pm-btn pm-btn-secondary pm-btn-md btn-diag-export-pdf" title="下載含裁切十字、色條與出血之標準印刷 PDF">
+            <span>📄</span> 下載標準印刷 PDF
+          </button>
         </div>
 
-        <!-- Auto Process Actions & Diagnostics -->
-        ${this.renderDiagnostics(issues, recommendations, appliedScale)}
+        <!-- 4. Progressive Disclosure Accordion: Deep Technical Indicators -->
+        <div class="pm-diag-accordion-wrapper">
+          <button class="pm-diag-accordion-toggle" id="btnToggleDiagAccordion" type="button">
+            <span class="pm-accordion-title">
+              <span>📊</span>
+              <span>${this.isDetailsExpanded ? '收合印前詳細檢驗數據' : '查看 7 項專業印前指標與自動優化詳情'}</span>
+            </span>
+            <span class="pm-accordion-icon">${this.isDetailsExpanded ? '▲' : '▼'}</span>
+          </button>
+
+          <div class="pm-diag-accordion-content" style="display: ${this.isDetailsExpanded ? 'block' : 'none'};">
+            <!-- 7-Factor Weighted Indicator Comparison Table -->
+            <div class="pm-weighted-section">
+              <div class="pm-metrics-grid">
+                ${this.renderWeightedRow('解析度適配', '35%', initialBreakdown.resolution, breakdown.resolution, 'Lanczos-3 重採樣補足 300 DPI')}
+                ${this.renderWeightedRow('長寬比契合', '15%', initialBreakdown.aspectRatio, breakdown.aspectRatio, '3mm 出血與安全框裁切保護')}
+                ${this.renderWeightedRow('總墨量安全', '10%', initialBreakdown.inkSafety, breakdown.inkSafety, 'TAC ≤300% 防吸墨背印沾黏')}
+                ${this.renderWeightedRow('微細邊緣銳度', '10%', initialBreakdown.sharpness, breakdown.sharpness, 'USM 印刷微細邊緣銳化補償')}
+                ${this.renderWeightedRow('亮部與暗階', '10%', initialBreakdown.brightness, breakdown.brightness, '階調校正防止印刷暗沉')}
+                ${this.renderWeightedRow('色彩飽和度', '10%', initialBreakdown.saturation, breakdown.saturation, 'CMYK 印刷色域適配軟打樣')}
+                ${this.renderWeightedRow('反差與層次', '10%', initialBreakdown.contrast, breakdown.contrast, '動態對比度增強')}
+              </div>
+            </div>
+
+            <!-- Auto Process Actions & Diagnostics -->
+            ${this.renderDiagnostics(issues, recommendations, appliedScale)}
+          </div>
+        </div>
       </div>
     `;
 
-    // Bind Direct Print Button
+    // Event Bindings
+    this.bindEvents(state);
+  }
+
+  private bindEvents(state: AppState): void {
+    // 1. Direct Print CTA
     this.container.querySelector('.btn-diag-direct-print')?.addEventListener('click', () => {
       if (this.onDirectPrintClick) {
         this.onDirectPrintClick();
       }
+    });
+
+    // 2. Secondary Export PDF CTA
+    this.container.querySelector('.btn-diag-export-pdf')?.addEventListener('click', () => {
+      if (this.onExportPdfClick) {
+        this.onExportPdfClick();
+      }
+    });
+
+    // 3. Accordion Toggle
+    const accordionBtn = this.container.querySelector('#btnToggleDiagAccordion');
+    accordionBtn?.addEventListener('click', () => {
+      this.isDetailsExpanded = !this.isDetailsExpanded;
+      this.render(state);
     });
   }
 
@@ -155,8 +197,8 @@ export class DiagnosticCard {
     afterScore: number,
     actionDesc: string
   ): string {
-    const beforeColor = beforeScore >= 85 ? '#30d158' : beforeScore >= 65 ? '#ff9f0a' : '#ff453a';
-    const afterColor = afterScore >= 85 ? '#30d158' : afterScore >= 65 ? '#ff9f0a' : '#ff453a';
+    const beforeColor = beforeScore >= 85 ? '#34c759' : beforeScore >= 65 ? '#ff9500' : '#ff3b30';
+    const afterColor = afterScore >= 85 ? '#34c759' : afterScore >= 65 ? '#ff9500' : '#ff3b30';
     const delta = afterScore - beforeScore;
     const deltaStr = delta > 0 ? `+${delta}` : delta === 0 ? '±0' : `${delta}`;
     const deltaClass = delta > 0 ? 'pm-val-up' : 'pm-val-same';
@@ -195,7 +237,7 @@ export class DiagnosticCard {
     if (appliedScale > 1) {
       autoActions.push(`✓ 已執行 ${appliedScale}x Lanczos-3 印刷級超解析度重採樣放大`);
     }
-    autoActions.push('✓ 已套用 USM (Unsharp Mask) 微細邊緣銳化補償');
+    autoActions.push('✓ 已套用 USM 微細邊緣銳化補償');
     autoActions.push('✓ 已檢測並壓制總墨量 TAC ≤ 300% 避免印刷背印');
     autoActions.push('✓ 已自動計算 3mm 標準出血與安全裁切框');
 
@@ -231,12 +273,6 @@ export class DiagnosticCard {
             <span>各項指標已全數達到印刷廠出圖標準，可直接輸出 PDF！</span>
           </div>
         `}
-
-        <div style="margin-top: 16px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.08);">
-          <button class="pm-btn pm-btn-artisan pm-btn-sm btn-diag-direct-print" style="width: 100%; justify-content: center; background: linear-gradient(135deg, #ff6b35, #e0481d); color: #fff; font-weight: 700; box-shadow: 0 4px 14px rgba(255, 107, 53, 0.35); padding: 10px 16px; font-size: 0.88rem;" title="一鍵即時試算健豪、卡之屋等台灣在地四大印刷廠價格並打包送印工單">
-            <span>🏭</span> 台灣四大印刷廠一鍵估價 & 直通送印 ➔
-          </button>
-        </div>
       </div>
     `;
   }

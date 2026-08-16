@@ -840,6 +840,105 @@
 .pm-text-success { color: #248a3d; }
 .pm-text-warning { color: #c97500; }
 
+/* Hero Action CTAs inside Diagnostic Card */
+.pm-diag-hero-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.pm-diag-hero-actions .btn-diag-direct-print {
+  width: 100%;
+  justify-content: center;
+  background: linear-gradient(135deg, #ff6b35, #e0481d);
+  color: #ffffff;
+  font-weight: 700;
+  box-shadow: 0 4px 14px rgba(255, 107, 53, 0.35);
+  padding: 12px 18px;
+  font-size: 0.92rem;
+  border-radius: var(--pm-radius-sm);
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.pm-diag-hero-actions .btn-diag-direct-print:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(255, 107, 53, 0.45);
+}
+
+.pm-diag-hero-actions .btn-diag-direct-print:active {
+  transform: scale(0.98);
+}
+
+.pm-diag-hero-actions .btn-diag-export-pdf {
+  width: 100%;
+  justify-content: center;
+  background-color: #fbfbfd;
+  border: 1px solid var(--pm-border-subtle);
+  color: var(--pm-text-primary);
+  font-weight: 600;
+  padding: 10px 16px;
+  font-size: 0.85rem;
+  border-radius: var(--pm-radius-sm);
+  transition: all 0.15s ease;
+}
+
+.pm-diag-hero-actions .btn-diag-export-pdf:hover {
+  background-color: #f0f0f4;
+  border-color: var(--pm-border-active);
+}
+
+/* Progressive Disclosure Accordion */
+.pm-diag-accordion-wrapper {
+  margin-top: 6px;
+  border-top: 1px solid var(--pm-border-subtle);
+  padding-top: 10px;
+}
+
+.pm-diag-accordion-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: transparent;
+  border: 1px dashed var(--pm-border-subtle);
+  border-radius: var(--pm-radius-sm);
+  padding: 8px 12px;
+  color: var(--pm-text-secondary);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pm-diag-accordion-toggle:hover {
+  background-color: #f5f5f7;
+  color: var(--pm-text-primary);
+  border-color: var(--pm-border-active);
+}
+
+.pm-accordion-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pm-accordion-icon {
+  font-size: 0.7rem;
+  color: var(--pm-text-muted);
+}
+
+.pm-diag-accordion-content {
+  margin-top: 12px;
+  animation: pmAccordionFadeIn 0.25s ease;
+}
+
+@keyframes pmAccordionFadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 /* Weighted Progress Indicators */
 .pm-weighted-indicators {
   display: flex;

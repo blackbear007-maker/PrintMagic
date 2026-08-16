@@ -103,40 +103,46 @@
         <div class="pm-card">
           <!-- View Modes & Materials Bar -->
           <div class="pm-view-toolbar">
-            <div class="pm-toggle-group">
-              <button id="btnToggleCompare" class="pm-tool-btn" title="切換雙向滑桿對比檢視">
-                <span>👁️</span> 雙向對比
-              </button>
-              <button id="btnToggle1to1" class="pm-tool-btn" title="切換 100% 物理 1:1 毫米真實尺寸檢視 (可拿實體紙卡貼在螢幕上對比)">
-                <span>📏</span> 1:1 實體尺寸
-              </button>
-              <button id="btnToggleLoupe" class="pm-tool-btn" title="切換 20x CMYK 玫瑰網點顯微放大鏡">
-                <span>🔍</span> 20x 網點放大鏡
-              </button>
-              <button id="btnFlipBack" class="pm-tool-btn" title="翻轉查看紙張背面規格標記">
-                <span>↻</span> 翻轉紙背
-              </button>
-              <button id="btnToggleHeatmap" class="pm-tool-btn" title="檢視 TAC 總墨量超過 300% 之危險溢墨區域">
-                <span>🎨</span> 溢墨熱力圖
-              </button>
-              <button id="btnToggleSoftProof" class="pm-tool-btn" title="模擬 CMYK 實體印刷打樣色彩">
-                <span>🖨️</span> 軟打樣
-              </button>
-              <button id="btnToggleSafeZone" class="pm-tool-btn active" title="顯示 3mm 出血線與安全裁切框">
-                <span>📐</span> 出血框
-              </button>
-            </div>
+            <div class="pm-view-toolbar-primary">
+              <div class="pm-toggle-group">
+                <button id="btnToggleCompare" class="pm-tool-btn" title="切換雙向滑桿對比檢視">
+                  <span>👁️</span> 原圖對比
+                </button>
+                <button id="btnToggleLoupe" class="pm-tool-btn" title="切換 20x CMYK 玫瑰網點顯微放大鏡">
+                  <span>🔍</span> 20x 網點
+                </button>
+              </div>
 
-            <!-- Smart Crop & Paper Material -->
-            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-              <div id="cropToolbarRoot"></div>
-
+              <!-- Paper Material Selector -->
               <div class="pm-paper-selector">
-                <span style="font-size: 0.75rem; color: var(--pm-text-muted);">紙材：</span>
+                <span class="pm-paper-label">紙材：</span>
                 <button class="pm-paper-btn active" data-paper="glossy">超光銅版</button>
                 <button class="pm-paper-btn" data-paper="matte">雙面啞粉</button>
                 <button class="pm-paper-btn" data-paper="linen">細格萊妮</button>
                 <button class="pm-paper-btn" data-paper="cotton">象牙棉卡</button>
+              </div>
+            </div>
+
+            <!-- Pro Tools & Smart Crop -->
+            <div class="pm-view-toolbar-secondary">
+              <div id="cropToolbarRoot"></div>
+
+              <div class="pm-toggle-group pm-toggle-group-pro">
+                <button id="btnToggleSafeZone" class="pm-tool-btn active" title="顯示 3mm 出血線與安全裁切框">
+                  <span>📐</span> 出血框
+                </button>
+                <button id="btnToggleSoftProof" class="pm-tool-btn" title="模擬 CMYK 實體印刷打樣色彩">
+                  <span>🖨️</span> 軟打樣
+                </button>
+                <button id="btnToggleHeatmap" class="pm-tool-btn" title="檢視 TAC 總墨量超過 300% 之危險溢墨區域">
+                  <span>🎨</span> 溢墨熱力
+                </button>
+                <button id="btnFlipBack" class="pm-tool-btn" title="翻轉查看紙張背面規格標記">
+                  <span>↻</span> 翻轉紙背
+                </button>
+                <button id="btnToggle1to1" class="pm-tool-btn" title="切換 100% 物理 1:1 毫米真實尺寸檢視">
+                  <span>📏</span> 1:1 實體
+                </button>
               </div>
             </div>
           </div>
@@ -177,23 +183,23 @@
               <button id="btnOpenSpec" class="pm-btn pm-btn-secondary" title="送印溝小抄，一鍵複製專業規格給印刷師傅">
                 <span>📋</span> 送印小抄
               </button>
-              <button id="btnOpenShops" class="pm-btn pm-btn-secondary" title="以 GPS 定位即時尋找離您最近的專業商業印刷廠 (100% 免費導航與線上傳檔)">
+              <button id="btnOpenShops" class="pm-btn pm-btn-secondary" title="以 GPS 定位即時尋找離您最近的專業商業印刷廠">
                 <span>📍</span> 附近門市
               </button>
             </div>
 
             <div class="pm-export-right-actions">
-              <button id="btnExportSvg" class="pm-btn pm-btn-secondary" title="以 Potrace 演算法轉為無失真向量 SVG">
-                <span>⬡</span> 向量 SVG
+              <button id="btnExportPdf" class="pm-btn pm-btn-primary" title="匯出含裁切十字與出血之標準印刷 PDF">
+                <span>📄</span> 下載標準 PDF
               </button>
               <button id="btnExportPng" class="pm-btn pm-btn-secondary" title="匯出 300 DPI 高解析度 PNG">
                 <span>📥</span> 下載 PNG
               </button>
-              <button id="btnExportPdf" class="pm-btn pm-btn-secondary" title="匯出含 0.1mm 裁切十字標記、CMYK 色條與出血之標準 PDF (本機極速)">
-                <span>📄</span> 本機標準 PDF
+              <button id="btnExportSvg" class="pm-btn pm-btn-secondary" title="以 Potrace 演算法轉為無失真向量 SVG">
+                <span>⬡</span> 向量 SVG
               </button>
-              <button id="btnExportPdfx" class="pm-btn pm-btn-primary" title="透過雲端工業級引擎生成符合 ISO 15930 規範之 PDF/X-1a 印刷標準檔 (若離線則自動降級本機輸出)">
-                <span>⚡</span> 雲端 PDF/X 工業檔
+              <button id="btnExportPdfx" class="pm-btn pm-btn-secondary" title="透過雲端工業級引擎生成符合 ISO 15930 規範之 PDF/X-1a 印刷標準檔">
+                <span>⚡</span> 雲端 PDF/X
               </button>
             </div>
           </div>
