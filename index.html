@@ -158,9 +158,20 @@
               </div>
             </div>
 
-            <!-- Pro Tools & Smart Crop -->
+            <!-- Pro Tools & Smart Crop & 3D Foil Craft -->
             <div class="pm-view-toolbar-secondary">
               <div id="cropToolbarRoot"></div>
+
+              <!-- 3D Luxury Foil & Spot UV Craft Selector -->
+              <div class="pm-foil-selector">
+                <span class="pm-paper-label">工藝：</span>
+                <button class="pm-foil-btn active" data-foil="none" title="標準印刷：四色 CMYK">標準</button>
+                <button class="pm-foil-btn" data-foil="gold" title="經典奢華亮金燙金模擬 (移動滑鼠/傾斜手機反光)">✨ 亮金</button>
+                <button class="pm-foil-btn" data-foil="rose-gold" title="名媛奢華玫瑰金模擬">🌸 玫瑰金</button>
+                <button class="pm-foil-btn" data-foil="silver" title="未來科技亮銀箔模擬">⚡ 亮銀</button>
+                <button class="pm-foil-btn" data-foil="spot-uv" title="透明水晶立體局部光 (Spot UV)">💎 局部光</button>
+                <button class="pm-foil-btn" data-foil="holographic" title="雷射七彩全息光譜">🌈 雷射</button>
+              </div>
 
               <div class="pm-toggle-group pm-toggle-group-pro">
                 <button id="btnToggleSafeZone" class="pm-tool-btn active" title="顯示 3mm 出血線與安全裁切框">
@@ -211,6 +222,12 @@
             <div class="pm-export-left-tools">
               <button id="btnOpenDirectPrint" class="pm-btn pm-btn-artisan" style="background: linear-gradient(135deg, #ff6b35, #e0481d); color: #fff; font-weight: 700; box-shadow: 0 4px 12px rgba(255, 107, 53, 0.35);" title="一鍵即時估價台灣四大印刷廠 (健豪/卡之屋/經典/藍格) 並打包送印工單">
                 <span>🏭</span> 直通送印 & 估價
+              </button>
+              <button id="btnOpenConvPrint" class="pm-btn pm-btn-secondary" title="7-11 ibon / 全家 FamiPort 雲端立印，30秒下樓即可取件">
+                <span>🏪</span> 超商立印
+              </button>
+              <button id="btnOpenImposition" class="pm-btn pm-btn-secondary" title="一張 A4/A3 自動拼入 8~24 模，現省 70% 費用">
+                <span>🧩</span> 智慧拼模
               </button>
               <button id="btnOpenMockup" class="pm-btn pm-btn-secondary" title="一鍵生成現代美術館畫框、北歐書桌情境宣傳圖">
                 <span>🖼️</span> 美術館 Mockup

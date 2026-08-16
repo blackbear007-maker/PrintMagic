@@ -25,6 +25,9 @@ import { PrintScoreCalculator } from './core/print-score';
 import { CmykEngine } from './core/cmyk-engine';
 import { getPresetById, detectBestPreset } from './core/presets';
 import { SampleArtworks } from './services/sample-artworks';
+import { FoilSimulator, type FoilEffectType } from './core/foil-simulator';
+import { ConveniencePrintModal } from './ui/convenience-print-modal';
+import { ImpositionModal } from './ui/imposition-modal';
 import { PdfExporter } from './engines/pdf-exporter';
 import { VectorTracer } from './engines/vector-tracer';
 import { workerClient } from './workers/worker-client';
@@ -38,6 +41,7 @@ class App {
   public compareSlider!: CompareSlider;
   public paperSimulator!: PaperSimulator;
   public paper3D!: Paper3DController;
+  public foilSimulator!: FoilSimulator;
   public loupe!: LoupeController;
   public laserScan!: LaserScanController;
   public mockupModal!: MockupModal;
@@ -45,6 +49,8 @@ class App {
   public calibrationModal!: RulerCalibrationModal;
   public shopsModal!: NearbyShopsModal;
   public directPrintModal!: DirectPrintModal;
+  public convPrintModal!: ConveniencePrintModal;
+  public impositionModal!: ImpositionModal;
   public batchBar!: BatchBar;
   public cropController!: CropController;
 
@@ -129,23 +135,28 @@ class App {
     // 5. 3D Paper Physics Controller
     this.paper3D = new Paper3DController('stageContainer', 'canvasSheet', store.getState().currentPreset);
 
-    // 6. 20x Halftone Loupe
+    // 6. 3D Luxury Foil & Spot UV Simulator
+    this.foilSimulator = new FoilSimulator('stageContainer', 'canvasSheet');
+
+    // 7. 20x Halftone Loupe
     this.loupe = new LoupeController('stageContainer');
 
-    // 7. Laser Scanline
+    // 8. Laser Scanline
     this.laserScan = new LaserScanController('stageContainer');
 
-    // 8. Modals
+    // 9. Modals
     this.mockupModal = new MockupModal();
     this.specModal = new SpecModal();
     this.calibrationModal = new RulerCalibrationModal();
     this.shopsModal = new NearbyShopsModal();
     this.directPrintModal = new DirectPrintModal(() => this.shopsModal.open());
+    this.convPrintModal = new ConveniencePrintModal();
+    this.impositionModal = new ImpositionModal();
 
-    // 9. Crop Controller
+    // 10. Crop Controller
     this.cropController = new CropController('cropToolbarRoot', 'mainPreviewImg');
 
-    // 10. Batch Studio Filmstrip Bar
+    // 11. Batch Studio Filmstrip Bar
     this.batchBar = new BatchBar('batchBarRoot', {
       onAddFiles: (files) => {
         new DropZone('dropZone', () => {}).handleFiles(Array.from(files));
@@ -354,9 +365,32 @@ class App {
       this.specModal.open(state);
     });
 
+    // 3D Luxury Foil & Spot UV Craft Selection
+    document.querySelectorAll('.pm-foil-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const foilType = (btn as HTMLElement).dataset.foil as FoilEffectType;
+        if (foilType) {
+          this.foilSimulator.setFoil(foilType);
+          document.querySelectorAll('.pm-foil-btn').forEach((b) => {
+            b.classList.toggle('active', (b as HTMLElement).dataset.foil === foilType);
+          });
+        }
+      });
+    });
+
     // Open Direct Print & Live Quote Modal
     document.getElementById('btnOpenDirectPrint')?.addEventListener('click', () => {
       this.directPrintModal.open();
+    });
+
+    // Open Convenience Store Cloud Print Modal (7-11 & FamilyMart)
+    document.getElementById('btnOpenConvPrint')?.addEventListener('click', () => {
+      this.convPrintModal.open();
+    });
+
+    // Open Imposition Gang-Run Sheet Modal (A4/A3)
+    document.getElementById('btnOpenImposition')?.addEventListener('click', () => {
+      void this.impositionModal.open();
     });
 
     // Open Nearby Commercial Print Shops Finder

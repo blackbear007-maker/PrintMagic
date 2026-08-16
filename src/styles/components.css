@@ -1863,3 +1863,271 @@
   border-top: 1px solid var(--pm-border-subtle);
   flex-wrap: wrap;
 }
+
+/* ============================================================
+   Convenience Store Modal Styles (7-11 & FamilyMart)
+   ============================================================ */
+.pm-conv-modal-dialog {
+  max-width: 780px;
+}
+
+.pm-conv-body {
+  padding: 16px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.pm-conv-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pm-conv-store-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pm-conv-store-btn {
+  flex: 1;
+  min-width: 220px;
+  padding: 12px 16px;
+  border-radius: var(--pm-radius-md);
+  background-color: #f5f5f7;
+  border: 1.5px solid var(--pm-border-subtle);
+  color: var(--pm-text-secondary);
+  font-weight: 600;
+  font-size: 0.88rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pm-conv-store-btn:hover {
+  background-color: #ebebee;
+}
+
+.pm-conv-store-btn.active.store-711 {
+  background-color: #ffffff;
+  border-color: #e0481d;
+  color: #e0481d;
+  box-shadow: 0 4px 12px rgba(224, 72, 29, 0.15);
+}
+
+.pm-conv-store-btn.active.store-fami {
+  background-color: #ffffff;
+  border-color: #008837;
+  color: #008837;
+  box-shadow: 0 4px 12px rgba(0, 136, 55, 0.15);
+}
+
+.pm-conv-specs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.pm-conv-spec-card {
+  padding: 12px 14px;
+  border-radius: var(--pm-radius-md);
+  background-color: #ffffff;
+  border: 1.5px solid var(--pm-border-subtle);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pm-conv-spec-card:hover {
+  border-color: var(--pm-accent-blue);
+  transform: translateY(-1px);
+}
+
+.pm-conv-spec-card.active {
+  border-color: var(--pm-accent-blue);
+  background: linear-gradient(135deg, rgba(0, 113, 227, 0.04), #ffffff);
+  box-shadow: 0 3px 10px rgba(0, 113, 227, 0.15);
+}
+
+.pm-conv-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.pm-conv-paper-title {
+  font-weight: 700;
+  font-size: 0.86rem;
+  color: var(--pm-text-primary);
+}
+
+.pm-conv-price-tag {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #ff9500;
+  background-color: rgba(255, 149, 0, 0.12);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.pm-conv-size-text {
+  font-size: 0.72rem;
+  color: var(--pm-text-secondary);
+}
+
+.pm-conv-desc-text {
+  font-size: 0.72rem;
+  color: var(--pm-text-muted);
+  line-height: 1.4;
+  margin-top: 2px;
+}
+
+.pm-conv-rec-badge {
+  font-size: 0.68rem;
+  color: #0071e3;
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+.pm-conv-gateways {
+  display: flex;
+  justify-content: center;
+  padding-top: 6px;
+}
+
+/* ============================================================
+   Imposition Gang-Run Modal Styles
+   ============================================================ */
+.pm-imposition-dialog {
+  max-width: 860px;
+}
+
+.pm-imposition-body {
+  padding: 16px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pm-imposition-controls-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--pm-border-subtle);
+}
+
+.pm-imposition-preview-stage {
+  min-height: 380px;
+  max-height: 480px;
+  background-color: #e5e5ea;
+  border-radius: var(--pm-radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  overflow: auto;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.pm-imposition-sheet-img {
+  max-height: 420px;
+  max-width: 100%;
+  object-fit: contain;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  background-color: #ffffff;
+}
+
+/* ============================================================
+   3D Gold Foil & Spot UV Luxury Shaders
+   ============================================================ */
+.pm-foil-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  border-radius: inherit;
+  mix-blend-mode: overlay;
+  opacity: 0.85;
+  transition: opacity 0.3s ease;
+}
+
+.pm-has-foil .pm-canvas-sheet {
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.18), 0 0 30px var(--foil-glow, rgba(255, 215, 0, 0.25));
+}
+
+/* 1. Classic Gold Foil */
+.pm-foil-gold {
+  --foil-glow: rgba(255, 200, 0, 0.35);
+  background: conic-gradient(
+    from var(--foil-angle, 45deg) at var(--foil-light-x, 50%) var(--foil-light-y, 50%),
+    #d4af37, #fff6cc, #aa771c, #ffd700, #fff6cc, #d4af37
+  );
+  mix-blend-mode: color-dodge;
+  opacity: 0.65;
+}
+
+/* 2. Rose Gold Foil */
+.pm-foil-rose-gold {
+  --foil-glow: rgba(235, 164, 164, 0.35);
+  background: conic-gradient(
+    from var(--foil-angle, 45deg) at var(--foil-light-x, 50%) var(--foil-light-y, 50%),
+    #b76e79, #ffd1dc, #914e5b, #f7cac9, #ffd1dc, #b76e79
+  );
+  mix-blend-mode: color-dodge;
+  opacity: 0.65;
+}
+
+/* 3. Metallic Silver Foil */
+.pm-foil-silver {
+  --foil-glow: rgba(200, 220, 255, 0.35);
+  background: conic-gradient(
+    from var(--foil-angle, 45deg) at var(--foil-light-x, 50%) var(--foil-light-y, 50%),
+    #a8a8a8, #ffffff, #686868, #d8d8d8, #ffffff, #a8a8a8
+  );
+  mix-blend-mode: color-dodge;
+  opacity: 0.7;
+}
+
+/* 4. Spot UV (Crystal Gloss) */
+.pm-foil-spot-uv {
+  --foil-glow: rgba(255, 255, 255, 0.4);
+  background: radial-gradient(
+    circle at var(--foil-light-x, 50%) var(--foil-light-y, 50%),
+    rgba(255, 255, 255, 0.75) 0%,
+    rgba(255, 255, 255, 0.15) 30%,
+    transparent 60%
+  );
+  mix-blend-mode: hard-light;
+  opacity: 0.85;
+}
+
+/* 5. Holographic Rainbow Foil */
+.pm-foil-holographic {
+  --foil-glow: rgba(0, 245, 212, 0.35);
+  background: linear-gradient(
+    var(--foil-angle, 45deg),
+    rgba(255, 0, 128, 0.5),
+    rgba(255, 136, 0, 0.5),
+    rgba(255, 238, 0, 0.5),
+    rgba(0, 245, 212, 0.5),
+    rgba(0, 113, 227, 0.5),
+    rgba(121, 40, 202, 0.5),
+    rgba(255, 0, 128, 0.5)
+  );
+  mix-blend-mode: screen;
+  opacity: 0.6;
+}
+
