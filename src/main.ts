@@ -29,6 +29,7 @@ import { FoilSimulator, type FoilEffectType } from './core/foil-simulator';
 import { DoubleSidedManager, type BackTemplateType } from './core/double-sided';
 import { VectorOverlayEngine } from './core/vector-overlay';
 import { iccProfileEngine, type IccProfileId } from './core/icc-profiles';
+import { AiUpscaleClient } from './services/ai-upscale-client';
 import { ConveniencePrintModal } from './ui/convenience-print-modal';
 import { ImpositionModal } from './ui/imposition-modal';
 import { DielineModal } from './ui/dieline-modal';
@@ -200,6 +201,31 @@ class App {
       } else {
         store.setEngineMode('local');
         Toast.info('🖥️ 已切換至 100% 離線本機極速模式 (零資料上傳)');
+      }
+    });
+
+    // AI Super-Resolution Mode Toggle
+    document.getElementById('btnToggleAiUpscale')?.addEventListener('click', () => {
+      const next = store.toggleAiUpscaleMode();
+      SoundEffects.sliderTick();
+
+      const icon = document.getElementById('aiUpscaleIcon');
+      const txt = document.getElementById('aiUpscaleText');
+
+      if (next === 'cloud-ai') {
+        if (icon) icon.textContent = '🧠';
+        if (txt) txt.textContent = 'AI 4x 重建';
+        Toast.info('🧠 已啟動【雲端 AI 深度學習細節重建 (Real-ESRGAN 4x)】模式！');
+      } else {
+        if (icon) icon.textContent = '⚡';
+        if (txt) txt.textContent = '本機 8x 放大';
+        Toast.info('⚡ 已切換回【100% 離線本機 8x 金字塔超解析度】模式！');
+      }
+
+      // Re-run pipeline if image exists
+      const state = store.getState();
+      if (state.originalImageData) {
+        this.runOptimizationPipeline(state.originalImageData);
       }
     });
 
@@ -772,13 +798,35 @@ class App {
       let processedImgData = srcImageData;
       let appliedScale = 1;
 
-      // Step 1: Lanczos-3 Resampling (if needed)
+      // Step 1: Super-Resolution Upscaling (AI Neural Reconstructor vs Local 8x Pyramid)
       if (originalDpiAnalysis.needsUpscale && originalDpiAnalysis.scaleFactor > 1) {
         appliedScale = originalDpiAnalysis.scaleFactor;
-        store.setState({
-          processingStep: `2/4 正在執行 ${appliedScale}x Lanczos-3 印刷級超解析度放大...`
-        });
-        processedImgData = await workerClient.lanczos(srcImageData, appliedScale);
+
+        if (state.aiUpscaleMode === 'cloud-ai') {
+          store.setState({
+            processingStep: '2/4 正在呼叫雲端 AI 深度學習神經網路進行 4x 細節重建 (Real-ESRGAN)...'
+          });
+          const srcDataUrl = state.originalDataUrl || this.imageDataToDataUrl(srcImageData);
+          const aiResult = await AiUpscaleClient.upscale(srcDataUrl);
+
+          if (aiResult.success && aiResult.imageData) {
+            processedImgData = aiResult.imageData;
+            appliedScale = aiResult.scale || 4;
+            Toast.success('🧠 AI 深度學習細節重建完成 (Real-ESRGAN 4x)！');
+          } else {
+            // Graceful automatic fallback to local Lanczos-3 8x pyramid engine
+            store.setState({
+              processingStep: `2/4 正在啟用本機 ${appliedScale}x 金字塔超解析度放大 (0 延遲備援)...`
+            });
+            processedImgData = await workerClient.lanczos(srcImageData, appliedScale);
+            Toast.info('⚡ 雲端 AI 忙碌中，已無縫啟用本機 8x 金字塔超解析度引擎！');
+          }
+        } else {
+          store.setState({
+            processingStep: `2/4 正在執行 ${appliedScale}x 本機金字塔超解析度放大 (防光暈補償)...`
+          });
+          processedImgData = await workerClient.lanczos(srcImageData, appliedScale);
+        }
       }
 
       // Step 2: Pre-press Unsharp Mask Sharpening

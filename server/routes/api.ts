@@ -64,3 +64,24 @@ apiRouter.post('/export-pdfx', async (req: Request, res: Response) => {
     res.status(500).json({ success: false, error: err?.message || 'Failed to generate PDF/X' });
   }
 });
+
+// Free AI Super-Resolution (Real-ESRGAN)
+apiRouter.post('/ai-upscale', async (req: Request, res: Response) => {
+  try {
+    const { imageDataUrl, apiKey } = req.body;
+    if (!imageDataUrl) {
+      res.status(400).json({ success: false, error: 'imageDataUrl is required' });
+      return;
+    }
+
+    const { AiUpscaleService } = await import('../services/ai-upscale-service.js');
+    const result = await AiUpscaleService.upscaleImage(imageDataUrl, apiKey);
+    res.json({
+      success: true,
+      ...result
+    });
+  } catch (err: any) {
+    console.error('AI Upscale Error:', err);
+    res.status(502).json({ success: false, error: err?.message || 'AI Upscale Failed' });
+  }
+});

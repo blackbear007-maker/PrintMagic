@@ -52,6 +52,7 @@ export interface AppState {
   // Hybrid Dual-Engine Architecture
   engineMode: EngineMode;
   cloudStatus: CloudHealthStatus;
+  aiUpscaleMode: 'local' | 'cloud-ai';
 
   // Settings & Modes
   currentPreset: PrintPreset;
@@ -116,6 +117,7 @@ class StateStore {
 
     engineMode: 'local',
     cloudStatus: 'offline',
+    aiUpscaleMode: 'local',
 
     currentPreset: DEFAULT_PRESET,
     selectedPaper: 'glossy',
@@ -195,6 +197,12 @@ class StateStore {
   public toggle1to1Scale(): boolean {
     const next = !this.state.is1to1Scale;
     this.setState({ is1to1Scale: next });
+    return next;
+  }
+
+  public toggleAiUpscaleMode(): 'local' | 'cloud-ai' {
+    const next = this.state.aiUpscaleMode === 'local' ? 'cloud-ai' : 'local';
+    this.setState({ aiUpscaleMode: next });
     return next;
   }
 
