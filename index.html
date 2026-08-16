@@ -2,11 +2,13 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>PrintMagic — 專業雙引擎 AI 圖片印刷準備工作室</title>
   <meta name="description" content="專為 AI 生成圖打造的專業印刷出圖準備工作室。雙引擎混合架構：100% 離線本機極速運算 + 雲端工業級 PDF/X 國際印刷規範輸出。" />
   <link rel="icon" type="image/svg+xml" href="xiaoxiang-avatar.svg" />
-  <meta name="theme-color" content="#090a0d" />
+  <meta name="theme-color" content="#f5f5f7" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 </head>
 <body>
   <div class="pm-app" id="app">
@@ -90,7 +92,7 @@
             <span class="pm-dropzone-tag">PDF/X-1a 工業標準</span>
           </div>
           <div class="pm-dropzone-paste-hint">
-            💡 提示：支援直接使用鍵盤 <span class="pm-kbd">Ctrl + V</span> 或 <span class="pm-kbd">Cmd + V</span> 貼上剪貼簿圖片
+            📱 點選即可開啟相簿或相機，支援多圖批次上傳 (上限 20 張)
           </div>
         </div>
       </section>
@@ -102,16 +104,16 @@
           <!-- View Modes & Materials Bar -->
           <div class="pm-view-toolbar">
             <div class="pm-toggle-group">
-              <button id="btnToggleCompare" class="pm-tool-btn" title="切換雙向滑捍對比檢視">
+              <button id="btnToggleCompare" class="pm-tool-btn" title="切換雙向滑桿對比檢視">
                 <span>👁️</span> 雙向對比
               </button>
               <button id="btnToggle1to1" class="pm-tool-btn" title="切換 100% 物理 1:1 毫米真實尺寸檢視 (可拿實體紙卡貼在螢幕上對比)">
                 <span>📏</span> 1:1 實體尺寸
               </button>
-              <button id="btnToggleLoupe" class="pm-tool-btn" title="切換 20x CMYK 玫瑰網點顯微放大鏡 (或長按空白鍵)">
+              <button id="btnToggleLoupe" class="pm-tool-btn" title="切換 20x CMYK 玫瑰網點顯微放大鏡">
                 <span>🔍</span> 20x 網點放大鏡
               </button>
-              <button id="btnFlipBack" class="pm-tool-btn" title="翻轉查看紙張背面規格標記 (或按 F 鍵)">
+              <button id="btnFlipBack" class="pm-tool-btn" title="翻轉查看紙張背面規格標記">
                 <span>↻</span> 翻轉紙背
               </button>
               <button id="btnToggleHeatmap" class="pm-tool-btn" title="檢視 TAC 總墨量超過 300% 之危險溢墨區域">

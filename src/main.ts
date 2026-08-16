@@ -95,7 +95,6 @@ class App {
   constructor() {
     this.initUIComponents();
     this.bindEvents();
-    this.bindKeyboardShortcuts();
     this.subscribeState();
     this.updateSoundIcon();
 
@@ -248,7 +247,7 @@ class App {
       this.btnToggleLoupe.classList.toggle('active', active);
       SoundEffects.sliderTick();
       if (active) {
-        Toast.info('🔍 20x 網點放大鏡已啟動 (可隨時按空白鍵切換)');
+        Toast.info('🔍 20x 網點顯微放大鏡已啟動');
       }
     });
 
@@ -406,43 +405,6 @@ class App {
         Toast.success('✓ 向量 SVG 檔案已下載！');
       } catch (err: any) {
         Toast.error(`向量化失敗: ${err?.message || err}`);
-      }
-    });
-  }
-
-  private bindKeyboardShortcuts(): void {
-    window.addEventListener('keydown', (e: KeyboardEvent) => {
-      if (document.activeElement?.tagName === 'INPUT') return;
-
-      // Space key for Loupe
-      if (e.code === 'Space' && !e.repeat) {
-        e.preventDefault();
-        const active = this.loupe.toggle();
-        this.btnToggleLoupe.classList.toggle('active', active);
-      }
-
-      // F key for Paper Flip
-      if (e.code === 'KeyF') {
-        this.paper3D.flip();
-        this.btnFlipBack.classList.toggle('active', this.paper3D.getIsFlipped());
-      }
-
-      // M key for Sound Mute
-      if (e.code === 'KeyM') {
-        const isMuted = SoundEffects.toggleMute();
-        this.updateSoundIcon();
-        Toast.info(isMuted ? '🔇 觸覺音效已靜音' : '🔊 觸覺音效已開啟');
-      }
-
-      // C key for Calibration
-      if (e.code === 'KeyC') {
-        this.calibrationModal.open();
-      }
-
-      // 1 key for 1:1 Scale
-      if (e.code === 'Digit1') {
-        const is1to1 = store.toggle1to1Scale();
-        Toast.info(is1to1 ? '📏 已開啟 1:1 實體尺寸' : '📐 已切換回螢幕自適應視圖');
       }
     });
   }

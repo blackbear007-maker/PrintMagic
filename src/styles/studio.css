@@ -432,3 +432,130 @@
   color: var(--pm-text-muted);
   font-size: 0.75rem;
 }
+
+/* ============================================================
+   Mobile-First Touch Ergonomics & Responsive Layout
+   ============================================================ */
+@media (max-width: 768px) {
+  .pm-header-inner {
+    padding: 0 12px;
+  }
+
+  .pm-logo-text {
+    font-size: 1rem;
+  }
+
+  .pm-badge-pro {
+    display: none;
+  }
+
+  .pm-preset-bar {
+    padding: 6px 12px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .pm-preset-bar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .pm-preset-bar-inner {
+    flex-wrap: nowrap;
+    width: max-content;
+    gap: 8px;
+  }
+
+  .pm-preset-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .pm-preset-btn {
+    white-space: nowrap;
+    padding: 7px 12px;
+    font-size: 0.78rem;
+    min-height: 38px;
+  }
+
+  .pm-main {
+    padding: 12px;
+    gap: 14px;
+  }
+
+  .pm-stage-view {
+    min-height: 320px;
+    padding: 16px 8px;
+  }
+
+  .pm-view-toolbar {
+    padding: 8px 10px;
+    gap: 8px;
+  }
+
+  .pm-toggle-group {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    width: 100%;
+    padding-bottom: 2px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .pm-toggle-group::-webkit-scrollbar {
+    display: none;
+  }
+
+  .pm-tool-btn {
+    white-space: nowrap;
+    padding: 6px 10px;
+    font-size: 0.75rem;
+    min-height: 36px;
+  }
+
+  .pm-paper-selector {
+    width: 100%;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    scrollbar-width: none;
+  }
+
+  .pm-paper-selector::-webkit-scrollbar {
+    display: none;
+  }
+
+  .pm-paper-btn {
+    white-space: nowrap;
+    padding: 5px 10px;
+    min-height: 32px;
+  }
+
+  .pm-export-bar {
+    padding: 12px;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .pm-export-left-tools,
+  .pm-export-right-actions {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .pm-export-left-tools .pm-btn,
+  .pm-export-right-actions .pm-btn {
+    width: 100%;
+    min-height: 44px;
+    font-size: 0.88rem;
+    justify-content: center;
+  }
+
+  .pm-modal-dialog {
+    max-height: 92vh;
+    border-radius: var(--pm-radius-md);
+  }
+}
+
