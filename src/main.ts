@@ -194,21 +194,29 @@ class App {
         const isOnline = await CloudClient.checkHealth();
         if (isOnline) {
           store.setEngineMode('cloud');
-          Toast.info('⚡ 已切換至 雲端工業引擎模式 (支援 ISO 15930 PDF/X-1a 與 ICC 規範)');
+          Toast.info('⚡ 已切換至 雲端工業引擎模式 (支援 ISO 15930 PDF/X-1a 與 雲端 AI 深度學習)');
         } else {
           Toast.info('⚠️ 雲端後端伺服器 (port 3001) 未啟動，維持 100% 本機極速模式');
         }
       } else {
         store.setEngineMode('local');
-        Toast.info('🖥️ 已切換至 100% 離線本機極速模式 (零資料上傳)');
+        store.setState({ aiUpscaleMode: 'local' });
+        Toast.info('🖥️ 已切換至 100% 離線本機極速模式 (嚴格僅限本機引擎，零資料上傳)');
       }
     });
 
     // AI Super-Resolution Mode Toggle
     document.getElementById('btnToggleAiUpscale')?.addEventListener('click', () => {
-      const next = store.toggleAiUpscaleMode();
+      const state = store.getState();
       SoundEffects.sliderTick();
 
+      // Strict enforcement: Local mode only allows local engine
+      if (state.engineMode === 'local') {
+        Toast.info('🔒 目前為【100% 離線本機模式】，嚴格只使用本機 8x 金字塔引擎（零連網、零資料上傳）。若需使用雲端 AI 重建，請先將頂部模式切換為【雲端工業模式】！');
+        return;
+      }
+
+      const next = store.toggleAiUpscaleMode();
       const icon = document.getElementById('aiUpscaleIcon');
       const txt = document.getElementById('aiUpscaleText');
 
@@ -219,13 +227,13 @@ class App {
       } else {
         if (icon) icon.textContent = '⚡';
         if (txt) txt.textContent = '本機 8x 放大';
-        Toast.info('⚡ 已切換回【100% 離線本機 8x 金字塔超解析度】模式！');
+        Toast.info('⚡ 已切換回【本機 8x 金字塔超解析度】模式！');
       }
 
       // Re-run pipeline if image exists
-      const state = store.getState();
-      if (state.originalImageData) {
-        this.runOptimizationPipeline(state.originalImageData);
+      const updatedState = store.getState();
+      if (updatedState.originalImageData) {
+        this.runOptimizationPipeline(updatedState.originalImageData);
       }
     });
 
@@ -622,10 +630,25 @@ class App {
       // 1. Update Hybrid Engine Pill UI
       this.btnToggleEngine.classList.toggle('pm-engine-cloud', state.engineMode === 'cloud');
       this.btnToggleEngine.classList.toggle('pm-engine-offline', state.cloudStatus === 'offline');
+      const aiUpscaleIcon = document.getElementById('aiUpscaleIcon');
+      const aiUpscaleText = document.getElementById('aiUpscaleText');
+      const btnToggleAiUpscale = document.getElementById('btnToggleAiUpscale');
+
       if (state.engineMode === 'cloud') {
         this.engineStatusText.textContent = state.cloudStatus === 'online' ? '雲端工業模式 (在線)' : '雲端工業模式 (離線降級)';
+        if (btnToggleAiUpscale) btnToggleAiUpscale.title = '點擊切換 ⚡ 本機 8x 放大 與 🧠 雲端 AI 4x 重建';
+        if (state.aiUpscaleMode === 'cloud-ai') {
+          if (aiUpscaleIcon) aiUpscaleIcon.textContent = '🧠';
+          if (aiUpscaleText) aiUpscaleText.textContent = 'AI 4x 重建';
+        } else {
+          if (aiUpscaleIcon) aiUpscaleIcon.textContent = '⚡';
+          if (aiUpscaleText) aiUpscaleText.textContent = '本機 8x 放大';
+        }
       } else {
         this.engineStatusText.textContent = '本機極速模式 (100% 離線)';
+        if (btnToggleAiUpscale) btnToggleAiUpscale.title = '🔒 本機極速模式 (100% 離線隱私保護，嚴格僅限本機引擎)';
+        if (aiUpscaleIcon) aiUpscaleIcon.textContent = '⚡';
+        if (aiUpscaleText) aiUpscaleText.textContent = '本機 8x 放大';
       }
 
       // 2. Switch View Containers
@@ -802,7 +825,9 @@ class App {
       if (originalDpiAnalysis.needsUpscale && originalDpiAnalysis.scaleFactor > 1) {
         appliedScale = originalDpiAnalysis.scaleFactor;
 
-        if (state.aiUpscaleMode === 'cloud-ai') {
+        const isCloudAiAllowed = state.engineMode === 'cloud' && state.aiUpscaleMode === 'cloud-ai';
+
+        if (isCloudAiAllowed) {
           store.setState({
             processingStep: '2/4 正在呼叫雲端 AI 深度學習神經網路進行 4x 細節重建 (Real-ESRGAN)...'
           });
@@ -822,8 +847,9 @@ class App {
             Toast.info('⚡ 雲端 AI 忙碌中，已無縫啟用本機 8x 金字塔超解析度引擎！');
           }
         } else {
+          // Strictly 100% Local Engine (Zero Network Calls)
           store.setState({
-            processingStep: `2/4 正在執行 ${appliedScale}x 本機金字塔超解析度放大 (防光暈補償)...`
+            processingStep: `2/4 正在執行 ${appliedScale}x 本機金字塔超解析度放大 (100% 離線防護)...`
           });
           processedImgData = await workerClient.lanczos(srcImageData, appliedScale);
         }
