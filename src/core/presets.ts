@@ -122,3 +122,47 @@ export const ALL_PRESETS = Object.values(PRINT_PRESETS);
 export function getPresetById(id: string): PrintPreset {
   return PRINT_PRESETS[id as PrintPresetId] || DEFAULT_PRESET;
 }
+
+/**
+ * Intelligent Aspect-Ratio & Dimension Preset Detection
+ * Automatically selects the closest matching print preset without locking manual override
+ */
+export function detectBestPreset(widthPx: number, heightPx: number): PrintPreset {
+  if (!widthPx || !heightPx) return DEFAULT_PRESET;
+
+  const aspect = Math.max(widthPx, heightPx) / Math.min(widthPx, heightPx);
+  const minDim = Math.min(widthPx, heightPx);
+  const maxDim = Math.max(widthPx, heightPx);
+
+  // 1. Square or near-square (1:1 ± 8%)
+  if (aspect >= 0.92 && aspect <= 1.08) {
+    // If small icon / small dimension => Die-cut sticker
+    if (maxDim <= 1200) {
+      return PRINT_PRESETS['sticker'];
+    }
+    // High-res digital / social avatar
+    return PRINT_PRESETS['social'];
+  }
+
+  // 2. Business Card Ratio (90:54 ≈ 1.667)
+  if (aspect >= 1.58 && aspect <= 1.78 && minDim <= 1400) {
+    return PRINT_PRESETS['business-card'];
+  }
+
+  // 3. Postcard Ratio (148:100 = 1.48)
+  if (aspect >= 1.44 && aspect <= 1.55) {
+    return PRINT_PRESETS['postcard'];
+  }
+
+  // 4. ISO A-series (1:1.414)
+  if (aspect >= 1.35 && aspect <= 1.44) {
+    // If ultra high resolution > 3200px => Suggest A3 Exhibition Poster, else A4
+    if (maxDim >= 3400) {
+      return PRINT_PRESETS['poster-a3'];
+    }
+    return PRINT_PRESETS['poster-a4'];
+  }
+
+  // 5. Default fallback to A4 Poster
+  return PRINT_PRESETS['poster-a4'];
+}

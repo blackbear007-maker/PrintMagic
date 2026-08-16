@@ -1,54 +1,61 @@
 /* ============================================================
-   PrintMagic v3.1 Pro - Apple Minimalist Design System Tokens
-   Low-saturation, Flat Solid Colors, Zero Gradients, Precision UI
+   PrintMagic v3.1 Pro - Apple Minimalist Light Design System
+   Human Interface Guidelines (HIG) & Low-Saturation Aesthetics
    ============================================================ */
 
 :root {
-  /* Surfaces & Backgrounds (Apple Space Gray & Neutral Charcoal) */
-  --pm-bg-canvas: #09090b;
-  --pm-bg-surface: #141417;
-  --pm-bg-surface-elevated: #1e1e22;
-  --pm-bg-surface-hover: #28282d;
-  --pm-bg-surface-active: #323238;
-  --pm-bg-surface-glass: rgba(20, 20, 23, 0.92);
+  /* Surfaces & Backgrounds (Apple Signature Light Studio) */
+  --pm-bg-canvas: #f5f5f7;           /* Apple Classic Neutral Backdrop */
+  --pm-bg-surface: #ffffff;          /* Pure White Card Surface */
+  --pm-bg-surface-elevated: #ffffff; /* Elevated White Layer */
+  --pm-bg-surface-hover: #f0f0f2;    /* Soft Gray Hover */
+  --pm-bg-surface-active: #e8e8ed;   /* Active Press State */
+  --pm-bg-surface-glass: rgba(255, 255, 255, 0.85); /* Frosted Glass */
+  --pm-bg-stage-lightbox: #e5e5ea;   /* Neutral Studio Lightbox Behind Paper */
 
-  /* Hairline Borders & Dividers (Apple 1px Solid Lines) */
-  --pm-border-subtle: #27272b;
-  --pm-border-active: #3f3f46;
-  --pm-border-focus: #2997ff;
+  /* Hairline Borders & Dividers (Apple Precision Hairlines) */
+  --pm-border-subtle: rgba(0, 0, 0, 0.08);
+  --pm-border-light: rgba(0, 0, 0, 0.05);
+  --pm-border-active: rgba(0, 0, 0, 0.16);
+  --pm-border-focus: #0071e3;
 
-  /* Typography (Apple SF Pro Hierarchy) */
-  --pm-text-primary: #ffffff;
-  --pm-text-secondary: #a1a1a6;
-  --pm-text-muted: #6e6e73;
-  --pm-text-dim: #48484a;
+  /* Typography (Apple SF Pro Deep Slate Hierarchy) */
+  --pm-text-primary: #1d1d1f;        /* Apple Deep Slate Black */
+  --pm-text-secondary: #6e6e73;      /* Apple Mid-tone Slate Gray */
+  --pm-text-muted: #86868b;          /* Light Slate Gray */
+  --pm-text-dim: #aeaeb2;            /* Subtle Caption Tone */
 
-  /* Apple Pro Solid Accent Colors (Low Saturation, No Gradients) */
-  --pm-accent-blue: #2997ff;
-  --pm-accent-cyan: #64d2ff;
-  --pm-accent-purple: #bf5af2;
-  --pm-accent-gray: #3a3a3c;
+  /* Apple Pro Low-Saturation Accent Colors */
+  --pm-accent-blue: #0071e3;         /* Apple System Blue */
+  --pm-accent-blue-hover: #0077ed;
+  --pm-accent-blue-bg: rgba(0, 113, 227, 0.08);
+  --pm-accent-cyan: #32ade6;
+  --pm-accent-purple: #af52de;
+  --pm-accent-gray: #e5e5ea;
 
-  /* Semantic Status Colors (Flat Apple HIG Tones) */
-  --pm-status-success: #30d158;
-  --pm-status-warning: #ff9f0a;
-  --pm-status-danger: #ff453a;
-  --pm-status-info: #2997ff;
+  /* Semantic Status Colors (Apple HIG Tones) */
+  --pm-status-success: #34c759;      /* System Green */
+  --pm-status-warning: #ff9500;      /* System Orange */
+  --pm-status-danger: #ff3b30;       /* System Red */
+  --pm-status-info: #0071e3;         /* System Blue */
 
-  /* Subtle Clean Shadows (No Colored Glows) */
-  --pm-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
-  --pm-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.5);
-  --pm-shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.65);
+  /* Refined Multi-layer Soft Shadows */
+  --pm-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --pm-shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.02);
+  --pm-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.03);
+  --pm-shadow-lg: 0 12px 36px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.03);
+  --pm-shadow-sheet: 0 16px 40px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.04);
 
-  /* Radii (Apple Continuous Curves) */
-  --pm-radius-xs: 4px;
-  --pm-radius-sm: 8px;
-  --pm-radius-md: 12px;
-  --pm-radius-lg: 16px;
+  /* Continuous Squircles Radii */
+  --pm-radius-xs: 6px;
+  --pm-radius-sm: 10px;
+  --pm-radius-md: 14px;
+  --pm-radius-lg: 20px;
+  --pm-radius-xl: 28px;
   --pm-radius-full: 9999px;
 
-  /* Fonts */
-  --pm-font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  /* Apple Typography */
+  --pm-font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "PingFang TC", "Helvetica Neue", "Microsoft JhengHei", sans-serif;
   --pm-font-mono: "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", monospace;
 }
 
@@ -69,13 +76,13 @@ html, body {
   -moz-osx-font-smoothing: grayscale;
   min-height: 100vh;
   overflow-x: hidden;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.012em;
 }
 
 /* Typography */
 h1, h2, h3, h4, h5, h6 {
   font-weight: 600;
-  letter-spacing: -0.025em;
+  letter-spacing: -0.02em;
   color: var(--pm-text-primary);
 }
 
@@ -95,6 +102,7 @@ button {
   border: none;
   outline: none;
   background: none;
+  user-select: none;
 }
 
 input, select, textarea {
@@ -102,21 +110,21 @@ input, select, textarea {
   color: inherit;
 }
 
-/* Minimalist Scrollbar */
+/* Minimalist Light Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--pm-bg-canvas);
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #27272b;
+  background: rgba(0, 0, 0, 0.16);
   border-radius: var(--pm-radius-full);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #3f3f46;
+  background: rgba(0, 0, 0, 0.28);
 }

@@ -23,6 +23,7 @@ import { SoundEffects } from './core/sound-effects';
 import { DpiCalculator } from './core/dpi-calculator';
 import { PrintScoreCalculator } from './core/print-score';
 import { CmykEngine } from './core/cmyk-engine';
+import { getPresetById, detectBestPreset } from './core/presets';
 import { PdfExporter } from './engines/pdf-exporter';
 import { VectorTracer } from './engines/vector-tracer';
 import { workerClient } from './workers/worker-client';
@@ -63,6 +64,7 @@ class App {
   private safeFrame = document.getElementById('safeFrame')!;
   private processingOverlay = document.getElementById('processingOverlay')!;
   private processingText = document.getElementById('processingText')!;
+  private presetAutoBadge = document.getElementById('presetAutoBadge');
 
   // Tool buttons
   private btnToggleCompare = document.getElementById('btnToggleCompare')!;
@@ -208,7 +210,7 @@ class App {
         if (presetId) {
           store.setPreset(presetId);
           this.paper3D.updatePreset(store.getState().currentPreset);
-          this.updatePresetButtonsUI(presetId);
+          this.updatePresetButtonsUI(presetId, false);
           SoundEffects.sliderTick();
 
           // Re-run pipeline for new physical dimensions
@@ -575,7 +577,13 @@ class App {
     const firstItem = batchItems[0];
     store.loadBatchItemIntoActive(firstItem);
 
-    Toast.success(`✓ 已載入 ${results.length} 張作品，正在啟動極光分析...`);
+    // Auto-detect optimal preset based on image aspect ratio and resolution
+    const autoPreset = detectBestPreset(firstItem.originalWidth, firstItem.originalHeight);
+    store.setPreset(autoPreset.id);
+    this.paper3D.updatePreset(autoPreset);
+    this.updatePresetButtonsUI(autoPreset.id, true);
+
+    Toast.success(`✓ 已載入 ${results.length} 張作品，智慧推薦【${autoPreset.nameZh}】(可隨時手動彈性更換)`);
     await this.runOptimizationPipeline(firstItem.originalImageData);
   }
 
@@ -748,10 +756,22 @@ class App {
     return canvas.toDataURL('image/png');
   }
 
-  private updatePresetButtonsUI(activeId: string): void {
+  private updatePresetButtonsUI(activeId: string, isAuto = false): void {
     this.presetButtons.forEach((btn) => {
       btn.classList.toggle('active', btn.dataset.preset === activeId);
     });
+
+    if (this.presetAutoBadge) {
+      if (isAuto) {
+        const preset = getPresetById(activeId);
+        const shortName = preset.nameZh.split(' ')[0] || preset.nameZh;
+        this.presetAutoBadge.style.display = 'inline-flex';
+        this.presetAutoBadge.textContent = `✨ 智慧適配：${shortName}`;
+      } else {
+        this.presetAutoBadge.style.display = 'inline-flex';
+        this.presetAutoBadge.textContent = '🎨 手動選擇';
+      }
+    }
   }
 
   private updatePaperButtonsUI(activePaper: string): void {

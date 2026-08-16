@@ -1,6 +1,6 @@
 /* ============================================================
    PrintMagic v3.1 Pro - Studio Layout & Apple Minimalist Panels
-   Flat Solid Colors, Zero Gradients, Precision Hierarchy
+   Light Theme & Low-Saturation Aesthetics
    ============================================================ */
 
 .pm-app {
@@ -10,13 +10,13 @@
   background-color: var(--pm-bg-canvas);
 }
 
-/* Studio Header */
+/* Studio Header (Apple Frosted Glass) */
 .pm-header {
   height: 56px;
   border-bottom: 1px solid var(--pm-border-subtle);
   background-color: var(--pm-bg-surface-glass);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
   position: sticky;
   top: 0;
   z-index: 100;
@@ -42,8 +42,9 @@
   width: 28px;
   height: 28px;
   border-radius: var(--pm-radius-sm);
-  background-color: var(--pm-bg-surface-elevated);
+  background-color: #ffffff;
   border: 1px solid var(--pm-border-subtle);
+  box-shadow: var(--pm-shadow-xs);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -54,17 +55,17 @@
 .pm-logo-text {
   font-size: 1.1rem;
   font-weight: 600;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.025em;
   color: var(--pm-text-primary);
 }
 
 .pm-badge-pro {
   font-size: 0.65rem;
   font-weight: 600;
-  letter-spacing: 0.04em;
-  padding: 2px 6px;
+  letter-spacing: 0.03em;
+  padding: 2px 7px;
   border-radius: var(--pm-radius-xs);
-  background-color: var(--pm-bg-surface-elevated);
+  background-color: rgba(0, 0, 0, 0.05);
   border: 1px solid var(--pm-border-subtle);
   color: var(--pm-text-secondary);
 }
@@ -82,9 +83,10 @@
   font-size: 0.75rem;
   font-weight: 500;
   color: var(--pm-text-secondary);
-  background-color: var(--pm-bg-surface-elevated);
+  background-color: #ffffff;
   border: 1px solid var(--pm-border-subtle);
-  padding: 4px 10px;
+  box-shadow: var(--pm-shadow-xs);
+  padding: 5px 12px;
   border-radius: var(--pm-radius-full);
   cursor: pointer;
   transition: all 0.15s ease;
@@ -119,11 +121,12 @@
   width: 32px;
   height: 32px;
   border-radius: var(--pm-radius-sm);
-  background-color: var(--pm-bg-surface-elevated);
+  background-color: #ffffff;
   border: 1px solid var(--pm-border-subtle);
+  box-shadow: var(--pm-shadow-xs);
   color: var(--pm-text-secondary);
   font-size: 0.85rem;
-  transition: background-color 0.15s ease, color 0.15s ease;
+  transition: all 0.15s ease;
 }
 
 .pm-sound-btn:hover {
@@ -134,7 +137,7 @@
 
 /* Preset Navigation Bar (macOS Segmented Style) */
 .pm-preset-bar {
-  background-color: var(--pm-bg-surface);
+  background-color: #ffffff;
   border-bottom: 1px solid var(--pm-border-subtle);
   padding: 8px 24px;
 }
@@ -149,19 +152,38 @@
 }
 
 .pm-preset-label {
-  font-size: 0.75rem;
+  font-size: 0.78rem;
   font-weight: 600;
-  letter-spacing: 0.02em;
-  color: var(--pm-text-muted);
+  letter-spacing: 0.01em;
+  color: var(--pm-text-secondary);
+}
+
+.pm-preset-auto-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--pm-accent-blue);
+  background-color: var(--pm-accent-blue-bg);
+  padding: 2px 8px;
+  border-radius: var(--pm-radius-full);
+  border: 1px solid rgba(0, 113, 227, 0.15);
+  animation: pmFadeIn 0.3s ease;
+}
+
+@keyframes pmFadeIn {
+  from { opacity: 0; transform: translateY(-2px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .pm-preset-tabs {
   display: flex;
-  gap: 4px;
-  background-color: var(--pm-bg-canvas);
+  gap: 3px;
+  background-color: #e5e5ea;
   padding: 3px;
   border-radius: var(--pm-radius-sm);
-  border: 1px solid var(--pm-border-subtle);
+  border: 1px solid rgba(0, 0, 0, 0.04);
   flex-wrap: wrap;
 }
 
@@ -181,12 +203,13 @@
 
 .pm-preset-btn:hover {
   color: var(--pm-text-primary);
-  background-color: var(--pm-bg-surface-hover);
+  background-color: rgba(255, 255, 255, 0.6);
 }
 
 .pm-preset-btn.active {
-  background-color: var(--pm-bg-surface-elevated);
-  border-color: var(--pm-border-active);
+  background-color: #ffffff;
+  border-color: rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   color: var(--pm-text-primary);
   font-weight: 600;
 }
@@ -264,8 +287,9 @@
 }
 
 .pm-tool-btn.active {
-  background-color: var(--pm-bg-surface-elevated);
+  background-color: #ffffff;
   border-color: var(--pm-border-active);
+  box-shadow: var(--pm-shadow-xs);
   color: var(--pm-text-primary);
   font-weight: 600;
 }
@@ -274,32 +298,33 @@
 .pm-paper-selector {
   display: flex;
   align-items: center;
-  gap: 4px;
-  background-color: var(--pm-bg-canvas);
-  padding: 2px;
+  gap: 3px;
+  background-color: #e5e5ea;
+  padding: 3px;
   border-radius: var(--pm-radius-sm);
-  border: 1px solid var(--pm-border-subtle);
+  border: 1px solid rgba(0, 0, 0, 0.04);
 }
 
 .pm-paper-btn {
-  padding: 3px 8px;
+  padding: 3px 9px;
   border-radius: var(--pm-radius-xs);
   background-color: transparent;
   border: 1px solid transparent;
-  color: var(--pm-text-muted);
+  color: var(--pm-text-secondary);
   font-size: 0.72rem;
   font-weight: 500;
   transition: all 0.15s ease;
 }
 
 .pm-paper-btn:hover {
-  color: var(--pm-text-secondary);
+  color: var(--pm-text-primary);
+  background-color: rgba(255, 255, 255, 0.6);
 }
 
 .pm-paper-btn.active {
-  background-color: var(--pm-bg-surface-elevated);
+  background-color: #ffffff;
   color: var(--pm-text-primary);
-  border-color: var(--pm-border-active);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
   font-weight: 600;
 }
 
@@ -345,20 +370,22 @@
   background-color: var(--pm-accent-blue);
   color: #ffffff;
   border: 1px solid transparent;
+  box-shadow: 0 1px 2px rgba(0, 113, 227, 0.2);
 }
 
 .pm-btn-primary:hover {
-  background-color: #0077ed;
+  background-color: var(--pm-accent-blue-hover);
 }
 
 .pm-btn-primary:active {
-  background-color: #006edb;
+  transform: scale(0.98);
 }
 
 .pm-btn-secondary {
-  background-color: var(--pm-bg-surface-elevated);
+  background-color: #ffffff;
   border: 1px solid var(--pm-border-subtle);
   color: var(--pm-text-primary);
+  box-shadow: var(--pm-shadow-xs);
 }
 
 .pm-btn-secondary:hover {
@@ -366,15 +393,24 @@
   border-color: var(--pm-border-active);
 }
 
+.pm-btn-secondary:active {
+  transform: scale(0.98);
+}
+
 .pm-btn-artisan {
-  background-color: var(--pm-bg-surface-elevated);
+  background-color: #ffffff;
   border: 1px solid var(--pm-border-subtle);
   color: var(--pm-text-primary);
+  box-shadow: var(--pm-shadow-xs);
 }
 
 .pm-btn-artisan:hover {
   background-color: var(--pm-bg-surface-hover);
   border-color: var(--pm-border-active);
+}
+
+.pm-btn-artisan:active {
+  transform: scale(0.98);
 }
 
 .pm-btn-ghost {
@@ -390,7 +426,7 @@
 
 /* Studio Footer */
 .pm-footer {
-  padding: 20px;
+  padding: 24px;
   border-top: 1px solid var(--pm-border-subtle);
   text-align: center;
   color: var(--pm-text-muted);
