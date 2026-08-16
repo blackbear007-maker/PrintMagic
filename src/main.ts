@@ -26,8 +26,13 @@ import { CmykEngine } from './core/cmyk-engine';
 import { getPresetById, detectBestPreset } from './core/presets';
 import { SampleArtworks } from './services/sample-artworks';
 import { FoilSimulator, type FoilEffectType } from './core/foil-simulator';
+import { DoubleSidedManager, type BackTemplateType } from './core/double-sided';
+import { VectorOverlayEngine } from './core/vector-overlay';
+import { iccProfileEngine, type IccProfileId } from './core/icc-profiles';
 import { ConveniencePrintModal } from './ui/convenience-print-modal';
 import { ImpositionModal } from './ui/imposition-modal';
+import { DielineModal } from './ui/dieline-modal';
+import { VectorOverlayModal } from './ui/vector-overlay-modal';
 import { PdfExporter } from './engines/pdf-exporter';
 import { VectorTracer } from './engines/vector-tracer';
 import { workerClient } from './workers/worker-client';
@@ -42,6 +47,8 @@ class App {
   public paperSimulator!: PaperSimulator;
   public paper3D!: Paper3DController;
   public foilSimulator!: FoilSimulator;
+  public doubleSidedManager = new DoubleSidedManager();
+  public vectorOverlayEngine = new VectorOverlayEngine();
   public loupe!: LoupeController;
   public laserScan!: LaserScanController;
   public mockupModal!: MockupModal;
@@ -51,6 +58,8 @@ class App {
   public directPrintModal!: DirectPrintModal;
   public convPrintModal!: ConveniencePrintModal;
   public impositionModal!: ImpositionModal;
+  public dielineModal!: DielineModal;
+  public vectorOverlayModal!: VectorOverlayModal;
   public batchBar!: BatchBar;
   public cropController!: CropController;
 
@@ -152,6 +161,10 @@ class App {
     this.directPrintModal = new DirectPrintModal(() => this.shopsModal.open());
     this.convPrintModal = new ConveniencePrintModal();
     this.impositionModal = new ImpositionModal();
+    this.dielineModal = new DielineModal();
+    this.vectorOverlayModal = new VectorOverlayModal(this.vectorOverlayEngine, () => {
+      this.renderVectorOverlayOnCanvas();
+    });
 
     // 10. Crop Controller
     this.cropController = new CropController('cropToolbarRoot', 'mainPreviewImg');
@@ -378,6 +391,77 @@ class App {
       });
     });
 
+    // Double-Sided Linking Controls (Front / Back)
+    document.getElementById('btnSideFront')?.addEventListener('click', () => {
+      this.doubleSidedManager.setActiveSide('front');
+      document.getElementById('btnSideFront')?.classList.add('active');
+      document.getElementById('btnSideBack')?.classList.remove('active');
+      SoundEffects.sliderTick();
+
+      const ds = this.doubleSidedManager.getState();
+      if (ds.frontDataUrl) {
+        this.mainPreviewImg.src = ds.frontDataUrl;
+      }
+      Toast.info('🖼️ 已切換至【正面】設計視覺');
+    });
+
+    document.getElementById('btnSideBack')?.addEventListener('click', () => {
+      const ds = this.doubleSidedManager.getState();
+      if (!ds.hasBack) {
+        // Auto generate default back template if none exists
+        const state = store.getState();
+        const tmpl = DoubleSidedManager.generateBackTemplate('postcard_standard', state.currentPreset);
+        this.doubleSidedManager.setBackImage(tmpl.dataUrl, tmpl.imageData);
+        Toast.success('✨ 已為您自動載入標準明信片背面公版！');
+      }
+
+      this.doubleSidedManager.setActiveSide('back');
+      document.getElementById('btnSideBack')?.classList.add('active');
+      document.getElementById('btnSideFront')?.classList.remove('active');
+      SoundEffects.sliderTick();
+
+      const updatedDs = this.doubleSidedManager.getState();
+      if (updatedDs.backDataUrl) {
+        this.mainPreviewImg.src = updatedDs.backDataUrl;
+      }
+      Toast.info('📇 已切換至【背面】設計視覺 (雙面合版)');
+    });
+
+    document.getElementById('btnLoadBackTemplate')?.addEventListener('click', () => {
+      const state = store.getState();
+      const tmplType: BackTemplateType =
+        state.currentPreset.id === 'business-card' ? 'business_card_minimal' : 'postcard_standard';
+      const tmpl = DoubleSidedManager.generateBackTemplate(tmplType, state.currentPreset);
+      this.doubleSidedManager.setBackImage(tmpl.dataUrl, tmpl.imageData);
+      this.doubleSidedManager.setActiveSide('back');
+      document.getElementById('btnSideBack')?.classList.add('active');
+      document.getElementById('btnSideFront')?.classList.remove('active');
+      this.mainPreviewImg.src = tmpl.dataUrl;
+      SoundEffects.paperDrop();
+      Toast.success(`✨ 已載入【${state.currentPreset.nameZh}】專用 300 DPI 背面公版！`);
+    });
+
+    // International ICC Profile Selector
+    document.getElementById('selectIccProfile')?.addEventListener('change', (e) => {
+      const iccId = (e.target as HTMLSelectElement).value as IccProfileId;
+      if (iccId) {
+        iccProfileEngine.setProfile(iccId);
+        const active = iccProfileEngine.getActiveProfile();
+        SoundEffects.sliderTick();
+        Toast.info(`🎨 已切換印刷色彩描述檔：【${active.name}】(TAC ≤${active.maxTac}%)`);
+      }
+    });
+
+    // Open Smart Dieline & White Ink Modal
+    document.getElementById('btnOpenDieline')?.addEventListener('click', () => {
+      this.dielineModal.open();
+    });
+
+    // Open K100 Pure Black & Vector Overlay Modal
+    document.getElementById('btnOpenVectorOverlay')?.addEventListener('click', () => {
+      this.vectorOverlayModal.open();
+    });
+
     // Open Direct Print & Live Quote Modal
     document.getElementById('btnOpenDirectPrint')?.addEventListener('click', () => {
       this.directPrintModal.open();
@@ -399,7 +483,7 @@ class App {
       this.shopsModal.open();
     });
 
-    // Export Standard PDF (Client Engine)
+    // Export Standard PDF (Client Engine with Double-Sided Support)
     this.btnExportPdf.addEventListener('click', async () => {
       const state = store.getState();
       if (!state.processedDataUrl) {
@@ -407,11 +491,31 @@ class App {
         return;
       }
 
+      const ds = this.doubleSidedManager.getState();
+
       try {
         SoundEffects.shutterClick();
-        Toast.info('📄 正在以本機極速引擎生成標準 PDF (含 0.1mm 裁切標記與 CMYK 色條)...');
-        await PdfExporter.export(state.processedDataUrl, state.currentPreset, undefined, state.cropAnchor);
-        Toast.success('✓ 本機標準 PDF 已成功輸出！');
+        if (ds.hasBack && ds.backDataUrl) {
+          Toast.info('📄 正在生成 2 頁標準【雙面合版 PDF】(Page 1 正面 + Page 2 背面)...');
+          const pdfBlob = await DoubleSidedManager.exportDoubleSidedPdf(
+            ds.frontDataUrl || state.processedDataUrl,
+            ds.backDataUrl,
+            state.currentPreset
+          );
+          const url = URL.createObjectURL(pdfBlob);
+          const link = document.createElement('a');
+          link.download = `PrintMagic_DoubleSided_${state.currentPreset.id}_${Date.now()}.pdf`;
+          link.href = url;
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          URL.revokeObjectURL(url);
+          Toast.success('✓ 標準雙面 2-Page PDF 已成功輸出！');
+        } else {
+          Toast.info('📄 正在以本機極速引擎生成標準 PDF (含 0.1mm 裁切標記與 CMYK 色條)...');
+          await PdfExporter.export(state.processedDataUrl, state.currentPreset, undefined, state.cropAnchor);
+          Toast.success('✓ 本機標準單面 PDF 已成功輸出！');
+        }
       } catch (err: any) {
         Toast.error(`PDF 匯出失敗: ${err?.message || err}`);
       }
@@ -716,6 +820,9 @@ class App {
         processingStep: ''
       });
 
+      // Update Front Image in DoubleSidedManager
+      this.doubleSidedManager.setFrontImage(processedDataUrl, processedImgData);
+
       // Update active batch item
       if (activeId) {
         store.updateBatchItem(activeId, {
@@ -745,7 +852,35 @@ class App {
       if (activeId) {
         store.updateBatchItem(activeId, { status: 'error', errorMessage: err?.message });
       }
-      Toast.error(`優化過程發生錯誤: ${err?.message || err}`);
+      Toast.error(`處理失敗: ${err?.message || err}`);
+    }
+  }
+
+  private renderVectorOverlayOnCanvas(): void {
+    const state = store.getState();
+    const baseImgData = state.processedImageData || state.originalImageData;
+    if (!baseImgData) return;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = baseImgData.width;
+    canvas.height = baseImgData.height;
+    const ctx = canvas.getContext('2d')!;
+    ctx.putImageData(baseImgData, 0, 0);
+
+    // Draw Vector Overlay Elements
+    this.vectorOverlayEngine.renderOverlay(ctx, canvas.width, canvas.height);
+
+    const updatedDataUrl = canvas.toDataURL('image/png');
+    const updatedImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+    store.setState({
+      processedDataUrl: updatedDataUrl,
+      processedImageData: updatedImageData
+    });
+
+    if (this.doubleSidedManager.getState().activeSide === 'front') {
+      this.doubleSidedManager.setFrontImage(updatedDataUrl, updatedImageData);
+      this.mainPreviewImg.src = updatedDataUrl;
     }
   }
 

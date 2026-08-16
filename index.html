@@ -131,6 +131,19 @@
           <!-- View Modes & Materials Bar -->
           <div class="pm-view-toolbar">
             <div class="pm-view-toolbar-primary">
+              <!-- Double-Sided Linking Selector (Front / Back) -->
+              <div class="pm-double-sided-group pm-paper-selector">
+                <button id="btnSideFront" class="pm-paper-btn active" title="檢視與編輯【正面】視覺">
+                  🖼️ 正面
+                </button>
+                <button id="btnSideBack" class="pm-paper-btn" title="檢視與編輯【背面】視覺 (支援雙面合版印刷)">
+                  📇 背面
+                </button>
+                <button id="btnLoadBackTemplate" class="pm-tool-btn pm-btn-xs" title="一鍵載入標準明信片/名片背面公版">
+                  ✨ 載入公版
+                </button>
+              </div>
+
               <div class="pm-toggle-group">
                 <button id="btnToggleCompare" class="pm-tool-btn" title="切換雙向滑桿對比檢視">
                   <span>👁️</span> 原圖對比
@@ -158,9 +171,20 @@
               </div>
             </div>
 
-            <!-- Pro Tools & Smart Crop & 3D Foil Craft -->
+            <!-- Pro Tools & Smart Crop & 3D Foil Craft & ICC -->
             <div class="pm-view-toolbar-secondary">
               <div id="cropToolbarRoot"></div>
+
+              <!-- ICC Profile Selector -->
+              <div class="pm-icc-selector pm-foil-selector">
+                <span class="pm-paper-label">ICC：</span>
+                <select id="selectIccProfile" class="pm-select-field" style="font-size: 0.72rem; padding: 2px 4px; height: 24px; border: none; background: transparent; font-weight: 600; color: var(--pm-text-primary); cursor: pointer;">
+                  <option value="japan-color-2001-coated" selected>Japan Color 2001 (台日合版)</option>
+                  <option value="iso-coated-v2-fogra39">ISO Coated v2 / FOGRA39 (歐洲/精裝)</option>
+                  <option value="gracol-2006-coated">GRACoL 2006 (美加商業)</option>
+                  <option value="japan-color-2001-uncoated">Japan Uncoated (模造/非塗布)</option>
+                </select>
+              </div>
 
               <!-- 3D Luxury Foil & Spot UV Craft Selector -->
               <div class="pm-foil-selector">
@@ -228,6 +252,12 @@
               </button>
               <button id="btnOpenImposition" class="pm-btn pm-btn-secondary" title="一張 A4/A3 自動拼入 8~24 模，現省 70% 費用">
                 <span>🧩</span> 智慧拼模
+              </button>
+              <button id="btnOpenDieline" class="pm-btn pm-btn-secondary" title="透明貼紙專用：一鍵生成 0.2mm 內縮白墨層與 2mm 洋紅外擴向量刀模線">
+                <span>✂️</span> 造型刀模 & 白墨
+              </button>
+              <button id="btnOpenVectorOverlay" class="pm-btn pm-btn-secondary" title="防止小字混黑糊邊！添加單色 K100 純黑文字與向量標誌">
+                <span>✒️</span> K100 純黑字
               </button>
               <button id="btnOpenMockup" class="pm-btn pm-btn-secondary" title="一鍵生成現代美術館畫框、北歐書桌情境宣傳圖">
                 <span>🖼️</span> 美術館 Mockup
