@@ -14,6 +14,7 @@ import { MockupModal } from './ui/mockup-modal';
 import { SpecModal } from './ui/spec-modal';
 import { RulerCalibrationModal } from './ui/ruler-calibration';
 import { NearbyShopsModal } from './ui/nearby-shops-modal';
+import { DirectPrintModal } from './ui/direct-print-modal';
 import { BatchBar } from './ui/batch-bar';
 import { CropController } from './ui/crop-controller';
 import { CloudClient } from './services/cloud-client';
@@ -41,6 +42,7 @@ class App {
   public specModal!: SpecModal;
   public calibrationModal!: RulerCalibrationModal;
   public shopsModal!: NearbyShopsModal;
+  public directPrintModal!: DirectPrintModal;
   public batchBar!: BatchBar;
   public cropController!: CropController;
 
@@ -106,7 +108,9 @@ class App {
     });
 
     // 2. Diagnostic Card
-    this.diagnosticCard = new DiagnosticCard('diagnosticCardRoot');
+    this.diagnosticCard = new DiagnosticCard('diagnosticCardRoot', () => {
+      this.directPrintModal.open();
+    });
 
     // 3. Compare Slider
     this.compareSlider = new CompareSlider('compareSliderRoot');
@@ -128,6 +132,7 @@ class App {
     this.specModal = new SpecModal();
     this.calibrationModal = new RulerCalibrationModal();
     this.shopsModal = new NearbyShopsModal();
+    this.directPrintModal = new DirectPrintModal(() => this.shopsModal.open());
 
     // 9. Crop Controller
     this.cropController = new CropController('cropToolbarRoot', 'mainPreviewImg');
@@ -309,6 +314,11 @@ class App {
         return;
       }
       this.specModal.open(state);
+    });
+
+    // Open Direct Print & Live Quote Modal
+    document.getElementById('btnOpenDirectPrint')?.addEventListener('click', () => {
+      this.directPrintModal.open();
     });
 
     // Open Nearby Commercial Print Shops Finder

@@ -5,11 +5,13 @@ import type { AppState } from './state';
  */
 export class DiagnosticCard {
   private container: HTMLElement;
+  private onDirectPrintClick?: () => void;
 
-  constructor(containerId: string) {
+  constructor(containerId: string, onDirectPrintClick?: () => void) {
     const el = document.getElementById(containerId);
     if (!el) throw new Error(`Diagnostic card #${containerId} not found`);
     this.container = el;
+    this.onDirectPrintClick = onDirectPrintClick;
   }
 
   public render(state: AppState): void {
@@ -145,6 +147,13 @@ export class DiagnosticCard {
         ${this.renderDiagnostics(issues, recommendations, appliedScale)}
       </div>
     `;
+
+    // Bind Direct Print Button
+    this.container.querySelector('.btn-diag-direct-print')?.addEventListener('click', () => {
+      if (this.onDirectPrintClick) {
+        this.onDirectPrintClick();
+      }
+    });
   }
 
   private renderWeightedRow(
@@ -230,6 +239,12 @@ export class DiagnosticCard {
             <span>各項指標已全數達到印刷廠出圖標準，可直接輸出 PDF！</span>
           </div>
         `}
+
+        <div style="margin-top: 16px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.08);">
+          <button class="pm-btn pm-btn-artisan pm-btn-sm btn-diag-direct-print" style="width: 100%; justify-content: center; background: linear-gradient(135deg, #ff6b35, #e0481d); color: #fff; font-weight: 700; box-shadow: 0 4px 14px rgba(255, 107, 53, 0.35); padding: 10px 16px; font-size: 0.88rem;" title="一鍵即時試算健豪、卡之屋等台灣在地四大印刷廠價格並打包送印工單">
+            <span>🏭</span> 台灣四大印刷廠一鍵估價 & 直通送印 ➔
+          </button>
+        </div>
       </div>
     `;
   }
