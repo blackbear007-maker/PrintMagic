@@ -34,6 +34,7 @@ import { ConveniencePrintModal } from './ui/convenience-print-modal';
 import { ImpositionModal } from './ui/imposition-modal';
 import { DielineModal } from './ui/dieline-modal';
 import { VectorOverlayModal } from './ui/vector-overlay-modal';
+import { AiSettingsModal } from './ui/ai-settings-modal';
 import { PdfExporter } from './engines/pdf-exporter';
 import { VectorTracer } from './engines/vector-tracer';
 import { workerClient } from './workers/worker-client';
@@ -61,6 +62,7 @@ class App {
   public impositionModal!: ImpositionModal;
   public dielineModal!: DielineModal;
   public vectorOverlayModal!: VectorOverlayModal;
+  public aiSettingsModal!: AiSettingsModal;
   public batchBar!: BatchBar;
   public cropController!: CropController;
 
@@ -166,6 +168,12 @@ class App {
     this.vectorOverlayModal = new VectorOverlayModal(this.vectorOverlayEngine, () => {
       this.renderVectorOverlayOnCanvas();
     });
+    this.aiSettingsModal = new AiSettingsModal(() => {
+      const state = store.getState();
+      if (state.originalImageData && state.aiUpscaleMode === 'cloud-ai' && state.engineMode === 'cloud') {
+        this.runOptimizationPipeline(state.originalImageData);
+      }
+    });
 
     // 10. Crop Controller
     this.cropController = new CropController('cropToolbarRoot', 'mainPreviewImg');
@@ -235,6 +243,11 @@ class App {
       if (updatedState.originalImageData) {
         this.runOptimizationPipeline(updatedState.originalImageData);
       }
+    });
+
+    // Open AI Super-Resolution Settings & Token Modal
+    document.getElementById('btnOpenAiSettings')?.addEventListener('click', () => {
+      this.aiSettingsModal.open();
     });
 
     // Screen Calibration

@@ -29,10 +29,15 @@
           </button>
 
           <!-- AI Super-Resolution Neural Reconstructor Toggle -->
-          <button id="btnToggleAiUpscale" class="pm-tool-btn" title="點擊切換 ⚡ 本機 8x 金字塔超解析度 (0.1s) 與 🧠 雲端 AI 深度學習細節重建 (Real-ESRGAN 4x)">
-            <span id="aiUpscaleIcon">⚡</span>
-            <span id="aiUpscaleText">本機 8x 放大</span>
-          </button>
+          <div style="display: inline-flex; align-items: center; gap: 4px;">
+            <button id="btnToggleAiUpscale" class="pm-tool-btn" title="點擊切換 ⚡ 本機 8x 金字塔超解析度 (0.1s) 與 🧠 雲端 AI 深度學習細節重建 (Real-ESRGAN 4x)">
+              <span id="aiUpscaleIcon">⚡</span>
+              <span id="aiUpscaleText">本機 8x 放大</span>
+            </button>
+            <button id="btnOpenAiSettings" class="pm-tool-btn" style="padding: 6px 8px;" title="設定 AI 超解析度神經網路模型 (Real-ESRGAN / Anime6B / Waifu2x) 與免費 Token">
+              <span>⚙️</span>
+            </button>
+          </div>
 
           <button id="btnOpenCalibration" class="pm-tool-btn" title="拿一張信用卡貼在螢幕上校準 1:1 真實物理尺寸 PPI">
             <span>📏</span> 螢幕校準
