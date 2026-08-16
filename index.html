@@ -94,6 +94,22 @@
           <div class="pm-dropzone-paste-hint">
             📱 點選即可開啟相簿或相機，支援多圖批次上傳 (上限 20 張)
           </div>
+
+          <!-- Sample Artworks for 1-Click First Time Test -->
+          <div class="pm-sample-gallery-box">
+            <span class="pm-sample-gallery-label">✨ 沒有圖片？點擊立即試玩精選 AI 示範作品：</span>
+            <div class="pm-sample-pills">
+              <button class="pm-sample-pill-btn" data-sample="anime" type="button" title="點擊載入 800x800 日系動漫插畫，體驗貼紙自動適配與 USM 銳化">
+                <span>🎨</span> 日系動漫插畫 (貼紙)
+              </button>
+              <button class="pm-sample-pill-btn" data-sample="cyberpunk" type="button" title="點擊載入 A4 賽博龐克海報，體驗高飽和霓虹夜景與 TAC 溢墨防護">
+                <span>🌌</span> 賽博龐克夜景 (海報)
+              </button>
+              <button class="pm-sample-pill-btn" data-sample="card" type="button" title="點擊載入 90x54mm 商業名片，體驗微細文字向量化與細格萊妮紙">
+                <span>📇</span> 質感商業名片 (名片)
+              </button>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -101,6 +117,17 @@
       <section class="pm-studio-grid" id="studioWorkspace" style="display: none;">
         <!-- Left: Stage Canvas & Views -->
         <div class="pm-card">
+          <!-- First-Time Coachmark Banner (Appears only on first upload) -->
+          <div id="coachmarkBanner" class="pm-coachmark-banner" style="display: none;">
+            <div class="pm-coachmark-content">
+              <span class="pm-coachmark-icon">💡</span>
+              <span class="pm-coachmark-text">
+                <strong>新手指南：</strong> 點擊 <strong>「👁️ 原圖對比」</strong> 查看超解析度前後差異；點擊右側 <strong>「🏭 台灣四大印刷廠一鍵估價 & 直通送印」</strong> 查看即時報價！
+              </span>
+            </div>
+            <button id="btnDismissCoachmark" class="pm-coachmark-dismiss" type="button">✕ 知道了</button>
+          </div>
+
           <!-- View Modes & Materials Bar -->
           <div class="pm-view-toolbar">
             <div class="pm-view-toolbar-primary">
@@ -113,13 +140,21 @@
                 </button>
               </div>
 
-              <!-- Paper Material Selector -->
+              <!-- Paper Material Selector with Plain-Language Subtitles -->
               <div class="pm-paper-selector">
                 <span class="pm-paper-label">紙材：</span>
-                <button class="pm-paper-btn active" data-paper="glossy">超光銅版</button>
-                <button class="pm-paper-btn" data-paper="matte">雙面啞粉</button>
-                <button class="pm-paper-btn" data-paper="linen">細格萊妮</button>
-                <button class="pm-paper-btn" data-paper="cotton">象牙棉卡</button>
+                <button class="pm-paper-btn active" data-paper="glossy" title="超光銅版：亮面鮮豔反光佳，適合全彩海報與高彩度插畫">
+                  超光銅版 <span class="pm-paper-sub">亮面鮮豔</span>
+                </button>
+                <button class="pm-paper-btn" data-paper="matte" title="雙面啞粉：霧面細緻不反光，適合藝術明信片與展覽畫冊">
+                  雙面啞粉 <span class="pm-paper-sub">霧面高雅</span>
+                </button>
+                <button class="pm-paper-btn" data-paper="linen" title="細格萊妮：十字布紋手感豐富，特別適合文創名片與日系手作">
+                  細格萊妮 <span class="pm-paper-sub">十字布紋</span>
+                </button>
+                <button class="pm-paper-btn" data-paper="cotton" title="象牙棉卡：溫潤吸墨自然紙感，適合紀念卡片與版畫插圖">
+                  象牙棉卡 <span class="pm-paper-sub">溫潤手感</span>
+                </button>
               </div>
             </div>
 

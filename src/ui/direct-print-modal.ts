@@ -117,6 +117,24 @@ export class DirectPrintModal {
           <button class="pm-modal-close" id="btnDirectPrintClose">✕</button>
         </div>
 
+        <!-- 3-Step Beginner Guide -->
+        <div class="pm-print-guide-steps">
+          <div class="pm-guide-step-item">
+            <span class="pm-guide-num">①</span>
+            <span class="pm-guide-txt">挑選印廠與數量</span>
+          </div>
+          <div class="pm-guide-arrow">➔</div>
+          <div class="pm-guide-step-item">
+            <span class="pm-guide-num">②</span>
+            <span class="pm-guide-txt">下載送印封包 (ZIP)</span>
+          </div>
+          <div class="pm-guide-arrow">➔</div>
+          <div class="pm-guide-step-item">
+            <span class="pm-guide-num">③</span>
+            <span class="pm-guide-txt">前往印廠線上傳檔</span>
+          </div>
+        </div>
+
         <div class="pm-pricing-body">
           <!-- Step 1: Shop Selection -->
           <div class="pm-pricing-section">

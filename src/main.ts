@@ -24,6 +24,7 @@ import { DpiCalculator } from './core/dpi-calculator';
 import { PrintScoreCalculator } from './core/print-score';
 import { CmykEngine } from './core/cmyk-engine';
 import { getPresetById, detectBestPreset } from './core/presets';
+import { SampleArtworks } from './services/sample-artworks';
 import { PdfExporter } from './engines/pdf-exporter';
 import { VectorTracer } from './engines/vector-tracer';
 import { workerClient } from './workers/worker-client';
@@ -206,6 +207,36 @@ class App {
       this.loupe.setImageData(null);
       this.loupe.setEnabled(false);
       Toast.info('已重置畫布，請拖入新圖片');
+    });
+
+    // FTUX Sample Artwork Pills (1-Click Test for New Users)
+    document.querySelectorAll('.pm-sample-pill-btn').forEach((btn) => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const sampleType = (btn as HTMLElement).dataset.sample as 'anime' | 'cyberpunk' | 'card';
+        if (!sampleType) return;
+
+        SoundEffects.paperDrop();
+        Toast.info('✨ 正在載入示範作品並啟動印刷分析...');
+        try {
+          const file = await SampleArtworks.loadSample(sampleType);
+          const dropZone = new DropZone('dropZone', (results) => {
+            this.handleImagesUploaded(results);
+          });
+          await dropZone.handleFiles([file]);
+        } catch (err: any) {
+          Toast.error(`示範作品載入失敗: ${err?.message || err}`);
+        }
+      });
+    });
+
+    // FTUX Coachmark Banner Dismiss
+    document.getElementById('btnDismissCoachmark')?.addEventListener('click', () => {
+      const coachmark = document.getElementById('coachmarkBanner');
+      if (coachmark) {
+        coachmark.style.display = 'none';
+      }
+      localStorage.setItem('pm_coachmark_dismissed', '1');
     });
 
     // Preset Selection
@@ -552,6 +583,14 @@ class App {
     this.updatePresetButtonsUI(autoPreset.id, true);
 
     Toast.success(`✓ 已載入 ${results.length} 張作品，智慧推薦【${autoPreset.nameZh}】(可隨時手動彈性更換)`);
+
+    // Show First-Time Coachmark Banner if not previously dismissed
+    const isDismissed = localStorage.getItem('pm_coachmark_dismissed');
+    const coachmark = document.getElementById('coachmarkBanner');
+    if (coachmark && !isDismissed) {
+      coachmark.style.display = 'flex';
+    }
+
     await this.runOptimizationPipeline(firstItem.originalImageData);
   }
 
