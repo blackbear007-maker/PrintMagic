@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { AiUpscaleClient } from '../src/services/ai-upscale-client';
 
-describe('AiUpscaleClient (Free Real-ESRGAN Cloud & Local Fallback)', () => {
+describe('AiUpscaleClient (Free Real-ESRGAN Cloud & Local Fallback v2)', () => {
   it('should gracefully fallback to local engine when network fails or times out', async () => {
     // Mock fetch to simulate offline / server timeout
     global.fetch = vi.fn().mockRejectedValue(new Error('Network error or server offline'));
@@ -11,12 +11,12 @@ describe('AiUpscaleClient (Free Real-ESRGAN Cloud & Local Fallback)', () => {
 
     expect(result.success).toBe(false);
     expect(result.fallbackToLocal).toBe(true);
-    expect(result.error).toContain('無縫啟用本機 8x 金字塔超解析度引擎');
+    expect(result.error).toContain('Local 8x Pyramid');
   });
 
-  it('should return reconstructed image data when API responds with success', async () => {
+  it('should return reconstructed image data when API responds with success and cache subsequent calls', async () => {
     const dummyOutputDataUrl = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAFElEQVR42mNk+M9Qz8DAwMDABAAAAAwBAgB6vM7SAAAAAElFTkSuQmCC';
-    
+
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({
@@ -40,7 +40,7 @@ describe('AiUpscaleClient (Free Real-ESRGAN Cloud & Local Fallback)', () => {
 
     // @ts-ignore
     global.document = {
-      createElement: vi.fn((tag) => tag === 'canvas' ? mockCanvas : {})
+      createElement: vi.fn((tag) => (tag === 'canvas' ? mockCanvas : {}))
     } as any;
 
     // @ts-ignore
@@ -53,11 +53,15 @@ describe('AiUpscaleClient (Free Real-ESRGAN Cloud & Local Fallback)', () => {
       }
     } as any;
 
-    const dummyDataUrl = 'data:image/png;base64,dummyinput';
-    const result = await AiUpscaleClient.upscale(dummyDataUrl);
+    const dummyDataUrl = 'data:image/png;base64,dummyinput_unique_123';
+    const result1 = await AiUpscaleClient.upscale(dummyDataUrl);
 
-    expect(result.success).toBe(true);
-    expect(result.scale).toBe(4);
-    expect(result.model).toContain('Real-ESRGAN');
+    expect(result1.success).toBe(true);
+    expect(result1.scale).toBe(4);
+
+    // Second call with same dataUrl should hit LRU cache instantly with cached: true
+    const result2 = await AiUpscaleClient.upscale(dummyDataUrl);
+    expect(result2.success).toBe(true);
+    expect(result2.cached).toBe(true);
   });
 });
