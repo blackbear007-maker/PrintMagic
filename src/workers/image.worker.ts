@@ -4,10 +4,13 @@ import { InkLimiter } from '../core/ink-limiter';
 import { PrintScoreCalculator } from '../core/print-score';
 import type { WorkerRequest, WorkerResponse } from '../types';
 
-function createClampedImageData(data: Uint8ClampedArray, width: number, height: number): ImageData {
-  const copy = new Uint8ClampedArray(data.length);
-  copy.set(data);
-  return new ImageData(copy, width, height);
+function wrapImageData(data: Uint8ClampedArray, width: number, height: number): ImageData {
+  return {
+    data,
+    width,
+    height,
+    colorSpace: 'srgb'
+  } as ImageData;
 }
 
 self.onmessage = (e: MessageEvent<WorkerRequest>) => {
@@ -43,7 +46,7 @@ self.onmessage = (e: MessageEvent<WorkerRequest>) => {
         const amount = payload.amount ?? 1.5;
         const radius = payload.radius ?? 1;
         const threshold = payload.threshold ?? 3;
-        const imgObj = createClampedImageData(srcData, srcWidth, srcHeight);
+        const imgObj = wrapImageData(srcData, srcWidth, srcHeight);
         const sharpened = UnsharpMask.apply(imgObj, amount, radius, threshold);
 
         response = {
@@ -61,7 +64,7 @@ self.onmessage = (e: MessageEvent<WorkerRequest>) => {
 
       case 'clampInk': {
         const maxInk = payload.maxInk ?? 300;
-        const imgObj = createClampedImageData(srcData, srcWidth, srcHeight);
+        const imgObj = wrapImageData(srcData, srcWidth, srcHeight);
         const clamped = InkLimiter.clampInk(imgObj, maxInk);
 
         response = {
@@ -80,7 +83,7 @@ self.onmessage = (e: MessageEvent<WorkerRequest>) => {
 
       case 'generateHeatmap': {
         const maxInk = payload.maxInk ?? 300;
-        const imgObj = createClampedImageData(srcData, srcWidth, srcHeight);
+        const imgObj = wrapImageData(srcData, srcWidth, srcHeight);
         const heatmap = InkLimiter.generateHeatmap(imgObj, maxInk);
 
         response = {
@@ -97,7 +100,7 @@ self.onmessage = (e: MessageEvent<WorkerRequest>) => {
       }
 
       case 'analyze': {
-        const imgObj = createClampedImageData(srcData, srcWidth, srcHeight);
+        const imgObj = wrapImageData(srcData, srcWidth, srcHeight);
         const stats = PrintScoreCalculator.analyzePixels(imgObj);
         const inkAnalysis = InkLimiter.analyze(imgObj);
 
