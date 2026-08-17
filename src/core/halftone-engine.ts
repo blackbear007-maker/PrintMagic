@@ -118,7 +118,7 @@ export class HalftoneEngine {
     const minSrcY = Math.max(0, Math.floor(srcCenter.y - halfSampleH));
     const maxSrcY = Math.min(srcH - 1, Math.ceil(srcCenter.y + halfSampleH));
 
-    // For each channel angle, render screen dots
+    // For each channel angle, render screen dots (Path Batching: 1 fill call per channel)
     const renderChannel = (
       ctx: CanvasRenderingContext2D,
       angle: number,
@@ -128,6 +128,9 @@ export class HalftoneEngine {
       const sinA = Math.sin(angle);
       const diagonal = Math.hypot(destW, destH);
       const maxGrid = Math.ceil(diagonal / dotSpacing) + 2;
+
+      // ✅ Batch all dots into a single Path2D per channel to eliminate per-dot GPU state changes
+      ctx.beginPath();
 
       for (let gy = -maxGrid; gy <= maxGrid; gy++) {
         for (let gx = -maxGrid; gx <= maxGrid; gx++) {
@@ -159,9 +162,10 @@ export class HalftoneEngine {
           const k = 1 - Math.max(r, g, b);
           let c = 0, m = 0, y = 0;
           if (k < 1) {
-            c = (1 - r - k) / (1 - k);
-            m = (1 - g - k) / (1 - k);
-            y = (1 - b - k) / (1 - k);
+            const denom = 1 - k;
+            c = (1 - r - k) / denom;
+            m = (1 - g - k) / denom;
+            y = (1 - b - k) / denom;
           }
 
           const density = channelKey === 'c' ? c : channelKey === 'm' ? m : channelKey === 'y' ? y : k;
@@ -170,12 +174,15 @@ export class HalftoneEngine {
             const maxRadius = (dotSpacing / 2) * 1.15;
             const dotRadius = maxRadius * Math.sqrt(density);
 
-            ctx.beginPath();
+            // Add arc to the current batched path (no fill yet)
+            ctx.moveTo(dx + dotRadius, dy);
             ctx.arc(dx, dy, dotRadius, 0, Math.PI * 2);
-            ctx.fill();
           }
         }
       }
+
+      // ✅ Single fill call for all dots in this channel
+      ctx.fill();
     };
 
     renderChannel(ctxC, STANDARD_SCREEN_ANGLES.cyan, 'c');

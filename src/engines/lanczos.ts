@@ -43,8 +43,9 @@ export class LanczosResizer {
     const absX = Math.abs(x);
     if (absX >= this.LOBES) return 0;
     const lut = this.getLut();
-    const idx = Math.round((absX / this.LOBES) * this.LUT_SIZE);
-    return lut[idx] !== undefined ? lut[idx] : this.calculateKernel(absX);
+    // Clamp index strictly within [0, LUT_SIZE] to prevent boundary undefined access
+    const idx = Math.min(this.LUT_SIZE, Math.round((absX / this.LOBES) * this.LUT_SIZE));
+    return lut[idx];
   }
 
   /**

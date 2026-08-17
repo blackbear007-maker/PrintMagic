@@ -126,7 +126,8 @@ export class DpiCalculator {
       targetDpi,
       qualityTier,
       scaleFactor,
-      needsUpscale: currentDpi < 280 && scaleFactor > 1,
+      // Only trigger upscale when below the preset's actual target DPI requirement
+      needsUpscale: currentDpi < targetDpi && scaleFactor > 1,
       widthPx,
       heightPx,
       targetWidthPx,
