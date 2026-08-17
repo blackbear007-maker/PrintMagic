@@ -38,6 +38,9 @@ import { AiSettingsModal } from './ui/ai-settings-modal';
 import { PricingModal } from './ui/pricing-modal';
 import { SubscriptionManager } from './core/subscription-tier';
 import { VipAiClient } from './services/vip-ai-client';
+import { BleedExpander } from './core/bleed-expander';
+import { AiMatting } from './core/ai-matting';
+import { AiVectorizer } from './core/ai-vectorizer';
 import { PdfExporter } from './engines/pdf-exporter';
 import { VectorTracer } from './engines/vector-tracer';
 import { workerClient } from './workers/worker-client';
@@ -515,6 +518,91 @@ class App {
         SoundEffects.sliderTick();
         Toast.info(`🎨 已切換印刷色彩描述檔：【${active.name}】(TAC ≤${active.maxTac}%)`);
       }
+    });
+
+    // 🖼️ AI 智慧 3mm 出血外擴延伸 (VIP 專屬)
+    document.getElementById('btnAiBleedOutpaint')?.addEventListener('click', () => {
+      const state = store.getState();
+      const imgData = state.processedImageData || state.originalImageData;
+      if (!imgData) {
+        Toast.error('請先上傳圖片');
+        return;
+      }
+
+      if (!SubscriptionManager.canUseFeature('bleedExpander')) {
+        SoundEffects.sliderTick();
+        Toast.info('💎 【AI 智慧 3mm 出血外擴延伸】為 VIP 頂級企業版專屬功能');
+        this.pricingModal.open();
+        return;
+      }
+
+      SoundEffects.laserScan();
+      Toast.info('🖼️ 正在透過 AI 生成式外擴演算法補齊 3mm 邊界出血區...');
+
+      const result = BleedExpander.expandBleed(imgData, state.currentPreset, 3);
+      store.setState({
+        processedImageData: result.imageData,
+        processedDataUrl: result.dataUrl,
+        processedWidth: result.width,
+        processedHeight: result.height
+      });
+      this.mainPreviewImg.src = result.dataUrl;
+      SoundEffects.purityChime();
+      Toast.success('✓ AI 3mm 出血已自動補齊！核心主體 100% 完整保留在安全區內！');
+    });
+
+    // ✂️ 髮絲級 AI 模切貼紙去背 (Pro / VIP 專屬)
+    document.getElementById('btnAiRemoveBg')?.addEventListener('click', () => {
+      const state = store.getState();
+      const imgData = state.processedImageData || state.originalImageData;
+      if (!imgData) {
+        Toast.error('請先上傳圖片');
+        return;
+      }
+
+      if (!SubscriptionManager.canUseFeature('aiMatting')) {
+        SoundEffects.sliderTick();
+        Toast.info('👑 【髮絲級 AI 精準去背】為 Pro / VIP 會員專屬功能');
+        this.pricingModal.open();
+        return;
+      }
+
+      SoundEffects.laserScan();
+      Toast.info('✂️ 正在進行髮絲級邊緣 Alpha 遮罩提取與色溢消除...');
+
+      const result = AiMatting.removeBackground(imgData);
+      store.setState({
+        processedImageData: result.imageData,
+        processedDataUrl: result.dataUrl
+      });
+      this.mainPreviewImg.src = result.dataUrl;
+      SoundEffects.purityChime();
+      Toast.success('✓ 髮絲級去背完成！可直接點擊【🏷️ 造型刀模 & 白墨】一鍵生成透明貼紙製版檔！');
+    });
+
+    // ✒️ AI 點陣轉真向量 SVG 貝茲曲線檔 (VIP 專屬)
+    document.getElementById('btnAiVectorizer')?.addEventListener('click', () => {
+      const state = store.getState();
+      const imgData = state.processedImageData || state.originalImageData;
+      if (!imgData) {
+        Toast.error('請先上傳圖片');
+        return;
+      }
+
+      if (!SubscriptionManager.canUseFeature('aiVectorizer')) {
+        SoundEffects.sliderTick();
+        Toast.info('💎 【AI 點陣轉真向量 SVG 貝茲曲線】為 VIP 頂級企業版專屬功能');
+        this.pricingModal.open();
+        return;
+      }
+
+      SoundEffects.laserScan();
+      Toast.info('✒️ 正在執行多色階量化與三次貝茲曲線擬合 (Bezier Tracing)...');
+
+      const svgString = AiVectorizer.traceToSvg(imgData, 12, 2);
+      AiVectorizer.downloadSvg(svgString, `PrintMagic_Vector_${state.currentPreset.id}_${Date.now()}.svg`);
+      SoundEffects.shutterClick();
+      Toast.success('✓ 頂級真向量 SVG 檔案已成功生成並下載！');
     });
 
     // Open Smart Dieline & White Ink Modal

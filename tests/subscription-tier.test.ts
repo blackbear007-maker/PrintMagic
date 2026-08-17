@@ -38,7 +38,7 @@ describe('SubscriptionManager (Free 0 / Pro 399 / VIP 699)', () => {
     const vipPlan = SUBSCRIPTION_PLANS.find((p) => p.id === 'vip')!;
     expect(vipPlan.priceMonthly).toBe(699);
     expect(vipPlan.vipAiAllowed).toBe(true);
-    expect(vipPlan.monthlyAiQuota).toBe(500);
+    expect(vipPlan.monthlyAiQuota).toBe(1000);
   });
 
   it('should default to Free plan and allow upgrading to Pro and VIP', () => {
@@ -64,6 +64,6 @@ describe('SubscriptionManager (Free 0 / Pro 399 / VIP 699)', () => {
     expect(SubscriptionManager.getQuotaUsed()).toBe(10);
 
     const state = SubscriptionManager.getSubscriptionState();
-    expect(state.monthlyQuotaRemaining).toBe(490);
+    expect(state.monthlyQuotaRemaining).toBe(990);
   });
 });

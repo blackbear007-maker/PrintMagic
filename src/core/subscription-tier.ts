@@ -28,6 +28,9 @@ export interface SubscriptionPlan {
   dielineAllowed: boolean;
   impositionAllowed: boolean;
   vipAiAllowed: boolean;
+  bleedExpanderAllowed: boolean;
+  aiMattingAllowed: boolean;
+  aiVectorizerAllowed: boolean;
   monthlyAiQuota: number;
 }
 
@@ -50,7 +53,9 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
       { text: '雙面合版關聯製版 (名片/明信片/DM)', included: false },
       { text: '自動造型刀模 + 0.2mm 內縮白墨', included: false },
       { text: 'A4/A3 拼版試算 (省 80% 印刷費)', included: false },
-      { text: 'ISO 15930-1 工業級 PDF/X-1a 出機檔', included: false },
+      { text: '🖼️ AI 智慧 3mm 出血外擴延伸', included: false },
+      { text: '✂️ 髮絲級 AI 模切貼紙去背', included: false },
+      { text: '✒️ AI 點陣轉真向量 SVG 貝茲曲線', included: false },
       { text: '💎 VIP 高階商業 AI 影像重建引擎', included: false }
     ],
     maxBatchSize: 1,
@@ -59,6 +64,9 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     dielineAllowed: false,
     impositionAllowed: false,
     vipAiAllowed: false,
+    bleedExpanderAllowed: false,
+    aiMattingAllowed: false,
+    aiVectorizerAllowed: false,
     monthlyAiQuota: 0
   },
   {
@@ -69,19 +77,21 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     priceMonthly: 399,
     currency: 'NT$',
     period: '/ 月',
-    tagline: '專為接案設計師與中小型品牌打造',
+    tagline: '專為接案設計師與中小型品牌打造 (每月 500 點)',
     isPopular: true,
     features: [
       { text: '包含免費版全部功能', included: true },
+      { text: '每月 500 點 AI 算力點數', included: true, highlight: true },
       { text: '20 張多圖批次連續製版', included: true, highlight: true },
       { text: '雙面合版關聯製版 (名片/明信片/DM)', included: true, highlight: true },
       { text: '自動造型刀模 + 0.2mm 內縮白墨 (防溢白)', included: true, highlight: true },
       { text: 'A4/A3 拼版試算 (省 80% 印刷費)', included: true, highlight: true },
-      { text: 'ISO 15930-1 工業級 PDF/X-1a 出機檔', included: true, highlight: true },
+      { text: '✂️ 髮絲級 AI 模切貼紙去背 (含白墨刀模)', included: true, highlight: true },
+      { text: 'ISO 15930-1 工業級 PDF/X-1a 出機檔', included: true },
       { text: '國際 ICC 描述檔 (Japan Color / ISO FOGRA)', included: true },
       { text: 'K100 純黑字與向量 Logo 疊印層', included: true },
       { text: '免費開源 Real-ESRGAN / Anime6B 雲端運算', included: true },
-      { text: '💎 VIP 高階商業 AI 影像重建引擎', included: false }
+      { text: '💎 VIP 高階商業 8K / 出血外擴 / 向量化', included: false }
     ],
     maxBatchSize: 20,
     pdfxExportAllowed: true,
@@ -89,7 +99,10 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     dielineAllowed: true,
     impositionAllowed: true,
     vipAiAllowed: false,
-    monthlyAiQuota: 100
+    bleedExpanderAllowed: false,
+    aiMattingAllowed: true,
+    aiVectorizerAllowed: false,
+    monthlyAiQuota: 500
   },
   {
     id: 'vip',
@@ -99,16 +112,18 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     priceMonthly: 699,
     currency: 'NT$',
     period: '/ 月',
-    tagline: '廣告事務所、品牌總監與巨幅展覽專用',
+    tagline: '廣告事務所、品牌總監與巨幅展覽專用 (每月 1000 點)',
     features: [
       { text: '包含 Pro 版全部功能', included: true },
-      { text: '💎 解鎖 Fal.ai Clarity 8K 神經網路細節超重構', included: true, highlight: true },
-      { text: '💎 解鎖 Topaz Photo AI 商業級攝影保真去模糊', included: true, highlight: true },
-      { text: '💎 解鎖 Replicate Anime6B 向量高精銳化 Pro', included: true, highlight: true },
-      { text: '每月 500 張高階付費 GPU 專屬無佇列通道', included: true, highlight: true },
+      { text: '每月 1000 點高階 GPU 算力點數', included: true, highlight: true },
+      { text: '🖼️ AI 智慧 3mm 出血外擴延伸 (解決裁切痛點)', included: true, highlight: true },
+      { text: '✒️ AI 點陣圖轉真向量 SVG/EPS 貝茲曲線檔', included: true, highlight: true },
+      { text: '✂️ 髮絲級 AI 模切貼紙去背 Pro (超清 Alpha)', included: true, highlight: true },
+      { text: '💎 Fal.ai Clarity 8K 神經網路細節超重構', included: true, highlight: true },
+      { text: '💎 Topaz Photo AI 商業級攝影保真去模糊', included: true, highlight: true },
+      { text: '💎 Replicate Anime6B 向量高精銳化 Pro', included: true, highlight: true },
       { text: '無限多圖批次連續製版 (最高 100 張)', included: true },
-      { text: '印刷廠一件送印與專屬客服通道', included: true },
-      { text: '多螢幕 3D 燙金打樣視圖', included: true }
+      { text: '印刷廠一件送印與專屬客服通道', included: true }
     ],
     maxBatchSize: 100,
     pdfxExportAllowed: true,
@@ -116,7 +131,10 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     dielineAllowed: true,
     impositionAllowed: true,
     vipAiAllowed: true,
-    monthlyAiQuota: 500
+    bleedExpanderAllowed: true,
+    aiMattingAllowed: true,
+    aiVectorizerAllowed: true,
+    monthlyAiQuota: 1000
   }
 ];
 
@@ -189,7 +207,9 @@ export class SubscriptionManager {
     };
   }
 
-  public static canUseFeature(feature: 'doubleSided' | 'dieline' | 'imposition' | 'pdfx' | 'vipAi' | 'batch'): boolean {
+  public static canUseFeature(
+    feature: 'doubleSided' | 'dieline' | 'imposition' | 'pdfx' | 'vipAi' | 'batch' | 'bleedExpander' | 'aiMatting' | 'aiVectorizer'
+  ): boolean {
     const plan = this.getPlan();
     switch (feature) {
       case 'doubleSided':
@@ -202,6 +222,12 @@ export class SubscriptionManager {
         return plan.pdfxExportAllowed;
       case 'vipAi':
         return plan.vipAiAllowed;
+      case 'bleedExpander':
+        return plan.bleedExpanderAllowed;
+      case 'aiMatting':
+        return plan.aiMattingAllowed;
+      case 'aiVectorizer':
+        return plan.aiVectorizerAllowed;
       case 'batch':
         return plan.maxBatchSize > 1;
       default:
