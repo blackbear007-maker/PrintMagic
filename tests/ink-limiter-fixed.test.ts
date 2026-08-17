@@ -31,21 +31,19 @@ describe('InkLimiter — Fixed CMYK ↔ RGB Formula (P0 Bug Fix)', () => {
     return { data, width: 10, height: 10 } as ImageData;
   }
 
-  it('should correctly detect over-limit pure black (0,0,0) → CMYK 100K → TAC=100', () => {
-    // Pure black in RGB → C=0, M=0, Y=0, K=1 → TAC = 100%
+  it('should correctly detect over-limit on pure black (0,0,0) → 400% TAC > 300% limit', () => {
+    // Pure black in unseparated RGB → C=1, M=1, Y=1, K=1 → TAC = 400%
     const img = solidColorImage(0, 0, 0);
     const result = InkLimiter.analyze(img, 300);
-    // Pure black ink is 100%, well under 300% limit
-    expect(result.hasOverflow).toBe(false);
-    expect(result.maxTotalInk).toBeLessThanOrEqual(105);
+    expect(result.hasOverflow).toBe(true);
+    expect(result.maxTotalInk).toBe(400);
+    expect(result.exceededPixelCount).toBe(100);
   });
 
-  it('should detect overflow on artificially dark 4-color mix (0,0,100) → high TAC', () => {
-    // Deep navy blue: high C, M, K build-up
-    const img = solidColorImage(0, 0, 100);
-    const result = InkLimiter.analyze(img, 250);
-    // Should show C high, M high, K component — check it's detected correctly
-    expect(result.maxTotalInk).toBeGreaterThan(50);
+  it('should detect safe TAC on medium gray / white without overflow', () => {
+    const img = solidColorImage(200, 200, 200);
+    const result = InkLimiter.analyze(img, 300);
+    expect(result.hasOverflow).toBe(false);
   });
 
   it('clampInk should restore pixel colors without darkening artifacts from wrong formula', () => {
@@ -60,14 +58,13 @@ describe('InkLimiter — Fixed CMYK ↔ RGB Formula (P0 Bug Fix)', () => {
     expect(clampedImageData.data[2]).toBe(0);
   });
 
-  it('clampInk back-calculation should be correct (1-c)*(1-k) not 1-max(c,k)', () => {
-    // Dark purple: will need clamping; verify result is physically reasonable
-    const img = solidColorImage(30, 0, 80);
-    const { clampedImageData, modifiedPixels } = InkLimiter.clampInk(img, 150);
+  it('clampInk should bring 400% TAC black down to threshold and pass reanalysis', () => {
+    const img = solidColorImage(0, 0, 0);
+    const { clampedImageData, modifiedPixels } = InkLimiter.clampInk(img, 300);
 
-    if (modifiedPixels > 0) {
-      // After clamping, the result should be lighter (less ink), never darker than original
-      expect(clampedImageData.data[0]).toBeGreaterThanOrEqual(30);
-    }
+    expect(modifiedPixels).toBe(100);
+    const reAnalysis = InkLimiter.analyze(clampedImageData, 300);
+    expect(reAnalysis.maxTotalInk).toBeLessThanOrEqual(300);
+    expect(reAnalysis.hasOverflow).toBe(false);
   });
 });

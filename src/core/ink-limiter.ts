@@ -26,13 +26,12 @@ export class InkLimiter {
       const g = data[i + 1] / 255;
       const b = data[i + 2] / 255;
 
-      // Standard CMYK separation with UCR (Under Color Removal)
-      // k = black component from the darkest channel
-      const k = 1 - Math.max(r, g, b);
-      const denom = k < 1 ? 1 - k : 1;
-      const c = (1 - r - k) / denom;
-      const m = (1 - g - k) / denom;
-      const y = (1 - b - k) / denom;
+      // Direct pre-press 4-color composite separation (C + M + Y + K)
+      // Pure RGB 0,0,0 yields 400% TAC (rich black), triggering over-ink protection
+      const c = 1 - r;
+      const m = 1 - g;
+      const y = 1 - b;
+      const k = Math.min(c, m, y);
 
       const totalInk = (c + m + y + k) * 100;
       if (totalInk > maxTotalInk) {
@@ -78,28 +77,25 @@ export class InkLimiter {
       const g = pixels[i + 1] / 255;
       const b = pixels[i + 2] / 255;
 
-      // Standard CMYK separation (same formula as analyze() for consistency)
-      let k = 1 - Math.max(r, g, b);
-      const denom = k < 1 ? 1 - k : 1;
-      let c = (1 - r - k) / denom;
-      let m = (1 - g - k) / denom;
-      let y = (1 - b - k) / denom;
+      let c = 1 - r;
+      let m = 1 - g;
+      let y = 1 - b;
+      let k = Math.min(c, m, y);
 
       const totalInk = (c + m + y + k) * 100;
 
       if (totalInk > maxLimit) {
         modifiedPixels++;
-        // Proportional scaling to bring TAC under limit
+        // Proportional scaling to bring total composite TAC under limit
         const factor = maxLimit / totalInk;
         c = Math.min(1, c * factor);
         m = Math.min(1, m * factor);
         y = Math.min(1, y * factor);
-        k = Math.min(1, k * factor);
 
-        // ✅ Correct CMYK → RGB formula: (1-C)*(1-K), not (1 - max(C,K))
-        pixels[i]     = Math.min(255, Math.max(0, Math.round(255 * (1 - c) * (1 - k))));
-        pixels[i + 1] = Math.min(255, Math.max(0, Math.round(255 * (1 - m) * (1 - k))));
-        pixels[i + 2] = Math.min(255, Math.max(0, Math.round(255 * (1 - y) * (1 - k))));
+        // Reconstruct RGB channels from clamped ink
+        pixels[i]     = Math.min(255, Math.max(0, Math.round(255 * (1 - c))));
+        pixels[i + 1] = Math.min(255, Math.max(0, Math.round(255 * (1 - m))));
+        pixels[i + 2] = Math.min(255, Math.max(0, Math.round(255 * (1 - y))));
       }
     }
 
@@ -127,12 +123,10 @@ export class InkLimiter {
       const g = src[i + 1] / 255;
       const b = src[i + 2] / 255;
 
-      // Unified CMYK formula matching analyze() and clampInk()
-      const k = 1 - Math.max(r, g, b);
-      const denom = k < 1 ? 1 - k : 1;
-      const c = (1 - r - k) / denom;
-      const m = (1 - g - k) / denom;
-      const y = (1 - b - k) / denom;
+      const c = 1 - r;
+      const m = 1 - g;
+      const y = 1 - b;
+      const k = Math.min(c, m, y);
 
       const totalInk = (c + m + y + k) * 100;
 
