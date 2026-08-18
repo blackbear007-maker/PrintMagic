@@ -72,6 +72,7 @@ class App {
   public aiSettingsModal!: AiSettingsModal;
   public pricingModal!: PricingModal;
   public onboardingModal!: OnboardingModal;
+  public dropZoneInstance!: DropZone;
   public batchBar!: BatchBar;
   public cropController!: CropController;
 
@@ -132,7 +133,7 @@ class App {
 
   private initUIComponents(): void {
     // 1. DropZone (Multi-file batch support)
-    new DropZone('dropZone', (results) => {
+    this.dropZoneInstance = new DropZone('dropZone', (results) => {
       this.handleImagesUploaded(results);
     });
 
@@ -358,10 +359,7 @@ class App {
         Toast.info('✨ 正在載入示範作品並啟動印刷分析...');
         try {
           const file = await SampleArtworks.loadSample(sampleType);
-          const dropZone = new DropZone('dropZone', (results) => {
-            this.handleImagesUploaded(results);
-          });
-          await dropZone.handleFiles([file]);
+          await this.dropZoneInstance.handleFiles([file]);
         } catch (err: any) {
           Toast.error(`示範作品載入失敗: ${err?.message || err}`);
         }
@@ -1254,8 +1252,14 @@ function cleanupLegacyServiceWorkers(): void {
   }
 }
 
-// Bootstrap
-document.addEventListener('DOMContentLoaded', () => {
+// Bootstrap with readyState check to ensure execution regardless of module load timing
+function bootstrapApp(): void {
   cleanupLegacyServiceWorkers();
   new App();
-});
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', bootstrapApp);
+} else {
+  bootstrapApp();
+}
