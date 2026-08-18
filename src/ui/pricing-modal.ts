@@ -178,11 +178,11 @@ export class PricingModal {
 
   public open(): void {
     this.render();
-    this.modalEl.classList.add('active');
+    this.modalEl.style.display = 'flex';
     SoundEffects.sliderTick();
   }
 
   public close(): void {
-    this.modalEl.classList.remove('active');
+    this.modalEl.style.display = 'none';
   }
 }

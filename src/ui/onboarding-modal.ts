@@ -113,14 +113,10 @@ export class OnboardingModal {
   public open(): void {
     this.render();
     this.modalEl.style.display = 'flex';
-    requestAnimationFrame(() => this.modalEl.classList.add('pm-modal-open'));
     SoundEffects.purityChime();
   }
 
   public close(): void {
-    this.modalEl.classList.remove('pm-modal-open');
-    setTimeout(() => {
-      this.modalEl.style.display = 'none';
-    }, 200);
+    this.modalEl.style.display = 'none';
   }
 }
