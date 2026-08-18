@@ -41,6 +41,10 @@
             </button>
           </div>
 
+          <button id="btnOpenGuide" class="pm-tool-btn" style="background: rgba(0, 113, 227, 0.08); color: var(--pm-accent-blue); font-weight: 600; border-color: rgba(0, 113, 227, 0.2);" title="查看 30 秒 3 步速成指南">
+            <span>💡</span> 新手指南
+          </button>
+
           <button id="btnOpenCalibration" class="pm-tool-btn" title="拿一張信用卡貼在螢幕上校準 1:1 真實物理尺寸 PPI">
             <span>📏</span> 螢幕校準
           </button>
@@ -106,6 +110,45 @@
           </div>
           <div class="pm-dropzone-paste-hint">
             📱 點選即可開啟相簿或相機，支援多圖批次上傳 (上限 20 張)
+          </div>
+
+          <!-- Scenario Quick-Start Cards (4 High-Demand Real Life Scenarios) -->
+          <div class="pm-scenario-section">
+            <span class="pm-scenario-label">🎯 想印什麼？點選情境 1 秒為您自動配好：</span>
+            <div class="pm-scenario-grid">
+              <button class="pm-scenario-card" data-scenario="business-card" type="button" title="自動切換 90x54mm 名片並開啟雙面模式">
+                <div class="pm-scenario-icon">📇</div>
+                <div class="pm-scenario-text">
+                  <strong>印雙面名片</strong>
+                  <span>90×54mm · 雙面合版</span>
+                </div>
+                <span class="pm-scenario-arrow">➔</span>
+              </button>
+              <button class="pm-scenario-card" data-scenario="sticker" type="button" title="自動切換 50x50mm 模切貼紙並開啟 AI 刀模與白墨">
+                <div class="pm-scenario-icon">🏷️</div>
+                <div class="pm-scenario-text">
+                  <strong>印貼紙 / 壓克力</strong>
+                  <span>AI 去背 · 白墨刀模</span>
+                </div>
+                <span class="pm-scenario-arrow">➔</span>
+              </button>
+              <button class="pm-scenario-card" data-scenario="poster" type="button" title="自動切換 A4 經典海報並開啟 3mm 出血補齊">
+                <div class="pm-scenario-icon">🖼️</div>
+                <div class="pm-scenario-text">
+                  <strong>印大圖海報</strong>
+                  <span>A4/A3 展覽 · 出血補足</span>
+                </div>
+                <span class="pm-scenario-arrow">➔</span>
+              </button>
+              <button class="pm-scenario-card" data-scenario="conv-print" type="button" title="自動開啟超商雲端 30 秒立印碼">
+                <div class="pm-scenario-icon">🏪</div>
+                <div class="pm-scenario-text">
+                  <strong>超商 30 秒快印</strong>
+                  <span>7-11 / 全家 · 立即取件</span>
+                </div>
+                <span class="pm-scenario-arrow">➔</span>
+              </button>
+            </div>
           </div>
 
           <!-- Sample Artworks for 1-Click First Time Test -->
@@ -257,39 +300,48 @@
           <!-- Bottom Action Export Bar -->
           <div class="pm-export-bar">
             <div class="pm-export-left-tools">
-              <button id="btnOpenDirectPrint" class="pm-btn pm-btn-artisan" style="background: linear-gradient(135deg, #ff6b35, #e0481d); color: #fff; font-weight: 700; box-shadow: 0 4px 12px rgba(255, 107, 53, 0.35);" title="一鍵即時估價台灣四大印刷廠 (健豪/卡之屋/經典/藍格) 並打包送印工單">
-                <span>🏭</span> 直通送印 & 估價
-              </button>
-              <button id="btnOpenConvPrint" class="pm-btn pm-btn-secondary" title="7-11 ibon / 全家 FamiPort 雲端立印，30秒下樓即可取件">
-                <span>🏪</span> 超商立印
-              </button>
-              <button id="btnOpenImposition" class="pm-btn pm-btn-secondary" title="一張 A4/A3 自動拼入 8~24 模，現省 70% 費用">
-                <span>🧩</span> 智慧拼模
-              </button>
-              <button id="btnAiBleedOutpaint" class="pm-btn pm-btn-secondary" title="💎 VIP 專屬：AI 智慧 3mm 出血外擴延伸，防止裁切切到主體頭部">
-                <span>🖼️</span> AI 補足出血
-              </button>
-              <button id="btnAiRemoveBg" class="pm-btn pm-btn-secondary" title="👑 Pro/VIP 專屬：髮絲級一鍵 AI 精準去背，自動銜接白墨與刀模線">
-                <span>✂️</span> 髮絲級去背
-              </button>
-              <button id="btnAiVectorizer" class="pm-btn pm-btn-secondary" title="💎 VIP 專屬：AI 點陣轉真向量 SVG 貝茲曲線檔，無限放大無鋸齒">
-                <span>✒️</span> AI 轉真向量
-              </button>
-              <button id="btnOpenDieline" class="pm-btn pm-btn-secondary" title="透明貼紙專用：一鍵生成 0.2mm 內縮白墨層與 2mm 洋紅外擴向量刀模線">
-                <span>🏷️</span> 造型刀模 & 白墨
-              </button>
-              <button id="btnOpenVectorOverlay" class="pm-btn pm-btn-secondary" title="防止小字混黑糊邊！添加單色 K100 純黑文字與向量標誌">
-                <span>🔤</span> K100 純黑字
-              </button>
-              <button id="btnOpenMockup" class="pm-btn pm-btn-secondary" title="一鍵生成現代美術館畫框、北歐書桌情境宣傳圖">
-                <span>🖼️</span> 美術館 Mockup
-              </button>
-              <button id="btnOpenSpec" class="pm-btn pm-btn-secondary" title="送印溝小抄，一鍵複製專業規格給印刷師傅">
-                <span>📋</span> 送印小抄
-              </button>
-              <button id="btnOpenShops" class="pm-btn pm-btn-secondary" title="以 GPS 定位即時尋找離您最近的專業商業印刷廠">
-                <span>📍</span> 附近門市
-              </button>
+              <!-- Group 1: AI Superpowers -->
+              <div class="pm-tool-group">
+                <span class="pm-tool-group-label">✨ AI 魔法</span>
+                <button id="btnAiBleedOutpaint" class="pm-btn pm-btn-secondary" title="💎 VIP 專屬：AI 智慧 3mm 出血外擴延伸，防止裁切切到主體頭部">
+                  <span>🖼️</span> 補足出血
+                </button>
+                <button id="btnAiRemoveBg" class="pm-btn pm-btn-secondary" title="👑 Pro/VIP 專屬：髮絲級一鍵 AI 精準去背，自動銜接白墨與刀模線">
+                  <span>✂️</span> 髮絲去背
+                </button>
+                <button id="btnAiVectorizer" class="pm-btn pm-btn-secondary" title="💎 VIP 專屬：AI 點陣轉真向量 SVG 貝茲曲線檔，無限放大無鋸齒">
+                  <span>✒️</span> 轉真向量
+                </button>
+                <button id="btnOpenVectorOverlay" class="pm-btn pm-btn-secondary" title="防止小字混黑糊邊！添加單色 K100 純黑文字與向量標誌">
+                  <span>🔤</span> K100黑字
+                </button>
+              </div>
+
+              <!-- Group 2: Production & Delivery -->
+              <div class="pm-tool-group">
+                <span class="pm-tool-group-label">🏭 送印與製版</span>
+                <button id="btnOpenDirectPrint" class="pm-btn pm-btn-artisan" style="background: linear-gradient(135deg, #ff6b35, #e0481d); color: #fff; font-weight: 700; box-shadow: 0 4px 12px rgba(255, 107, 53, 0.35);" title="一鍵即時估價台灣四大印刷廠 (健豪/卡之屋/經典/藍格) 並打包送印工單">
+                  <span>🏭</span> 直通送印
+                </button>
+                <button id="btnOpenConvPrint" class="pm-btn pm-btn-secondary" title="7-11 ibon / 全家 FamiPort 雲端立印，30秒下樓即可取件">
+                  <span>🏪</span> 超商立印
+                </button>
+                <button id="btnOpenImposition" class="pm-btn pm-btn-secondary" title="一張 A4/A3 自動拼入 8~24 模，現省 70% 費用">
+                  <span>🧩</span> 智慧拼模
+                </button>
+                <button id="btnOpenDieline" class="pm-btn pm-btn-secondary" title="透明貼紙專用：一鍵生成 0.2mm 內縮白墨層與 2mm 洋紅外擴向量刀模線">
+                  <span>🏷️</span> 刀模白墨
+                </button>
+                <button id="btnOpenSpec" class="pm-btn pm-btn-secondary" title="送印溝小抄，一鍵複製專業規格給印刷師傅">
+                  <span>📋</span> 送印小抄
+                </button>
+                <button id="btnOpenMockup" class="pm-btn pm-btn-secondary" title="一鍵生成現代美術館畫框、北歐書桌情境宣傳圖">
+                  <span>🖼️</span> Mockup
+                </button>
+                <button id="btnOpenShops" class="pm-btn pm-btn-secondary" title="以 GPS 定位即時尋找離您最近的專業商業印刷廠">
+                  <span>📍</span> 附近門市
+                </button>
+              </div>
             </div>
 
             <div class="pm-export-right-actions">

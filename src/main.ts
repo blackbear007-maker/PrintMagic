@@ -36,6 +36,7 @@ import { DielineModal } from './ui/dieline-modal';
 import { VectorOverlayModal } from './ui/vector-overlay-modal';
 import { AiSettingsModal } from './ui/ai-settings-modal';
 import { PricingModal } from './ui/pricing-modal';
+import { OnboardingModal } from './ui/onboarding-modal';
 import { SubscriptionManager } from './core/subscription-tier';
 import { VipAiClient } from './services/vip-ai-client';
 import { BleedExpander } from './core/bleed-expander';
@@ -70,6 +71,7 @@ class App {
   public vectorOverlayModal!: VectorOverlayModal;
   public aiSettingsModal!: AiSettingsModal;
   public pricingModal!: PricingModal;
+  public onboardingModal!: OnboardingModal;
   public batchBar!: BatchBar;
   public cropController!: CropController;
 
@@ -178,6 +180,7 @@ class App {
     this.pricingModal = new PricingModal(() => {
       this.updatePlanBadge();
     });
+    this.onboardingModal = new OnboardingModal();
     this.aiSettingsModal = new AiSettingsModal(
       () => {
         const state = store.getState();
@@ -269,6 +272,49 @@ class App {
     // Open Commercial Subscription & Pricing Modal
     document.getElementById('btnOpenPricing')?.addEventListener('click', () => {
       this.pricingModal.open();
+    });
+
+    // Open Onboarding Beginner Guide Modal
+    document.getElementById('btnOpenGuide')?.addEventListener('click', () => {
+      this.onboardingModal.open();
+    });
+
+    // Scenario Quick-Start Cards (Instant Target Workflow Preset + Auto Load)
+    document.querySelectorAll('.pm-scenario-card').forEach((card) => {
+      card.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const scenario = (card as HTMLElement).dataset.scenario;
+        if (!scenario) return;
+
+        SoundEffects.paperDrop();
+
+        if (scenario === 'business-card') {
+          Toast.info('📇 已為您配置【商業名片 (90×54mm)】情境');
+          store.setPreset('business-card');
+          const file = await SampleArtworks.loadSample('card');
+          const dropZone = new DropZone('dropZone', (results) => this.handleImagesUploaded(results));
+          await dropZone.handleFiles([file]);
+        } else if (scenario === 'sticker') {
+          Toast.info('🏷️ 已為您配置【模切貼紙】情境，自動啟動 AI 刀模與白墨');
+          store.setPreset('sticker');
+          const file = await SampleArtworks.loadSample('anime');
+          const dropZone = new DropZone('dropZone', (results) => this.handleImagesUploaded(results));
+          await dropZone.handleFiles([file]);
+        } else if (scenario === 'poster') {
+          Toast.info('🖼️ 已為您配置【A4 經典海報】情境，自動補足 3mm 出血');
+          store.setPreset('poster-a4');
+          const file = await SampleArtworks.loadSample('cyberpunk');
+          const dropZone = new DropZone('dropZone', (results) => this.handleImagesUploaded(results));
+          await dropZone.handleFiles([file]);
+        } else if (scenario === 'conv-print') {
+          Toast.info('🏪 已為您配置【超商雲端 30 秒快印】情境');
+          store.setPreset('poster-a4');
+          const file = await SampleArtworks.loadSample('cyberpunk');
+          const dropZone = new DropZone('dropZone', (results) => this.handleImagesUploaded(results));
+          await dropZone.handleFiles([file]);
+          setTimeout(() => this.convPrintModal.open(), 800);
+        }
+      });
     });
 
     // Screen Calibration
@@ -1058,6 +1104,13 @@ class App {
       const delta = scoreResult.score - originalScoreResult.score;
       const deltaStr = delta > 0 ? ` (+${delta}分提升)` : '';
       Toast.success(`✓ 印刷優化完成！原圖 ${originalScoreResult.score}分 ➔ 優化後 ${scoreResult.score}分${deltaStr}`);
+
+      // Smart Contextual Action Hints (Learnability & Proactivity)
+      if (stats.transparentRatio > 0.03) {
+        setTimeout(() => {
+          Toast.info('💡 偵測到透明背景！點擊下方【🏷️ 刀模白墨】可一鍵產生貼紙刀模線與白墨層');
+        }, 1200);
+      }
     } catch (err: any) {
       console.error('Optimization pipeline error:', err);
       store.setState({ isProcessing: false, processingStep: '' });
