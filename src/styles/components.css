@@ -3,6 +3,104 @@
    Apple Minimalist Light Design System & Low-Saturation Tones
    ============================================================ */
 
+/* Apple HIG Frosted Glass Modals & Dialog System */
+.pm-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  opacity: 0;
+  transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: auto;
+}
+
+.pm-modal-backdrop.pm-modal-open {
+  opacity: 1;
+}
+
+.pm-modal-dialog {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 20px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.22), 0 4px 16px rgba(0, 0, 0, 0.08);
+  width: 100%;
+  max-width: 640px;
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  transform: scale(0.96) translateY(8px);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.pm-modal-backdrop.pm-modal-open .pm-modal-dialog {
+  transform: scale(1) translateY(0);
+}
+
+.pm-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 16px 24px;
+  border-bottom: 1px solid var(--pm-border-subtle);
+  position: relative;
+}
+
+.pm-modal-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--pm-text-primary);
+  margin: 0;
+}
+
+.pm-modal-close {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.06);
+  border: none;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--pm-text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pm-modal-close:hover {
+  background: rgba(0, 0, 0, 0.12);
+  color: var(--pm-text-primary);
+  transform: scale(1.05);
+}
+
+.pm-modal-body {
+  padding: 20px 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.pm-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--pm-border-subtle);
+  background: rgba(245, 245, 247, 0.5);
+  border-bottom-left-radius: 20px;
+  border-bottom-right-radius: 20px;
+}
+
 /* Hero DropZone */
 .pm-landing-container {
   max-width: 780px;

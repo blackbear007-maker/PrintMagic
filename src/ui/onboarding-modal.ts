@@ -9,7 +9,8 @@ export class OnboardingModal {
   constructor() {
     this.modalEl = document.createElement('div');
     this.modalEl.id = 'onboardingModal';
-    this.modalEl.className = 'pm-modal';
+    this.modalEl.className = 'pm-modal-backdrop';
+    this.modalEl.style.display = 'none';
     this.render();
     document.body.appendChild(this.modalEl);
     this.bindEvents();
@@ -17,7 +18,6 @@ export class OnboardingModal {
 
   public render(): void {
     this.modalEl.innerHTML = `
-      <div class="pm-modal-backdrop" id="onboardingBackdrop"></div>
       <div class="pm-modal-dialog" style="max-width: 620px;">
         <div class="pm-modal-header" style="border-bottom: none; padding-bottom: 0;">
           <div style="display: flex; align-items: center; gap: 8px;">
@@ -102,7 +102,7 @@ export class OnboardingModal {
       const target = e.target as HTMLElement;
       if (
         target.id === 'btnCloseOnboarding' ||
-        target.id === 'onboardingBackdrop' ||
+        target === this.modalEl ||
         target.id === 'btnStartNow'
       ) {
         close();
@@ -112,11 +112,15 @@ export class OnboardingModal {
 
   public open(): void {
     this.render();
-    this.modalEl.classList.add('active');
+    this.modalEl.style.display = 'flex';
+    requestAnimationFrame(() => this.modalEl.classList.add('pm-modal-open'));
     SoundEffects.purityChime();
   }
 
   public close(): void {
-    this.modalEl.classList.remove('active');
+    this.modalEl.classList.remove('pm-modal-open');
+    setTimeout(() => {
+      this.modalEl.style.display = 'none';
+    }, 200);
   }
 }

@@ -14,7 +14,8 @@ export class PricingModal {
     this.onPlanUpdated = onPlanUpdated;
     this.modalEl = document.createElement('div');
     this.modalEl.id = 'pricingModal';
-    this.modalEl.className = 'pm-modal';
+    this.modalEl.className = 'pm-modal-backdrop';
+    this.modalEl.style.display = 'none';
     this.render();
     document.body.appendChild(this.modalEl);
     this.bindEvents();
@@ -25,7 +26,6 @@ export class PricingModal {
     const state = SubscriptionManager.getSubscriptionState();
 
     this.modalEl.innerHTML = `
-      <div class="pm-modal-backdrop" id="pricingBackdrop"></div>
       <div class="pm-modal-dialog" style="max-width: 960px; width: 95vw;">
         <div class="pm-modal-header" style="border-bottom: none; padding-bottom: 0;">
           <div style="text-align: center; width: 100%;">
