@@ -92,79 +92,38 @@
 
     <!-- Main Studio Workspace -->
     <main class="pm-main">
-      <!-- 1. Initial State: DropZone -->
-      <section id="dropZoneContainer">
+      <!-- 1. Initial State: Clean Hero DropZone -->
+      <section id="dropZoneContainer" class="pm-landing-container">
         <div class="pm-dropzone" id="dropZone">
-          <div class="pm-dropzone-icon">📸</div>
-          <h2 class="pm-dropzone-title">拖曳或點選上傳 AI 圖片 (支援多圖批次，上限 20 張)</h2>
+          <div class="pm-dropzone-icon">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+          </div>
+          <h2 class="pm-dropzone-title">拖曳圖片到這裡，或點擊上傳</h2>
           <p class="pm-dropzone-desc">
-            自動檢測 DPI、壓制溢墨總量 (TAC)、補足 3mm 出血與標準裁切十字，一鍵輸出符合印刷廠規格的專業作品。
+            自動 8x 金字塔超解析度 · 100 分印前檢測 · 3mm 智慧出血 (支援 PNG / JPG / WebP，多圖批次)
           </p>
-          <div class="pm-dropzone-tags">
-            <span class="pm-dropzone-tag">雙引擎混合架構</span>
-            <span class="pm-dropzone-tag">100% 離線隱私安全</span>
-            <span class="pm-dropzone-tag">PNG / JPG / WebP</span>
-            <span class="pm-dropzone-tag">無失真 300+ DPI</span>
-            <span class="pm-dropzone-tag">TAC 300% 墨量防溢</span>
-            <span class="pm-dropzone-tag">PDF/X-1a 工業標準</span>
+          <div class="pm-dropzone-cta-btn">
+            <span>＋ 選擇本機圖片</span>
           </div>
-          <div class="pm-dropzone-paste-hint">
-            📱 點選即可開啟相簿或相機，支援多圖批次上傳 (上限 20 張)
-          </div>
+        </div>
 
-          <!-- Scenario Quick-Start Cards (4 High-Demand Real Life Scenarios) -->
-          <div class="pm-scenario-section">
-            <span class="pm-scenario-label">🎯 想印什麼？點選情境 1 秒為您自動配好：</span>
-            <div class="pm-scenario-grid">
-              <button class="pm-scenario-card" data-scenario="business-card" type="button" title="自動切換 90x54mm 名片並開啟雙面模式">
-                <div class="pm-scenario-icon">📇</div>
-                <div class="pm-scenario-text">
-                  <strong>印雙面名片</strong>
-                  <span>90×54mm · 雙面合版</span>
-                </div>
-                <span class="pm-scenario-arrow">➔</span>
-              </button>
-              <button class="pm-scenario-card" data-scenario="sticker" type="button" title="自動切換 50x50mm 模切貼紙並開啟 AI 刀模與白墨">
-                <div class="pm-scenario-icon">🏷️</div>
-                <div class="pm-scenario-text">
-                  <strong>印貼紙 / 壓克力</strong>
-                  <span>AI 去背 · 白墨刀模</span>
-                </div>
-                <span class="pm-scenario-arrow">➔</span>
-              </button>
-              <button class="pm-scenario-card" data-scenario="poster" type="button" title="自動切換 A4 經典海報並開啟 3mm 出血補齊">
-                <div class="pm-scenario-icon">🖼️</div>
-                <div class="pm-scenario-text">
-                  <strong>印大圖海報</strong>
-                  <span>A4/A3 展覽 · 出血補足</span>
-                </div>
-                <span class="pm-scenario-arrow">➔</span>
-              </button>
-              <button class="pm-scenario-card" data-scenario="conv-print" type="button" title="自動開啟超商雲端 30 秒立印碼">
-                <div class="pm-scenario-icon">🏪</div>
-                <div class="pm-scenario-text">
-                  <strong>超商 30 秒快印</strong>
-                  <span>7-11 / 全家 · 立即取件</span>
-                </div>
-                <span class="pm-scenario-arrow">➔</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- Sample Artworks for 1-Click First Time Test -->
-          <div class="pm-sample-gallery-box">
-            <span class="pm-sample-gallery-label">✨ 沒有圖片？點擊立即試玩精選 AI 示範作品：</span>
-            <div class="pm-sample-pills">
-              <button class="pm-sample-pill-btn" data-sample="anime" type="button" title="點擊載入 800x800 日系動漫插畫，體驗貼紙自動適配與 USM 銳化">
-                <span>🎨</span> 日系動漫插畫 (貼紙)
-              </button>
-              <button class="pm-sample-pill-btn" data-sample="cyberpunk" type="button" title="點擊載入 A4 賽博龐克海報，體驗高飽和霓虹夜景與 TAC 溢墨防護">
-                <span>🌌</span> 賽博龐克夜景 (海報)
-              </button>
-              <button class="pm-sample-pill-btn" data-sample="card" type="button" title="點擊載入 90x54mm 商業名片，體驗微細文字向量化與細格萊妮紙">
-                <span>📇</span> 質感商業名片 (名片)
-              </button>
-            </div>
+        <!-- Clean Secondary Quick Sample Bar -->
+        <div class="pm-landing-sample-bar">
+          <span class="pm-landing-sample-label">✨ 沒有圖片？點擊立即試玩示範作品：</span>
+          <div class="pm-sample-pills">
+            <button class="pm-sample-pill-btn" data-sample="anime" type="button" title="日系動漫貼紙">
+              <span>🎨</span> 動漫貼紙
+            </button>
+            <button class="pm-sample-pill-btn" data-sample="cyberpunk" type="button" title="賽博龐克海報">
+              <span>🌌</span> 展覽海報
+            </button>
+            <button class="pm-sample-pill-btn" data-sample="card" type="button" title="商業名片">
+              <span>📇</span> 質感名片
+            </button>
           </div>
         </div>
       </section>
