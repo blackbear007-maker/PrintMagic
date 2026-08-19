@@ -110,6 +110,21 @@
   border-bottom-right-radius: 20px;
 }
 
+/* AI Settings Modal 2-Column Responsive Grid */
+.pm-ai-modal-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  align-items: stretch;
+}
+
+@media (max-width: 768px) {
+  .pm-ai-modal-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
 /* Hero DropZone */
 .pm-landing-container {
   max-width: 780px;
