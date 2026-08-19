@@ -1212,6 +1212,223 @@
   font-weight: 300;
 }
 
+/* Side-by-Side Main Layout: Slider (Left) + Weighted Metrics (Right) */
+.pm-compare-main-layout {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 20px;
+  max-width: 100%;
+  width: 100%;
+  flex-wrap: wrap;
+}
+
+.pm-compare-metrics-card {
+  width: 320px;
+  min-width: 280px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(24px);
+  border: 1px solid var(--pm-border-subtle);
+  border-radius: 16px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.04);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: pmScaleUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.pm-cmp-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--pm-border-subtle);
+}
+
+/* Score Transition Banner */
+.pm-cmp-score-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fbfbfd;
+  border: 1px solid var(--pm-border-subtle);
+  border-radius: 12px;
+  padding: 10px 14px;
+  gap: 8px;
+}
+
+.pm-cmp-score-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pm-cmp-score-label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--pm-text-muted);
+}
+
+.pm-cmp-score-num {
+  font-size: 1.25rem;
+  font-weight: 800;
+  font-family: var(--pm-font-mono);
+  color: var(--pm-text-primary);
+}
+
+.pm-cmp-after .pm-cmp-score-num {
+  color: #248a3d;
+}
+
+.pm-cmp-arrow-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.pm-cmp-arrow {
+  color: var(--pm-text-muted);
+  font-size: 0.75rem;
+}
+
+.pm-cmp-delta-pill {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: var(--pm-radius-full);
+  background: #f0f0f2;
+  color: var(--pm-text-secondary);
+}
+
+.pm-cmp-delta-pill.pm-delta-up {
+  background: rgba(52, 199, 89, 0.15);
+  color: #248a3d;
+}
+
+/* 7 Metrics Rows */
+.pm-cmp-metrics-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pm-cmp-metric-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 10px;
+  background: #ffffff;
+  border: 1px solid var(--pm-border-subtle);
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+  gap: 8px;
+}
+
+.pm-cmp-metric-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.pm-cmp-metric-icon {
+  font-size: 0.95rem;
+  flex-shrink: 0;
+}
+
+.pm-cmp-metric-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pm-cmp-metric-name {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--pm-text-primary);
+  white-space: nowrap;
+}
+
+.pm-cmp-metric-weight {
+  font-size: 0.62rem;
+  font-weight: 600;
+  background: #f0f0f2;
+  color: var(--pm-text-secondary);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+.pm-cmp-metric-sub {
+  font-size: 0.64rem;
+  color: var(--pm-text-muted);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pm-sub-before {
+  color: var(--pm-text-muted);
+}
+
+.pm-sub-after {
+  color: #0071e3;
+  font-weight: 600;
+}
+
+.pm-cmp-metric-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.pm-cmp-score-tags {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--pm-font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.pm-score-before {
+  color: var(--pm-text-muted);
+}
+
+.pm-score-after {
+  color: #248a3d;
+}
+
+.pm-cmp-item-delta {
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: #248a3d;
+  background: rgba(52, 199, 89, 0.12);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+.pm-cmp-item-delta.pm-delta-flat {
+  color: var(--pm-text-muted);
+  background: #f0f0f2;
+}
+
+.pm-cmp-card-footer {
+  padding-top: 8px;
+  border-top: 1px solid var(--pm-border-subtle);
+  font-size: 0.65rem;
+  color: var(--pm-text-muted);
+  text-align: center;
+  line-height: 1.35;
+}
+
 /* Diagnostic Card (Apple Health / System Monitor Style) */
 .pm-diagnostic-card {
   padding: 20px;

@@ -829,7 +829,16 @@ class App {
         this.compareSliderRoot.style.display = 'block';
         this.btnToggleCompare.classList.add('active');
         if (state.originalDataUrl && state.processedDataUrl) {
-          this.compareSlider.setImages(state.originalDataUrl, state.processedDataUrl);
+          this.compareSlider.setImages(
+            state.originalDataUrl,
+            state.processedDataUrl,
+            state.originalScoreResult || undefined,
+            state.scoreResult || undefined,
+            state.originalDpiAnalysis || undefined,
+            state.dpiAnalysis || undefined,
+            state.originalInkAnalysis || undefined,
+            state.inkAnalysis || undefined
+          );
         }
       } else {
         this.canvasSheet.style.display = 'inline-block';
