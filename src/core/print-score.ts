@@ -141,8 +141,8 @@ export class PrintScoreCalculator {
     // 5. Contrast Score (Weight: 10%)
     // ─────────────────────────────────────────────────────────────
     let contrastScore = 100;
-    if (stats.stdLum < 0.08) {
-      contrastScore = Math.max(60, Math.round((stats.stdLum / 0.08) * 100));
+    if (stats.stdLum < 0.05) {
+      contrastScore = Math.max(70, Math.round((stats.stdLum / 0.05) * 100));
       issues.push('畫面整體反差偏弱，印在紙張上容易顯得灰暗缺乏層次');
     }
 
@@ -150,8 +150,8 @@ export class PrintScoreCalculator {
     // 6. Sharpness & Edge Definition Score (Weight: 10%)
     // ─────────────────────────────────────────────────────────────
     let sharpnessScore = 100;
-    if (stats.edgeScore < 0.025) {
-      sharpnessScore = Math.max(60, Math.round((stats.edgeScore / 0.025) * 100));
+    if (stats.edgeScore < 0.03) {
+      sharpnessScore = Math.max(55, Math.round((stats.edgeScore / 0.03) * 100));
       issues.push('圖像細節線條邊緣偏軟，缺乏印刷所需的銳利度');
       recommendations.push('系統已自動套用 Pre-press 細部銳化補償 (USM)');
     }
