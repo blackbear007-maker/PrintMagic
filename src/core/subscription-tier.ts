@@ -31,6 +31,7 @@ export interface SubscriptionPlan {
   bleedExpanderAllowed: boolean;
   aiMattingAllowed: boolean;
   aiVectorizerAllowed: boolean;
+  pipelineCustomizerAllowed: boolean;
   monthlyAiQuota: number;
 }
 
@@ -53,6 +54,7 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
       { text: '雙面合版關聯製版 (名片/明信片/DM)', included: false },
       { text: '自動造型刀模 + 0.2mm 內縮白墨', included: false },
       { text: 'A4/A3 拼版試算 (省 80% 印刷費)', included: false },
+      { text: '🎛️ 專家級印前管線逐項開關自訂', included: false },
       { text: '🖼️ AI 智慧 3mm 出血外擴延伸', included: false },
       { text: '✂️ 髮絲級 AI 模切貼紙去背', included: false },
       { text: '✒️ AI 點陣轉真向量 SVG 貝茲曲線', included: false },
@@ -67,6 +69,7 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     bleedExpanderAllowed: false,
     aiMattingAllowed: false,
     aiVectorizerAllowed: false,
+    pipelineCustomizerAllowed: false,
     monthlyAiQuota: 0
   },
   {
@@ -81,6 +84,7 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     isPopular: true,
     features: [
       { text: '包含免費版全部功能', included: true },
+      { text: '🎛️ 專家印前管線逐項開關自訂 (放大/銳化/控墨/階調)', included: true, highlight: true },
       { text: '每月 500 點 AI 算力點數', included: true, highlight: true },
       { text: '20 張多圖批次連續製版', included: true, highlight: true },
       { text: '雙面合版關聯製版 (名片/明信片/DM)', included: true, highlight: true },
@@ -102,6 +106,7 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     bleedExpanderAllowed: false,
     aiMattingAllowed: true,
     aiVectorizerAllowed: false,
+    pipelineCustomizerAllowed: true,
     monthlyAiQuota: 500
   },
   {
@@ -115,6 +120,7 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     tagline: '廣告事務所、品牌總監與巨幅展覽專用 (每月 1000 點)',
     features: [
       { text: '包含 Pro 版全部功能', included: true },
+      { text: '🎛️ 專家印前管線逐項開關自訂 (放大/銳化/控墨/階調)', included: true, highlight: true },
       { text: '每月 1000 點高階 GPU 算力點數', included: true, highlight: true },
       { text: '🖼️ AI 智慧 3mm 出血外擴延伸 (解決裁切痛點)', included: true, highlight: true },
       { text: '✒️ AI 點陣圖轉真向量 SVG/EPS 貝茲曲線檔', included: true, highlight: true },
@@ -134,6 +140,7 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     bleedExpanderAllowed: true,
     aiMattingAllowed: true,
     aiVectorizerAllowed: true,
+    pipelineCustomizerAllowed: true,
     monthlyAiQuota: 1000
   }
 ];
@@ -208,7 +215,7 @@ export class SubscriptionManager {
   }
 
   public static canUseFeature(
-    feature: 'doubleSided' | 'dieline' | 'imposition' | 'pdfx' | 'vipAi' | 'batch' | 'bleedExpander' | 'aiMatting' | 'aiVectorizer'
+    feature: 'doubleSided' | 'dieline' | 'imposition' | 'pdfx' | 'vipAi' | 'batch' | 'bleedExpander' | 'aiMatting' | 'aiVectorizer' | 'pipelineCustomizer'
   ): boolean {
     const plan = this.getPlan();
     switch (feature) {
@@ -228,6 +235,8 @@ export class SubscriptionManager {
         return plan.aiMattingAllowed;
       case 'aiVectorizer':
         return plan.aiVectorizerAllowed;
+      case 'pipelineCustomizer':
+        return plan.pipelineCustomizerAllowed;
       case 'batch':
         return plan.maxBatchSize > 1;
       default:

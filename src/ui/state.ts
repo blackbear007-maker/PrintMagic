@@ -8,6 +8,7 @@ import type {
   ImagePixelStats,
   InkAnalysis,
   PaperType,
+  PipelineOptions,
   PrintPreset,
   PrintPresetId,
   PrintScoreResult
@@ -64,6 +65,7 @@ export interface AppState {
   isProcessing: boolean;
   processingStep: string;
   appliedScale: number;
+  pipelineOptions: PipelineOptions;
 }
 
 type Listener = (state: AppState) => void;
@@ -123,11 +125,19 @@ class StateStore {
     selectedPaper: 'glossy',
     showHeatmap: false,
     showSoftProof: false,
-    showSafeZone: true,
+    showSafeZone: false,
     isComparing: false,
     isProcessing: false,
     processingStep: '',
-    appliedScale: 1
+    appliedScale: 1,
+    pipelineOptions: {
+      enableUpscale: true,
+      enableSharpening: true,
+      enableInkLimiting: true,
+      enableShadowLift: true,
+      enableBleedExpand: true,
+      enableColorProofing: true
+    }
   };
 
   private listeners: Set<Listener> = new Set();
@@ -307,6 +317,37 @@ class StateStore {
       scoreResult: item.scoreResult || null,
       appliedScale: item.appliedScale || 1,
       cropAnchor: item.cropOffset?.anchor || 'center'
+    });
+  }
+
+  public setPipelineOption(key: keyof PipelineOptions, value: boolean): void {
+    this.setState({
+      pipelineOptions: {
+        ...this.state.pipelineOptions,
+        [key]: value
+      }
+    });
+  }
+
+  public setPipelineOptions(options: Partial<PipelineOptions>): void {
+    this.setState({
+      pipelineOptions: {
+        ...this.state.pipelineOptions,
+        ...options
+      }
+    });
+  }
+
+  public resetPipelineOptions(): void {
+    this.setState({
+      pipelineOptions: {
+        enableUpscale: true,
+        enableSharpening: true,
+        enableInkLimiting: true,
+        enableShadowLift: true,
+        enableBleedExpand: true,
+        enableColorProofing: true
+      }
     });
   }
 

@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { PrintScoreCalculator } from '../src/core/print-score';
 import { DpiCalculator } from '../src/core/dpi-calculator';
 import { ALL_PRESETS } from '../src/core/presets';
-import type { ImagePixelStats, InkAnalysis, PrintPreset } from '../src/types';
+import type { ImagePixelStats, InkAnalysis } from '../src/types';
 
 interface TestCase {
   id: number;
@@ -100,6 +100,7 @@ describe('50 Diverse Image Styles Benchmark & Scoring Verification', () => {
       };
       const initialInk: InkAnalysis = {
         maxTotalInk: tc.maxTac,
+        averageTotalInk: Math.min(220, tc.maxTac * 0.7),
         exceededPixelCount: tc.maxTac > 300 ? 500 : 0,
         exceededRatio: tc.maxTac > 300 ? 0.05 : 0,
         hasOverflow: tc.maxTac > 300,
@@ -124,6 +125,7 @@ describe('50 Diverse Image Styles Benchmark & Scoring Verification', () => {
       };
       const optimizedInk: InkAnalysis = {
         maxTotalInk: Math.min(300, tc.maxTac), // Post-TAC clamp
+        averageTotalInk: Math.min(200, tc.maxTac * 0.6),
         exceededPixelCount: 0,
         exceededRatio: 0,
         hasOverflow: false,

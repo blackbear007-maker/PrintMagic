@@ -37,6 +37,7 @@ import { VectorOverlayModal } from './ui/vector-overlay-modal';
 import { AiSettingsModal } from './ui/ai-settings-modal';
 import { PricingModal } from './ui/pricing-modal';
 import { OnboardingModal } from './ui/onboarding-modal';
+import { PipelineMatrixModal } from './ui/pipeline-matrix-modal';
 import { SubscriptionManager } from './core/subscription-tier';
 import { VipAiClient } from './services/vip-ai-client';
 import { BleedExpander } from './core/bleed-expander';
@@ -72,6 +73,7 @@ class App {
   public aiSettingsModal!: AiSettingsModal;
   public pricingModal!: PricingModal;
   public onboardingModal!: OnboardingModal;
+  public pipelineMatrixModal!: PipelineMatrixModal;
   public dropZoneInstance!: DropZone;
   public batchBar!: BatchBar;
   public cropController!: CropController;
@@ -145,6 +147,9 @@ class App {
       },
       () => {
         this.btnExportPdf.click();
+      },
+      () => {
+        this.pipelineMatrixModal.open();
       }
     );
 
@@ -180,12 +185,24 @@ class App {
     });
     this.pricingModal = new PricingModal(() => {
       this.updatePlanBadge();
+      this.pipelineMatrixModal.render();
     });
     this.onboardingModal = new OnboardingModal();
     this.aiSettingsModal = new AiSettingsModal(
       () => {
         const state = store.getState();
         if (state.originalImageData && state.aiUpscaleMode === 'cloud-ai' && state.engineMode === 'cloud') {
+          this.runOptimizationPipeline(state.originalImageData);
+        }
+      },
+      () => {
+        this.pricingModal.open();
+      }
+    );
+    this.pipelineMatrixModal = new PipelineMatrixModal(
+      () => {
+        const state = store.getState();
+        if (state.originalImageData) {
           this.runOptimizationPipeline(state.originalImageData);
         }
       },
@@ -268,6 +285,11 @@ class App {
     // Open AI Super-Resolution Settings & Token Modal
     document.getElementById('btnOpenAiSettings')?.addEventListener('click', () => {
       this.aiSettingsModal.open();
+    });
+
+    // Open Pro / VIP Expert Pipeline Matrix Modal
+    document.getElementById('btnOpenPipelineMatrix')?.addEventListener('click', () => {
+      this.pipelineMatrixModal.open();
     });
 
     // Open Commercial Subscription & Pricing Modal
@@ -992,9 +1014,10 @@ class App {
 
       let processedImgData = srcImageData;
       let appliedScale = 1;
+      const opts = state.pipelineOptions;
 
       // Step 1: Super-Resolution Upscaling (AI Neural Reconstructor vs Local 8x Pyramid)
-      if (originalDpiAnalysis.needsUpscale && originalDpiAnalysis.scaleFactor > 1) {
+      if (opts.enableUpscale && originalDpiAnalysis.needsUpscale && originalDpiAnalysis.scaleFactor > 1) {
         appliedScale = originalDpiAnalysis.scaleFactor;
 
         const isCloudAiAllowed = state.engineMode === 'cloud' && state.aiUpscaleMode === 'cloud-ai';
@@ -1047,17 +1070,21 @@ class App {
       }
 
       // Step 2: Pre-press Unsharp Mask Sharpening
-      store.setState({
-        processingStep: '3/4 正在套用印刷微細邊緣銳化補償 (USM)...'
-      });
-      processedImgData = await workerClient.unsharp(processedImgData, 1.5, 1, 3);
+      if (opts.enableSharpening) {
+        store.setState({
+          processingStep: '3/4 正在套用印刷微細邊緣銳化補償 (USM)...'
+        });
+        processedImgData = await workerClient.unsharp(processedImgData, 1.5, 1, 3);
+      }
 
       // Step 3: Total Area Coverage (TAC 300%) Clamp & Verification
-      store.setState({
-        processingStep: '4/4 正在檢測並修正總墨量 TAC 限制 (300%)...'
-      });
-      const clampResult = await workerClient.clampInk(processedImgData, 300);
-      processedImgData = clampResult.imageData;
+      if (opts.enableInkLimiting) {
+        store.setState({
+          processingStep: '4/4 正在檢測並修正總墨量 TAC 限制 (300%)...'
+        });
+        const clampResult = await workerClient.clampInk(processedImgData, 300);
+        processedImgData = clampResult.imageData;
+      }
 
       // Step 4: Post-Processing Diagnostic Evaluation
       const { stats, inkAnalysis } = await workerClient.analyze(processedImgData);

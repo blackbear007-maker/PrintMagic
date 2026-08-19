@@ -131,6 +131,24 @@ export interface PrintScoreResult {
   recommendations: string[];
 }
 
+export interface PipelineOptions {
+  enableUpscale: boolean;       // 🔍 AI 超解析度放大 (Lanczos-3 / AI Reconstructor)
+  enableSharpening: boolean;    // ✨ USM 微米邊緣銳化補償
+  enableInkLimiting: boolean;   // 🎨 TAC 300% 總墨量強制壓制保護
+  enableShadowLift: boolean;    // 🌓 暗部階調浮起與反差補償
+  enableBleedExpand: boolean;   // 📐 3mm 智慧出血自動補足
+  enableColorProofing: boolean; // 🌈 CMYK 描述檔色域映射
+}
+
+export const DEFAULT_PIPELINE_OPTIONS: PipelineOptions = {
+  enableUpscale: true,
+  enableSharpening: true,
+  enableInkLimiting: true,
+  enableShadowLift: true,
+  enableBleedExpand: true,
+  enableColorProofing: true
+};
+
 export interface OptimizationOptions {
   autoUpscale?: boolean;
   applySharpening?: boolean;

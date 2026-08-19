@@ -8,18 +8,21 @@ export class DiagnosticCard {
   private container: HTMLElement;
   private onDirectPrintClick?: () => void;
   private onExportPdfClick?: () => void;
+  private onOpenPipelineMatrix?: () => void;
   private isDetailsExpanded = false;
 
   constructor(
     containerId: string,
     onDirectPrintClick?: () => void,
-    onExportPdfClick?: () => void
+    onExportPdfClick?: () => void,
+    onOpenPipelineMatrix?: () => void
   ) {
     const el = document.getElementById(containerId);
     if (!el) throw new Error(`Diagnostic card #${containerId} not found`);
     this.container = el;
     this.onDirectPrintClick = onDirectPrintClick;
     this.onExportPdfClick = onExportPdfClick;
+    this.onOpenPipelineMatrix = onOpenPipelineMatrix;
   }
 
   public render(state: AppState): void {
@@ -122,14 +125,19 @@ export class DiagnosticCard {
           </div>
         </div>
 
-        <!-- 3. Key Hero Action Buttons (Direct Print & Standard PDF) -->
+        <!-- 3. Key Hero Action Buttons (Direct Print & Standard PDF & Pipeline Customizer) -->
         <div class="pm-diag-hero-actions">
           <button class="pm-btn pm-btn-artisan pm-btn-lg btn-diag-direct-print" title="一鍵即時試算健豪、卡之屋等台灣在地四大印刷廠價格並打包送印工單">
             <span>🏭</span> 台灣四大印刷廠一鍵估價 & 直通送印 ➔
           </button>
-          <button class="pm-btn pm-btn-secondary pm-btn-md btn-diag-export-pdf" title="下載含裁切十字、色條與出血之標準印刷 PDF">
-            <span>📄</span> 下載標準印刷 PDF
-          </button>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+            <button class="pm-btn pm-btn-secondary pm-btn-md btn-diag-export-pdf" title="下載含裁切十字、色條與出血之標準印刷 PDF">
+              <span>📄</span> 下載印刷 PDF
+            </button>
+            <button class="pm-btn pm-btn-secondary pm-btn-md btn-diag-open-pipeline" style="background: rgba(88, 86, 214, 0.08); color: #5856d6; border-color: rgba(88, 86, 214, 0.25);" title="🎛️ Pro/VIP 專屬：逐項開關自訂 AI 放大、銳化、控墨與階調處理">
+              <span>🎛️</span> 專家管線自訂
+            </button>
+          </div>
         </div>
 
         <!-- 4. Progressive Disclosure Accordion: Deep Technical Indicators -->
@@ -182,7 +190,14 @@ export class DiagnosticCard {
       }
     });
 
-    // 3. Accordion Toggle
+    // 3. Pipeline Matrix Customizer CTA
+    this.container.querySelector('.btn-diag-open-pipeline')?.addEventListener('click', () => {
+      if (this.onOpenPipelineMatrix) {
+        this.onOpenPipelineMatrix();
+      }
+    });
+
+    // 4. Accordion Toggle
     const accordionBtn = this.container.querySelector('#btnToggleDiagAccordion');
     accordionBtn?.addEventListener('click', () => {
       this.isDetailsExpanded = !this.isDetailsExpanded;
