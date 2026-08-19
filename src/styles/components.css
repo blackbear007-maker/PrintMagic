@@ -258,6 +258,92 @@
   transform: scale(0.97);
 }
 
+/* ============================================================
+   Smart Focal Crop & Alignment Segmented Pill Bar
+   ============================================================ */
+.pm-crop-toolbar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #e5e5ea;
+  padding: 3px 6px;
+  border-radius: var(--pm-radius-sm);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.pm-crop-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--pm-text-secondary);
+  white-space: nowrap;
+  user-select: none;
+}
+
+.pm-crop-buttons {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.pm-crop-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 8px;
+  border-radius: var(--pm-radius-xs);
+  background-color: transparent;
+  border: 1px solid transparent;
+  color: var(--pm-text-secondary);
+  font-size: 0.72rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
+  user-select: none;
+}
+
+.pm-crop-btn:hover {
+  color: var(--pm-text-primary);
+  background-color: rgba(255, 255, 255, 0.65);
+}
+
+.pm-crop-btn.active {
+  background-color: #ffffff;
+  border-color: rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  color: var(--pm-accent-blue);
+  font-weight: 700;
+}
+
+.pm-crop-btn:active {
+  transform: scale(0.95);
+}
+
+/* Stage Canvas & Preview Image */
+.pm-canvas-sheet {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+  border-radius: 4px;
+  overflow: hidden;
+  max-width: 100%;
+  max-height: 520px;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.pm-canvas-sheet img#mainPreviewImg {
+  display: block;
+  max-width: 100%;
+  max-height: 520px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), object-position 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
 /* First-Time Coachmark Banner */
 .pm-coachmark-banner {
   display: flex;
