@@ -88,11 +88,11 @@ class App {
   private btnModeSimple = document.getElementById('btnModeSimple');
   private btnModeAdvanced = document.getElementById('btnModeAdvanced');
   private btnNewArtwork = document.getElementById('btnNewArtwork')!;
-  private btnToggleSound = document.getElementById('btnToggleSound')!;
-  private soundIcon = document.getElementById('soundIcon')!;
-  private btnToggleEngine = document.getElementById('btnToggleEngine')!;
-  private engineStatusText = document.getElementById('engineStatusText')!;
-  private btnOpenCalibration = document.getElementById('btnOpenCalibration')!;
+  private btnToggleSound = document.getElementById('btnToggleSound');
+  private soundIcon = document.getElementById('soundIcon');
+  private btnToggleEngine = document.getElementById('btnToggleEngine');
+  private engineStatusText = document.getElementById('engineStatusText');
+  private btnOpenCalibration = document.getElementById('btnOpenCalibration');
   private mainPreviewImg = document.getElementById('mainPreviewImg') as HTMLImageElement;
   private canvasSheet = document.getElementById('canvasSheet')!;
   private stageContainer = document.getElementById('stageContainer')!;
@@ -278,7 +278,7 @@ class App {
 
   private bindEvents(): void {
     // Hybrid Dual-Engine Switcher
-    this.btnToggleEngine.addEventListener('click', async () => {
+    this.btnToggleEngine?.addEventListener('click', async () => {
       const current = store.getState().engineMode;
       SoundEffects.sliderTick();
 
@@ -388,7 +388,7 @@ class App {
     });
 
     // Screen Calibration
-    this.btnOpenCalibration.addEventListener('click', () => {
+    this.btnOpenCalibration?.addEventListener('click', () => {
       SoundEffects.sliderTick();
       this.calibrationModal.open();
     });
@@ -401,7 +401,7 @@ class App {
     });
 
     // Sound Toggle
-    this.btnToggleSound.addEventListener('click', () => {
+    this.btnToggleSound?.addEventListener('click', () => {
       const isMuted = SoundEffects.toggleMute();
       this.updateSoundIcon();
       Toast.info(isMuted ? '🔇 觸覺音效已靜音' : '🔊 觸覺音效已開啟');
@@ -915,7 +915,9 @@ class App {
 
   private updateSoundIcon(): void {
     const isMuted = SoundEffects.getIsMuted();
-    this.soundIcon.textContent = isMuted ? '🔇' : '🔊';
+    if (this.soundIcon) {
+      this.soundIcon.textContent = isMuted ? '🔇' : '🔊';
+    }
   }
 
   private subscribeState(): void {
@@ -928,14 +930,16 @@ class App {
       this.btnModeAdvanced?.classList.toggle('active', state.uiMode === 'advanced');
 
       // 1. Update Hybrid Engine Pill UI
-      this.btnToggleEngine.classList.toggle('pm-engine-cloud', state.engineMode === 'cloud');
-      this.btnToggleEngine.classList.toggle('pm-engine-offline', state.cloudStatus === 'offline');
+      this.btnToggleEngine?.classList.toggle('pm-engine-cloud', state.engineMode === 'cloud');
+      this.btnToggleEngine?.classList.toggle('pm-engine-offline', state.cloudStatus === 'offline');
       const aiUpscaleIcon = document.getElementById('aiUpscaleIcon');
       const aiUpscaleText = document.getElementById('aiUpscaleText');
       const btnToggleAiUpscale = document.getElementById('btnToggleAiUpscale');
 
       if (state.engineMode === 'cloud') {
-        this.engineStatusText.textContent = state.cloudStatus === 'online' ? '雲端工業模式 (在線)' : '雲端工業模式 (離線降級)';
+        if (this.engineStatusText) {
+          this.engineStatusText.textContent = state.cloudStatus === 'online' ? '雲端工業模式 (在線)' : '雲端工業模式 (離線降級)';
+        }
         if (btnToggleAiUpscale) btnToggleAiUpscale.title = '點擊切換 ⚡ 本機 8x 放大 與 🧠 雲端 AI 4x 重建';
         if (state.aiUpscaleMode === 'cloud-ai') {
           if (aiUpscaleIcon) aiUpscaleIcon.textContent = '🧠';
@@ -945,7 +949,9 @@ class App {
           if (aiUpscaleText) aiUpscaleText.textContent = '本機 8x 放大';
         }
       } else {
-        this.engineStatusText.textContent = '本機極速模式 (100% 離線)';
+        if (this.engineStatusText) {
+          this.engineStatusText.textContent = '本機極速模式 (100% 離線)';
+        }
         if (btnToggleAiUpscale) btnToggleAiUpscale.title = '🔒 本機極速模式 (100% 離線隱私保護，嚴格僅限本機引擎)';
         if (aiUpscaleIcon) aiUpscaleIcon.textContent = '⚡';
         if (aiUpscaleText) aiUpscaleText.textContent = '本機 8x 放大';
