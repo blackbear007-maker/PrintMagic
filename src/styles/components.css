@@ -3586,5 +3586,117 @@ body[data-ui-mode="advanced"] #advancedExportRow {
   border-radius: var(--pm-radius-lg);
 }
 
+/* ==========================================================================
+   ✨ Apple Floating Health & Score Badge (on Canvas Sheet)
+   ========================================================================== */
+.pm-stage-view {
+  position: relative;
+}
+
+.pm-canvas-score-pill {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 25;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 14px;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: var(--pm-radius-full);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04);
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.pm-canvas-score-pill:hover {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+  background: rgba(255, 255, 255, 0.96);
+}
+
+.pm-canvas-score-pill:active {
+  transform: scale(0.96);
+}
+
+.pm-score-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #34c759;
+  box-shadow: 0 0 8px rgba(52, 199, 89, 0.5);
+  animation: pmScoreDotPulse 2.4s infinite ease-in-out;
+}
+
+@keyframes pmScoreDotPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.25); opacity: 0.75; }
+}
+
+.pm-score-val {
+  font-size: 0.84rem;
+  font-weight: 800;
+  color: var(--pm-text-primary);
+  letter-spacing: -0.02em;
+}
+
+.pm-score-verdict {
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: #248a3d;
+}
+
+/* High / Mid / Low modifiers */
+.pm-canvas-score-pill.pm-score-pill-high .pm-score-dot {
+  background-color: #34c759;
+  box-shadow: 0 0 8px rgba(52, 199, 89, 0.6);
+}
+.pm-canvas-score-pill.pm-score-pill-high .pm-score-verdict {
+  color: #248a3d;
+}
+
+.pm-canvas-score-pill.pm-score-pill-mid .pm-score-dot {
+  background-color: #ff9500;
+  box-shadow: 0 0 8px rgba(255, 149, 0, 0.6);
+}
+.pm-canvas-score-pill.pm-score-pill-mid .pm-score-verdict {
+  color: #c97500;
+}
+
+.pm-canvas-score-pill.pm-score-pill-low .pm-score-dot {
+  background-color: #ff3b30;
+  box-shadow: 0 0 8px rgba(255, 59, 48, 0.6);
+}
+.pm-canvas-score-pill.pm-score-pill-low .pm-score-verdict {
+  color: #d62015;
+}
+
+/* Mobile Stage View Tweaks */
+@media (max-width: 768px) {
+  .pm-canvas-score-pill {
+    top: 10px;
+    right: 10px;
+    padding: 5px 11px;
+  }
+  .pm-score-val {
+    font-size: 0.78rem;
+  }
+  .pm-score-verdict {
+    font-size: 0.7rem;
+  }
+  .pm-stage-view {
+    min-height: 52vh;
+    padding: 16px 8px;
+  }
+  .pm-canvas-sheet img#mainPreviewImg {
+    max-height: 54vh;
+  }
+}
+
+
 
 

@@ -2,7 +2,7 @@ import './styles/index.css';
 import './styles/studio.css';
 import './styles/components.css';
 
-import { store } from './ui/state';
+import { store, type AppState } from './ui/state';
 import { DropZone, type LoadedImageResult } from './ui/dropzone';
 import { DiagnosticCard } from './ui/diagnostic-card';
 import { CompareSlider } from './ui/compare-slider';
@@ -747,6 +747,15 @@ class App {
     document.getElementById('btnOpenTextInspect')?.addEventListener('click', () => void openTextInspector());
     document.getElementById('btnOpenTextInspectHeader')?.addEventListener('click', () => void openTextInspector());
 
+    // Floating Canvas Score Pill Click -> Scroll smoothly to Diagnostic Card
+    document.getElementById('canvasScorePill')?.addEventListener('click', () => {
+      SoundEffects.shutterClick();
+      const card = document.getElementById('diagnosticCardRoot');
+      if (card) {
+        card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+
     // Open Smart Dieline & White Ink Modal
     document.getElementById('btnOpenDieline')?.addEventListener('click', () => {
       this.dielineModal.open();
@@ -1030,8 +1039,9 @@ class App {
         this.loupe.setImageData(state.processedImageData);
       }
 
-      // 10. Diagnostic Card
+      // 10. Diagnostic Card & Floating Canvas Score Pill
       this.diagnosticCard.render(state);
+      this.updateCanvasScorePill(state);
     });
   }
 
@@ -1421,6 +1431,33 @@ class App {
         btnEl.style.background = 'rgba(142, 142, 147, 0.12)';
         btnEl.style.color = 'var(--pm-text-muted)';
       }
+    }
+  }
+
+  private updateCanvasScorePill(state: AppState): void {
+    const pill = document.getElementById('canvasScorePill');
+    const text = document.getElementById('canvasScoreText');
+    const verdict = document.getElementById('canvasScoreVerdict');
+
+    if (!pill || !text || !verdict || !state.scoreResult || !state.processedDataUrl) {
+      if (pill) pill.style.display = 'none';
+      return;
+    }
+
+    pill.style.display = 'inline-flex';
+    const score = state.scoreResult.score;
+    text.textContent = `${score}分`;
+
+    pill.classList.remove('pm-score-pill-high', 'pm-score-pill-mid', 'pm-score-pill-low');
+    if (score >= 88) {
+      pill.classList.add('pm-score-pill-high');
+      verdict.textContent = '✨ 完美就緒';
+    } else if (score >= 75) {
+      pill.classList.add('pm-score-pill-mid');
+      verdict.textContent = '✓ 良好達標';
+    } else {
+      pill.classList.add('pm-score-pill-low');
+      verdict.textContent = '⚠️ 需確認';
     }
   }
 }

@@ -152,18 +152,18 @@
               <line x1="12" y1="3" x2="12" y2="15"></line>
             </svg>
           </div>
-          <h2 class="pm-dropzone-title">拖曳圖片到這裡，或點擊上傳</h2>
+          <h2 class="pm-dropzone-title">輕點選擇相片，瞬間變成完美印刷品</h2>
           <p class="pm-dropzone-desc">
-            自動 8x 金字塔超解析度 · 100 分印前檢測 · 3mm 智慧出血 (支援 PNG / JPG / WebP，多圖批次)
+            自動補足 3mm 出血防裁切 · 300 DPI 超高畫質 · 智慧除錯與墨量安全 (100% 離線純本機，免安裝)
           </p>
           <div class="pm-dropzone-cta-btn">
-            <span>＋ 選擇本機圖片</span>
+            <span>＋ 從相簿選擇相片</span>
           </div>
         </div>
 
         <!-- Clean Secondary Quick Sample Bar -->
         <div class="pm-landing-sample-bar">
-          <span class="pm-landing-sample-label">✨ 沒有圖片？點擊立即試玩示範作品：</span>
+          <span class="pm-landing-sample-label">✨ 或點擊立即體驗示範作品：</span>
           <div class="pm-sample-pills">
             <button class="pm-sample-pill-btn" data-sample="anime" type="button" title="日系動漫貼紙">
               <span>🎨</span> 動漫貼紙
@@ -280,6 +280,13 @@
 
           <!-- Stage Canvas Sheet -->
           <div class="pm-stage-view pm-paper-glossy" id="stageContainer">
+            <!-- Floating iOS Health / Score Badge -->
+            <div class="pm-canvas-score-pill" id="canvasScorePill" style="display: none;" title="點擊查看完整印前健檢報告">
+              <span id="canvasScoreDot" class="pm-score-dot"></span>
+              <span id="canvasScoreText" class="pm-score-val">100分</span>
+              <span id="canvasScoreVerdict" class="pm-score-verdict">✨ 完美就緒</span>
+            </div>
+
             <!-- Normal Single / Proof Canvas -->
             <div class="pm-canvas-sheet" id="canvasSheet">
               <img id="mainPreviewImg" src="" alt="預覽圖" />
@@ -306,15 +313,12 @@
           <div class="pm-export-bar">
             <!-- Simple Mode Export Actions Bar -->
             <div class="pm-export-simple-row" id="simpleExportRow">
-              <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                <button id="btnSimpleExportPdf" class="pm-btn pm-btn-primary pm-btn-md" style="font-weight: 700; box-shadow: 0 4px 12px rgba(0, 113, 227, 0.28);" title="一鍵下載含 3mm 出血之標準印刷 PDF">
+              <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; width: 100%;">
+                <button id="btnSimpleExportPdf" class="pm-btn pm-btn-primary pm-btn-md" style="font-weight: 700; box-shadow: 0 4px 14px rgba(0, 113, 227, 0.32);" title="一鍵下載含 3mm 出血之標準印刷 PDF">
                   <span>📄</span> 一鍵下載標準印刷 PDF
                 </button>
                 <button id="btnSimpleExportPng" class="pm-btn pm-btn-secondary pm-btn-md" title="匯出 300 DPI 高畫質 PNG 圖檔">
                   <span>📥</span> 下載 300 DPI PNG
-                </button>
-                <button id="btnSimpleTextInspect" class="pm-btn pm-btn-secondary pm-btn-md" style="background: rgba(52, 199, 89, 0.08); color: #248a3d; border-color: rgba(52, 199, 89, 0.25);" title="自動檢查圖片中的文字拼寫與 AI 亂碼">
-                  <span>📝</span> 檢查文字
                 </button>
                 <button id="btnSimpleConvPrint" class="pm-btn pm-btn-secondary pm-btn-md" title="7-11 ibon / 全家 FamiPort 超商 30 秒下樓立印">
                   <span>🏪</span> 超商立印
