@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { SUBSCRIPTION_PLANS, SubscriptionManager } from '../src/core/subscription-tier';
 
-describe('SubscriptionManager (Free 0 / Pro 399 / VIP 699)', () => {
+describe('SubscriptionManager (All Features Unlocked For Free Growth Phase)', () => {
   let store: Record<string, string> = {};
 
   beforeEach(() => {
@@ -21,49 +21,31 @@ describe('SubscriptionManager (Free 0 / Pro 399 / VIP 699)', () => {
     } as any;
   });
 
-  it('should define exactly 3 tiers with correct pricing', () => {
+  it('should define 3 base tier definitions in registry', () => {
     expect(SUBSCRIPTION_PLANS.length).toBe(3);
-
     const freePlan = SUBSCRIPTION_PLANS.find((p) => p.id === 'free')!;
     expect(freePlan.priceMonthly).toBe(0);
-    expect(freePlan.doubleSidedAllowed).toBe(false);
-    expect(freePlan.vipAiAllowed).toBe(false);
-
     const proPlan = SUBSCRIPTION_PLANS.find((p) => p.id === 'pro')!;
     expect(proPlan.priceMonthly).toBe(399);
-    expect(proPlan.doubleSidedAllowed).toBe(true);
-    expect(proPlan.pdfxExportAllowed).toBe(true);
-    expect(proPlan.vipAiAllowed).toBe(false);
-
     const vipPlan = SUBSCRIPTION_PLANS.find((p) => p.id === 'vip')!;
     expect(vipPlan.priceMonthly).toBe(699);
-    expect(vipPlan.vipAiAllowed).toBe(true);
-    expect(vipPlan.monthlyAiQuota).toBe(1000);
   });
 
-  it('should default to Free plan and allow upgrading to Pro and VIP', () => {
-    expect(SubscriptionManager.getCurrentPlanId()).toBe('free');
-    expect(SubscriptionManager.canUseFeature('vipAi')).toBe(false);
-
-    SubscriptionManager.setPlan('pro');
-    expect(SubscriptionManager.getCurrentPlanId()).toBe('pro');
-    expect(SubscriptionManager.canUseFeature('doubleSided')).toBe(true);
-    expect(SubscriptionManager.canUseFeature('vipAi')).toBe(false);
-
-    SubscriptionManager.setPlan('vip');
-    expect(SubscriptionManager.getCurrentPlanId()).toBe('vip');
+  it('should unlock 100% of Pro and VIP features for free users during growth phase', () => {
+    expect(SubscriptionManager.ALL_FREE_UNLOCKED).toBe(true);
     expect(SubscriptionManager.canUseFeature('vipAi')).toBe(true);
+    expect(SubscriptionManager.canUseFeature('doubleSided')).toBe(true);
+    expect(SubscriptionManager.canUseFeature('bleedExpander')).toBe(true);
+    expect(SubscriptionManager.canUseFeature('aiMatting')).toBe(true);
+    expect(SubscriptionManager.canUseFeature('aiVectorizer')).toBe(true);
+    expect(SubscriptionManager.canUseFeature('pipelineCustomizer')).toBe(true);
+    expect(SubscriptionManager.canUseFeature('pdfx')).toBe(true);
   });
 
-  it('should track quota usage accurately', () => {
-    SubscriptionManager.setPlan('vip');
-    expect(SubscriptionManager.getQuotaUsed()).toBe(0);
-
-    const ok1 = SubscriptionManager.consumeQuota(10);
-    expect(ok1).toBe(true);
-    expect(SubscriptionManager.getQuotaUsed()).toBe(10);
-
+  it('should provide unlimited quota during free growth phase', () => {
+    expect(SubscriptionManager.consumeQuota(50)).toBe(true);
     const state = SubscriptionManager.getSubscriptionState();
-    expect(state.monthlyQuotaRemaining).toBe(990);
+    expect(state.isSubscribed).toBe(true);
+    expect(state.monthlyQuotaRemaining).toBeGreaterThan(9000);
   });
 });

@@ -27,7 +27,7 @@ export class VectorOverlayModal {
     });
   }
 
-  public open(): void {
+  public open(prefillText?: string): void {
     const state = store.getState();
     if (!state.processedDataUrl && !state.originalDataUrl) {
       Toast.error('請先上傳圖片');
@@ -36,6 +36,12 @@ export class VectorOverlayModal {
 
     SoundEffects.sliderTick();
     this.render();
+    if (prefillText) {
+      const input = this.modalEl.querySelector('#inputOverlayText') as HTMLInputElement;
+      if (input) {
+        input.value = prefillText;
+      }
+    }
     this.modalEl.style.display = 'flex';
   }
 

@@ -157,6 +157,11 @@ export class SubscriptionManager {
   private static readonly STORAGE_KEY = 'printmagic_subscription_plan';
   private static readonly QUOTA_KEY = 'printmagic_ai_quota_used';
 
+  /**
+   * Growth Phase Flag: Unlock 100% of Pro and VIP features for free
+   */
+  public static readonly ALL_FREE_UNLOCKED = true;
+
   public static getCurrentPlanId(): SubscriptionPlanId {
     if (typeof localStorage !== 'undefined') {
       const saved = localStorage.getItem(this.STORAGE_KEY) as SubscriptionPlanId;
@@ -186,6 +191,14 @@ export class SubscriptionManager {
   }
 
   public static consumeQuota(count: number = 1): boolean {
+    if (this.ALL_FREE_UNLOCKED) {
+      if (typeof localStorage !== 'undefined') {
+        const used = this.getQuotaUsed();
+        localStorage.setItem(this.QUOTA_KEY, (used + count).toString());
+      }
+      return true; // Unlimited quota in free unlocked mode
+    }
+
     const plan = this.getPlan();
     if (plan.id === 'free') return false;
 
@@ -201,6 +214,16 @@ export class SubscriptionManager {
   }
 
   public static getSubscriptionState(): UserSubscriptionState {
+    if (this.ALL_FREE_UNLOCKED) {
+      return {
+        planId: 'free',
+        planName: '全功能開放體驗 (限時免費)',
+        monthlyQuotaRemaining: 99999,
+        expiresAt: '2026-12-31',
+        isSubscribed: true
+      };
+    }
+
     const plan = this.getPlan();
     const used = this.getQuotaUsed();
     const remaining = Math.max(0, plan.monthlyAiQuota - used);
@@ -217,6 +240,10 @@ export class SubscriptionManager {
   public static canUseFeature(
     feature: 'doubleSided' | 'dieline' | 'imposition' | 'pdfx' | 'vipAi' | 'batch' | 'bleedExpander' | 'aiMatting' | 'aiVectorizer' | 'pipelineCustomizer'
   ): boolean {
+    if (this.ALL_FREE_UNLOCKED) {
+      return true; // Unlock all features for free
+    }
+
     const plan = this.getPlan();
     switch (feature) {
       case 'doubleSided':

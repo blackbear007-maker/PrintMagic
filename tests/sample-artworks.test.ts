@@ -47,7 +47,7 @@ describe('SampleArtworks Service (FTUX Onboarding)', () => {
   it('should generate anime sticker sample file with valid properties', async () => {
     const file = await SampleArtworks.loadSample('anime');
     expect(file).toBeDefined();
-    expect(file.name).toBe('sample-anime-sticker.png');
+    expect(file.name).toBe('sample-anime-sticker-72dpi.png');
     expect(file.type).toBe('image/png');
     expect(file.size).toBeGreaterThan(0);
   });
@@ -55,7 +55,7 @@ describe('SampleArtworks Service (FTUX Onboarding)', () => {
   it('should generate cyberpunk poster sample file with valid properties', async () => {
     const file = await SampleArtworks.loadSample('cyberpunk');
     expect(file).toBeDefined();
-    expect(file.name).toBe('sample-cyberpunk-poster.png');
+    expect(file.name).toBe('sample-cyberpunk-poster-72dpi.png');
     expect(file.type).toBe('image/png');
     expect(file.size).toBeGreaterThan(0);
   });
@@ -63,7 +63,7 @@ describe('SampleArtworks Service (FTUX Onboarding)', () => {
   it('should generate business card sample file with valid properties', async () => {
     const file = await SampleArtworks.loadSample('card');
     expect(file).toBeDefined();
-    expect(file.name).toBe('sample-business-card.png');
+    expect(file.name).toBe('sample-business-card-72dpi.png');
     expect(file.type).toBe('image/png');
     expect(file.size).toBeGreaterThan(0);
   });

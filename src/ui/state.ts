@@ -11,7 +11,9 @@ import type {
   PipelineOptions,
   PrintPreset,
   PrintPresetId,
-  PrintScoreResult
+  PrintScoreResult,
+  TextInspectionResult,
+  UiMode
 } from '../types';
 import { DEFAULT_PRESET, getPresetById } from '../core/presets';
 
@@ -33,10 +35,14 @@ export interface AppState {
   processedWidth: number;
   processedHeight: number;
 
-  // Analysis
+  // Analysis & Verification
   dpiAnalysis: DpiAnalysis | null;
   inkAnalysis: InkAnalysis | null;
   scoreResult: PrintScoreResult | null;
+  textInspectionResult: TextInspectionResult | null;
+
+  // UI Complexity Mode (Default: simple)
+  uiMode: UiMode;
 
   // Batch Studio Queue
   batchItems: BatchItem[];
@@ -69,6 +75,16 @@ export interface AppState {
 }
 
 type Listener = (state: AppState) => void;
+
+function loadStoredUiMode(): UiMode {
+  if (typeof localStorage !== 'undefined') {
+    const saved = localStorage.getItem('printmagic_ui_mode');
+    if (saved === 'simple' || saved === 'advanced') {
+      return saved;
+    }
+  }
+  return 'simple'; // Default to beginner-friendly Simple Mode
+}
 
 function loadStoredPpi(): number {
   if (typeof localStorage !== 'undefined') {
@@ -103,6 +119,9 @@ class StateStore {
     dpiAnalysis: null,
     inkAnalysis: null,
     scoreResult: null,
+    textInspectionResult: null,
+
+    uiMode: loadStoredUiMode(),
 
     batchItems: [],
     activeBatchId: null,
@@ -214,6 +233,25 @@ class StateStore {
     const next = this.state.aiUpscaleMode === 'local' ? 'cloud-ai' : 'local';
     this.setState({ aiUpscaleMode: next });
     return next;
+  }
+
+  // --- UI Complexity Mode Actions ---
+
+  public setUiMode(mode: UiMode): void {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('printmagic_ui_mode', mode);
+    }
+    this.setState({ uiMode: mode });
+  }
+
+  public toggleUiMode(): UiMode {
+    const next: UiMode = this.state.uiMode === 'simple' ? 'advanced' : 'simple';
+    this.setUiMode(next);
+    return next;
+  }
+
+  public setTextInspectionResult(result: TextInspectionResult | null): void {
+    this.setState({ textInspectionResult: result });
   }
 
   public setScreenPpi(ppi: number): void {

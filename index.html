@@ -4,13 +4,16 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>PrintMagic — 專業雙引擎 AI 圖片印刷準備工作室</title>
-  <meta name="description" content="專為 AI 生成圖打造的專業印刷出圖準備工作室。雙引擎混合架構：100% 離線本機極速運算 + 雲端工業級 PDF/X 國際印刷規範輸出。" />
+  <meta name="description" content="專為手機與創作者打造的 100% 離線 AI 圖片印刷出圖與文字檢查準備工作室。支援本機 8x 超解析度、3mm 出血防切、總墨量 TAC 安全校正與超商立印。" />
   <link rel="icon" type="image/svg+xml" href="xiaoxiang-avatar.svg" />
+  <link rel="apple-touch-icon" href="xiaoxiang-avatar.svg" />
+  <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#f5f5f7" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="PrintMagic" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 </head>
-<body>
+<body data-ui-mode="simple">
   <div class="pm-app" id="app">
     <!-- Studio Header -->
     <header class="pm-header">
@@ -18,37 +21,43 @@
         <div class="pm-brand">
           <div class="pm-logo-icon">✨</div>
           <span class="pm-logo-text">PrintMagic</span>
-          <button id="btnOpenPricing" class="pm-badge-pro" style="cursor: pointer; border: none;" title="點擊檢視/升級 PrintMagic 商業方案 (Free 0 / Pro 399 / VIP 699)">
-            <span id="planBadgeText">FREE 免費版</span>
+        </div>
+
+        <!-- Mode Switcher: Simple (Default, Beginner Friendly) vs Advanced (Pro Tools) -->
+        <div class="pm-mode-switch-wrapper" id="modeSwitchWrapper">
+          <button id="btnModeSimple" class="pm-mode-btn active" title="預設簡易模式：無腦一鍵搞定，最直觀的品質提升">
+            <span>🌱</span> 簡易
+          </button>
+          <button id="btnModeAdvanced" class="pm-mode-btn" title="進階模式：展開全部 AI 魔法、製版、燙金工藝與 ICC 描述檔">
+            <span>⚙️</span> 進階
           </button>
         </div>
 
         <div class="pm-header-actions">
-          <!-- Hybrid Dual-Engine Status Switcher -->
-          <button id="btnToggleEngine" class="pm-privacy-pill" title="點擊切換 🖥️ 本機極速 (100% 離線) / ☁️ 雲端工業 PDF/X 引擎">
-            <span class="pm-privacy-dot" id="engineStatusDot"></span>
-            <span id="engineStatusText">本機極速模式</span>
+          <!-- Text Inspection Quick Action (Advanced Only) -->
+          <button id="btnOpenTextInspectHeader" class="pm-tool-btn pm-advanced-only" style="background: rgba(52, 199, 89, 0.08); color: #248a3d; border-color: rgba(52, 199, 89, 0.25); font-weight: 600;" title="自動檢測圖片中的文字拼寫與 AI 繪圖偽字亂碼">
+            <span>📝</span> 檢查文字
           </button>
 
-          <!-- AI Super-Resolution Neural Reconstructor Toggle -->
-          <div style="display: inline-flex; align-items: center; gap: 4px;">
-            <button id="btnToggleAiUpscale" class="pm-tool-btn" title="點擊切換 ⚡ 本機 8x 金字塔超解析度 (0.1s) 與 🧠 雲端 AI 深度學習細節重建 (Real-ESRGAN 4x)">
+          <!-- AI Super-Resolution Neural Reconstructor Toggle (Advanced Only) -->
+          <div class="pm-advanced-only" style="display: inline-flex; align-items: center; gap: 4px;">
+            <button id="btnToggleAiUpscale" class="pm-tool-btn" title="點擊切換 ⚡ 本機 8x 金字塔超解析度 (0.1s) 與 🧠 開源 AI 深度學習細節重建 (Real-ESRGAN 4x)">
               <span id="aiUpscaleIcon">⚡</span>
               <span id="aiUpscaleText">本機 8x 放大</span>
             </button>
             <button id="btnOpenAiSettings" class="pm-tool-btn" style="padding: 6px 8px;" title="設定 AI 超解析度神經網路模型 (Real-ESRGAN / Anime6B / Waifu2x) 與免費 Token">
               <span>⚙️</span>
             </button>
-            <button id="btnOpenPipelineMatrix" class="pm-tool-btn" style="padding: 6px 10px; background: rgba(88, 86, 214, 0.08); color: #5856d6; border-color: rgba(88, 86, 214, 0.25);" title="🎛️ Pro/VIP 專家級印前管線開關：自由自訂 AI 放大、銳化、控墨與階調處理">
+            <button id="btnOpenPipelineMatrix" class="pm-tool-btn" style="padding: 6px 10px; background: rgba(88, 86, 214, 0.08); color: #5856d6; border-color: rgba(88, 86, 214, 0.25);" title="🎛️ 專家級印前管線開關：自由自訂 AI 放大、銳化、控墨與階調處理 (測試版免費開放)">
               <span>🎛️</span> <span style="font-size: 0.76rem; font-weight: 700;">管線自訂</span>
             </button>
           </div>
 
-          <button id="btnOpenGuide" class="pm-tool-btn" style="background: rgba(0, 113, 227, 0.08); color: var(--pm-accent-blue); font-weight: 600; border-color: rgba(0, 113, 227, 0.2);" title="查看 30 秒 3 步速成指南">
+          <button id="btnOpenGuide" class="pm-tool-btn pm-advanced-only" style="background: rgba(0, 113, 227, 0.08); color: var(--pm-accent-blue); font-weight: 600; border-color: rgba(0, 113, 227, 0.2);" title="查看 30 秒 3 步速成指南">
             <span>💡</span> 新手指南
           </button>
 
-          <button id="btnOpenCalibration" class="pm-tool-btn" title="拿一張信用卡貼在螢幕上校準 1:1 真實物理尺寸 PPI">
+          <button id="btnOpenCalibration" class="pm-tool-btn pm-advanced-only" title="拿一張信用卡貼在螢幕上校準 1:1 真實物理尺寸 PPI">
             <span>📏</span> 螢幕校準
           </button>
 
@@ -56,8 +65,8 @@
             <span id="soundIcon">🔊</span>
           </button>
 
-          <button id="btnNewArtwork" class="pm-btn pm-btn-ghost" style="display: none;">
-            <span>＋ 更換新圖片</span>
+          <button id="btnNewArtwork" class="pm-btn pm-btn-ghost" style="display: none; padding: 5px 12px; font-size: 0.78rem; font-weight: 600;">
+            <span>＋ 更換圖片</span>
           </button>
         </div>
       </div>
@@ -66,28 +75,66 @@
     <!-- Preset Selection Bar -->
     <nav class="pm-preset-bar">
       <div class="pm-preset-bar-inner">
-        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+        <!-- 1. Simple Mode: Single Auto-Detected Preset Pill + Switch Button + Dropdown Selector -->
+        <div class="pm-simple-preset-bar" id="simplePresetBar">
           <span class="pm-preset-label">印刷場景</span>
-          <span id="presetAutoBadge" class="pm-preset-auto-badge" style="display: none;">✨ 智慧適配</span>
-          <div class="pm-preset-tabs" id="presetTabs">
-            <button class="pm-preset-btn active" data-preset="poster-a4">
-              <span>📄</span> A4 經典海報 (210×297mm)
+          <div class="pm-simple-preset-pill" id="simplePresetActivePill">
+            <span id="simplePresetIcon">📄</span>
+            <span id="simplePresetName" style="font-weight: 700; color: var(--pm-text-primary);">A4 經典海報 (210×297mm)</span>
+            <span class="pm-preset-auto-badge" id="simplePresetAutoBadge">✨ 自動偵測</span>
+          </div>
+          <div class="pm-simple-preset-switch-wrapper">
+            <button id="btnToggleSimplePresetDropdown" class="pm-btn pm-btn-ghost pm-btn-sm" type="button" style="border: 1px solid var(--pm-border-subtle); border-radius: 20px; font-weight: 600; padding: 5px 12px;" title="點擊切換為其他印刷規格 (A3/明信片/名片/貼紙/社群)">
+              <span>🔄</span> 切換規格 <span class="pm-dropdown-arrow">▾</span>
             </button>
-            <button class="pm-preset-btn" data-preset="poster-a3">
-              <span>🖼️</span> A3 展覽大圖 (297×420mm)
-            </button>
-            <button class="pm-preset-btn" data-preset="postcard">
-              <span>✉️</span> 藝術明信片 (148×100mm)
-            </button>
-            <button class="pm-preset-btn" data-preset="business-card">
-              <span>📇</span> 商業名片 (90×54mm)
-            </button>
-            <button class="pm-preset-btn" data-preset="sticker">
-              <span>🏷️</span> 模切貼紙 (50×50mm)
-            </button>
-            <button class="pm-preset-btn" data-preset="social">
-              <span>📱</span> 社群高畫質 (1080px)
-            </button>
+            <div id="simplePresetDropdown" class="pm-simple-preset-dropdown" style="display: none;">
+              <button class="pm-preset-btn active" data-preset="poster-a4">
+                <span>📄</span> A4 經典海報 (210×297mm)
+              </button>
+              <button class="pm-preset-btn" data-preset="poster-a3">
+                <span>🖼️</span> A3 展覽大圖 (297×420mm)
+              </button>
+              <button class="pm-preset-btn" data-preset="postcard">
+                <span>✉️</span> 藝術明信片 (148×100mm)
+              </button>
+              <button class="pm-preset-btn" data-preset="business-card">
+                <span>📇</span> 商業名片 (90×54mm)
+              </button>
+              <button class="pm-preset-btn" data-preset="sticker">
+                <span>🏷️</span> 模切貼紙 (50×50mm)
+              </button>
+              <button class="pm-preset-btn" data-preset="social">
+                <span>📱</span> 社群高畫質 (1080px)
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Advanced Mode: Full Tab Bar -->
+        <div class="pm-advanced-preset-bar pm-advanced-only" id="advancedPresetBar">
+          <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+            <span class="pm-preset-label">印刷場景</span>
+            <span id="presetAutoBadge" class="pm-preset-auto-badge" style="display: none;">✨ 智慧適配</span>
+            <div class="pm-preset-tabs" id="presetTabs">
+              <button class="pm-preset-btn active" data-preset="poster-a4">
+                <span>📄</span> A4 經典海報 (210×297mm)
+              </button>
+              <button class="pm-preset-btn" data-preset="poster-a3">
+                <span>🖼️</span> A3 展覽大圖 (297×420mm)
+              </button>
+              <button class="pm-preset-btn" data-preset="postcard">
+                <span>✉️</span> 藝術明信片 (148×100mm)
+              </button>
+              <button class="pm-preset-btn" data-preset="business-card">
+                <span>📇</span> 商業名片 (90×54mm)
+              </button>
+              <button class="pm-preset-btn" data-preset="sticker">
+                <span>🏷️</span> 模切貼紙 (50×50mm)
+              </button>
+              <button class="pm-preset-btn" data-preset="social">
+                <span>📱</span> 社群高畫質 (1080px)
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -135,22 +182,27 @@
       <section class="pm-studio-grid" id="studioWorkspace" style="display: none;">
         <!-- Left: Stage Canvas & Views -->
         <div class="pm-card">
-          <!-- First-Time Coachmark Banner (Appears only on first upload) -->
-          <div id="coachmarkBanner" class="pm-coachmark-banner" style="display: none;">
-            <div class="pm-coachmark-content">
-              <span class="pm-coachmark-icon">💡</span>
-              <span class="pm-coachmark-text">
-                <strong>新手指南：</strong> 點擊 <strong>「👁️ 原圖對比」</strong> 查看超解析度前後差異；點擊右側 <strong>「🏭 台灣四大印刷廠一鍵估價 & 直通送印」</strong> 查看即時報價！
-              </span>
-            </div>
-            <button id="btnDismissCoachmark" class="pm-coachmark-dismiss" type="button">✕ 知道了</button>
-          </div>
-
           <!-- View Modes & Materials Bar -->
           <div class="pm-view-toolbar">
             <div class="pm-view-toolbar-primary">
-              <!-- Double-Sided Linking Selector (Front / Back) -->
-              <div class="pm-double-sided-group pm-paper-selector">
+              <!-- Essential Quick Actions (Simple & Advanced) -->
+              <div class="pm-toggle-group">
+                <button id="btnToggleCompare" class="pm-tool-btn" title="切換雙向滑桿對比檢視，一秒查看優化前後細節差異">
+                  <span>👁️</span> 原圖對比
+                </button>
+                <button id="btnOpenObjectEraser" class="pm-tool-btn" style="background: rgba(255, 45, 85, 0.08); color: #d6204b; border-color: rgba(255, 45, 85, 0.25); font-weight: 600;" title="使用 AI 智慧塗抹消除筆移除相片中多餘的人物、浮水印、背景雜物或瑕疵">
+                  <span>🪄</span> 消除物件
+                </button>
+                <button id="btnOpenTextInspect" class="pm-tool-btn" style="background: rgba(52, 199, 89, 0.08); color: #248a3d; border-color: rgba(52, 199, 89, 0.25); font-weight: 600;" title="自動辨識圖中文字，檢查 AI 繪圖常見的英文拼寫錯誤與怪異亂碼">
+                  <span>📝</span> 檢查文字
+                </button>
+                <button id="btnToggleLoupe" class="pm-tool-btn pm-advanced-only" title="切換 20x CMYK 玫瑰網點顯微放大鏡">
+                  <span>🔍</span> 20x 網點
+                </button>
+              </div>
+
+              <!-- Double-Sided Linking Selector (Advanced Only) -->
+              <div class="pm-double-sided-group pm-paper-selector pm-advanced-only">
                 <button id="btnSideFront" class="pm-paper-btn active" title="檢視與編輯【正面】視覺">
                   🖼️ 正面
                 </button>
@@ -162,17 +214,8 @@
                 </button>
               </div>
 
-              <div class="pm-toggle-group">
-                <button id="btnToggleCompare" class="pm-tool-btn" title="切換雙向滑桿對比檢視">
-                  <span>👁️</span> 原圖對比
-                </button>
-                <button id="btnToggleLoupe" class="pm-tool-btn" title="切換 20x CMYK 玫瑰網點顯微放大鏡">
-                  <span>🔍</span> 20x 網點
-                </button>
-              </div>
-
-              <!-- Paper Material Selector with Plain-Language Subtitles -->
-              <div class="pm-paper-selector">
+              <!-- Paper Material Selector (Advanced Only) -->
+              <div class="pm-paper-selector pm-advanced-only">
                 <span class="pm-paper-label">紙材：</span>
                 <button class="pm-paper-btn active" data-paper="glossy" title="超光銅版：亮面鮮豔反光佳，適合全彩海報與高彩度插畫">
                   超光銅版 <span class="pm-paper-sub">亮面鮮豔</span>
@@ -189,8 +232,8 @@
               </div>
             </div>
 
-            <!-- Pro Tools & Smart Crop & 3D Foil Craft & ICC -->
-            <div class="pm-view-toolbar-secondary">
+            <!-- Pro Tools & Smart Crop & 3D Foil Craft & ICC (Advanced Only) -->
+            <div class="pm-view-toolbar-secondary pm-advanced-only">
               <div id="cropToolbarRoot"></div>
 
               <!-- ICC Profile Selector -->
@@ -259,66 +302,78 @@
             </div>
           </div>
 
-          <!-- Bottom Action Export Bar -->
+          <!-- Bottom Action Export Bar (Dual Simple / Advanced Rendering) -->
           <div class="pm-export-bar">
-            <div class="pm-export-left-tools">
-              <!-- Group 1: AI Superpowers -->
-              <div class="pm-tool-group">
-                <span class="pm-tool-group-label">✨ AI 魔法</span>
-                <button id="btnAiBleedOutpaint" class="pm-btn pm-btn-secondary" title="💎 VIP 專屬：AI 智慧 3mm 出血外擴延伸，防止裁切切到主體頭部">
-                  <span>🖼️</span> 補足出血
+            <!-- Simple Mode Export Actions Bar -->
+            <div class="pm-export-simple-row" id="simpleExportRow">
+              <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                <button id="btnSimpleExportPdf" class="pm-btn pm-btn-primary pm-btn-md" style="font-weight: 700; box-shadow: 0 4px 12px rgba(0, 113, 227, 0.28);" title="一鍵下載含 3mm 出血之標準印刷 PDF">
+                  <span>📄</span> 一鍵下載標準印刷 PDF
                 </button>
-                <button id="btnAiRemoveBg" class="pm-btn pm-btn-secondary" title="👑 Pro/VIP 專屬：髮絲級一鍵 AI 精準去背，自動銜接白墨與刀模線">
-                  <span>✂️</span> 髮絲去背
+                <button id="btnSimpleExportPng" class="pm-btn pm-btn-secondary pm-btn-md" title="匯出 300 DPI 高畫質 PNG 圖檔">
+                  <span>📥</span> 下載 300 DPI PNG
                 </button>
-                <button id="btnAiVectorizer" class="pm-btn pm-btn-secondary" title="💎 VIP 專屬：AI 點陣轉真向量 SVG 貝茲曲線檔，無限放大無鋸齒">
-                  <span>✒️</span> 轉真向量
+                <button id="btnSimpleTextInspect" class="pm-btn pm-btn-secondary pm-btn-md" style="background: rgba(52, 199, 89, 0.08); color: #248a3d; border-color: rgba(52, 199, 89, 0.25);" title="自動檢查圖片中的文字拼寫與 AI 亂碼">
+                  <span>📝</span> 檢查文字
                 </button>
-                <button id="btnOpenVectorOverlay" class="pm-btn pm-btn-secondary" title="防止小字混黑糊邊！添加單色 K100 純黑文字與向量標誌">
-                  <span>🔤</span> K100黑字
-                </button>
-              </div>
-
-              <!-- Group 2: Production & Delivery -->
-              <div class="pm-tool-group">
-                <span class="pm-tool-group-label">🏭 送印與製版</span>
-                <button id="btnOpenDirectPrint" class="pm-btn pm-btn-artisan" style="background: linear-gradient(135deg, #ff6b35, #e0481d); color: #fff; font-weight: 700; box-shadow: 0 4px 12px rgba(255, 107, 53, 0.35);" title="一鍵即時估價台灣四大印刷廠 (健豪/卡之屋/經典/藍格) 並打包送印工單">
-                  <span>🏭</span> 直通送印
-                </button>
-                <button id="btnOpenConvPrint" class="pm-btn pm-btn-secondary" title="7-11 ibon / 全家 FamiPort 雲端立印，30秒下樓即可取件">
+                <button id="btnSimpleConvPrint" class="pm-btn pm-btn-secondary pm-btn-md" title="7-11 ibon / 全家 FamiPort 超商 30 秒下樓立印">
                   <span>🏪</span> 超商立印
-                </button>
-                <button id="btnOpenImposition" class="pm-btn pm-btn-secondary" title="一張 A4/A3 自動拼入 8~24 模，現省 70% 費用">
-                  <span>🧩</span> 智慧拼模
-                </button>
-                <button id="btnOpenDieline" class="pm-btn pm-btn-secondary" title="透明貼紙專用：一鍵生成 0.2mm 內縮白墨層與 2mm 洋紅外擴向量刀模線">
-                  <span>🏷️</span> 刀模白墨
-                </button>
-                <button id="btnOpenSpec" class="pm-btn pm-btn-secondary" title="送印溝小抄，一鍵複製專業規格給印刷師傅">
-                  <span>📋</span> 送印小抄
-                </button>
-                <button id="btnOpenMockup" class="pm-btn pm-btn-secondary" title="一鍵生成現代美術館畫框、北歐書桌情境宣傳圖">
-                  <span>🖼️</span> Mockup
-                </button>
-                <button id="btnOpenShops" class="pm-btn pm-btn-secondary" title="以 GPS 定位即時尋找離您最近的專業商業印刷廠">
-                  <span>📍</span> 附近門市
                 </button>
               </div>
             </div>
 
-            <div class="pm-export-right-actions">
-              <button id="btnExportPdf" class="pm-btn pm-btn-primary" title="匯出含裁切十字與出血之標準印刷 PDF">
-                <span>📄</span> 下載標準 PDF
-              </button>
-              <button id="btnExportPng" class="pm-btn pm-btn-secondary" title="匯出 300 DPI 高解析度 PNG">
-                <span>📥</span> 下載 PNG
-              </button>
-              <button id="btnExportSvg" class="pm-btn pm-btn-secondary" title="以 Potrace 演算法轉為無失真向量 SVG">
-                <span>⬡</span> 向量 SVG
-              </button>
-              <button id="btnExportPdfx" class="pm-btn pm-btn-secondary" title="透過雲端工業級引擎生成符合 ISO 15930 規範之 PDF/X-1a 印刷標準檔">
-                <span>⚡</span> 雲端 PDF/X
-              </button>
+            <!-- Advanced Mode Comprehensive Tools Bar -->
+            <div class="pm-export-advanced-row pm-advanced-only" id="advancedExportRow">
+              <div class="pm-export-left-tools">
+                <!-- Group 1: AI Superpowers -->
+                <div class="pm-tool-group">
+                  <span class="pm-tool-group-label">✨ AI 魔法</span>
+                  <button id="btnAiBleedOutpaint" class="pm-btn pm-btn-secondary" title="AI 智慧 3mm 出血外擴延伸，防止裁切切到主體頭部 (測試版免費開放)">
+                    <span>🖼️</span> 補足出血
+                  </button>
+                  <button id="btnAiRemoveBg" class="pm-btn pm-btn-secondary" title="髮絲級一鍵 AI 精準去背，自動銜接白墨與刀模線 (測試版免費開放)">
+                    <span>✂️</span> 髮絲去背
+                  </button>
+                  <button id="btnAiVectorizer" class="pm-btn pm-btn-secondary" title="AI 點陣轉真向量 SVG 貝茲曲線檔，無限放大無鋸齒 (測試版免費開放)">
+                    <span>✒️</span> 轉真向量
+                  </button>
+                  <button id="btnOpenVectorOverlay" class="pm-btn pm-btn-secondary" title="防止小字混黑糊邊！添加單色 K100 純黑文字與向量標誌">
+                    <span>🔤</span> K100黑字
+                  </button>
+                </div>
+
+                <!-- Group 2: Production & Prepress Tools -->
+                <div class="pm-tool-group">
+                  <span class="pm-tool-group-label">🏭 製版與輸出</span>
+                  <button id="btnOpenConvPrint" class="pm-btn pm-btn-secondary" title="7-11 ibon / 全家 FamiPort 雲端立印，30秒下樓即可取件">
+                    <span>🏪</span> 超商立印
+                  </button>
+                  <button id="btnOpenImposition" class="pm-btn pm-btn-secondary" title="一張 A4/A3 自動拼入 8~24 模，現省 70% 費用">
+                    <span>🧩</span> 智慧拼模
+                  </button>
+                  <button id="btnOpenDieline" class="pm-btn pm-btn-secondary" title="透明貼紙專用：一鍵生成 0.2mm 內縮白墨層與 2mm 洋紅外擴向量刀模線">
+                    <span>🏷️</span> 刀模白墨
+                  </button>
+                  <button id="btnOpenSpec" class="pm-btn pm-btn-secondary" title="送印溝小抄，一鍵複製專業規格給印刷師傅">
+                    <span>📋</span> 規格小抄
+                  </button>
+                  <button id="btnOpenMockup" class="pm-btn pm-btn-secondary" title="一鍵生成現代美術館畫框、北歐書桌情境宣傳圖">
+                    <span>🖼️</span> 展覽 Mockup
+                  </button>
+                </div>
+              </div>
+
+              <div class="pm-export-right-actions">
+                <button id="btnExportPdf" class="pm-btn pm-btn-primary" title="匯出含裁切十字與出血之標準印刷 PDF">
+                  <span>📄</span> 下載標準 PDF
+                </button>
+                <button id="btnExportPng" class="pm-btn pm-btn-secondary" title="匯出 300 DPI 高解析度 PNG">
+                  <span>📥</span> 下載 PNG
+                </button>
+                <button id="btnExportSvg" class="pm-btn pm-btn-secondary" title="以 Potrace 演算法轉為無失真向量 SVG">
+                  <span>⬡</span> 向量 SVG
+                </button>
+              </div>
             </div>
           </div>
 
@@ -333,7 +388,7 @@
 
     <!-- Studio Footer -->
     <footer class="pm-footer">
-      PrintMagic Studio v3.1 Pro (雙引擎混合架構) &nbsp;|&nbsp; 專業印刷標準 (ISO 216 / ISO 12647 / ISO 15930) &nbsp;|&nbsp; MIT License
+      PrintMagic Studio (測試版 · 全部功能免費開放) &nbsp;|&nbsp; 專業印刷標準 (ISO 216 / ISO 12647 / ISO 15930) &nbsp;|&nbsp; MIT License
     </footer>
   </div>
 

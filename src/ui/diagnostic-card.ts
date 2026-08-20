@@ -9,13 +9,15 @@ export class DiagnosticCard {
   private onDirectPrintClick?: () => void;
   private onExportPdfClick?: () => void;
   private onOpenPipelineMatrix?: () => void;
+  private onOpenTextInspectorClick?: () => void;
   private isDetailsExpanded = false;
 
   constructor(
     containerId: string,
     onDirectPrintClick?: () => void,
     onExportPdfClick?: () => void,
-    onOpenPipelineMatrix?: () => void
+    onOpenPipelineMatrix?: () => void,
+    onOpenTextInspectorClick?: () => void
   ) {
     const el = document.getElementById(containerId);
     if (!el) throw new Error(`Diagnostic card #${containerId} not found`);
@@ -23,6 +25,7 @@ export class DiagnosticCard {
     this.onDirectPrintClick = onDirectPrintClick;
     this.onExportPdfClick = onExportPdfClick;
     this.onOpenPipelineMatrix = onOpenPipelineMatrix;
+    this.onOpenTextInspectorClick = onOpenTextInspectorClick;
   }
 
   public render(state: AppState): void {
@@ -34,7 +37,9 @@ export class DiagnosticCard {
       inkAnalysis,
       originalInkAnalysis,
       currentPreset,
-      appliedScale
+      appliedScale,
+      uiMode,
+      textInspectionResult
     } = state;
 
     if (!scoreResult || !dpiAnalysis) {
@@ -81,95 +86,236 @@ export class DiagnosticCard {
       ? `<span class="pm-score-delta-badge pm-delta-neutral">最佳化維持</span>`
       : '';
 
-    this.container.innerHTML = `
-      <div class="pm-card pm-diagnostic-panel">
-        <!-- 1. Hero Certificate Header -->
-        <div class="pm-diagnostic-header">
-          <div class="pm-score-summary-box">
-            <div class="pm-score-circle" style="border-color: ${levelColor}">
-              <span class="pm-score-value" style="color: ${levelColor}">${currentScore}</span>
-              <span class="pm-score-max">/100分</span>
-            </div>
-
-            <div class="pm-score-meta">
-              <div class="pm-score-flow-row">
-                <span class="pm-score-stage-tag">原圖 ${initialScore}分</span>
-                <span class="pm-score-arrow">➔</span>
-                <span class="pm-score-stage-tag pm-stage-after">優化後 ${currentScore}分</span>
-                ${deltaBadge}
+    // Text Inspection Status Badge
+    let textInspectHtml = '';
+    if (textInspectionResult) {
+      const isTypo = textInspectionResult.typoCount > 0;
+      textInspectHtml = `
+        <div class="pm-diag-text-inspect-banner ${isTypo ? 'pm-banner-warning' : 'pm-banner-success'}" id="btnOpenTextInspectFromCard">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 1.1rem;">${isTypo ? '⚠️' : '📝'}</span>
+            <div>
+              <div style="font-weight: 700; font-size: 0.82rem; color: var(--pm-text-primary);">
+                ${isTypo ? `發現 ${textInspectionResult.typoCount} 處文字疑似異常` : '文字拼寫與排版檢驗通過'}
               </div>
-              <div class="pm-score-verdict ${levelClass}">${scoreResult.verdict}</div>
+              <div style="font-size: 0.72rem; color: var(--pm-text-secondary);">
+                ${textInspectionResult.summary}
+              </div>
             </div>
           </div>
-        </div>
-
-        <!-- 2. Clean Specs Pills -->
-        <div class="pm-target-specs">
-          <div class="pm-spec-item">
-            <span class="pm-spec-label">目標規格</span>
-            <span class="pm-spec-val">${currentPreset.nameZh}</span>
-          </div>
-          <div class="pm-spec-item">
-            <span class="pm-spec-label">物理尺寸</span>
-            <span class="pm-spec-val">${physicalSizeText}</span>
-          </div>
-          <div class="pm-spec-item">
-            <span class="pm-spec-label">實體解析度</span>
-            <span class="pm-spec-val ${dpiAnalysis.needsUpscale ? 'pm-text-warning' : 'pm-text-success'}">
-              ${dpiCompText}
-            </span>
-          </div>
-          <div class="pm-spec-item">
-            <span class="pm-spec-label">總墨量 TAC</span>
-            <span class="pm-spec-val">${tacCompText}</span>
-          </div>
-        </div>
-
-        <!-- 3. Key Hero Action Buttons (Direct Print & Standard PDF & Pipeline Customizer) -->
-        <div class="pm-diag-hero-actions">
-          <button class="pm-btn pm-btn-artisan pm-btn-lg btn-diag-direct-print" title="一鍵即時試算健豪、卡之屋等台灣在地四大印刷廠價格並打包送印工單">
-            <span>🏭</span> 台灣四大印刷廠一鍵估價 & 直通送印 ➔
+          <button class="pm-btn pm-btn-xs ${isTypo ? 'pm-btn-artisan' : 'pm-btn-ghost'}" type="button">
+            ${isTypo ? '點擊糾錯 ➔' : '查看詳情'}
           </button>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-            <button class="pm-btn pm-btn-secondary pm-btn-md btn-diag-export-pdf" title="下載含裁切十字、色條與出血之標準印刷 PDF">
-              <span>📄</span> 下載印刷 PDF
-            </button>
-            <button class="pm-btn pm-btn-secondary pm-btn-md btn-diag-open-pipeline" style="background: rgba(88, 86, 214, 0.08); color: #5856d6; border-color: rgba(88, 86, 214, 0.25);" title="🎛️ Pro/VIP 專屬：逐項開關自訂 AI 放大、銳化、控墨與階調處理">
-              <span>🎛️</span> 專家管線自訂
-            </button>
-          </div>
         </div>
-
-        <!-- 4. Progressive Disclosure Accordion: Deep Technical Indicators -->
-        <div class="pm-diag-accordion-wrapper">
-          <button class="pm-diag-accordion-toggle" id="btnToggleDiagAccordion" type="button">
-            <span class="pm-accordion-title">
-              <span>📊</span>
-              <span>${this.isDetailsExpanded ? '收合印前詳細檢驗數據' : '查看 7 項專業印前指標與自動優化詳情'}</span>
-            </span>
-            <span class="pm-accordion-icon">${this.isDetailsExpanded ? '▲' : '▼'}</span>
+      `;
+    } else {
+      textInspectHtml = `
+        <div class="pm-diag-text-inspect-banner" id="btnOpenTextInspectFromCard" style="cursor: pointer;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 1.1rem;">🔍</span>
+            <div>
+              <div style="font-weight: 700; font-size: 0.82rem; color: var(--pm-text-primary);">AI 智慧文字檢查</div>
+              <div style="font-size: 0.72rem; color: var(--pm-text-secondary);">點擊一鍵檢查圖片中是否有錯字或 AI 亂碼</div>
+            </div>
+          </div>
+          <button class="pm-btn pm-btn-xs pm-btn-ghost" type="button">
+            立即檢查 ➔
           </button>
+        </div>
+      `;
+    }
 
-          <div class="pm-diag-accordion-content" style="display: ${this.isDetailsExpanded ? 'block' : 'none'};">
-            <!-- 7-Factor Weighted Indicator Comparison Table -->
-            <div class="pm-weighted-section">
-              <div class="pm-metrics-grid">
-                ${this.renderWeightedRow('解析度適配', '35%', initialBreakdown.resolution, breakdown.resolution, 'Lanczos-3 重採樣補足 300 DPI')}
-                ${this.renderWeightedRow('長寬比契合', '15%', initialBreakdown.aspectRatio, breakdown.aspectRatio, '3mm 出血與安全框裁切保護')}
-                ${this.renderWeightedRow('總墨量安全', '10%', initialBreakdown.inkSafety, breakdown.inkSafety, 'TAC ≤300% 防吸墨背印沾黏')}
-                ${this.renderWeightedRow('微細邊緣銳度', '10%', initialBreakdown.sharpness, breakdown.sharpness, 'USM 印刷微細邊緣銳化補償')}
-                ${this.renderWeightedRow('亮部與暗階', '10%', initialBreakdown.brightness, breakdown.brightness, '階調校正防止印刷暗沉')}
-                ${this.renderWeightedRow('色彩飽和度', '10%', initialBreakdown.saturation, breakdown.saturation, 'CMYK 印刷色域適配軟打樣')}
-                ${this.renderWeightedRow('反差與層次', '10%', initialBreakdown.contrast, breakdown.contrast, '動態對比度增強')}
+    // Render depending on uiMode (Simple vs Advanced)
+    if (uiMode === 'simple') {
+      this.container.innerHTML = `
+        <div class="pm-card pm-diagnostic-panel pm-panel-simple">
+          <!-- 1. Hero Score Header -->
+          <div class="pm-diagnostic-header">
+            <div class="pm-score-summary-box">
+              <div class="pm-score-circle" style="border-color: ${levelColor}">
+                <span class="pm-score-value" style="color: ${levelColor}">${currentScore}</span>
+                <span class="pm-score-max">/100分</span>
+              </div>
+
+              <div class="pm-score-meta">
+                <div class="pm-score-flow-row">
+                  <span class="pm-score-stage-tag">原圖 ${initialScore}分</span>
+                  <span class="pm-score-arrow">➔</span>
+                  <span class="pm-score-stage-tag pm-stage-after">優化後 ${currentScore}分</span>
+                  ${deltaBadge}
+                </div>
+                <div class="pm-score-verdict ${levelClass}">✨ ${scoreResult.verdict}</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. Plain Language 3-Pillar Quality Upgrade Cards -->
+          <div class="pm-simple-upgrades-grid">
+            <div class="pm-upgrade-card">
+              <div class="pm-upgrade-icon">🌟</div>
+              <div class="pm-upgrade-content">
+                <div class="pm-upgrade-title">畫質超解析度升級</div>
+                <div class="pm-upgrade-desc">自動由 72 DPI 提升至 <strong>${finalDpi} DPI 印刷級超高清晰度</strong>，細節銳利無鋸齒。</div>
               </div>
             </div>
 
-            <!-- Auto Process Actions & Diagnostics -->
-            ${this.renderDiagnostics(issues, recommendations, appliedScale)}
+            <div class="pm-upgrade-card">
+              <div class="pm-upgrade-icon">📐</div>
+              <div class="pm-upgrade-content">
+                <div class="pm-upgrade-title">3mm 出血防裁切保護</div>
+                <div class="pm-upgrade-desc">已適配 <strong>${currentPreset.nameZh} (${physicalSizeText})</strong>，保證重要內容不被切掉。</div>
+              </div>
+            </div>
+
+            <div class="pm-upgrade-card">
+              <div class="pm-upgrade-icon">🎨</div>
+              <div class="pm-upgrade-content">
+                <div class="pm-upgrade-title">印刷墨量色彩安全校正</div>
+                <div class="pm-upgrade-desc">墨量安全壓制至 <strong>${finalTac}%</strong>，防吸墨過重背印沾黏，顏色自然還原。</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. Text Inspection Banner -->
+          ${textInspectHtml}
+
+          <!-- 4. Big Action Buttons -->
+          <div class="pm-diag-hero-actions">
+            <button class="pm-btn pm-btn-primary pm-btn-lg btn-diag-export-pdf" style="font-size: 0.95rem; font-weight: 700; width: 100%; box-shadow: 0 4px 14px rgba(0, 113, 227, 0.35);" title="一鍵下載最高畫質印刷標準檔">
+              <span>🌟</span> 一鍵下載標準印刷檔 (PDF)
+            </button>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px;">
+              <button class="pm-btn pm-btn-secondary pm-btn-md btn-diag-export-png" title="下載 300 DPI 高解析度 PNG 影像檔">
+                <span>📥</span> 下載高清 PNG
+              </button>
+              <button class="pm-btn pm-btn-secondary pm-btn-md" id="btnSimpleOpenConvPrint" title="7-11 / 全家超商雲端 30 秒下樓立印">
+                <span>🏪</span> 超商 30 秒立印
+              </button>
+            </div>
+          </div>
+
+          <!-- 5. Progressive Disclosure: Toggle Technical Specs -->
+          <div class="pm-diag-accordion-wrapper" style="margin-top: 14px;">
+            <button class="pm-diag-accordion-toggle" id="btnToggleDiagAccordion" type="button">
+              <span class="pm-accordion-title">
+                <span>📊</span>
+                <span>${this.isDetailsExpanded ? '收合詳細檢驗數據' : '查看 7 項專業印前檢測指標詳情'}</span>
+              </span>
+              <span class="pm-accordion-icon">${this.isDetailsExpanded ? '▲' : '▼'}</span>
+            </button>
+
+            <div class="pm-diag-accordion-content" style="display: ${this.isDetailsExpanded ? 'block' : 'none'};">
+              <div class="pm-weighted-section">
+                <div class="pm-metrics-grid">
+                  ${this.renderWeightedRow('解析度適配', '35%', initialBreakdown.resolution, breakdown.resolution, 'Lanczos-3 重採樣補足 300 DPI')}
+                  ${this.renderWeightedRow('長寬比契合', '15%', initialBreakdown.aspectRatio, breakdown.aspectRatio, '3mm 出血與安全框裁切保護')}
+                  ${this.renderWeightedRow('總墨量安全', '10%', initialBreakdown.inkSafety, breakdown.inkSafety, 'TAC ≤300% 防吸墨背印沾黏')}
+                  ${this.renderWeightedRow('微細邊緣銳度', '10%', initialBreakdown.sharpness, breakdown.sharpness, 'USM 印刷微細邊緣銳化補償')}
+                  ${this.renderWeightedRow('亮部與暗階', '10%', initialBreakdown.brightness, breakdown.brightness, '階調校正防止印刷暗沉')}
+                  ${this.renderWeightedRow('色彩飽和度', '10%', initialBreakdown.saturation, breakdown.saturation, 'CMYK 印刷色域適配軟打樣')}
+                  ${this.renderWeightedRow('反差與層次', '10%', initialBreakdown.contrast, breakdown.contrast, '動態對比度增強')}
+                </div>
+              </div>
+              ${this.renderDiagnostics(issues, recommendations, appliedScale)}
+            </div>
           </div>
         </div>
-      </div>
-    `;
+      `;
+    } else {
+      // Advanced Mode UI
+      this.container.innerHTML = `
+        <div class="pm-card pm-diagnostic-panel pm-panel-advanced">
+          <!-- 1. Hero Certificate Header -->
+          <div class="pm-diagnostic-header">
+            <div class="pm-score-summary-box">
+              <div class="pm-score-circle" style="border-color: ${levelColor}">
+                <span class="pm-score-value" style="color: ${levelColor}">${currentScore}</span>
+                <span class="pm-score-max">/100分</span>
+              </div>
+
+              <div class="pm-score-meta">
+                <div class="pm-score-flow-row">
+                  <span class="pm-score-stage-tag">原圖 ${initialScore}分</span>
+                  <span class="pm-score-arrow">➔</span>
+                  <span class="pm-score-stage-tag pm-stage-after">優化後 ${currentScore}分</span>
+                  ${deltaBadge}
+                </div>
+                <div class="pm-score-verdict ${levelClass}">${scoreResult.verdict}</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. Clean Specs Pills -->
+          <div class="pm-target-specs">
+            <div class="pm-spec-item">
+              <span class="pm-spec-label">目標規格</span>
+              <span class="pm-spec-val">${currentPreset.nameZh}</span>
+            </div>
+            <div class="pm-spec-item">
+              <span class="pm-spec-label">物理尺寸</span>
+              <span class="pm-spec-val">${physicalSizeText}</span>
+            </div>
+            <div class="pm-spec-item">
+              <span class="pm-spec-label">實體解析度</span>
+              <span class="pm-spec-val ${dpiAnalysis.needsUpscale ? 'pm-text-warning' : 'pm-text-success'}">
+                ${dpiCompText}
+              </span>
+            </div>
+            <div class="pm-spec-item">
+              <span class="pm-spec-label">總墨量 TAC</span>
+              <span class="pm-spec-val">${tacCompText}</span>
+            </div>
+          </div>
+
+          <!-- Text Inspection Banner -->
+          ${textInspectHtml}
+
+          <!-- 3. Key Hero Action Buttons (Standard PDF & High-Res PNG & Pipeline Customizer) -->
+          <div class="pm-diag-hero-actions">
+            <button class="pm-btn pm-btn-primary pm-btn-lg btn-diag-export-pdf" style="width: 100%; font-weight: 700; box-shadow: 0 4px 14px rgba(0, 113, 227, 0.35);" title="下載含裁切十字、色條與出血之標準印刷 PDF">
+              <span>📄</span> 下載標準印刷 PDF (含出血)
+            </button>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px;">
+              <button class="pm-btn pm-btn-secondary pm-btn-md btn-diag-export-png" title="下載 300 DPI 高解析度 PNG 影像檔">
+                <span>📥</span> 下載高清 PNG
+              </button>
+              <button class="pm-btn pm-btn-secondary pm-btn-md btn-diag-open-pipeline" style="background: rgba(88, 86, 214, 0.08); color: #5856d6; border-color: rgba(88, 86, 214, 0.25);" title="🎛️ 專家管線自訂：逐項開關自訂 AI 放大、銳化、控墨與階調處理 (測試版免費開放)">
+                <span>🎛️</span> 專家管線自訂
+              </button>
+            </div>
+          </div>
+
+          <!-- 4. Progressive Disclosure Accordion: Deep Technical Indicators -->
+          <div class="pm-diag-accordion-wrapper">
+            <button class="pm-diag-accordion-toggle" id="btnToggleDiagAccordion" type="button">
+              <span class="pm-accordion-title">
+                <span>📊</span>
+                <span>${this.isDetailsExpanded ? '收合印前詳細檢驗數據' : '查看 7 項專業印前指標與自動優化詳情'}</span>
+              </span>
+              <span class="pm-accordion-icon">${this.isDetailsExpanded ? '▲' : '▼'}</span>
+            </button>
+
+            <div class="pm-diag-accordion-content" style="display: ${this.isDetailsExpanded ? 'block' : 'none'};">
+              <!-- 7-Factor Weighted Indicator Comparison Table -->
+              <div class="pm-weighted-section">
+                <div class="pm-metrics-grid">
+                  ${this.renderWeightedRow('解析度適配', '35%', initialBreakdown.resolution, breakdown.resolution, 'Lanczos-3 重採樣補足 300 DPI')}
+                  ${this.renderWeightedRow('長寬比契合', '15%', initialBreakdown.aspectRatio, breakdown.aspectRatio, '3mm 出血與安全框裁切保護')}
+                  ${this.renderWeightedRow('總墨量安全', '10%', initialBreakdown.inkSafety, breakdown.inkSafety, 'TAC ≤300% 防吸墨背印沾黏')}
+                  ${this.renderWeightedRow('微細邊緣銳度', '10%', initialBreakdown.sharpness, breakdown.sharpness, 'USM 印刷微細邊緣銳化補償')}
+                  ${this.renderWeightedRow('亮部與暗階', '10%', initialBreakdown.brightness, breakdown.brightness, '階調校正防止印刷暗沉')}
+                  ${this.renderWeightedRow('色彩飽和度', '10%', initialBreakdown.saturation, breakdown.saturation, 'CMYK 印刷色域適配軟打樣')}
+                  ${this.renderWeightedRow('反差與層次', '10%', initialBreakdown.contrast, breakdown.contrast, '動態對比度增強')}
+                </div>
+              </div>
+
+              <!-- Auto Process Actions & Diagnostics -->
+              ${this.renderDiagnostics(issues, recommendations, appliedScale)}
+            </div>
+          </div>
+        </div>
+      `;
+    }
 
     // Event Bindings
     this.bindEvents(state);
@@ -183,11 +329,16 @@ export class DiagnosticCard {
       }
     });
 
-    // 2. Secondary Export PDF CTA
+    // 2. Export PDF CTA
     this.container.querySelector('.btn-diag-export-pdf')?.addEventListener('click', () => {
       if (this.onExportPdfClick) {
         this.onExportPdfClick();
       }
+    });
+
+    // 2b. Export PNG CTA
+    this.container.querySelector('.btn-diag-export-png')?.addEventListener('click', () => {
+      document.getElementById('btnExportPng')?.click();
     });
 
     // 3. Pipeline Matrix Customizer CTA
@@ -197,7 +348,19 @@ export class DiagnosticCard {
       }
     });
 
-    // 4. Accordion Toggle
+    // 4. Text Inspection CTA
+    this.container.querySelector('#btnOpenTextInspectFromCard')?.addEventListener('click', () => {
+      if (this.onOpenTextInspectorClick) {
+        this.onOpenTextInspectorClick();
+      }
+    });
+
+    // 5. Simple mode convenience print button
+    this.container.querySelector('#btnSimpleOpenConvPrint')?.addEventListener('click', () => {
+      document.getElementById('btnOpenConvPrint')?.click();
+    });
+
+    // 6. Accordion Toggle
     const accordionBtn = this.container.querySelector('#btnToggleDiagAccordion');
     accordionBtn?.addEventListener('click', () => {
       this.isDetailsExpanded = !this.isDetailsExpanded;

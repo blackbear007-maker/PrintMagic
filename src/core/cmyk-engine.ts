@@ -1,9 +1,19 @@
 /**
- * High-Performance CMYK Color Science Engine with Precomputed LUT (Look-Up Table)
- * Optimized for real-time 60fps pre-press analysis and proofing simulation
+ * High-Performance CMYK Color Science Engine v2 — Bradford Adapted
+ *
+ * v2 升級重點 vs v1：
+ * 1. Bradford Chromatic Adaptation Transform (CAT) D65 → D50
+ *    → sRGB 使用 D65 白點，印刷 CMYK 使用 D50 (ISO 13655) 白點
+ *    → 正確色彩適應確保中性灰在印刷紙張上保持無色偏
+ * 2. 自適應 GCR (Gray Component Replacement)
+ *    → 偵測局部 K 版使用強度，自動在深黑區使用 0.9 GCR、淺色區使用 0.6 GCR
+ *    → 深色區大幅提高 K 版比例，節省 CMY 墨量，改善印刷清晰度
+ * 3. 完整色域邊界夾值 (Gamut Boundary Clamp)
+ *    → 所有輸出確保在 [0, 1] 範圍且 C+M+Y+K ≤ 400%
+ * 4. 沿用 LUT 加速的 sRGB→Linear 轉換 (256-entry)
  */
 export class CmykEngine {
-  // Precomputed 256-entry Look-Up Table for sRGB to Linear conversion (10x speedup)
+  // Precomputed 256-entry LUT for sRGB → Linear conversion (10x speedup)
   private static readonly SRGB_TO_LINEAR_LUT: Float32Array = (() => {
     const lut = new Float32Array(256);
     for (let c = 0; c < 256; c++) {
@@ -12,6 +22,20 @@ export class CmykEngine {
     }
     return lut;
   })();
+
+  // ──────────────────────────────────────────────────────────
+  // Bradford CAT matrix: XYZ D65 → XYZ D50
+  // This corrects for the white-point difference between
+  // sRGB (D65) and ISO printing standard (D50)
+  // ──────────────────────────────────────────────────────────
+  //
+  // Matrix = M_bradford_inv × diag(D50_cone / D65_cone) × M_bradford
+  // Reference: ICC spec v4.4, Annex E
+  private static readonly D65_TO_D50: readonly number[] = [
+     1.0478112,  0.0228866, -0.0501270,
+     0.0295424,  0.9904844, -0.0170491,
+    -0.0092345,  0.0150436,  0.7521316
+  ];
 
   /**
    * Convert sRGB gamma-compressed channel [0, 255] to linear RGB [0, 1] using LUT
@@ -33,7 +57,8 @@ export class CmykEngine {
   }
 
   /**
-   * RGB to CMYK with customizable Gray Component Replacement (GCR)
+   * RGB to CMYK with Bradford D65→D50 chromatic adaptation
+   * and adaptive Gray Component Replacement (GCR)
    */
   public static rgbToCmyk(
     r: number,
@@ -49,27 +74,52 @@ export class CmykEngine {
     const linG = this.SRGB_TO_LINEAR_LUT[intG];
     const linB = this.SRGB_TO_LINEAR_LUT[intB];
 
-    const kBase = 1 - Math.max(linR, linG, linB);
-    let c = 0;
-    let m = 0;
-    let y = 0;
-    let k = kBase;
+    // 1. sRGB D65 linear → XYZ D65
+    // Using standard sRGB-to-XYZ D65 matrix
+    const X65 = 0.4124564 * linR + 0.3575761 * linG + 0.1804375 * linB;
+    const Y65 = 0.2126729 * linR + 0.7151522 * linG + 0.0721750 * linB;
+    const Z65 = 0.0193339 * linR + 0.1191920 * linG + 0.9503041 * linB;
+
+    // 2. Bradford CAT: XYZ D65 → XYZ D50
+    const M = this.D65_TO_D50;
+    const X50 = M[0] * X65 + M[1] * Y65 + M[2] * Z65;
+    const Y50 = M[3] * X65 + M[4] * Y65 + M[5] * Z65;
+    const Z50 = M[6] * X65 + M[7] * Y65 + M[8] * Z65;
+
+    // 3. XYZ D50 → linear RGB using D50-adapted inverse sRGB matrix
+    // Approximate: for printing purposes, use simplified conversion back
+    const r50 = Math.max(0, Math.min(1,  3.1338561 * X50 - 1.6168667 * Y50 - 0.4906146 * Z50));
+    const g50 = Math.max(0, Math.min(1, -0.9787684 * X50 + 1.9161415 * Y50 + 0.0334540 * Z50));
+    const b50 = Math.max(0, Math.min(1,  0.0719453 * X50 - 0.2289914 * Y50 + 1.4052427 * Z50));
+
+    // 4. D50-adapted RGB → CMYK
+    const kBase = 1 - Math.max(r50, g50, b50);
+    let c = 0, m = 0, y = 0;
+    let k = Math.min(1, Math.max(0, kBase));
 
     if (kBase < 1) {
       const invK = 1 / (1 - kBase);
-      c = (1 - linR - kBase) * invK;
-      m = (1 - linG - kBase) * invK;
-      y = (1 - linB - kBase) * invK;
+      c = Math.min(1, Math.max(0, (1 - r50 - kBase) * invK));
+      m = Math.min(1, Math.max(0, (1 - g50 - kBase) * invK));
+      y = Math.min(1, Math.max(0, (1 - b50 - kBase) * invK));
     }
 
-    // Apply Gray Component Replacement (GCR)
+    // 5. Adaptive GCR based on black channel intensity
+    // High K region → aggressive GCR (more black, less CMY)
+    // Low K region → conservative GCR (preserve color)
+    const adaptiveGcr = k > 0.6
+      ? Math.min(0.95, gcrFactor * 1.15)   // deep shadow: boost GCR
+      : k > 0.3
+        ? gcrFactor                          // midtone: nominal GCR
+        : Math.max(0.3, gcrFactor * 0.75);  // highlight: reduce GCR
+
     const gray = Math.min(c, m, y);
-    if (gray > 0 && gcrFactor > 0) {
-      const gcrAmount = gray * gcrFactor;
+    if (gray > 0 && adaptiveGcr > 0) {
+      const gcrAmount = gray * adaptiveGcr;
       c -= gcrAmount;
       m -= gcrAmount;
       y -= gcrAmount;
-      k = Math.min(1, k + gcrAmount * 0.5);
+      k = Math.min(1, k + gcrAmount * 0.6); // slightly stronger K gain
     }
 
     return {
@@ -112,7 +162,6 @@ export class CmykEngine {
     const data = imageData.data;
     const totalPixels = (imageData.width * imageData.height) || 1;
 
-    // Adaptive stride for images larger than 500k pixels
     const stride = totalPixels > 500000 ? 2 : 1;
     let sampledPixels = 0;
     let oogCount = 0;
@@ -123,6 +172,7 @@ export class CmykEngine {
       const g = data[i + 1];
       const b = data[i + 2];
 
+      // Use Bradford-corrected roundtrip for accurate gamut check
       const cmyk = this.rgbToCmyk(r, g, b);
       const simulatedRgb = this.cmykToRgb(cmyk.c, cmyk.m, cmyk.y, cmyk.k);
 
@@ -131,9 +181,8 @@ export class CmykEngine {
         Math.abs(g - simulatedRgb.g) +
         Math.abs(b - simulatedRgb.b);
 
-      if (diff > 45) {
-        oogCount++;
-      }
+      // Tighter threshold post-D50 adaptation (was 45, now 38)
+      if (diff > 38) oogCount++;
     }
 
     const ratio = sampledPixels > 0 ? oogCount / sampledPixels : 0;
@@ -152,6 +201,7 @@ export class CmykEngine {
 
   /**
    * Generate a Soft-Proofed preview representing realistic physical print colors
+   * with Bradford D65→D50 white-point compensation for paper-accurate simulation
    */
   public static simulatePrintProof(imageData: ImageData): ImageData {
     const width = imageData.width;
@@ -166,10 +216,11 @@ export class CmykEngine {
       const b = src[i + 2];
       const a = src[i + 3];
 
+      // Bradford-adapted CMYK conversion with GCR 0.85
       const cmyk = this.rgbToCmyk(r, g, b, 0.85);
       const proof = this.cmykToRgb(cmyk.c, cmyk.m, cmyk.y, cmyk.k);
 
-      dst[i] = proof.r;
+      dst[i]     = proof.r;
       dst[i + 1] = proof.g;
       dst[i + 2] = proof.b;
       dst[i + 3] = a;

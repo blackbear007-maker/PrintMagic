@@ -57,12 +57,9 @@ describe('VipAiClient (High-End Paid API Engine: Fal.ai / Topaz / Replicate)', (
     expect(replicate.provider).toContain('Replicate');
   });
 
-  it('should reject VIP upscale if user is on Free plan', async () => {
-    SubscriptionManager.setPlan('free');
-    const dummyUrl = 'data:image/png;base64,dummy';
-    const result = await VipAiClient.upscale(dummyUrl);
-    expect(result.success).toBe(false);
-    expect(result.error).toContain('Requires VIP');
+  it('should allow all flagship AI upscaling during free beta growth phase', async () => {
+    expect(SubscriptionManager.ALL_FREE_UNLOCKED).toBe(true);
+    expect(SubscriptionManager.canUseFeature('vipAi')).toBe(true);
   });
 
   it('should process VIP upscale successfully when user is on VIP plan', async () => {

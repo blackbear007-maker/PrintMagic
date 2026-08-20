@@ -128,11 +128,20 @@ export class PrintScoreCalculator {
     }
 
     // ─────────────────────────────────────────────────────────────
-    // 4. Saturation & Gamut Score (Weight: 10%) - Pantone Spot Color Guided
+    // 4. Saturation & Gamut Score (Weight: 10%) — Gamut Overflow Rate Priority
     // ─────────────────────────────────────────────────────────────
     let saturationScore = 100;
-    if (stats.avgSat > 0.82) {
-      saturationScore = 88; // Fluorescent neon with perceptual mapping
+    // Prefer gamutOverflowRatio from v2 analyzePixels if available
+    const oogRatio = stats.gamutOverflowRatio ?? 0;
+    if (oogRatio > 0.12) {
+      saturationScore = Math.max(78, 100 - oogRatio * 160);
+      issues.push(`偵測到 ${Math.round(oogRatio * 100)}% 像素超出 CMYK 印刷色域，實體印刷可能出現明顯色衰`);
+      recommendations.push('💡 建議開啟「CMYK 軟打樣」預覽；或向印刷廠指定 Pantone 螢光專色油墨');
+    } else if (stats.avgSat > 0.82 && oogRatio <= 0.02) {
+      saturationScore = 92; // High saturation but mostly in-gamut — minor advisory
+      recommendations.push('💡 色彩鮮豔飽和，建議確認印刷廠使用高品質 UV 油墨以重現螢光感');
+    } else if (stats.avgSat > 0.82) {
+      saturationScore = 88;
       issues.push('檢測到極高飽和螢光色域，實體 CMYK 常規四色油墨可能略有色衰');
       recommendations.push('💡 建議開啟「CMYK 軟打樣」預覽；或向印刷廠指定【Pantone 螢光專色油墨】');
     }
@@ -227,7 +236,11 @@ export class PrintScoreCalculator {
   }
 
   /**
-   * Stride-Adaptive fast pixel statistical analysis (10x faster on 4K/6MP images)
+   * Stride-Adaptive pixel statistical analysis v2
+   * Upgrades vs v1:
+   * 1. Sobel 3×3 + 45° diagonal edge detection (vs 1st-order diff → better for angled edges)
+   * 2. Histogram P5/P95 dynamic range spread (vs stdLum → true contrast measurement)
+   * 3. Gamut overflow rate: % of sRGB pixels outside CMYK gamut (vs raw avgSat)
    */
   public static analyzePixels(imageData: ImageData): ImagePixelStats {
     const { width, height, data } = imageData;
@@ -239,6 +252,11 @@ export class PrintScoreCalculator {
     let totalSat = 0;
     let sumSqLum = 0;
     let transparent = 0;
+
+    // Luminance histogram for P5/P95 percentile dynamic range
+    const LUM_BINS = 256;
+    const lumHist = new Uint32Array(LUM_BINS);
+    let gamutOverflowCount = 0;
 
     const step = 4 * stride;
     for (let i = 0; i < data.length; i += step) {
@@ -257,39 +275,93 @@ export class PrintScoreCalculator {
       totalSat += sat;
       sumSqLum += lum * lum;
       if (a < 255) transparent++;
+
+      // Histogram bin
+      const bin = Math.min(255, Math.round(lum * 255));
+      lumHist[bin]++;
+
+      // CMYK gamut check: detect out-of-gamut pixels (simplified)
+      // A pixel is OOG if its saturated CMYK round-trip differs by >40 units
+      if (sat > 0.6 && max > 0.3) {
+        const k = 1 - max;
+        const invK = k < 1 ? 1 / (1 - k) : 0;
+        const c = max < 1 ? (1 - r - k) * invK : 0;
+        const m = max < 1 ? (1 - g - k) * invK : 0;
+        const y = max < 1 ? (1 - b - k) * invK : 0;
+        const rBack = (1 - c) * (1 - k);
+        const gBack = (1 - m) * (1 - k);
+        const bBack = (1 - y) * (1 - k);
+        const diff = Math.abs(r - rBack) + Math.abs(g - gBack) + Math.abs(b - bBack);
+        if (diff > 0.15) gamutOverflowCount++;
+      }
     }
 
-    // Fast edge gradient detection
+    // Compute P5 / P95 percentile luminance for true dynamic range spread
+    const p5Target = sampledCount * 0.05;
+    const p95Target = sampledCount * 0.95;
+    let cumulative = 0;
+    let p5Lum = 0, p95Lum = 1;
+    for (let bin = 0; bin < LUM_BINS; bin++) {
+      cumulative += lumHist[bin];
+      if (cumulative >= p5Target && p5Lum === 0 && bin > 0) p5Lum = bin / 255;
+      if (cumulative >= p95Target) { p95Lum = bin / 255; break; }
+    }
+    // Dynamic range spread (0=flat, 1=full range)
+    const dynamicRangeSpread = Math.max(0, p95Lum - p5Lum);
+
+    // ── Sobel 3×3 edge detection (+ 45° diagonals for complete coverage) ──
     let edgeSum = 0;
-    const edgeStepY = Math.max(2, Math.floor(height / 200));
-    const edgeStepX = Math.max(2, Math.floor(width / 200));
+    const edgeStepY = Math.max(2, Math.floor(height / 220));
+    const edgeStepX = Math.max(2, Math.floor(width / 220));
     let edgeSampledCount = 0;
+
+    const inv765 = 0.0013071895; // 1/765
 
     for (let y = 1; y < height - 1; y += edgeStepY) {
       for (let x = 1; x < width - 1; x += edgeStepX) {
         edgeSampledCount++;
-        const idx = (y * width + x) * 4;
-        const lum = (data[idx] + data[idx + 1] + data[idx + 2]) * 0.0013071895; // 1/765
-        const rightLum = (data[idx + 4] + data[idx + 5] + data[idx + 6]) * 0.0013071895;
-        const downIdx = ((y + 1) * width + x) * 4;
-        const downLum = (data[downIdx] + data[downIdx + 1] + data[downIdx + 2]) * 0.0013071895;
-        edgeSum += Math.abs(lum - rightLum) + Math.abs(lum - downLum);
+        // Fetch 3×3 luminances
+        const l = (y2: number, x2: number) => {
+          const ii = (y2 * width + x2) * 4;
+          return (data[ii] + data[ii + 1] + data[ii + 2]) * inv765;
+        };
+
+        const p00 = l(y - 1, x - 1); const p01 = l(y - 1, x); const p02 = l(y - 1, x + 1);
+        const p10 = l(y,     x - 1);                            const p12 = l(y,     x + 1);
+        const p20 = l(y + 1, x - 1); const p21 = l(y + 1, x); const p22 = l(y + 1, x + 1);
+
+        // Sobel horizontal Gx
+        const gx = -p00 - 2 * p10 - p20 + p02 + 2 * p12 + p22;
+        // Sobel vertical Gy
+        const gy = -p00 - 2 * p01 - p02 + p20 + 2 * p21 + p22;
+        // Diagonal Gd1 (Scharr-like 45°)
+        const gd1 = -p01 - 2 * p02 + p10 + p12 - 2 * p20 + p21; // simplified
+        // Gradient magnitude (L2 norm of all axes)
+        edgeSum += Math.sqrt(gx * gx + gy * gy + 0.5 * gd1 * gd1) * 0.5;
       }
     }
 
     const avgLum = sampledCount > 0 ? totalLum / sampledCount : 0.5;
     const avgSat = sampledCount > 0 ? totalSat / sampledCount : 0.5;
-    const stdLum = sampledCount > 0 ? Math.sqrt(Math.max(0, sumSqLum / sampledCount - avgLum * avgLum)) : 0.2;
+    const stdLum = sampledCount > 0
+      ? Math.sqrt(Math.max(0, sumSqLum / sampledCount - avgLum * avgLum))
+      : 0.2;
+    // Use dynamic range spread to augment stdLum for better contrast estimation
+    const effectiveStdLum = stdLum * 0.7 + dynamicRangeSpread * 0.15;
     const edgeScore = edgeSampledCount > 0 ? edgeSum / edgeSampledCount : 0.04;
+    const gamutOverflowRatio = sampledCount > 0 ? gamutOverflowCount / sampledCount : 0;
 
     return {
       avgLum,
       avgSat,
-      stdLum,
+      stdLum: effectiveStdLum,
       edgeScore,
       transparentRatio: sampledCount > 0 ? transparent / sampledCount : 0,
+      gamutOverflowRatio,
+      dynamicRangeSpread,
       width,
       height
     };
   }
 }
+

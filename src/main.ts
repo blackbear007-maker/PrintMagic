@@ -38,8 +38,10 @@ import { AiSettingsModal } from './ui/ai-settings-modal';
 import { PricingModal } from './ui/pricing-modal';
 import { OnboardingModal } from './ui/onboarding-modal';
 import { PipelineMatrixModal } from './ui/pipeline-matrix-modal';
+import { TextInspectionModal } from './ui/text-inspection-modal';
+import { TextInspector } from './core/text-inspector';
+import { ObjectEraserModal } from './ui/object-eraser-modal';
 import { SubscriptionManager } from './core/subscription-tier';
-import { VipAiClient } from './services/vip-ai-client';
 import { BleedExpander } from './core/bleed-expander';
 import { AiMatting } from './core/ai-matting';
 import { AiVectorizer } from './core/ai-vectorizer';
@@ -70,6 +72,8 @@ class App {
   public impositionModal!: ImpositionModal;
   public dielineModal!: DielineModal;
   public vectorOverlayModal!: VectorOverlayModal;
+  public textInspectionModal!: TextInspectionModal;
+  public objectEraserModal!: ObjectEraserModal;
   public aiSettingsModal!: AiSettingsModal;
   public pricingModal!: PricingModal;
   public onboardingModal!: OnboardingModal;
@@ -81,6 +85,8 @@ class App {
   // DOM references
   private dropZoneContainer = document.getElementById('dropZoneContainer')!;
   private studioWorkspace = document.getElementById('studioWorkspace')!;
+  private btnModeSimple = document.getElementById('btnModeSimple');
+  private btnModeAdvanced = document.getElementById('btnModeAdvanced');
   private btnNewArtwork = document.getElementById('btnNewArtwork')!;
   private btnToggleSound = document.getElementById('btnToggleSound')!;
   private soundIcon = document.getElementById('soundIcon')!;
@@ -109,9 +115,7 @@ class App {
   // Action buttons
   private btnOpenMockup = document.getElementById('btnOpenMockup')!;
   private btnOpenSpec = document.getElementById('btnOpenSpec')!;
-  private btnOpenShops = document.getElementById('btnOpenShops')!;
   private btnExportPdf = document.getElementById('btnExportPdf')!;
-  private btnExportPdfx = document.getElementById('btnExportPdfx')!;
   private btnExportPng = document.getElementById('btnExportPng')!;
   private btnExportSvg = document.getElementById('btnExportSvg')!;
 
@@ -128,9 +132,38 @@ class App {
     this.bindEvents();
     this.subscribeState();
     this.updateSoundIcon();
+    this.initServiceWorker();
+    this.updatePresetButtonsUI(store.getState().currentPreset.id, true);
 
-    // Check Cloud Backend status on startup
+    // Check Cloud Backend status on startup (Advanced mode only)
     void CloudClient.checkHealth();
+  }
+
+  private initServiceWorker(): void {
+    if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
+      navigator.serviceWorker
+        .register('./sw.js')
+        .then(() => {
+          const offlineEl = document.getElementById('offlineStatusText');
+          if (offlineEl) offlineEl.textContent = '100% 離線可用';
+        })
+        .catch((err) => {
+          console.log('SW registration skipped or error:', err);
+        });
+    }
+
+    // Monitor Online / Offline status
+    window.addEventListener('offline', () => {
+      const offlineEl = document.getElementById('offlineStatusText');
+      if (offlineEl) offlineEl.textContent = '無網路 (離線極速運作中)';
+      Toast.info('📱 目前處於離線狀態：本機 8x 放大、文字檢查與 PDF 輸出仍 100% 正常可用！');
+    });
+
+    window.addEventListener('online', () => {
+      const offlineEl = document.getElementById('offlineStatusText');
+      if (offlineEl) offlineEl.textContent = '100% 離線可用 (在線)';
+      Toast.success('🌐 網路連線已恢復！');
+    });
   }
 
   private initUIComponents(): void {
@@ -150,6 +183,9 @@ class App {
       },
       () => {
         this.pipelineMatrixModal.open();
+      },
+      () => {
+        this.openTextInspectionModal();
       }
     );
 
@@ -182,6 +218,17 @@ class App {
     this.dielineModal = new DielineModal();
     this.vectorOverlayModal = new VectorOverlayModal(this.vectorOverlayEngine, () => {
       this.renderVectorOverlayOnCanvas();
+    });
+    this.textInspectionModal = new TextInspectionModal((suggestedText) => {
+      this.vectorOverlayModal.open(suggestedText);
+    });
+    this.objectEraserModal = new ObjectEraserModal((newImageData, newDataUrl) => {
+      // Replace original with the erased image and re-run optimization pipeline
+      store.setState({
+        originalImageData: newImageData,
+        originalDataUrl: newDataUrl
+      });
+      this.runOptimizationPipeline(newImageData);
     });
     this.pricingModal = new PricingModal(() => {
       this.updatePlanBadge();
@@ -397,11 +444,35 @@ class App {
       localStorage.setItem('pm_coachmark_dismissed', '1');
     });
 
-    // Preset Selection
+    // Simple Mode Preset Dropdown Toggle
+    const btnToggleDropdown = document.getElementById('btnToggleSimplePresetDropdown');
+    const simplePresetDropdown = document.getElementById('simplePresetDropdown');
+    btnToggleDropdown?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (simplePresetDropdown) {
+        const isHidden = simplePresetDropdown.style.display === 'none' || !simplePresetDropdown.style.display;
+        simplePresetDropdown.style.display = isHidden ? 'flex' : 'none';
+        SoundEffects.sliderTick();
+      }
+    });
+
+    // Close simple preset dropdown on outside click
+    document.addEventListener('click', (e) => {
+      if (simplePresetDropdown && simplePresetDropdown.style.display === 'flex') {
+        if (!simplePresetDropdown.contains(e.target as Node) && e.target !== btnToggleDropdown) {
+          simplePresetDropdown.style.display = 'none';
+        }
+      }
+    });
+
+    // Preset Selection (handles both Simple dropdown and Advanced tab bar)
     this.presetButtons.forEach((btn) => {
       btn.addEventListener('click', () => {
         const presetId = btn.dataset.preset as PrintPresetId;
         if (presetId) {
+          if (simplePresetDropdown) {
+            simplePresetDropdown.style.display = 'none';
+          }
           store.setPreset(presetId);
           this.paper3D.updatePreset(store.getState().currentPreset);
           this.updatePresetButtonsUI(presetId, false);
@@ -586,19 +657,12 @@ class App {
       }
     });
 
-    // 🖼️ AI 智慧 3mm 出血外擴延伸 (VIP 專屬)
+    // 🖼️ AI 智慧 3mm 出血外擴延伸
     document.getElementById('btnAiBleedOutpaint')?.addEventListener('click', () => {
       const state = store.getState();
       const imgData = state.processedImageData || state.originalImageData;
       if (!imgData) {
         Toast.error('請先上傳圖片');
-        return;
-      }
-
-      if (!SubscriptionManager.canUseFeature('bleedExpander')) {
-        SoundEffects.sliderTick();
-        Toast.info('💎 【AI 智慧 3mm 出血外擴延伸】為 VIP 頂級企業版專屬功能');
-        this.pricingModal.open();
         return;
       }
 
@@ -617,19 +681,12 @@ class App {
       Toast.success('✓ AI 3mm 出血已自動補齊！核心主體 100% 完整保留在安全區內！');
     });
 
-    // ✂️ 髮絲級 AI 模切貼紙去背 (Pro / VIP 專屬)
+    // ✂️ 髮絲級 AI 模切貼紙去背
     document.getElementById('btnAiRemoveBg')?.addEventListener('click', () => {
       const state = store.getState();
       const imgData = state.processedImageData || state.originalImageData;
       if (!imgData) {
         Toast.error('請先上傳圖片');
-        return;
-      }
-
-      if (!SubscriptionManager.canUseFeature('aiMatting')) {
-        SoundEffects.sliderTick();
-        Toast.info('👑 【髮絲級 AI 精準去背】為 Pro / VIP 會員專屬功能');
-        this.pricingModal.open();
         return;
       }
 
@@ -646,19 +703,12 @@ class App {
       Toast.success('✓ 髮絲級去背完成！可直接點擊【🏷️ 造型刀模 & 白墨】一鍵生成透明貼紙製版檔！');
     });
 
-    // ✒️ AI 點陣轉真向量 SVG 貝茲曲線檔 (VIP 專屬)
+    // ✒️ AI 點陣轉真向量 SVG 貝茲曲線檔
     document.getElementById('btnAiVectorizer')?.addEventListener('click', () => {
       const state = store.getState();
       const imgData = state.processedImageData || state.originalImageData;
       if (!imgData) {
         Toast.error('請先上傳圖片');
-        return;
-      }
-
-      if (!SubscriptionManager.canUseFeature('aiVectorizer')) {
-        SoundEffects.sliderTick();
-        Toast.info('💎 【AI 點陣轉真向量 SVG 貝茲曲線】為 VIP 頂級企業版專屬功能');
-        this.pricingModal.open();
         return;
       }
 
@@ -670,6 +720,32 @@ class App {
       SoundEffects.shutterClick();
       Toast.success('✓ 頂級真向量 SVG 檔案已成功生成並下載！');
     });
+
+    // Open AI Object Eraser Modal
+    document.getElementById('btnOpenObjectEraser')?.addEventListener('click', () => {
+      const state = store.getState();
+      const imgData = state.originalImageData || state.processedImageData;
+      if (!imgData) {
+        Toast.error('請先上傳圖片');
+        return;
+      }
+      this.objectEraserModal.open(imgData);
+    });
+
+    // Open AI Text & Typo Inspection Modal
+    const openTextInspector = async () => {
+      const state = store.getState();
+      const imgData = state.processedImageData || state.originalImageData;
+      const dataUrl = state.processedDataUrl || state.originalDataUrl;
+      if (!imgData || !dataUrl) {
+        Toast.error('請先上傳圖片');
+        return;
+      }
+      const result = await TextInspector.inspectImage(imgData);
+      this.textInspectionModal.open(result, dataUrl);
+    };
+    document.getElementById('btnOpenTextInspect')?.addEventListener('click', () => void openTextInspector());
+    document.getElementById('btnOpenTextInspectHeader')?.addEventListener('click', () => void openTextInspector());
 
     // Open Smart Dieline & White Ink Modal
     document.getElementById('btnOpenDieline')?.addEventListener('click', () => {
@@ -696,8 +772,8 @@ class App {
       void this.impositionModal.open();
     });
 
-    // Open Nearby Commercial Print Shops Finder
-    this.btnOpenShops.addEventListener('click', () => {
+    // Open Nearby Commercial Print Shops Finder (if present)
+    document.getElementById('btnOpenShops')?.addEventListener('click', () => {
       SoundEffects.sliderTick();
       this.shopsModal.open();
     });
@@ -738,21 +814,6 @@ class App {
       } catch (err: any) {
         Toast.error(`PDF 匯出失敗: ${err?.message || err}`);
       }
-    });
-
-    // Export Cloud Pro PDF/X-1a (Hybrid Backend + Auto Fallback)
-    this.btnExportPdfx.addEventListener('click', async () => {
-      const state = store.getState();
-      if (!state.processedDataUrl) {
-        Toast.error('請先上傳並優化圖片');
-        return;
-      }
-
-      SoundEffects.shutterClick();
-      const activeBatch = state.batchItems.find((b) => b.id === state.activeBatchId);
-      const artworkName = activeBatch ? activeBatch.name : 'Artwork';
-
-      await CloudClient.exportPdfx(state.processedDataUrl, state.currentPreset, artworkName);
     });
 
     // Export High-Res PNG
@@ -801,6 +862,46 @@ class App {
         Toast.error(`向量化失敗: ${err?.message || err}`);
       }
     });
+
+    // Mode Switcher (Simple vs Advanced)
+    this.btnModeSimple?.addEventListener('click', () => {
+      SoundEffects.sliderTick();
+      store.setUiMode('simple');
+      store.setEngineMode('local');
+      store.setState({ aiUpscaleMode: 'local' });
+      Toast.info('⚡ 已切換為【簡易模式】：手機專用、100% 離線免連網、極速輸出！');
+    });
+
+    this.btnModeAdvanced?.addEventListener('click', () => {
+      SoundEffects.sliderTick();
+      store.setUiMode('advanced');
+      Toast.info('🎛️ 已切換為【進階模式】：展開全部專業製版、工藝與管線工具！');
+    });
+
+    // Text Inspection Buttons
+    document.getElementById('btnOpenTextInspectHeader')?.addEventListener('click', () => {
+      void this.openTextInspectionModal();
+    });
+    document.getElementById('btnOpenTextInspect')?.addEventListener('click', () => {
+      void this.openTextInspectionModal();
+    });
+    document.getElementById('btnSimpleTextInspect')?.addEventListener('click', () => {
+      void this.openTextInspectionModal();
+    });
+
+    // Simple Mode Action Buttons
+    document.getElementById('btnSimpleExportPdf')?.addEventListener('click', () => {
+      this.btnExportPdf.click();
+    });
+    document.getElementById('btnSimpleExportPng')?.addEventListener('click', () => {
+      this.btnExportPng.click();
+    });
+    document.getElementById('btnSimpleConvPrint')?.addEventListener('click', () => {
+      this.convPrintModal.open();
+    });
+    document.getElementById('btnSimpleDirectPrint')?.addEventListener('click', () => {
+      this.directPrintModal.open();
+    });
   }
 
   private updateSoundIcon(): void {
@@ -811,6 +912,11 @@ class App {
   private subscribeState(): void {
     store.subscribe((state) => {
       const hasImage = !!state.originalDataUrl;
+
+      // 0. Sync UI Mode attribute to body and toggle active classes
+      document.body.setAttribute('data-ui-mode', state.uiMode);
+      this.btnModeSimple?.classList.toggle('active', state.uiMode === 'simple');
+      this.btnModeAdvanced?.classList.toggle('active', state.uiMode === 'advanced');
 
       // 1. Update Hybrid Engine Pill UI
       this.btnToggleEngine.classList.toggle('pm-engine-cloud', state.engineMode === 'cloud');
@@ -1024,41 +1130,23 @@ class App {
 
         if (isCloudAiAllowed) {
           const srcDataUrl = state.originalDataUrl || this.imageDataToDataUrl(srcImageData);
-          let upscaleDone = false;
 
-          // Check if VIP Commercial AI Engine is enabled
-          if (SubscriptionManager.canUseFeature('vipAi')) {
-            const vipConfig = VipAiClient.getModelConfig();
+          store.setState({
+            processingStep: '2/4 正在呼叫開源 AI 深度學習神經網路進行 4x 細節重建 (Real-ESRGAN)...'
+          });
+          const aiResult = await AiUpscaleClient.upscale(srcDataUrl);
+
+          if (aiResult.success && aiResult.imageData) {
+            processedImgData = aiResult.imageData;
+            appliedScale = aiResult.scale || 4;
+            Toast.success('🧠 開源 AI 深度學習細節重建完成 (Real-ESRGAN 4x)！');
+          } else {
+            // Graceful automatic fallback to local Lanczos-3 8x pyramid engine
             store.setState({
-              processingStep: `2/4 正在呼叫 VIP 頂級 GPU 叢集進行 8K 細節重構 (${vipConfig.name})...`
+              processingStep: `2/4 正在啟用本機 ${appliedScale}x 金字塔超解析度放大 (0 延遲備援)...`
             });
-            const vipResult = await VipAiClient.upscale(srcDataUrl);
-            if (vipResult.success && vipResult.imageData) {
-              processedImgData = vipResult.imageData;
-              appliedScale = vipResult.scale || 4;
-              upscaleDone = true;
-              Toast.success(`💎 VIP 頂級 AI 重建完成 (${vipResult.modelName})！`);
-            }
-          }
-
-          if (!upscaleDone) {
-            store.setState({
-              processingStep: '2/4 正在呼叫雲端 AI 深度學習神經網路進行 4x 細節重建 (Real-ESRGAN)...'
-            });
-            const aiResult = await AiUpscaleClient.upscale(srcDataUrl);
-
-            if (aiResult.success && aiResult.imageData) {
-              processedImgData = aiResult.imageData;
-              appliedScale = aiResult.scale || 4;
-              Toast.success('🧠 AI 深度學習細節重建完成 (Real-ESRGAN 4x)！');
-            } else {
-              // Graceful automatic fallback to local Lanczos-3 8x pyramid engine
-              store.setState({
-                processingStep: `2/4 正在啟用本機 ${appliedScale}x 金字塔超解析度放大 (0 延遲備援)...`
-              });
-              processedImgData = await workerClient.lanczos(srcImageData, appliedScale);
-              Toast.info('⚡ 雲端 AI 忙碌中，已無縫啟用本機 8x 金字塔超解析度引擎！');
-            }
+            processedImgData = await workerClient.lanczos(srcImageData, appliedScale);
+            Toast.info('⚡ 已無縫啟用本機 8x 金字塔超解析度引擎！');
           }
         } else {
           // Strictly 100% Local Engine (Zero Network Calls)
@@ -1139,6 +1227,9 @@ class App {
       const deltaStr = delta > 0 ? ` (+${delta}分提升)` : '';
       Toast.success(`✓ 印刷優化完成！原圖 ${originalScoreResult.score}分 ➔ 優化後 ${scoreResult.score}分${deltaStr}`);
 
+      // Auto-trigger background AI Text Inspection
+      void this.runAutoTextInspection(srcImageData);
+
       // Smart Contextual Action Hints (Learnability & Proactivity)
       if (stats.transparentRatio > 0.03) {
         setTimeout(() => {
@@ -1152,6 +1243,40 @@ class App {
         store.updateBatchItem(activeId, { status: 'error', errorMessage: err?.message });
       }
       Toast.error(`處理失敗: ${err?.message || err}`);
+    }
+  }
+
+  private async runAutoTextInspection(imgData: ImageData): Promise<void> {
+    try {
+      const inspectResult = await TextInspector.inspectImage(imgData);
+      store.setTextInspectionResult(inspectResult);
+      if (inspectResult.typoCount > 0) {
+        setTimeout(() => {
+          Toast.info(`📝 AI 文字檢查：發現 ${inspectResult.typoCount} 處文字疑似拼寫或亂碼異常，點擊診斷卡可一鍵檢視！`);
+        }, 1500);
+      }
+    } catch (err) {
+      console.warn('Auto text inspection error:', err);
+    }
+  }
+
+  public async openTextInspectionModal(): Promise<void> {
+    const state = store.getState();
+    const imgData = state.processedImageData || state.originalImageData;
+    const dataUrl = state.processedDataUrl || state.originalDataUrl;
+
+    if (!imgData || !dataUrl) {
+      Toast.error('請先上傳圖片');
+      return;
+    }
+
+    if (state.textInspectionResult) {
+      this.textInspectionModal.open(state.textInspectionResult, dataUrl);
+    } else {
+      Toast.info('📝 正在進行 AI 智慧文字辨識與錯字檢查...');
+      const result = await TextInspector.inspectImage(imgData);
+      store.setTextInspectionResult(result);
+      this.textInspectionModal.open(result, dataUrl);
     }
   }
 
@@ -1232,14 +1357,29 @@ class App {
   }
 
   private updatePresetButtonsUI(activeId: string, isAuto = false): void {
+    // Re-query in case DOM elements were populated
+    this.presetButtons = document.querySelectorAll<HTMLButtonElement>('.pm-preset-btn');
     this.presetButtons.forEach((btn) => {
       btn.classList.toggle('active', btn.dataset.preset === activeId);
     });
 
+    const preset = getPresetById(activeId);
+    const shortName = preset.nameZh.split(' ')[0] || preset.nameZh;
+    const sizeText = preset.widthMm > 0 ? `${preset.widthMm}×${preset.heightMm}mm` : '1080px';
+
+    // 1. Update Simple Mode Auto-Preset Pill
+    const simpleIcon = document.getElementById('simplePresetIcon');
+    const simpleName = document.getElementById('simplePresetName');
+    const simpleAutoBadge = document.getElementById('simplePresetAutoBadge');
+    if (simpleIcon) simpleIcon.textContent = preset.icon || '📄';
+    if (simpleName) simpleName.textContent = `${preset.nameZh} (${sizeText})`;
+    if (simpleAutoBadge) {
+      simpleAutoBadge.textContent = isAuto ? '✨ 自動偵測' : '🎨 已手動自訂';
+    }
+
+    // 2. Update Advanced Mode Auto Badge
     if (this.presetAutoBadge) {
       if (isAuto) {
-        const preset = getPresetById(activeId);
-        const shortName = preset.nameZh.split(' ')[0] || preset.nameZh;
         this.presetAutoBadge.style.display = 'inline-flex';
         this.presetAutoBadge.textContent = `✨ 智慧適配：${shortName}`;
       } else {
@@ -1256,10 +1396,18 @@ class App {
   }
 
   public updatePlanBadge(): void {
-    const state = SubscriptionManager.getSubscriptionState();
     const badgeEl = document.getElementById('planBadgeText');
     const btnEl = document.getElementById('btnOpenPricing');
     if (badgeEl && btnEl) {
+      if (SubscriptionManager.ALL_FREE_UNLOCKED) {
+        badgeEl.textContent = '✨ 測試版 (全部免費)';
+        btnEl.style.background = 'linear-gradient(135deg, rgba(52, 199, 89, 0.15), rgba(0, 113, 227, 0.15))';
+        btnEl.style.color = '#1b7a34';
+        btnEl.style.fontWeight = '700';
+        return;
+      }
+
+      const state = SubscriptionManager.getSubscriptionState();
       if (state.planId === 'vip') {
         badgeEl.textContent = '💎 VIP 企業版';
         btnEl.style.background = 'linear-gradient(135deg, #5856d6, #af52de)';

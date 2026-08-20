@@ -23,7 +23,32 @@ export type CropAnchor = 'center' | 'top' | 'bottom' | 'left' | 'right';
 
 export type EngineMode = 'local' | 'cloud';
 
+export type UiMode = 'simple' | 'advanced';
+
 export type CloudHealthStatus = 'online' | 'offline' | 'checking';
+
+export interface DetectedTextRegion {
+  id: string;
+  x: number; // percentage (0 - 100) or pixel coords
+  y: number;
+  width: number;
+  height: number;
+  text: string;
+  confidence: number; // 0.0 - 1.0
+  isTypo: boolean;
+  typoReason?: string;
+  suggestion?: string;
+  isBlurry?: boolean;
+}
+
+export interface TextInspectionResult {
+  regions: DetectedTextRegion[];
+  totalWords: number;
+  typoCount: number;
+  hasIssues: boolean;
+  summary: string;
+  executionTimeMs: number;
+}
 
 export interface CropOffset {
   anchor: CropAnchor;
@@ -110,7 +135,12 @@ export interface ImagePixelStats {
   transparentRatio: number;
   width: number;
   height: number;
+  /** Ratio of pixels outside CMYK printable gamut (0–1). Added in analyzePixels v2. */
+  gamutOverflowRatio?: number;
+  /** Histogram P95 - P5 luminance spread, true contrast indicator (0–1). Added in analyzePixels v2. */
+  dynamicRangeSpread?: number;
 }
+
 
 export interface ScoreBreakdown {
   resolution: number; // 0-100

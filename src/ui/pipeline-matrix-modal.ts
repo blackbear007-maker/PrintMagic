@@ -1,11 +1,10 @@
 import { Toast } from './toast';
 import { SoundEffects } from '../core/sound-effects';
 import { store } from './state';
-import { SubscriptionManager } from '../core/subscription-tier';
 import type { PipelineOptions } from '../types';
 
 /**
- * 🎛️ Pro / VIP 專家級印前管線自訂控制器 (Expert Pipeline Matrix Modal)
+ * 🎛️ 專家級印前管線自訂控制器 (Expert Pipeline Matrix Modal)
  * Apple HIG Frosted Glass Switch Matrix for Non-Destructive Selective Optimization
  */
 export class PipelineMatrixModal {
@@ -27,8 +26,6 @@ export class PipelineMatrixModal {
   }
 
   public render(): void {
-    const isProOrVip = SubscriptionManager.canUseFeature('pipelineCustomizer');
-    const plan = SubscriptionManager.getPlan();
     const opts = store.getState().pipelineOptions;
 
     const pipelineItems: {
@@ -97,8 +94,8 @@ export class PipelineMatrixModal {
             <div>
               <div style="display: flex; align-items: center; gap: 8px;">
                 <h3 class="pm-modal-title">專家級印前管線自訂控制器</h3>
-                <span class="pm-plan-tag" style="background: linear-gradient(135deg, #0071e3, #5856d6); color: #ffffff; font-size: 0.68rem; font-weight: 700; padding: 2px 8px; border-radius: 12px;">
-                  👑 Pro / VIP 專屬
+                <span class="pm-plan-tag" style="background: rgba(52, 199, 89, 0.15); color: #248a3d; border: 1px solid rgba(52, 199, 89, 0.3); font-size: 0.68rem; font-weight: 700; padding: 2px 8px; border-radius: 12px;">
+                  ✨ 測試版全開放
                 </span>
               </div>
               <p style="font-size: 0.78rem; color: var(--pm-text-muted); margin: 2px 0 0 0;">
@@ -110,29 +107,10 @@ export class PipelineMatrixModal {
         </div>
 
         <div class="pm-modal-body" style="padding: 16px 24px; max-height: 70vh; overflow-y: auto;">
-          ${
-            !isProOrVip
-              ? `
-              <div style="background: linear-gradient(145deg, rgba(0, 113, 227, 0.08), rgba(88, 86, 214, 0.12)); border: 1.5px solid rgba(0, 113, 227, 0.3); border-radius: 14px; padding: 14px 16px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                  <span style="font-size: 1.4rem;">🔒</span>
-                  <div>
-                    <div style="font-size: 0.88rem; font-weight: 700; color: var(--pm-text-primary);">目前為【${plan.nameZh}】（預設全自動管線）</div>
-                    <div style="font-size: 0.76rem; color: var(--pm-text-muted); margin-top: 2px;">升級 Pro 或 VIP 方案即可解鎖各項管線外科手術級自由開/關權限。</div>
-                  </div>
-                </div>
-                <button class="pm-btn pm-btn-sm pm-btn-primary" id="btnUnlockPipelinePro" style="background: linear-gradient(135deg, #0071e3, #5856d6); border: none; padding: 6px 14px; font-size: 0.78rem; font-weight: 700; white-space: nowrap; border-radius: 20px;">
-                  👑 升級 Pro 解鎖
-                </button>
-              </div>
-            `
-              : `
-              <div style="background: rgba(52, 199, 89, 0.08); border: 1px solid rgba(52, 199, 89, 0.25); border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; display: flex; align-items: center; gap: 8px;">
-                <span style="color: #34c759; font-size: 1.1rem;">✓</span>
-                <span style="font-size: 0.78rem; color: #248a3d; font-weight: 600;">已啟用 ${plan.nameZh} 專家管線自訂權限，調整後將即時重新渲染。</span>
-              </div>
-            `
-          }
+          <div style="background: rgba(52, 199, 89, 0.08); border: 1px solid rgba(52, 199, 89, 0.25); border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; display: flex; align-items: center; gap: 8px;">
+            <span style="color: #34c759; font-size: 1.1rem;">✓</span>
+            <span style="font-size: 0.78rem; color: #248a3d; font-weight: 600;">測試版已全面開放所有專家印前管線開關自由調整權限，調整後儲存即時生效。</span>
+          </div>
 
           <!-- Switches List -->
           <div style="display: flex; flex-direction: column; gap: 10px;">
@@ -140,7 +118,7 @@ export class PipelineMatrixModal {
               .map((item) => {
                 const isChecked = opts[item.key];
                 return `
-                <div class="pm-pipeline-switch-card ${!isProOrVip ? 'pm-switch-disabled' : ''}" data-key="${item.key}" style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: #ffffff; border: 1.5px solid ${isChecked ? 'rgba(0, 113, 227, 0.4)' : 'var(--pm-border-subtle)'}; border-radius: 12px; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);">
+                <div class="pm-pipeline-switch-card" data-key="${item.key}" style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: #ffffff; border: 1.5px solid ${isChecked ? 'rgba(0, 113, 227, 0.4)' : 'var(--pm-border-subtle)'}; border-radius: 12px; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);">
                   <div style="display: flex; align-items: flex-start; gap: 12px; flex: 1; padding-right: 12px;">
                     <span style="font-size: 1.3rem; line-height: 1;">${item.icon}</span>
                     <div>
@@ -155,8 +133,8 @@ export class PipelineMatrixModal {
                   </div>
 
                   <!-- Apple iOS Style Toggle Switch -->
-                  <label class="pm-apple-switch" style="position: relative; display: inline-block; width: 44px; height: 26px; flex-shrink: 0; cursor: ${isProOrVip ? 'pointer' : 'not-allowed'};">
-                    <input type="checkbox" class="pipeline-checkbox" data-key="${item.key}" ${isChecked ? 'checked' : ''} ${!isProOrVip ? 'disabled' : ''} style="opacity: 0; width: 0; height: 0;" />
+                  <label class="pm-apple-switch" style="position: relative; display: inline-block; width: 44px; height: 26px; flex-shrink: 0; cursor: pointer;">
+                    <input type="checkbox" class="pipeline-checkbox" data-key="${item.key}" ${isChecked ? 'checked' : ''} style="opacity: 0; width: 0; height: 0;" />
                     <span class="pm-switch-slider ${isChecked ? 'pm-switch-on' : ''}" style="position: absolute; inset: 0; background-color: ${isChecked ? '#34c759' : '#e5e5ea'}; border-radius: 26px; transition: 0.25s cubic-bezier(0.16, 1, 0.3, 1);">
                       <span class="pm-switch-knob" style="position: absolute; height: 22px; width: 22px; left: ${isChecked ? '20px' : '2px'}; bottom: 2px; background-color: white; border-radius: 50%; transition: 0.25s cubic-bezier(0.16, 1, 0.3, 1); box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);"></span>
                     </span>
@@ -211,13 +189,6 @@ export class PipelineMatrixModal {
       }
 
       if (target.id === 'btnResetPipelineDefaults') {
-        if (!SubscriptionManager.canUseFeature('pipelineCustomizer')) {
-          Toast.info('👑 【自訂印前優化管線開關】為 Pro / VIP 會員專屬功能');
-          this.close();
-          if (this.onOpenPricing) this.onOpenPricing();
-          return;
-        }
-
         store.resetPipelineOptions();
         SoundEffects.sliderTick();
         this.render();
@@ -237,14 +208,6 @@ export class PipelineMatrixModal {
       if (target.classList.contains('pipeline-checkbox')) {
         const key = target.dataset.key as keyof PipelineOptions;
         if (key) {
-          if (!SubscriptionManager.canUseFeature('pipelineCustomizer')) {
-            target.checked = !target.checked;
-            Toast.info('👑 【自訂印前優化管線開關】為 Pro / VIP 會員專屬功能');
-            this.close();
-            if (this.onOpenPricing) this.onOpenPricing();
-            return;
-          }
-
           store.setPipelineOption(key, target.checked);
           SoundEffects.sliderTick();
           this.render();
