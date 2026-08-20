@@ -444,10 +444,10 @@ class App {
       localStorage.setItem('pm_coachmark_dismissed', '1');
     });
 
-    // Simple Mode Preset Dropdown Toggle
-    const btnToggleDropdown = document.getElementById('btnToggleSimplePresetDropdown');
+    // Simple Mode Preset Capsule Dropdown Toggle
+    const simplePresetPill = document.getElementById('simplePresetActivePill');
     const simplePresetDropdown = document.getElementById('simplePresetDropdown');
-    btnToggleDropdown?.addEventListener('click', (e) => {
+    simplePresetPill?.addEventListener('click', (e) => {
       e.stopPropagation();
       if (simplePresetDropdown) {
         const isHidden = simplePresetDropdown.style.display === 'none' || !simplePresetDropdown.style.display;
@@ -459,7 +459,7 @@ class App {
     // Close simple preset dropdown on outside click
     document.addEventListener('click', (e) => {
       if (simplePresetDropdown && simplePresetDropdown.style.display === 'flex') {
-        if (!simplePresetDropdown.contains(e.target as Node) && e.target !== btnToggleDropdown) {
+        if (!simplePresetDropdown.contains(e.target as Node) && e.target !== simplePresetPill) {
           simplePresetDropdown.style.display = 'none';
         }
       }

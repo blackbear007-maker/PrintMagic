@@ -2913,29 +2913,39 @@ body[data-ui-mode="advanced"] #advancedExportRow {
   display: flex !important;
 }
 
-/* Simple Mode Auto-Detected Preset Bar */
+/* Simple Mode Auto-Detected Interactive Capsule Preset Bar */
 .pm-simple-preset-bar {
-  display: flex;
+  position: relative;
+  display: inline-flex;
   align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
 }
 
 .pm-simple-preset-pill {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 14px;
-  background: #ffffff;
-  border: 1.5px solid rgba(0, 113, 227, 0.35);
-  border-radius: 20px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  padding: 6px 16px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(0, 113, 227, 0.25);
+  border-radius: var(--pm-radius-full);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
   font-size: 0.84rem;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.pm-simple-preset-switch-wrapper {
-  position: relative;
-  display: inline-block;
+.pm-simple-preset-pill:hover {
+  background: #ffffff;
+  border-color: var(--pm-accent-blue);
+  box-shadow: 0 4px 16px rgba(0, 113, 227, 0.18);
+  transform: translateY(-1px);
+}
+
+.pm-simple-preset-pill:active {
+  transform: scale(0.97);
 }
 
 .pm-simple-preset-dropdown {
@@ -2944,16 +2954,16 @@ body[data-ui-mode="advanced"] #advancedExportRow {
   left: 0;
   z-index: 1000;
   background: rgba(255, 255, 255, 0.98);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
   border: 1px solid var(--pm-border-subtle);
-  border-radius: 14px;
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.15), 0 2px 6px rgba(0, 0, 0, 0.05);
+  border-radius: 18px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.15), 0 2px 8px rgba(0, 0, 0, 0.06);
   padding: 8px;
   display: flex;
   flex-direction: column;
   gap: 4px;
-  min-width: 250px;
+  min-width: 260px;
   animation: pmDropdownPop 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -2961,8 +2971,9 @@ body[data-ui-mode="advanced"] #advancedExportRow {
   width: 100%;
   text-align: left;
   justify-content: flex-start;
-  padding: 8px 12px;
-  border-radius: 8px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 0.86rem;
 }
 
 @keyframes pmDropdownPop {
@@ -2973,6 +2984,51 @@ body[data-ui-mode="advanced"] #advancedExportRow {
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
+  }
+}
+
+/* ==========================================================================
+   🌱 Simple Mode Ultra-Minimalist Polish (Steve Jobs Philosophy)
+   ========================================================================== */
+body[data-ui-mode="simple"] .pm-preset-bar {
+  padding: 4px 0 6px 0;
+  border-bottom: none;
+  background: transparent;
+}
+
+body[data-ui-mode="simple"] .pm-view-toolbar {
+  background: transparent;
+  border: none;
+  padding: 4px 0 10px 0;
+  box-shadow: none;
+}
+
+body[data-ui-mode="simple"] .pm-view-toolbar-primary .pm-tool-btn {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: var(--pm-radius-full);
+  padding: 6px 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+body[data-ui-mode="simple"] .pm-view-toolbar-primary .pm-tool-btn:hover {
+  background: #ffffff;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
+}
+
+body[data-ui-mode="simple"] .pm-footer {
+  display: none; /* Hide dense legal/ISO footer on simple mode */
+}
+
+@media (max-width: 768px) {
+  body[data-ui-mode="simple"] .pm-header {
+    padding: 8px 16px;
+  }
+  body[data-ui-mode="simple"] #btnToggleSound {
+    display: none;
   }
 }
 
