@@ -197,11 +197,20 @@
   line-height: 1.5;
 }
 
+.pm-dropzone-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
 .pm-dropzone-cta-btn {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 12px 28px;
+  padding: 12px 24px;
   border-radius: var(--pm-radius-full);
   background: var(--pm-accent-blue);
   color: #ffffff;
@@ -209,12 +218,39 @@
   font-weight: 600;
   box-shadow: 0 4px 14px rgba(0, 113, 227, 0.3);
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
 }
 
 .pm-dropzone:hover .pm-dropzone-cta-btn {
   background: var(--pm-accent-blue-hover);
   box-shadow: 0 6px 20px rgba(0, 113, 227, 0.4);
   transform: scale(1.02);
+}
+
+.pm-dropzone-sub-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 18px;
+  border-radius: var(--pm-radius-full);
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid var(--pm-border-subtle);
+  color: var(--pm-text-primary);
+  font-size: 0.86rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.pm-dropzone-sub-btn:hover {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  transform: translateY(-1px);
+}
+
+.pm-dropzone-sub-btn:active {
+  transform: scale(0.96);
 }
 
 /* Landing Sample Bar */
@@ -3751,6 +3787,69 @@ body[data-ui-mode="simple"] .pm-footer {
   .pm-canvas-sheet img#mainPreviewImg {
     max-height: 54vh;
   }
+}
+
+/* ==========================================================================
+   👁️ Apple Hold-to-Peek Original & 🤌 Pinch-to-Zoom Badges
+   ========================================================================== */
+.pm-canvas-peek-badge {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 40;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  color: #ffffff;
+  font-size: 0.84rem;
+  font-weight: 700;
+  border-radius: var(--pm-radius-full);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.28), 0 0 0 1px rgba(255, 255, 255, 0.15);
+  pointer-events: none;
+  animation: pmPeekBadgePulse 1.2s infinite alternate ease-in-out;
+}
+
+@keyframes pmPeekBadgePulse {
+  from { transform: translateX(-50%) scale(0.98); opacity: 0.92; }
+  to { transform: translateX(-50%) scale(1.02); opacity: 1; }
+}
+
+.pm-canvas-zoom-reset-btn {
+  position: absolute;
+  bottom: 14px;
+  left: 14px;
+  z-index: 30;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: var(--pm-radius-full);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+  color: var(--pm-text-primary);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.pm-canvas-zoom-reset-btn:hover {
+  background: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
+}
+
+.pm-canvas-zoom-reset-btn:active {
+  transform: scale(0.95);
 }
 
 

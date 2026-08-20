@@ -48,6 +48,8 @@ import { AiVectorizer } from './core/ai-vectorizer';
 import { PdfExporter } from './engines/pdf-exporter';
 import { VectorTracer } from './engines/vector-tracer';
 import { workerClient } from './workers/worker-client';
+import { CanvasZoomController } from './ui/canvas-zoom';
+import { WebShareService } from './services/web-share';
 import type { BatchItem, PaperType, PrintPresetId } from './types';
 
 /**
@@ -58,6 +60,7 @@ class App {
   public compareSlider!: CompareSlider;
   public paperSimulator!: PaperSimulator;
   public paper3D!: Paper3DController;
+  public canvasZoom!: CanvasZoomController;
   public foilSimulator!: FoilSimulator;
   public doubleSidedManager = new DoubleSidedManager();
   public vectorOverlayEngine = new VectorOverlayEngine();
@@ -198,7 +201,10 @@ class App {
     // 5. 3D Paper Physics Controller
     this.paper3D = new Paper3DController('stageContainer', 'canvasSheet', store.getState().currentPreset);
 
-    // 6. 3D Luxury Foil & Spot UV Simulator
+    // 6. 🤌 Touch Pinch-to-Zoom & Long-Press Peek Controller
+    this.canvasZoom = new CanvasZoomController('stageContainer', 'canvasSheet', 'mainPreviewImg');
+
+    // 7. 3D Luxury Foil & Spot UV Simulator
     this.foilSimulator = new FoilSimulator('stageContainer', 'canvasSheet');
 
     // 7. 20x Halftone Loupe
@@ -911,6 +917,76 @@ class App {
     document.getElementById('btnSimpleDirectPrint')?.addEventListener('click', () => {
       this.directPrintModal.open();
     });
+
+    // 📷 Camera Direct Capture (Document Scanner)
+    const cameraInput = document.getElementById('cameraInput') as HTMLInputElement | null;
+    document.getElementById('btnPickCamera')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (cameraInput) {
+        cameraInput.value = '';
+        cameraInput.click();
+      }
+    });
+    cameraInput?.addEventListener('change', (e: Event) => {
+      const target = e.target as HTMLInputElement;
+      if (target.files && target.files.length > 0) {
+        SoundEffects.shutterClick();
+        Toast.info('📷 正在以 300 DPI 增強處理相機拍攝之作品...');
+        void this.dropZoneInstance.handleFiles(Array.from(target.files));
+      }
+    });
+
+    // 📋 Clipboard Paste Button
+    document.getElementById('btnPasteClipboard')?.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      try {
+        if (navigator.clipboard && navigator.clipboard.read) {
+          const clipboardItems = await navigator.clipboard.read();
+          const files: File[] = [];
+          for (const item of clipboardItems) {
+            const imageType = item.types.find((t) => t.startsWith('image/'));
+            if (imageType) {
+              const blob = await item.getType(imageType);
+              files.push(new File([blob], `pasted-${Date.now()}.png`, { type: imageType }));
+            }
+          }
+          if (files.length > 0) {
+            Toast.success('✓ 已從剪貼簿載入圖片！');
+            void this.dropZoneInstance.handleFiles(files);
+            return;
+          }
+        }
+        Toast.info('💡 請在鍵盤上按 Ctrl+V (或 Cmd+V) 直接貼上圖片');
+      } catch {
+        Toast.info('💡 請在鍵盤上按 Ctrl+V (或 Cmd+V) 直接貼上圖片');
+      }
+    });
+
+    // 📤 Native Web Share API (iOS AirDrop / LINE / Messenger / Files)
+    const handleShareArtwork = async () => {
+      const state = store.getState();
+      if (!state.processedDataUrl || !state.processedImageData) {
+        Toast.error('請先上傳圖片');
+        return;
+      }
+      Toast.info('⏳ 正在準備分享檔案...');
+      try {
+        const preset = state.currentPreset;
+        const fileName = `PrintMagic_${preset.nameZh.replace(/\s+/g, '_')}_300DPI.png`;
+        const file = await WebShareService.dataUrlToFile(state.processedDataUrl, fileName, 'image/png');
+        const shared = await WebShareService.shareFile(file, `PrintMagic 印刷標準檔 (${preset.nameZh})`);
+        if (!shared) {
+          // If user cancels or share is unsupported, trigger standard PNG export
+          this.btnExportPng.click();
+        }
+      } catch (err) {
+        console.warn('Share error:', err);
+        this.btnExportPng.click();
+      }
+    };
+
+    document.getElementById('btnSimpleShare')?.addEventListener('click', handleShareArtwork);
+    document.getElementById('btnAdvancedShare')?.addEventListener('click', handleShareArtwork);
   }
 
   private updateSoundIcon(): void {

@@ -151,9 +151,18 @@
           <p class="pm-dropzone-desc">
             自動補足 3mm 出血防裁切 · 300 DPI 超高畫質 · 智慧除錯與墨量安全 (100% 離線純本機，免安裝)
           </p>
-          <div class="pm-dropzone-cta-btn">
-            <span>＋ 從相簿選擇相片</span>
+          <div class="pm-dropzone-actions">
+            <div class="pm-dropzone-cta-btn" id="btnPickAlbum">
+              <span>＋ 從相簿選擇相片</span>
+            </div>
+            <button class="pm-dropzone-sub-btn" id="btnPickCamera" type="button" title="手機相機直接拍照掃描實體畫作/作品">
+              <span>📷</span> 拍照掃描
+            </button>
+            <button class="pm-dropzone-sub-btn" id="btnPasteClipboard" type="button" title="直接貼上已複製之 Midjourney/Canva/截圖 (或按 Ctrl+V)">
+              <span>📋</span> 貼上剪貼簿
+            </button>
           </div>
+          <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display: none;" />
         </div>
 
         <!-- Clean Secondary Quick Sample Bar -->
@@ -312,8 +321,11 @@
                 <button id="btnSimpleExportPdf" class="pm-btn pm-btn-primary pm-btn-md" style="font-weight: 700; box-shadow: 0 4px 14px rgba(0, 113, 227, 0.32);" title="一鍵下載含 3mm 出血之標準印刷 PDF">
                   <span>📄</span> 一鍵下載標準印刷 PDF
                 </button>
+                <button id="btnSimpleShare" class="pm-btn pm-btn-secondary pm-btn-md" style="background: rgba(0, 113, 227, 0.08); color: var(--pm-accent-blue); border-color: rgba(0, 113, 227, 0.25);" title="以 iPhone / Android 原生分享選單 AirDrop、傳送 LINE 或無線列印">
+                  <span>📤</span> 分享 / AirDrop
+                </button>
                 <button id="btnSimpleExportPng" class="pm-btn pm-btn-secondary pm-btn-md" title="匯出 300 DPI 高畫質 PNG 圖檔">
-                  <span>📥</span> 下載 300 DPI PNG
+                  <span>📥</span> 下載 PNG
                 </button>
                 <button id="btnSimpleConvPrint" class="pm-btn pm-btn-secondary pm-btn-md" title="7-11 ibon / 全家 FamiPort 超商 30 秒下樓立印">
                   <span>🏪</span> 超商立印
@@ -363,6 +375,9 @@
               </div>
 
               <div class="pm-export-right-actions">
+                <button id="btnAdvancedShare" class="pm-btn pm-btn-secondary" title="原生系統 AirDrop / 分享面板">
+                  <span>📤</span> 分享
+                </button>
                 <button id="btnExportPdf" class="pm-btn pm-btn-primary" title="匯出含裁切十字與出血之標準印刷 PDF">
                   <span>📄</span> 下載標準 PDF
                 </button>
