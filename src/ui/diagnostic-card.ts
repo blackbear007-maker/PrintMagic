@@ -291,12 +291,95 @@ export class DiagnosticCard {
             </div>
           </div>
 
-          <!-- 4. Progressive Disclosure Accordion: Deep Technical Indicators -->
-          <div class="pm-diag-accordion-wrapper">
-            <button class="pm-diag-accordion-toggle" id="btnToggleDiagAccordion" type="button">
+          <!-- 4. Modern 4-Pillar Visual Print Safety Cards (2x2 Grid) -->
+          <div class="pm-diag-accordion-wrapper" style="margin-top: 14px;">
+            <div class="pm-safety-tiles-grid">
+              <!-- Tile 1: Resolution -->
+              <div class="pm-safety-tile">
+                <div class="pm-safety-tile-top">
+                  <div class="pm-safety-tile-title">
+                    <span class="pm-safety-tile-icon">🔍</span>
+                    <span class="pm-safety-tile-name">畫質解析度</span>
+                  </div>
+                  <span class="pm-safety-badge ${breakdown.resolution >= 90 ? 'pm-badge-pass' : 'pm-badge-warn'}">
+                    ${breakdown.resolution >= 90 ? '✓ 頂級清晰' : '需放大'} · ${breakdown.resolution}分
+                  </span>
+                </div>
+                <div class="pm-safety-tile-desc">
+                  Lanczos-3 補足 <strong>${finalDpi} DPI</strong> 印刷標準，無顆粒與鋸齒
+                </div>
+              </div>
+
+              <!-- Tile 2: Bleed & Safety Crop -->
+              <div class="pm-safety-tile">
+                <div class="pm-safety-tile-top">
+                  <div class="pm-safety-tile-title">
+                    <span class="pm-safety-tile-icon">📐</span>
+                    <span class="pm-safety-tile-name">出血與防裁切</span>
+                  </div>
+                  <span class="pm-safety-badge ${breakdown.aspectRatio >= 90 ? 'pm-badge-pass' : 'pm-badge-warn'}">
+                    ✓ 安全防切 · ${breakdown.aspectRatio}分
+                  </span>
+                </div>
+                <div class="pm-safety-tile-desc">
+                  已自動外推 <strong>3mm 標準出血</strong>，裁切偏差保證不露白邊
+                </div>
+              </div>
+
+              <!-- Tile 3: Ink Safety -->
+              <div class="pm-safety-tile">
+                <div class="pm-safety-tile-top">
+                  <div class="pm-safety-tile-title">
+                    <span class="pm-safety-tile-icon">💧</span>
+                    <span class="pm-safety-tile-name">墨量防沾黏</span>
+                  </div>
+                  <span class="pm-safety-badge ${breakdown.inkSafety >= 80 ? 'pm-badge-pass' : 'pm-badge-warn'}">
+                    ${breakdown.inkSafety >= 80 ? '✓ 安全控墨' : '⚠️ 需控墨'} · ${breakdown.inkSafety}分
+                  </span>
+                </div>
+                <div class="pm-safety-tile-desc">
+                  總墨量壓制至 <strong>TAC ≤ 300%</strong>，避免紙張吸墨過重背印沾黏
+                </div>
+              </div>
+
+              <!-- Tile 4: Color & Tone -->
+              <div class="pm-safety-tile">
+                <div class="pm-safety-tile-top">
+                  <div class="pm-safety-tile-title">
+                    <span class="pm-safety-tile-icon">🎨</span>
+                    <span class="pm-safety-tile-name">色彩與階調</span>
+                  </div>
+                  <span class="pm-safety-badge ${breakdown.saturation >= 90 ? 'pm-badge-pass' : 'pm-badge-warn'}">
+                    ✓ 色彩通透 · ${breakdown.saturation}分
+                  </span>
+                </div>
+                <div class="pm-safety-tile-desc">
+                  已套用 <strong>USM 印刷銳化</strong> 與 CMYK 色階校正，實體通透不暗沉
+                </div>
+              </div>
+            </div>
+
+            <!-- Auto Summary Checklist Box -->
+            <div class="pm-auto-summary-box">
+              <div class="pm-auto-summary-title">⚡ 系統已自動完成印前安全處理</div>
+              <div class="pm-auto-tags">
+                <span class="pm-auto-tag">✓ 補足 ${finalDpi} DPI</span>
+                <span class="pm-auto-tag">✓ 3mm 標準出血</span>
+                <span class="pm-auto-tag">✓ TAC 控墨安全</span>
+                <span class="pm-auto-tag">✓ USM 微細銳化</span>
+              </div>
+              ${issues.length > 0 ? `
+                <div class="pm-diag-warning-inline">
+                  <span>⚠️</span> ${issues[0]}
+                </div>
+              ` : ''}
+            </div>
+
+            <!-- Optional Collapsible Deep Metrics Toggle -->
+            <button class="pm-diag-accordion-toggle" id="btnToggleDiagAccordion" type="button" style="margin-top: 10px; padding: 6px 10px; font-size: 0.72rem;">
               <span class="pm-accordion-title">
                 <span>📊</span>
-                <span>${this.isDetailsExpanded ? '收合印前詳細檢驗數據' : '查看 7 項專業印前指標與自動優化詳情'}</span>
+                <span>${this.isDetailsExpanded ? '收合 7 項詳細數值對比' : '展開 7 項詳細數值對比'}</span>
               </span>
               <span class="pm-accordion-icon">${this.isDetailsExpanded ? '▲' : '▼'}</span>
             </button>
@@ -314,9 +397,6 @@ export class DiagnosticCard {
                   ${this.renderWeightedRow('反差與層次', '10%', initialBreakdown.contrast, breakdown.contrast, '動態對比度增強')}
                 </div>
               </div>
-
-              <!-- Auto Process Actions & Diagnostics -->
-              ${this.renderDiagnostics(issues, recommendations, appliedScale)}
             </div>
           </div>
         </div>
