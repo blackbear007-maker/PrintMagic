@@ -3,6 +3,7 @@
  */
 export class Toast {
   private static container: HTMLElement | null = null;
+  public static onToastListener?: (message: string, type: 'info' | 'success' | 'warning' | 'error') => void;
 
   private static ensureContainer(): HTMLElement {
     if (!this.container) {
@@ -18,6 +19,14 @@ export class Toast {
     type: 'info' | 'success' | 'warning' | 'error' = 'info',
     duration = 3200
   ): void {
+    if (this.onToastListener) {
+      try {
+        this.onToastListener(message, type);
+      } catch (err) {
+        console.warn('Toast listener error:', err);
+      }
+    }
+
     const container = this.ensureContainer();
 
     const toast = document.createElement('div');

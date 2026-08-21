@@ -50,6 +50,7 @@ import { VectorTracer } from './engines/vector-tracer';
 import { workerClient } from './workers/worker-client';
 import { CanvasZoomController } from './ui/canvas-zoom';
 import { WebShareService } from './services/web-share';
+import { XiaoxiangAssistant } from './ui/xiaoxiang-assistant';
 import type { BatchItem, PaperType, PrintPresetId } from './types';
 
 /**
@@ -61,6 +62,7 @@ class App {
   public paperSimulator!: PaperSimulator;
   public paper3D!: Paper3DController;
   public canvasZoom!: CanvasZoomController;
+  public xiangAssistant!: XiaoxiangAssistant;
   public foilSimulator!: FoilSimulator;
   public doubleSidedManager = new DoubleSidedManager();
   public vectorOverlayEngine = new VectorOverlayEngine();
@@ -280,6 +282,12 @@ class App {
         this.runBatchExportAllPdf();
       }
     });
+
+    // 12. 🐘 Xiaoxiang Dialog Assistant (Inspired by Dan Dan danCard)
+    this.xiangAssistant = new XiaoxiangAssistant('xiangAssistantRoot');
+    Toast.onToastListener = (msg) => {
+      this.xiangAssistant.say(msg, 5000);
+    };
   }
 
   private bindEvents(): void {
