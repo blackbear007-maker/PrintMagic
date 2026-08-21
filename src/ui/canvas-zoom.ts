@@ -226,7 +226,7 @@ export class CanvasZoomController {
   /**
    * Apply scale factor with bounds check
    */
-  private applyZoom(targetScale: number): void {
+  public applyZoom(targetScale: number): void {
     this.scale = Math.max(this.minScale, Math.min(this.maxScale, targetScale));
     if (this.scale <= 1.05) {
       this.scale = 1;
@@ -234,6 +234,20 @@ export class CanvasZoomController {
       this.posY = 0;
     }
     this.updateTransform();
+  }
+
+  public zoomIn(step = 0.35): void {
+    this.applyZoom(this.scale + step);
+    SoundEffects.sliderTick();
+  }
+
+  public zoomOut(step = 0.35): void {
+    this.applyZoom(this.scale - step);
+    SoundEffects.sliderTick();
+  }
+
+  public getScale(): number {
+    return this.scale;
   }
 
   /**

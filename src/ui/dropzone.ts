@@ -38,11 +38,15 @@ export class DropZone {
     this.bindEvents();
   }
 
+  public openFilePicker(): void {
+    this.fileInput.value = '';
+    this.fileInput.click();
+  }
+
   private bindEvents(): void {
     // Click to select
     this.el.addEventListener('click', () => {
-      this.fileInput.value = '';
-      this.fileInput.click();
+      this.openFilePicker();
     });
 
     this.fileInput.addEventListener('change', (e: Event) => {

@@ -211,6 +211,34 @@ export class SoundEffects {
       osc2.stop(t2 + 0.03);
     } catch {}
   }
+
+  /**
+   * Smooth tactile 3D card/paper flipping whoosh sound
+   */
+  public static cardFlip(): void {
+    const ctx = this.getContext();
+    if (!ctx) return;
+
+    try {
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(180, now);
+      osc.frequency.exponentialRampToValueAtTime(320, now + 0.08);
+      osc.frequency.exponentialRampToValueAtTime(120, now + 0.16);
+
+      gain.gain.setValueAtTime(0.08, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(now);
+      osc.stop(now + 0.18);
+    } catch {}
+  }
 }
 
 SoundEffects.init();

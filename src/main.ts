@@ -51,6 +51,7 @@ import { workerClient } from './workers/worker-client';
 import { CanvasZoomController } from './ui/canvas-zoom';
 import { WebShareService } from './services/web-share';
 import { XiaoxiangAssistant } from './ui/xiaoxiang-assistant';
+import { KeyboardShortcutsModal } from './ui/keyboard-shortcuts-modal';
 import type { BatchItem, PaperType, PrintPresetId } from './types';
 
 /**
@@ -83,6 +84,7 @@ class App {
   public pricingModal!: PricingModal;
   public onboardingModal!: OnboardingModal;
   public pipelineMatrixModal!: PipelineMatrixModal;
+  public shortcutsModal!: KeyboardShortcutsModal;
   public dropZoneInstance!: DropZone;
   public batchBar!: BatchBar;
   public cropController!: CropController;
@@ -265,6 +267,7 @@ class App {
         this.pricingModal.open();
       }
     );
+    this.shortcutsModal = new KeyboardShortcutsModal();
     this.updatePlanBadge();
 
     // 10. Crop Controller
@@ -525,6 +528,14 @@ class App {
     this.btnToggleCompare.addEventListener('click', () => {
       store.toggleComparing();
       SoundEffects.sliderTick();
+      const state = store.getState();
+      const hudCompareBtn = document.getElementById('btnHudCompare');
+      if (hudCompareBtn) {
+        hudCompareBtn.classList.toggle('active', state.isComparing);
+      }
+      if (state.isComparing) {
+        this.xiangAssistant?.say(XiaoxiangAssistant.LINES.compareOn, 5000);
+      }
     });
 
     // Toggle Loupe Magnifier
@@ -534,13 +545,17 @@ class App {
       SoundEffects.sliderTick();
       if (active) {
         Toast.info('🔍 20x 網點顯微放大鏡已啟動');
+        this.xiangAssistant?.say(XiaoxiangAssistant.LINES.loupeOn, 5000);
       }
     });
 
     // Flip Paper Back / Front
     this.btnFlipBack.addEventListener('click', () => {
       this.paper3D.flip();
-      this.btnFlipBack.classList.toggle('active', this.paper3D.getIsFlipped());
+      const isFlipped = this.paper3D.getIsFlipped();
+      this.btnFlipBack.classList.toggle('active', isFlipped);
+      SoundEffects.cardFlip();
+      Toast.info(isFlipped ? '↻ 已翻轉至紙張背面 (查看背面規格)' : '↻ 已翻回紙張正面');
     });
 
     // Toggle TAC Heatmap
@@ -557,6 +572,12 @@ class App {
         }
       }
       store.toggleHeatmap();
+      const updatedState = store.getState();
+      if (updatedState.showHeatmap) {
+        this.xiangAssistant?.say(XiaoxiangAssistant.LINES.heatmapOn, 5000);
+      } else {
+        this.xiangAssistant?.say(XiaoxiangAssistant.LINES.heatmapOff, 3000);
+      }
     });
 
     // Toggle Soft Proof
@@ -571,12 +592,24 @@ class App {
         this.softProofDataUrl = this.imageDataToDataUrl(proof);
       }
       store.toggleSoftProof();
+      const updatedState = store.getState();
+      if (updatedState.showSoftProof) {
+        this.xiangAssistant?.say(XiaoxiangAssistant.LINES.softProofOn, 5000);
+      } else {
+        this.xiangAssistant?.say(XiaoxiangAssistant.LINES.softProofOff, 3000);
+      }
     });
 
     // Toggle Safe Zone
     this.btnToggleSafeZone.addEventListener('click', () => {
       store.toggleSafeZone();
       SoundEffects.sliderTick();
+      const updatedState = store.getState();
+      if (updatedState.showSafeZone) {
+        this.xiangAssistant?.say(XiaoxiangAssistant.LINES.safeZoneOn, 5000);
+      } else {
+        this.xiangAssistant?.say(XiaoxiangAssistant.LINES.safeZoneOff, 3000);
+      }
     });
 
     // Open Gallery Mockup Modal
@@ -589,6 +622,7 @@ class App {
       const img = new Image();
       img.onload = () => {
         this.mockupModal.open(img);
+        this.xiangAssistant?.say(XiaoxiangAssistant.LINES.mockup, 5000);
       };
       img.src = state.processedDataUrl;
     });
@@ -601,6 +635,7 @@ class App {
         return;
       }
       this.specModal.open(state);
+      this.xiangAssistant?.say(XiaoxiangAssistant.LINES.specCopy, 5000);
     });
 
     // 3D Luxury Foil & Spot UV Craft Selection
@@ -612,6 +647,12 @@ class App {
           document.querySelectorAll('.pm-foil-btn').forEach((b) => {
             b.classList.toggle('active', (b as HTMLElement).dataset.foil === foilType);
           });
+          SoundEffects.sliderTick();
+          if (foilType === 'gold') this.xiangAssistant?.say(XiaoxiangAssistant.LINES.foilGold, 5000);
+          else if (foilType === 'rose-gold') this.xiangAssistant?.say(XiaoxiangAssistant.LINES.foilRoseGold, 5000);
+          else if (foilType === 'silver') this.xiangAssistant?.say(XiaoxiangAssistant.LINES.foilSilver, 5000);
+          else if (foilType === 'spot-uv') this.xiangAssistant?.say(XiaoxiangAssistant.LINES.foilSpotUv, 5000);
+          else if (foilType === 'holographic') this.xiangAssistant?.say(XiaoxiangAssistant.LINES.foilHolo, 5000);
         }
       });
     });
@@ -779,11 +820,13 @@ class App {
     // Open Smart Dieline & White Ink Modal
     document.getElementById('btnOpenDieline')?.addEventListener('click', () => {
       this.dielineModal.open();
+      this.xiangAssistant?.say(XiaoxiangAssistant.LINES.dieline, 5000);
     });
 
     // Open K100 Pure Black & Vector Overlay Modal
     document.getElementById('btnOpenVectorOverlay')?.addEventListener('click', () => {
       this.vectorOverlayModal.open();
+      this.xiangAssistant?.say(XiaoxiangAssistant.LINES.vectorOverlay, 5000);
     });
 
     // Open Direct Print & Live Quote Modal
@@ -794,11 +837,13 @@ class App {
     // Open Convenience Store Cloud Print Modal (7-11 & FamilyMart)
     document.getElementById('btnOpenConvPrint')?.addEventListener('click', () => {
       this.convPrintModal.open();
+      this.xiangAssistant?.say(XiaoxiangAssistant.LINES.convPrint, 5000);
     });
 
     // Open Imposition Gang-Run Sheet Modal (A4/A3)
     document.getElementById('btnOpenImposition')?.addEventListener('click', () => {
       void this.impositionModal.open();
+      this.xiangAssistant?.say(XiaoxiangAssistant.LINES.imposition, 5000);
     });
 
     // Open Nearby Commercial Print Shops Finder (if present)
@@ -1012,6 +1057,195 @@ class App {
 
     document.getElementById('btnSimpleShare')?.addEventListener('click', handleShareArtwork);
     document.getElementById('btnAdvancedShare')?.addEventListener('click', handleShareArtwork);
+
+    // 🎛️ Bind Canvas Floating Quick HUD
+    this.bindCanvasHud();
+
+    // ⌨️ Bind Global Keyboard Shortcuts
+    this.bindKeyboardShortcuts();
+
+    // 📥 Bind Studio Drag-and-Drop Re-upload
+    this.bindStudioDragAndDrop();
+  }
+
+  /**
+   * 🎛️ Bind Canvas Floating HUD (Zoom In/Out/Reset, Compare, Shortcuts, Reupload)
+   */
+  private bindCanvasHud(): void {
+    document.getElementById('btnHudZoomIn')?.addEventListener('click', () => {
+      this.canvasZoom.zoomIn();
+    });
+
+    document.getElementById('btnHudZoomOut')?.addEventListener('click', () => {
+      this.canvasZoom.zoomOut();
+    });
+
+    document.getElementById('btnHudZoomReset')?.addEventListener('click', () => {
+      this.canvasZoom.resetZoom();
+      Toast.info('🔍 畫布已適配重設為最佳檢視尺寸');
+    });
+
+    document.getElementById('btnHudCompare')?.addEventListener('click', () => {
+      this.btnToggleCompare.click();
+    });
+
+    document.getElementById('btnHudShortcuts')?.addEventListener('click', () => {
+      this.shortcutsModal.open();
+    });
+
+    document.getElementById('btnHudReupload')?.addEventListener('click', () => {
+      this.dropZoneInstance.openFilePicker();
+    });
+  }
+
+  /**
+   * ⌨️ Global Keyboard Shortcuts Router
+   */
+  private bindKeyboardShortcuts(): void {
+    window.addEventListener('keydown', (e: KeyboardEvent) => {
+      // Don't trigger hotkeys if user is typing in an input / textarea / select
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT')) {
+        return;
+      }
+
+      // 1. '?' for Shortcuts Sheet
+      if (e.key === '?' || (e.key === '/' && !e.ctrlKey && !e.metaKey)) {
+        e.preventDefault();
+        this.shortcutsModal.toggle();
+        return;
+      }
+
+      // 2. 'c' for Compare Toggle
+      if (e.key === 'c' || e.key === 'C') {
+        if (!e.ctrlKey && !e.metaKey) {
+          e.preventDefault();
+          this.btnToggleCompare.click();
+        }
+      }
+
+      // 3. 's' for Safe Zone / Bleed Frame
+      if (e.key === 's' || e.key === 'S') {
+        if (!e.ctrlKey && !e.metaKey) {
+          e.preventDefault();
+          this.btnToggleSafeZone.click();
+        }
+      }
+
+      // 4. 'p' for Soft Proof
+      if (e.key === 'p' || e.key === 'P') {
+        if (!e.ctrlKey && !e.metaKey) {
+          e.preventDefault();
+          this.btnToggleSoftProof.click();
+        }
+      }
+
+      // 5. 'h' for Ink TAC Heatmap
+      if (e.key === 'h' || e.key === 'H') {
+        if (!e.ctrlKey && !e.metaKey) {
+          e.preventDefault();
+          this.btnToggleHeatmap.click();
+        }
+      }
+
+      // 6. 'l' for 20x Loupe
+      if (e.key === 'l' || e.key === 'L') {
+        if (!e.ctrlKey && !e.metaKey) {
+          e.preventDefault();
+          this.btnToggleLoupe.click();
+        }
+      }
+
+      // 7. 'f' for Flip Double Sided Back
+      if (e.key === 'f' || e.key === 'F') {
+        if (!e.ctrlKey && !e.metaKey) {
+          e.preventDefault();
+          this.btnFlipBack.click();
+        }
+      }
+
+      // 8. 'z' or '0' for Zoom Reset
+      if (e.key === 'z' || e.key === 'Z' || e.key === '0') {
+        if (!e.ctrlKey && !e.metaKey) {
+          e.preventDefault();
+          this.canvasZoom.resetZoom();
+          Toast.info('🔍 畫布已適配重設');
+        }
+      }
+
+      // 9. 'm' for UI Mode Switch (Simple <-> Advanced)
+      if (e.key === 'm' || e.key === 'M') {
+        if (!e.ctrlKey && !e.metaKey) {
+          e.preventDefault();
+          const currentMode = store.getState().uiMode;
+          const nextMode = currentMode === 'simple' ? 'advanced' : 'simple';
+          if (nextMode === 'simple') this.btnModeSimple?.click();
+          else this.btnModeAdvanced?.click();
+        }
+      }
+
+      // 10. 'e' for Export PDF
+      if (e.key === 'e' || e.key === 'E') {
+        if (!e.ctrlKey && !e.metaKey) {
+          e.preventDefault();
+          this.btnExportPdf.click();
+        }
+      }
+
+      // 11. '1' ~ '6' for Presets
+      if (['1', '2', '3', '4', '5', '6'].includes(e.key)) {
+        if (!e.ctrlKey && !e.metaKey) {
+          e.preventDefault();
+          const presetMap: Record<string, PrintPresetId> = {
+            '1': 'poster-a4',
+            '2': 'poster-a3',
+            '3': 'postcard',
+            '4': 'business-card',
+            '5': 'sticker',
+            '6': 'social'
+          };
+          const pid = presetMap[e.key];
+          if (pid) {
+            const btn = document.querySelector(`.pm-preset-btn[data-preset="${pid}"]`) as HTMLButtonElement | null;
+            btn?.click();
+          }
+        }
+      }
+    });
+  }
+
+  /**
+   * 📥 Direct Drag & Drop Re-upload on Stage Canvas in Studio Mode
+   */
+  private bindStudioDragAndDrop(): void {
+    const stage = document.getElementById('stageContainer');
+    if (!stage) return;
+
+    stage.addEventListener('dragover', (e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      stage.classList.add('pm-stage-dragover');
+    });
+
+    stage.addEventListener('dragleave', (e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      stage.classList.remove('pm-stage-dragover');
+    });
+
+    stage.addEventListener('drop', (e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      stage.classList.remove('pm-stage-dragover');
+
+      if (e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
+        const files = Array.from(e.dataTransfer.files).filter((f) => f.type.startsWith('image/'));
+        if (files.length > 0) {
+          Toast.info('📥 收到新圖片，正在重新計算印刷規格...');
+          void this.dropZoneInstance.handleFiles(files);
+        }
+      }
+    });
   }
 
   private updateSoundIcon(): void {
