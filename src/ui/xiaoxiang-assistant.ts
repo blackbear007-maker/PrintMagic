@@ -55,13 +55,7 @@ export class XiaoxiangAssistant {
   private render(): void {
     this.container.innerHTML = `
       <div id="xiangAssistant" class="pm-xiang-assistant">
-        <!-- Xiaoxiang Avatar -->
-        <div id="xiangAvatar" class="pm-xiang-avatar-wrap" title="小象（印刷廠之子 · 樓下的朋友們）">
-          <img id="xiangFace" src="xiaoxiang.jpg" alt="小象" class="pm-xiang-avatar-img" />
-          <span class="pm-xiang-status-dot" title="小象在線守護印刷品質"></span>
-        </div>
-
-        <!-- Xiaoxiang Dialog Card (Inspired by Dan Dan danCard) -->
+        <!-- Xiaoxiang Dialog Card (Left) -->
         <div id="xiangCard" class="pm-xiang-card breath">
           <div class="pm-xiang-header">
             <div class="pm-xiang-title-row">
@@ -75,6 +69,12 @@ export class XiaoxiangAssistant {
           <div id="xiangSay" class="pm-xiang-say">
             ${XiaoxiangAssistant.LINES.welcome}
           </div>
+        </div>
+
+        <!-- Xiaoxiang Avatar (Right Side) -->
+        <div id="xiangAvatar" class="pm-xiang-avatar-wrap" title="小象（印刷廠之子 · 樓下的朋友們）">
+          <img id="xiangFace" src="xiaoxiang.jpg" alt="小象" class="pm-xiang-avatar-img" />
+          <span class="pm-xiang-status-dot" title="小象在線守護印刷品質"></span>
         </div>
       </div>
     `;
