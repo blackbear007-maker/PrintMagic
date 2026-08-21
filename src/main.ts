@@ -51,7 +51,6 @@ import { workerClient } from './workers/worker-client';
 import { CanvasZoomController } from './ui/canvas-zoom';
 import { WebShareService } from './services/web-share';
 import { XiaoxiangAssistant } from './ui/xiaoxiang-assistant';
-import { KeyboardShortcutsModal } from './ui/keyboard-shortcuts-modal';
 import type { BatchItem, PaperType, PrintPresetId } from './types';
 
 /**
@@ -84,7 +83,6 @@ class App {
   public pricingModal!: PricingModal;
   public onboardingModal!: OnboardingModal;
   public pipelineMatrixModal!: PipelineMatrixModal;
-  public shortcutsModal!: KeyboardShortcutsModal;
   public dropZoneInstance!: DropZone;
   public batchBar!: BatchBar;
   public cropController!: CropController;
@@ -267,7 +265,6 @@ class App {
         this.pricingModal.open();
       }
     );
-    this.shortcutsModal = new KeyboardShortcutsModal();
     this.updatePlanBadge();
 
     // 10. Crop Controller
@@ -1061,15 +1058,12 @@ class App {
     // 🎛️ Bind Canvas Floating Quick HUD
     this.bindCanvasHud();
 
-    // ⌨️ Bind Global Keyboard Shortcuts
-    this.bindKeyboardShortcuts();
-
     // 📥 Bind Studio Drag-and-Drop Re-upload
     this.bindStudioDragAndDrop();
   }
 
   /**
-   * 🎛️ Bind Canvas Floating HUD (Zoom In/Out/Reset, Compare, Shortcuts, Reupload)
+   * 🎛️ Bind Canvas Floating HUD (Zoom In/Out/Reset, Compare, Reupload)
    */
   private bindCanvasHud(): void {
     document.getElementById('btnHudZoomIn')?.addEventListener('click', () => {
@@ -1089,128 +1083,8 @@ class App {
       this.btnToggleCompare.click();
     });
 
-    document.getElementById('btnHudShortcuts')?.addEventListener('click', () => {
-      this.shortcutsModal.open();
-    });
-
     document.getElementById('btnHudReupload')?.addEventListener('click', () => {
       this.dropZoneInstance.openFilePicker();
-    });
-  }
-
-  /**
-   * ⌨️ Global Keyboard Shortcuts Router
-   */
-  private bindKeyboardShortcuts(): void {
-    window.addEventListener('keydown', (e: KeyboardEvent) => {
-      // Don't trigger hotkeys if user is typing in an input / textarea / select
-      const target = e.target as HTMLElement | null;
-      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT')) {
-        return;
-      }
-
-      // 1. '?' for Shortcuts Sheet
-      if (e.key === '?' || (e.key === '/' && !e.ctrlKey && !e.metaKey)) {
-        e.preventDefault();
-        this.shortcutsModal.toggle();
-        return;
-      }
-
-      // 2. 'c' for Compare Toggle
-      if (e.key === 'c' || e.key === 'C') {
-        if (!e.ctrlKey && !e.metaKey) {
-          e.preventDefault();
-          this.btnToggleCompare.click();
-        }
-      }
-
-      // 3. 's' for Safe Zone / Bleed Frame
-      if (e.key === 's' || e.key === 'S') {
-        if (!e.ctrlKey && !e.metaKey) {
-          e.preventDefault();
-          this.btnToggleSafeZone.click();
-        }
-      }
-
-      // 4. 'p' for Soft Proof
-      if (e.key === 'p' || e.key === 'P') {
-        if (!e.ctrlKey && !e.metaKey) {
-          e.preventDefault();
-          this.btnToggleSoftProof.click();
-        }
-      }
-
-      // 5. 'h' for Ink TAC Heatmap
-      if (e.key === 'h' || e.key === 'H') {
-        if (!e.ctrlKey && !e.metaKey) {
-          e.preventDefault();
-          this.btnToggleHeatmap.click();
-        }
-      }
-
-      // 6. 'l' for 20x Loupe
-      if (e.key === 'l' || e.key === 'L') {
-        if (!e.ctrlKey && !e.metaKey) {
-          e.preventDefault();
-          this.btnToggleLoupe.click();
-        }
-      }
-
-      // 7. 'f' for Flip Double Sided Back
-      if (e.key === 'f' || e.key === 'F') {
-        if (!e.ctrlKey && !e.metaKey) {
-          e.preventDefault();
-          this.btnFlipBack.click();
-        }
-      }
-
-      // 8. 'z' or '0' for Zoom Reset
-      if (e.key === 'z' || e.key === 'Z' || e.key === '0') {
-        if (!e.ctrlKey && !e.metaKey) {
-          e.preventDefault();
-          this.canvasZoom.resetZoom();
-          Toast.info('🔍 畫布已適配重設');
-        }
-      }
-
-      // 9. 'm' for UI Mode Switch (Simple <-> Advanced)
-      if (e.key === 'm' || e.key === 'M') {
-        if (!e.ctrlKey && !e.metaKey) {
-          e.preventDefault();
-          const currentMode = store.getState().uiMode;
-          const nextMode = currentMode === 'simple' ? 'advanced' : 'simple';
-          if (nextMode === 'simple') this.btnModeSimple?.click();
-          else this.btnModeAdvanced?.click();
-        }
-      }
-
-      // 10. 'e' for Export PDF
-      if (e.key === 'e' || e.key === 'E') {
-        if (!e.ctrlKey && !e.metaKey) {
-          e.preventDefault();
-          this.btnExportPdf.click();
-        }
-      }
-
-      // 11. '1' ~ '6' for Presets
-      if (['1', '2', '3', '4', '5', '6'].includes(e.key)) {
-        if (!e.ctrlKey && !e.metaKey) {
-          e.preventDefault();
-          const presetMap: Record<string, PrintPresetId> = {
-            '1': 'poster-a4',
-            '2': 'poster-a3',
-            '3': 'postcard',
-            '4': 'business-card',
-            '5': 'sticker',
-            '6': 'social'
-          };
-          const pid = presetMap[e.key];
-          if (pid) {
-            const btn = document.querySelector(`.pm-preset-btn[data-preset="${pid}"]`) as HTMLButtonElement | null;
-            btn?.click();
-          }
-        }
-      }
     });
   }
 

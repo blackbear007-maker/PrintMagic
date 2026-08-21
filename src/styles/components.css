@@ -4632,24 +4632,6 @@ body[data-ui-mode="simple"] .pm-footer {
   margin: 0 2px;
 }
 
-/* Apple Keyboard Badge (KBD) */
-.pm-kbd {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 2px 6px;
-  font-family: var(--pm-font-mono);
-  font-size: 0.7rem;
-  font-weight: 700;
-  color: var(--pm-text-primary);
-  background: #ffffff;
-  border: 1px solid rgba(0, 0, 0, 0.15);
-  border-bottom: 2px solid rgba(0, 0, 0, 0.25);
-  border-radius: 5px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
-  line-height: 1;
-  min-width: 20px;
-}
 
 
 
