@@ -10,11 +10,9 @@ import type { PipelineOptions } from '../types';
 export class PipelineMatrixModal {
   private modalEl: HTMLElement;
   private onApplyChanges?: () => void;
-  private onOpenPricing?: () => void;
 
-  constructor(onApplyChanges?: () => void, onOpenPricing?: () => void) {
+  constructor(onApplyChanges?: () => void, _onOpenPricing?: () => void) {
     this.onApplyChanges = onApplyChanges;
-    this.onOpenPricing = onOpenPricing;
 
     this.modalEl = document.createElement('div');
     this.modalEl.id = 'pipelineMatrixModal';
@@ -171,21 +169,6 @@ export class PipelineMatrixModal {
         target.id === 'pipelineMatrixModal'
       ) {
         close();
-      }
-
-      if (target.id === 'btnUnlockPipelinePro') {
-        this.close();
-        if (this.onOpenPricing) this.onOpenPricing();
-      }
-
-      // Check if user clicked disabled card when on Free tier
-      const switchCard = target.closest('.pm-pipeline-switch-card') as HTMLElement;
-      if (switchCard && switchCard.classList.contains('pm-switch-disabled')) {
-        SoundEffects.sliderTick();
-        Toast.info('👑 【自訂印前優化管線開關】為 Pro / VIP 會員專屬功能');
-        this.close();
-        if (this.onOpenPricing) this.onOpenPricing();
-        return;
       }
 
       if (target.id === 'btnResetPipelineDefaults') {
