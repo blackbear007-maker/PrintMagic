@@ -4217,6 +4217,301 @@ body[data-ui-mode="simple"] .pm-footer {
   }
 }
 
+/* ============================================================
+   🖼️ 1. Landing 3 Life Scenario Visual Cards (Apple App Store Style)
+   ============================================================ */
+.pm-landing-scenarios {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-top: 18px;
+  width: 100%;
+}
+
+.pm-scenario-card {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: var(--pm-radius-lg);
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
+  transition: all 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+}
+
+.pm-scenario-card:hover {
+  background: #ffffff;
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 8px 24px rgba(0, 113, 227, 0.12);
+  border-color: rgba(0, 113, 227, 0.35);
+}
+
+.pm-scenario-card:active {
+  transform: scale(0.97);
+}
+
+.pm-scenario-icon {
+  font-size: 1.6rem;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: rgba(0, 113, 227, 0.08);
+  flex-shrink: 0;
+}
+
+.pm-scenario-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.pm-scenario-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--pm-text-primary);
+  margin-bottom: 2px;
+}
+
+.pm-scenario-desc {
+  font-size: 0.72rem;
+  color: var(--pm-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pm-scenario-arrow {
+  color: var(--pm-accent-blue);
+  font-weight: 800;
+  font-size: 1rem;
+  opacity: 0.5;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.pm-scenario-card:hover .pm-scenario-arrow {
+  opacity: 1;
+  transform: translateX(3px);
+}
+
+@media (max-width: 768px) {
+  .pm-landing-scenarios {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}
+
+/* ============================================================
+   📐 2. 3x3 九宮格對齊圖示控制器 (9-Grid Alignment Matrix)
+   ============================================================ */
+.pm-align-matrix {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px;
+  width: 54px;
+  height: 24px;
+  background: rgba(0, 0, 0, 0.06);
+  padding: 2px;
+  border-radius: 6px;
+  align-items: center;
+}
+
+.pm-align-cell {
+  background: transparent;
+  border: none;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--pm-text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  border-radius: 3px;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.15s ease;
+  line-height: 1;
+}
+
+.pm-align-cell:hover {
+  background: rgba(255, 255, 255, 0.8);
+  color: var(--pm-text-primary);
+}
+
+.pm-align-cell.active {
+  background: #ffffff;
+  color: var(--pm-accent-blue);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  font-weight: 900;
+}
+
+/* ============================================================
+   🎨 3. 視覺紙材與金屬箔膠囊微徽章 (Visual Paper & Foil Badges)
+   ============================================================ */
+.pm-paper-glossy-pill.active {
+  background: linear-gradient(135deg, #ffffff 0%, #e0f2fe 100%) !important;
+  border-color: #38bdf8 !important;
+  color: #0284c7 !important;
+}
+
+.pm-paper-matte-pill.active {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
+  border-color: #94a3b8 !important;
+  color: #334155 !important;
+}
+
+.pm-paper-linen-pill.active {
+  background: linear-gradient(135deg, #fafaf9 0%, #f5f5f4 100%) !important;
+  border-color: #a8a29e !important;
+  color: #57534e !important;
+}
+
+.pm-paper-cotton-pill.active {
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%) !important;
+  border-color: #f59e0b !important;
+  color: #b45309 !important;
+}
+
+.pm-foil-gold-pill.active {
+  background: linear-gradient(135deg, #fef08a 0%, #fde047 100%) !important;
+  border-color: #eab308 !important;
+  color: #854d0e !important;
+}
+
+.pm-foil-rosegold-pill.active {
+  background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%) !important;
+  border-color: #f472b6 !important;
+  color: #9d174d !important;
+}
+
+.pm-foil-silver-pill.active {
+  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%) !important;
+  border-color: #cbd5e1 !important;
+  color: #475569 !important;
+}
+
+.pm-foil-uv-pill.active {
+  background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%) !important;
+  border-color: #38bdf8 !important;
+  color: #0369a1 !important;
+}
+
+.pm-foil-holo-pill.active {
+  background: linear-gradient(135deg, #fbcfe8 0%, #c7d2fe 50%, #bae6fd 100%) !important;
+  border-color: #818cf8 !important;
+  color: #4338ca !important;
+}
+
+/* ============================================================
+   🪄 4. macOS 懸浮動態磨砂 Dock (macOS Floating Glass Dock)
+   ============================================================ */
+.pm-macos-dock {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: var(--pm-radius-full);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.04);
+  width: 100%;
+  box-sizing: border-box;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.pm-macos-dock::-webkit-scrollbar {
+  display: none;
+}
+
+.pm-dock-section {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.pm-dock-section-label {
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: var(--pm-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0 4px 0 2px;
+  white-space: nowrap;
+}
+
+.pm-dock-divider {
+  width: 1px;
+  height: 24px;
+  background: rgba(0, 0, 0, 0.1);
+  margin: 0 4px;
+  flex-shrink: 0;
+}
+
+.pm-dock-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border-radius: var(--pm-radius-full);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  background: rgba(255, 255, 255, 0.8);
+  color: var(--pm-text-primary);
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, background 0.15s ease;
+  user-select: none;
+}
+
+.pm-dock-btn:hover {
+  transform: translateY(-3px) scale(1.08);
+  background: #ffffff;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+  border-color: rgba(0, 113, 227, 0.3);
+  z-index: 10;
+}
+
+.pm-dock-btn:active {
+  transform: scale(0.95);
+}
+
+.pm-dock-btn-primary {
+  background: var(--pm-accent-blue);
+  color: #ffffff;
+  border-color: var(--pm-accent-blue);
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(0, 113, 227, 0.3);
+}
+
+.pm-dock-btn-primary:hover {
+  background: #0077ed;
+  box-shadow: 0 8px 20px rgba(0, 113, 227, 0.4);
+}
+
+.pm-dock-icon {
+  font-size: 0.88rem;
+}
+
+.pm-dock-name {
+  line-height: 1;
+}
+
+.pm-dock-actions {
+  margin-left: auto;
+}
+
+
 
 
 

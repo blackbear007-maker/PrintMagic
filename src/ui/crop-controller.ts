@@ -26,21 +26,25 @@ export class CropController {
 
   private render(): void {
     this.container.innerHTML = `
-      <div class="pm-crop-toolbar" id="cropToolbar" title="自訂非等比圖片在實體畫布上的主體對齊錨點">
-        <span class="pm-crop-label">📐 裁切主體：</span>
-        <div class="pm-crop-buttons">
-          <button class="pm-crop-btn active" data-anchor="center" title="主體居中">⬚ 居中</button>
-          <button class="pm-crop-btn" data-anchor="top" title="靠上對齊（適合人像/向上延伸）">⬆ 靠上</button>
-          <button class="pm-crop-btn" data-anchor="bottom" title="靠下對齊">⬇ 靠下</button>
-          <button class="pm-crop-btn" data-anchor="left" title="靠左對齊">⬅ 靠左</button>
-          <button class="pm-crop-btn" data-anchor="right" title="靠右對齊">➡ 靠右</button>
+      <div class="pm-crop-toolbar" id="cropToolbar" title="點擊九宮格對齊圖片主體焦點">
+        <span class="pm-crop-label">焦點：</span>
+        <div class="pm-align-matrix">
+          <button class="pm-align-cell" data-anchor="top" title="靠上對齊（保留人物頭部/上方焦點）">↖</button>
+          <button class="pm-align-cell" data-anchor="top" title="靠上對齊（保留人物頭部/上方焦點）">↑</button>
+          <button class="pm-align-cell" data-anchor="top" title="靠上對齊（保留人物頭部/上方焦點）">↗</button>
+          <button class="pm-align-cell" data-anchor="left" title="靠左對齊">←</button>
+          <button class="pm-align-cell active" data-anchor="center" title="置中對齊（標準印刷居中）">·</button>
+          <button class="pm-align-cell" data-anchor="right" title="靠右對齊">→</button>
+          <button class="pm-align-cell" data-anchor="bottom" title="靠下對齊">↙</button>
+          <button class="pm-align-cell" data-anchor="bottom" title="靠下對齊（保留底部細節）">↓</button>
+          <button class="pm-align-cell" data-anchor="bottom" title="靠下對齊">↘</button>
         </div>
       </div>
     `;
   }
 
   private bindEvents(): void {
-    this.container.querySelectorAll<HTMLButtonElement>('.pm-crop-btn').forEach((btn) => {
+    this.container.querySelectorAll<HTMLButtonElement>('.pm-align-cell').forEach((btn) => {
       btn.addEventListener('click', () => {
         const anchor = btn.dataset.anchor as CropAnchor;
         if (anchor) {
@@ -48,15 +52,15 @@ export class CropController {
           SoundEffects.sliderTick();
 
           if (anchor === 'top') {
-            Toast.info('📐 主體裁切：靠上對齊 (保留人物頭部/上方焦點)');
+            Toast.info('📐 主體焦點：靠上對齊 (保留人物頭部)');
           } else if (anchor === 'bottom') {
-            Toast.info('📐 主體裁切：靠下對齊 (保留底部細節/文字基座)');
+            Toast.info('📐 主體焦點：靠下對齊 (保留底部基座)');
           } else if (anchor === 'left') {
-            Toast.info('📐 主體裁切：靠左對齊 (保留左側主體)');
+            Toast.info('📐 主體焦點：靠左對齊');
           } else if (anchor === 'right') {
-            Toast.info('📐 主體裁切：靠右對齊 (保留右側主體)');
+            Toast.info('📐 主體焦點：靠右對齊');
           } else {
-            Toast.info('📐 主體裁切：置中對齊 (標準印刷安全居中)');
+            Toast.info('📐 主體焦點：置中對齊 (標準安全居中)');
           }
         }
       });
@@ -66,7 +70,7 @@ export class CropController {
   private subscribeState(): void {
     store.subscribe((state) => {
       // Update button active class
-      this.container.querySelectorAll<HTMLButtonElement>('.pm-crop-btn').forEach((btn) => {
+      this.container.querySelectorAll<HTMLButtonElement>('.pm-align-cell').forEach((btn) => {
         btn.classList.toggle('active', btn.dataset.anchor === state.cropAnchor);
       });
 

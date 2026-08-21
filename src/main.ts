@@ -431,12 +431,18 @@ class App {
       Toast.info('已重置畫布，請拖入新圖片');
     });
 
-    // FTUX Sample Artwork Pills (1-Click Test for New Users)
-    document.querySelectorAll('.pm-sample-pill-btn').forEach((btn) => {
+    // FTUX Sample Artwork Scenario Cards & Pills (1-Click Test for New Users)
+    document.querySelectorAll('.pm-sample-pill-btn, .pm-scenario-card').forEach((btn) => {
       btn.addEventListener('click', async (e) => {
         e.stopPropagation();
-        const sampleType = (btn as HTMLElement).dataset.sample as 'anime' | 'cyberpunk' | 'card';
+        const el = btn as HTMLElement;
+        const sampleType = el.dataset.sample as 'anime' | 'cyberpunk' | 'card';
+        const presetId = el.dataset.preset as PrintPresetId | undefined;
         if (!sampleType) return;
+
+        if (presetId) {
+          store.setPreset(presetId);
+        }
 
         SoundEffects.paperDrop();
         Toast.info('✨ 正在載入示範作品並啟動印刷分析...');

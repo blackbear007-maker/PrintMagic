@@ -174,19 +174,33 @@
           <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display: none;" />
         </div>
 
-        <!-- Clean Secondary Quick Sample Bar -->
-        <div class="pm-landing-sample-bar">
-          <span class="pm-landing-sample-label">✨ 或點擊立即體驗示範作品：</span>
-          <div class="pm-sample-pills">
-            <button class="pm-sample-pill-btn" data-sample="anime" type="button" title="日系動漫貼紙">
-              <span>🎨</span> 動漫貼紙
-            </button>
-            <button class="pm-sample-pill-btn" data-sample="cyberpunk" type="button" title="賽博龐克海報">
-              <span>🌌</span> 展覽海報
-            </button>
-            <button class="pm-sample-pill-btn" data-sample="card" type="button" title="商業名片">
-              <span>📇</span> 質感名片
-            </button>
+        <!-- Clean 3 Life Scenario Quick Cards -->
+        <div class="pm-landing-scenarios">
+          <div class="pm-scenario-card" data-sample="cyberpunk" data-preset="poster-a4" role="button" tabindex="0" title="點擊立即體驗：手機照片 ➔ A4 經典展覽海報">
+            <div class="pm-scenario-icon">🖼️</div>
+            <div class="pm-scenario-info">
+              <div class="pm-scenario-title">手機照片印海報</div>
+              <div class="pm-scenario-desc">A4 (210×297mm) · 8x 金字塔超解析度</div>
+            </div>
+            <span class="pm-scenario-arrow">➔</span>
+          </div>
+
+          <div class="pm-scenario-card" data-sample="anime" data-preset="sticker" role="button" tabindex="0" title="點擊立即體驗：動漫插畫 ➔ 模切透底貼紙">
+            <div class="pm-scenario-icon">🏷️</div>
+            <div class="pm-scenario-info">
+              <div class="pm-scenario-title">動漫插畫印貼紙</div>
+              <div class="pm-scenario-desc">50×50mm · 2mm 刀模與白墨防透</div>
+            </div>
+            <span class="pm-scenario-arrow">➔</span>
+          </div>
+
+          <div class="pm-scenario-card" data-sample="card" data-preset="postcard" role="button" tabindex="0" title="點擊立即體驗：風景作品 ➔ 藝術質感明信片">
+            <div class="pm-scenario-icon">✉️</div>
+            <div class="pm-scenario-info">
+              <div class="pm-scenario-title">風景作品印明信片</div>
+              <div class="pm-scenario-desc">148×100mm · 300P 萊妮十字布紋</div>
+            </div>
+            <span class="pm-scenario-arrow">➔</span>
           </div>
         </div>
       </section>
@@ -230,16 +244,16 @@
               <!-- Paper Material Selector (Advanced Only) -->
               <div class="pm-paper-selector pm-advanced-only">
                 <span class="pm-paper-label">紙材：</span>
-                <button class="pm-paper-btn active" data-paper="glossy" title="超光銅版：亮面鮮豔反光佳，適合全彩海報與高彩度插畫">
+                <button class="pm-paper-btn active pm-paper-glossy-pill" data-paper="glossy" title="超光銅版：亮面鮮豔反光佳，適合全彩海報與高彩度插畫">
                   超光銅版 <span class="pm-paper-sub">亮面鮮豔</span>
                 </button>
-                <button class="pm-paper-btn" data-paper="matte" title="雙面啞粉：霧面細緻不反光，適合藝術明信片與展覽畫冊">
+                <button class="pm-paper-btn pm-paper-matte-pill" data-paper="matte" title="雙面啞粉：霧面細緻不反光，適合藝術明信片與展覽畫冊">
                   雙面啞粉 <span class="pm-paper-sub">霧面高雅</span>
                 </button>
-                <button class="pm-paper-btn" data-paper="linen" title="細格萊妮：十字布紋手感豐富，特別適合文創名片與日系手作">
+                <button class="pm-paper-btn pm-paper-linen-pill" data-paper="linen" title="細格萊妮：十字布紋手感豐富，特別適合文創名片與日系手作">
                   細格萊妮 <span class="pm-paper-sub">十字布紋</span>
                 </button>
-                <button class="pm-paper-btn" data-paper="cotton" title="象牙棉卡：溫潤吸墨自然紙感，適合紀念卡片與版畫插圖">
+                <button class="pm-paper-btn pm-paper-cotton-pill" data-paper="cotton" title="象牙棉卡：溫潤吸墨自然紙感，適合紀念卡片與版畫插圖">
                   象牙棉卡 <span class="pm-paper-sub">溫潤手感</span>
                 </button>
               </div>
@@ -249,14 +263,14 @@
             <div class="pm-view-toolbar-secondary pm-advanced-only">
               <div id="cropToolbarRoot"></div>
 
-              <!-- ICC Profile Selector -->
+              <!-- ICC Profile Selector with Region Context -->
               <div class="pm-icc-selector pm-foil-selector">
-                <span class="pm-paper-label">ICC：</span>
-                <select id="selectIccProfile" class="pm-select-field" style="font-size: 0.72rem; padding: 2px 4px; height: 24px; border: none; background: transparent; font-weight: 600; color: var(--pm-text-primary); cursor: pointer;">
-                  <option value="japan-color-2001-coated" selected>Japan Color 2001 (台日合版)</option>
-                  <option value="iso-coated-v2-fogra39">ISO Coated v2 / FOGRA39 (歐洲/精裝)</option>
-                  <option value="gracol-2006-coated">GRACoL 2006 (美加商業)</option>
-                  <option value="japan-color-2001-uncoated">Japan Uncoated (模造/非塗布)</option>
+                <span class="pm-paper-label">色彩：</span>
+                <select id="selectIccProfile" class="pm-select-field" style="font-size: 0.72rem; padding: 2px 6px; height: 24px; border-radius: 6px; border: 1px solid rgba(0, 0, 0, 0.08); background: rgba(255, 255, 255, 0.9); font-weight: 600; color: var(--pm-text-primary); cursor: pointer;">
+                  <option value="japan-color-2001-coated" selected>🇹🇼 台灣/日本常用合版 (推薦)</option>
+                  <option value="iso-coated-v2-fogra39">🇪🇺 歐美精裝畫冊 (FOGRA39)</option>
+                  <option value="gracol-2006-coated">🇺🇸 美加商業印刷 (GRACoL)</option>
+                  <option value="japan-color-2001-uncoated">📖 模造紙/手帳書刊 (非塗布)</option>
                 </select>
               </div>
 
@@ -264,11 +278,11 @@
               <div class="pm-foil-selector">
                 <span class="pm-paper-label">工藝：</span>
                 <button class="pm-foil-btn active" data-foil="none" title="標準印刷：四色 CMYK">標準</button>
-                <button class="pm-foil-btn" data-foil="gold" title="經典奢華亮金燙金模擬 (移動滑鼠/傾斜手機反光)">✨ 亮金</button>
-                <button class="pm-foil-btn" data-foil="rose-gold" title="名媛奢華玫瑰金模擬">🌸 玫瑰金</button>
-                <button class="pm-foil-btn" data-foil="silver" title="未來科技亮銀箔模擬">⚡ 亮銀</button>
-                <button class="pm-foil-btn" data-foil="spot-uv" title="透明水晶立體局部光 (Spot UV)">💎 局部光</button>
-                <button class="pm-foil-btn" data-foil="holographic" title="雷射七彩全息光譜">🌈 雷射</button>
+                <button class="pm-foil-btn pm-foil-gold-pill" data-foil="gold" title="經典奢華亮金燙金模擬 (移動滑鼠/傾斜手機反光)">✨ 亮金</button>
+                <button class="pm-foil-btn pm-foil-rosegold-pill" data-foil="rose-gold" title="名媛奢華玫瑰金模擬">🌸 玫瑰金</button>
+                <button class="pm-foil-btn pm-foil-silver-pill" data-foil="silver" title="未來科技亮銀箔模擬">⚡ 亮銀</button>
+                <button class="pm-foil-btn pm-foil-uv-pill" data-foil="spot-uv" title="透明水晶立體局部光 (Spot UV)">💎 局部光</button>
+                <button class="pm-foil-btn pm-foil-holo-pill" data-foil="holographic" title="雷射七彩全息光譜">🌈 雷射</button>
               </div>
 
               <div class="pm-toggle-group pm-toggle-group-pro">
@@ -347,59 +361,72 @@
               </div>
             </div>
 
-            <!-- Advanced Mode Comprehensive Tools Bar -->
-            <div class="pm-export-advanced-row pm-advanced-only" id="advancedExportRow">
-              <div class="pm-export-left-tools">
-                <!-- Group 1: AI Superpowers -->
-                <div class="pm-tool-group">
-                  <span class="pm-tool-group-label">✨ AI 魔法</span>
-                  <button id="btnAiBleedOutpaint" class="pm-btn pm-btn-secondary" title="AI 智慧 3mm 出血外擴延伸，防止裁切切到主體頭部 (測試版免費開放)">
-                    <span>🖼️</span> 補足出血
-                  </button>
-                  <button id="btnAiRemoveBg" class="pm-btn pm-btn-secondary" title="髮絲級一鍵 AI 精準去背，自動銜接白墨與刀模線 (測試版免費開放)">
-                    <span>✂️</span> 髮絲去背
-                  </button>
-                  <button id="btnAiVectorizer" class="pm-btn pm-btn-secondary" title="AI 點陣轉真向量 SVG 貝茲曲線檔，無限放大無鋸齒 (測試版免費開放)">
-                    <span>✒️</span> 轉真向量
-                  </button>
-                  <button id="btnOpenVectorOverlay" class="pm-btn pm-btn-secondary" title="防止小字混黑糊邊！添加單色 K100 純黑文字與向量標誌">
-                    <span>🔤</span> K100黑字
-                  </button>
-                </div>
-
-                <!-- Group 2: Production & Prepress Tools -->
-                <div class="pm-tool-group">
-                  <span class="pm-tool-group-label">🏭 製版與輸出</span>
-                  <button id="btnOpenConvPrint" class="pm-btn pm-btn-secondary" title="7-11 ibon / 全家 FamiPort 雲端立印，30秒下樓即可取件">
-                    <span>🏪</span> 超商立印
-                  </button>
-                  <button id="btnOpenImposition" class="pm-btn pm-btn-secondary" title="一張 A4/A3 自動拼入 8~24 模，現省 70% 費用">
-                    <span>🧩</span> 智慧拼模
-                  </button>
-                  <button id="btnOpenDieline" class="pm-btn pm-btn-secondary" title="透明貼紙專用：一鍵生成 0.2mm 內縮白墨層與 2mm 洋紅外擴向量刀模線">
-                    <span>🏷️</span> 刀模白墨
-                  </button>
-                  <button id="btnOpenSpec" class="pm-btn pm-btn-secondary" title="送印溝小抄，一鍵複製專業規格給印刷師傅">
-                    <span>📋</span> 規格小抄
-                  </button>
-                  <button id="btnOpenMockup" class="pm-btn pm-btn-secondary" title="一鍵生成現代美術館畫框、北歐書桌情境宣傳圖">
-                    <span>🖼️</span> 展覽 Mockup
-                  </button>
-                </div>
+            <!-- Advanced Mode macOS Floating Glass Dock -->
+            <div class="pm-macos-dock pm-advanced-only" id="advancedExportRow">
+              <div class="pm-dock-section">
+                <span class="pm-dock-section-label">✨ AI 增強</span>
+                <button id="btnAiBleedOutpaint" class="pm-dock-btn" title="AI 智慧 3mm 出血外擴延伸，防止裁切切到主體頭部 (測試版免費開放)">
+                  <span class="pm-dock-icon">🖼️</span>
+                  <span class="pm-dock-name">補足出血</span>
+                </button>
+                <button id="btnAiRemoveBg" class="pm-dock-btn" title="髮絲級一鍵 AI 精準去背，自動銜接白墨與刀模線 (測試版免費開放)">
+                  <span class="pm-dock-icon">✂️</span>
+                  <span class="pm-dock-name">髮絲去背</span>
+                </button>
+                <button id="btnAiVectorizer" class="pm-dock-btn" title="AI 點陣轉真向量 SVG 貝茲曲線檔，無限放大無鋸齒 (測試版免費開放)">
+                  <span class="pm-dock-icon">✒️</span>
+                  <span class="pm-dock-name">轉真向量</span>
+                </button>
+                <button id="btnOpenVectorOverlay" class="pm-dock-btn" title="防止小字混黑糊邊！添加單色 K100 純黑文字與向量標誌">
+                  <span class="pm-dock-icon">🔤</span>
+                  <span class="pm-dock-name">K100黑字</span>
+                </button>
               </div>
 
-              <div class="pm-export-right-actions">
-                <button id="btnAdvancedShare" class="pm-btn pm-btn-secondary" title="原生系統 AirDrop / 分享面板">
-                  <span>📤</span> 分享
+              <div class="pm-dock-divider"></div>
+
+              <div class="pm-dock-section">
+                <span class="pm-dock-section-label">🏭 出圖工藝</span>
+                <button id="btnOpenConvPrint" class="pm-dock-btn" title="7-11 ibon / 全家 FamiPort 雲端立印，30秒下樓即可取件">
+                  <span class="pm-dock-icon">🏪</span>
+                  <span class="pm-dock-name">超商立印</span>
                 </button>
-                <button id="btnExportPdf" class="pm-btn pm-btn-primary" title="匯出含裁切十字與出血之標準印刷 PDF">
-                  <span>📄</span> 下載標準 PDF
+                <button id="btnOpenImposition" class="pm-dock-btn" title="一張 A4/A3 自動拼入 8~24 模，現省 70% 費用">
+                  <span class="pm-dock-icon">🧩</span>
+                  <span class="pm-dock-name">智慧拼模</span>
                 </button>
-                <button id="btnExportPng" class="pm-btn pm-btn-secondary" title="匯出 300 DPI 高解析度 PNG">
-                  <span>📥</span> 下載 PNG
+                <button id="btnOpenDieline" class="pm-dock-btn" title="透明貼紙專用：一鍵生成 0.2mm 內縮白墨層與 2mm 洋紅外擴向量刀模線">
+                  <span class="pm-dock-icon">🏷️</span>
+                  <span class="pm-dock-name">刀模白墨</span>
                 </button>
-                <button id="btnExportSvg" class="pm-btn pm-btn-secondary" title="以 Potrace 演算法轉為無失真向量 SVG">
-                  <span>⬡</span> 向量 SVG
+                <button id="btnOpenSpec" class="pm-dock-btn" title="送印溝通小抄，一鍵複製專業規格給印刷師傅">
+                  <span class="pm-dock-icon">📋</span>
+                  <span class="pm-dock-name">規格小抄</span>
+                </button>
+                <button id="btnOpenMockup" class="pm-dock-btn" title="一鍵生成現代美術館畫框、北歐書桌情境宣傳圖">
+                  <span class="pm-dock-icon">🖼️</span>
+                  <span class="pm-dock-name">展覽Mockup</span>
+                </button>
+              </div>
+
+              <div class="pm-dock-divider"></div>
+
+              <div class="pm-dock-section pm-dock-actions">
+                <button id="btnAdvancedShare" class="pm-dock-btn" title="原生系統 AirDrop / 分享面板">
+                  <span class="pm-dock-icon">📤</span>
+                  <span class="pm-dock-name">分享</span>
+                </button>
+                <button id="btnExportPdf" class="pm-dock-btn pm-dock-btn-primary" title="匯出含裁切十字與出血之標準印刷 PDF（零退件認證）">
+                  <span class="pm-dock-icon">📄</span>
+                  <span class="pm-dock-name">標準 PDF</span>
+                </button>
+                <button id="btnExportPng" class="pm-dock-btn" title="匯出 300 DPI 高解析度 PNG">
+                  <span class="pm-dock-icon">📥</span>
+                  <span class="pm-dock-name">下載 PNG</span>
+                </button>
+                <button id="btnExportSvg" class="pm-dock-btn" title="以 Potrace 演算法轉為無失真向量 SVG">
+                  <span class="pm-dock-icon">⬡</span>
+                  <span class="pm-dock-name">向量 SVG</span>
                 </button>
               </div>
             </div>
