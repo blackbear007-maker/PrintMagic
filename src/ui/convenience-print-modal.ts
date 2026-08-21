@@ -158,8 +158,29 @@ export class ConveniencePrintModal {
             </div>
           </div>
 
+          <!-- Physical Machine 3-Step Guide (消除新手到超商機台前的恐慌) -->
+          <div style="background: rgba(0, 0, 0, 0.02); border: 1px dashed var(--pm-border-subtle); border-radius: 12px; padding: 14px; margin-top: 14px;">
+            <div style="font-size: 0.82rem; font-weight: 700; color: var(--pm-text-primary); margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+              <span>💡</span> 到了超商機台前怎麼印？（新手 30 秒 3 步操作圖解）
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; font-size: 0.76rem; color: var(--pm-text-secondary); line-height: 1.45;">
+              <div style="background: #ffffff; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--pm-border-light); box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
+                <strong style="color: var(--pm-text-primary); display: block; margin-bottom: 3px;">① 點選機台首頁</strong>
+                在機台螢幕首頁點選<strong>「列印 / 掃描」</strong>按鈕
+              </div>
+              <div style="background: #ffffff; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--pm-border-light); box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
+                <strong style="color: var(--pm-text-primary); display: block; margin-bottom: 3px;">② 選擇雲端列印</strong>
+                點選<strong>「${this.selectedStore === '7-11' ? 'ibon 文件列印' : 'FamiPort 雲端列印'}」</strong>
+              </div>
+              <div style="background: #ffffff; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--pm-border-light); box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
+                <strong style="color: var(--pm-text-primary); display: block; margin-bottom: 3px;">③ 掃描或輸入代碼</strong>
+                對準條碼掃描器<strong>掃描 QR Code</strong>（或輸入 8 位數取件碼），投幣即印！
+              </div>
+            </div>
+          </div>
+
           <!-- Direct Upload Gateway Buttons -->
-          <div class="pm-conv-gateways">
+          <div class="pm-conv-gateways" style="margin-top: 14px;">
             <a href="${currentSpec.uploadUrl}" target="_blank" rel="noopener noreferrer" class="pm-btn pm-btn-secondary pm-btn-md">
               <span>🚀</span> 前往 ${currentSpec.storeName} 雲端上傳頁面 (取得列印碼) ➔
             </a>

@@ -179,6 +179,12 @@ export class DiagnosticCard {
           <!-- 3. Text Inspection Banner -->
           ${textInspectHtml}
 
+          <!-- Beginner Peace of Mind Banner (消除新手送印恐慌) -->
+          <div style="background: rgba(0, 113, 227, 0.05); border: 1px solid rgba(0, 113, 227, 0.15); border-radius: 10px; padding: 8px 12px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; font-size: 0.75rem; color: var(--pm-text-secondary); line-height: 1.4;">
+            <span style="font-size: 1rem;">🛡️</span>
+            <span><strong>零退件品質保證：</strong>檔案已內嵌標準向量裁切標記、CMYK 色彩與安全墨量，直接傳給任何印刷廠或超商機台即可安心出機！</span>
+          </div>
+
           <!-- 4. Big Action Buttons -->
           <div class="pm-diag-hero-actions">
             <button class="pm-btn pm-btn-primary pm-btn-lg btn-diag-export-pdf" style="font-size: 0.95rem; font-weight: 700; width: 100%; box-shadow: 0 4px 14px rgba(0, 113, 227, 0.35);" title="一鍵下載最高畫質印刷標準檔">

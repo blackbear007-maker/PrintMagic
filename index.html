@@ -317,6 +317,11 @@
               <div class="pm-spinner"></div>
               <div class="pm-processing-text" id="processingText">正在以 Lanczos-3 演算法重採樣...</div>
             </div>
+
+            <!-- Reassurance Note for Beginners (消除新手擔心輔助線會被印出來的恐慌) -->
+            <div class="pm-canvas-reassurance-note" style="position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); font-size: 0.72rem; color: var(--pm-text-muted); background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(8px); padding: 3px 12px; border-radius: 20px; border: 1px solid var(--pm-border-subtle); pointer-events: none; white-space: nowrap; z-index: 10;">
+              🔒 畫布輔助框線僅供對齊參考 · 實體印刷成品保證純淨無任何線條
+            </div>
           </div>
 
           <!-- Bottom Action Export Bar (Dual Simple / Advanced Rendering) -->
@@ -324,17 +329,17 @@
             <!-- Simple Mode Export Actions Bar -->
             <div class="pm-export-simple-row" id="simpleExportRow">
               <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; width: 100%;">
-                <button id="btnSimpleExportPdf" class="pm-btn pm-btn-primary pm-btn-md" style="font-weight: 700; box-shadow: 0 4px 14px rgba(0, 113, 227, 0.32);" title="一鍵下載含 3mm 出血之標準印刷 PDF">
-                  <span>📄</span> 一鍵下載標準印刷 PDF
+                <button id="btnSimpleExportPdf" class="pm-btn pm-btn-primary pm-btn-md" style="font-weight: 700; box-shadow: 0 4px 14px rgba(0, 113, 227, 0.32);" title="一鍵下載含 3mm 出血之標準印刷 PDF（送印印刷廠專用 · 零退件）">
+                  <span>🌟</span> 一鍵下載標準印刷 PDF <span style="font-size: 0.68rem; opacity: 0.85; font-weight: 500; margin-left: 2px;">(送印專用)</span>
                 </button>
                 <button id="btnSimpleShare" class="pm-btn pm-btn-secondary pm-btn-md" style="background: rgba(0, 113, 227, 0.08); color: var(--pm-accent-blue); border-color: rgba(0, 113, 227, 0.25);" title="以 iPhone / Android 原生分享選單 AirDrop、傳送 LINE 或無線列印">
                   <span>📤</span> 分享 / AirDrop
                 </button>
-                <button id="btnSimpleExportPng" class="pm-btn pm-btn-secondary pm-btn-md" title="匯出 300 DPI 高畫質 PNG 圖檔">
-                  <span>📥</span> 下載 PNG
+                <button id="btnSimpleExportPng" class="pm-btn pm-btn-secondary pm-btn-md" title="匯出 300 DPI 高畫質 PNG 圖檔（相簿保存 / 傳 LINE / 手機沖洗）">
+                  <span>📥</span> 下載高清 PNG <span style="font-size: 0.68rem; color: var(--pm-text-muted); font-weight: 500;">(相簿/LINE)</span>
                 </button>
                 <button id="btnSimpleConvPrint" class="pm-btn pm-btn-secondary pm-btn-md" title="7-11 ibon / 全家 FamiPort 超商 30 秒下樓立印">
-                  <span>🏪</span> 超商立印
+                  <span>🏪</span> 超商 30 秒立印
                 </button>
               </div>
             </div>
