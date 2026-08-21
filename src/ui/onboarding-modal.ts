@@ -20,14 +20,14 @@ export class OnboardingModal {
     this.modalEl.innerHTML = `
       <div class="pm-modal-dialog" style="max-width: 620px;">
         <div class="pm-modal-header" style="border-bottom: none; padding-bottom: 0;">
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <span style="font-size: 1.5rem;">💡</span>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <img src="xiaoxiang-avatar.svg" alt="吉祥物小象" style="width: 42px; height: 42px; border-radius: 50%; object-fit: cover; box-shadow: 0 2px 8px rgba(108, 99, 255, 0.3); flex-shrink: 0;" />
             <div>
-              <h3 class="pm-modal-title" style="font-size: 1.25rem; font-weight: 700;">
-                PrintMagic 30 秒上手指南
+              <h3 class="pm-modal-title" style="font-size: 1.22rem; font-weight: 800;">
+                小象陪您 30 秒上手【印象魔法】
               </h3>
               <p style="font-size: 0.78rem; color: var(--pm-text-muted); margin: 2px 0 0 0;">
-                只需 3 個直覺步驟，從 AI 照片直接變身為符合印刷廠規範的完美印刷品
+                【樓下的朋友們】系列專案 · 只需 3 個直覺步驟，從相片變身完美印刷品
               </p>
             </div>
           </div>
