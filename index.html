@@ -34,6 +34,12 @@
         </div>
 
         <div class="pm-header-actions">
+          <!-- Dual-Engine Switcher: Local Offline vs Cloud Industrial (Advanced Only) -->
+          <button id="btnToggleEngine" class="pm-tool-btn pm-advanced-only pm-engine-pill" style="background: rgba(0, 113, 227, 0.08); color: var(--pm-accent-blue); border-color: rgba(0, 113, 227, 0.25); font-weight: 700;" title="點擊切換 🖥️ 100% 離線本機極速模式 與 ⚡ 雲端工業模式 (支援雲端 AI 深度學習細節重建與 ISO 15930 PDF/X)">
+            <span id="engineStatusDot" class="pm-engine-dot" style="display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #0071e3; margin-right: 2px;"></span>
+            <span id="engineStatusText">🖥️ 本機極速 (離線)</span>
+          </button>
+
           <!-- Text Inspection Quick Action (Advanced Only) -->
           <button id="btnOpenTextInspectHeader" class="pm-tool-btn pm-advanced-only" style="background: rgba(52, 199, 89, 0.08); color: #248a3d; border-color: rgba(52, 199, 89, 0.25); font-weight: 600;" title="自動檢測圖片中的文字拼寫與 AI 繪圖偽字亂碼">
             <span>📝</span> 檢查文字

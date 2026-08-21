@@ -283,7 +283,7 @@ class App {
   }
 
   private bindEvents(): void {
-    // Hybrid Dual-Engine Switcher
+    // Hybrid Dual-Engine Switcher (Local vs Cloud Industrial)
     this.btnToggleEngine?.addEventListener('click', async () => {
       const current = store.getState().engineMode;
       SoundEffects.sliderTick();
@@ -292,40 +292,40 @@ class App {
         const isOnline = await CloudClient.checkHealth();
         if (isOnline) {
           store.setEngineMode('cloud');
-          Toast.info('⚡ 已切換至 雲端工業引擎模式 (支援 ISO 15930 PDF/X-1a 與 雲端 AI 深度學習)');
+          Toast.success('⚡ 已切換至【雲端工業引擎模式】：在線運行 (支援 ISO 15930 PDF/X-1a 與 雲端 AI 深度學習)');
         } else {
-          Toast.info('⚠️ 雲端後端伺服器 (port 3001) 未啟動，維持 100% 本機極速模式');
+          store.setEngineMode('cloud');
+          Toast.info('⚡ 已切換至【雲端工業引擎模式】(伺服器未連線，可點擊齒輪設定 API 或維持本機極速)');
         }
       } else {
         store.setEngineMode('local');
         store.setState({ aiUpscaleMode: 'local' });
-        Toast.info('🖥️ 已切換至 100% 離線本機極速模式 (嚴格僅限本機引擎，零資料上傳)');
+        Toast.info('🖥️ 已切換至【100% 離線本機模式】：零連網、零資料上傳、極速隱私！');
       }
     });
 
-    // AI Super-Resolution Mode Toggle
-    document.getElementById('btnToggleAiUpscale')?.addEventListener('click', () => {
+    // AI Super-Resolution Mode Toggle (Auto-promotes to Cloud if clicked)
+    document.getElementById('btnToggleAiUpscale')?.addEventListener('click', async () => {
       const state = store.getState();
       SoundEffects.sliderTick();
 
-      // Strict enforcement: Local mode only allows local engine
+      // If currently local, automatically promote/switch to Cloud Industrial mode
       if (state.engineMode === 'local') {
-        Toast.info('🔒 目前為【100% 離線本機模式】，嚴格只使用本機 8x 金字塔引擎（零連網、零資料上傳）。若需使用雲端 AI 重建，請先將頂部模式切換為【雲端工業模式】！');
-        return;
-      }
-
-      const next = store.toggleAiUpscaleMode();
-      const icon = document.getElementById('aiUpscaleIcon');
-      const txt = document.getElementById('aiUpscaleText');
-
-      if (next === 'cloud-ai') {
-        if (icon) icon.textContent = '🧠';
-        if (txt) txt.textContent = 'AI 4x 重建';
-        Toast.info('🧠 已啟動【雲端 AI 深度學習細節重建 (Real-ESRGAN 4x)】模式！');
+        const isOnline = await CloudClient.checkHealth();
+        store.setEngineMode('cloud');
+        store.setState({ aiUpscaleMode: 'cloud-ai' });
+        if (isOnline) {
+          Toast.success('🧠 已為您連線啟動【雲端 AI 深度學習細節重建 (Real-ESRGAN 4x)】模式！');
+        } else {
+          Toast.info('🧠 已切換至【雲端 AI 深度學習重建】模式！(若需本機後端請啟動 port 3001 或於齒輪設定 API Token)');
+        }
       } else {
-        if (icon) icon.textContent = '⚡';
-        if (txt) txt.textContent = '本機 8x 放大';
-        Toast.info('⚡ 已切換回【本機 8x 金字塔超解析度】模式！');
+        const next = store.toggleAiUpscaleMode();
+        if (next === 'cloud-ai') {
+          Toast.info('🧠 已啟動【雲端 AI 深度學習細節重建 (Real-ESRGAN 4x)】模式！');
+        } else {
+          Toast.info('⚡ 已切換回【本機 8x 金字塔超解析度】模式！');
+        }
       }
 
       // Re-run pipeline if image exists
@@ -1017,15 +1017,21 @@ class App {
       this.btnModeAdvanced?.classList.toggle('active', state.uiMode === 'advanced');
 
       // 1. Update Hybrid Engine Pill UI
-      this.btnToggleEngine?.classList.toggle('pm-engine-cloud', state.engineMode === 'cloud');
-      this.btnToggleEngine?.classList.toggle('pm-engine-offline', state.cloudStatus === 'offline');
+      if (this.btnToggleEngine) {
+        this.btnToggleEngine.classList.toggle('pm-engine-cloud', state.engineMode === 'cloud');
+        this.btnToggleEngine.classList.toggle('pm-engine-offline', state.cloudStatus === 'offline');
+      }
+      const engineDot = document.getElementById('engineStatusDot');
       const aiUpscaleIcon = document.getElementById('aiUpscaleIcon');
       const aiUpscaleText = document.getElementById('aiUpscaleText');
       const btnToggleAiUpscale = document.getElementById('btnToggleAiUpscale');
 
       if (state.engineMode === 'cloud') {
         if (this.engineStatusText) {
-          this.engineStatusText.textContent = state.cloudStatus === 'online' ? '雲端工業模式 (在線)' : '雲端工業模式 (離線降級)';
+          this.engineStatusText.textContent = state.cloudStatus === 'online' ? '⚡ 雲端工業模式 (在線)' : '⚡ 雲端工業模式 (離線)';
+        }
+        if (engineDot) {
+          engineDot.style.backgroundColor = state.cloudStatus === 'online' ? '#34c759' : '#ff9500';
         }
         if (btnToggleAiUpscale) btnToggleAiUpscale.title = '點擊切換 ⚡ 本機 8x 放大 與 🧠 雲端 AI 4x 重建';
         if (state.aiUpscaleMode === 'cloud-ai') {
@@ -1037,9 +1043,12 @@ class App {
         }
       } else {
         if (this.engineStatusText) {
-          this.engineStatusText.textContent = '本機極速模式 (100% 離線)';
+          this.engineStatusText.textContent = '🖥️ 本機極速 (100% 離線)';
         }
-        if (btnToggleAiUpscale) btnToggleAiUpscale.title = '🔒 本機極速模式 (100% 離線隱私保護，嚴格僅限本機引擎)';
+        if (engineDot) {
+          engineDot.style.backgroundColor = '#0071e3';
+        }
+        if (btnToggleAiUpscale) btnToggleAiUpscale.title = '點擊切換為 🧠 雲端 AI 4x 深度學習重建';
         if (aiUpscaleIcon) aiUpscaleIcon.textContent = '⚡';
         if (aiUpscaleText) aiUpscaleText.textContent = '本機 8x 放大';
       }
