@@ -1,7 +1,569 @@
 /* ============================================================
-   PrintMagic v3.1 Pro - Studio Layout & Apple Minimalist Panels
-   Light Theme & Low-Saturation Aesthetics
+   印象魔法 PrintMagic v3.2 — Studio Layout & Apple Premium Panels
    ============================================================ */
+
+.pm-app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* ── Studio Header (Premium Frosted Glass) ── */
+.pm-header {
+  height: 58px;
+  border-bottom: 1px solid var(--pm-border-subtle);
+  background-color: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(32px) saturate(200%);
+  -webkit-backdrop-filter: blur(32px) saturate(200%);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04), 0 1px 6px rgba(0, 0, 0, 0.02);
+}
+
+.pm-header-inner {
+  max-width: 1440px;
+  height: 100%;
+  margin: 0 auto;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pm-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pm-logo-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: var(--pm-radius-sm);
+  background: linear-gradient(135deg, #ffffff 0%, #f0f0f5 100%);
+  border: 1px solid var(--pm-border-subtle);
+  box-shadow: var(--pm-shadow-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  color: var(--pm-text-primary);
+}
+
+.pm-logo-text {
+  font-size: 1.08rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--pm-text-primary);
+}
+
+.pm-badge-pro {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: var(--pm-radius-xs);
+  background: linear-gradient(135deg, rgba(139, 127, 168, 0.12) 0%, rgba(0, 113, 227, 0.08) 100%);
+  border: 1px solid rgba(139, 127, 168, 0.25);
+  color: var(--pm-accent-purple);
+}
+
+.pm-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── Mode Switcher (Real iOS Segmented Control) ── */
+.pm-mode-switch-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: var(--pm-radius-sm);
+  border: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.pm-mode-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: var(--pm-radius-xs);
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--pm-text-secondary);
+  font-size: 0.78rem;
+  font-weight: 600;
+  transition: all var(--pm-anim-normal) var(--pm-anim-spring);
+  white-space: nowrap;
+}
+
+.pm-mode-btn.active {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12), 0 0 0 0.5px rgba(0, 0, 0, 0.04);
+  color: var(--pm-text-primary);
+}
+
+.pm-mode-btn:hover:not(.active) {
+  color: var(--pm-text-primary);
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.pm-privacy-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.73rem;
+  font-weight: 600;
+  color: var(--pm-text-secondary);
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid var(--pm-border-subtle);
+  box-shadow: var(--pm-shadow-xs);
+  padding: 5px 12px;
+  border-radius: var(--pm-radius-full);
+  cursor: pointer;
+  transition: all var(--pm-anim-fast) ease;
+}
+
+.pm-privacy-pill:hover {
+  background: #ffffff;
+  border-color: var(--pm-border-active);
+  color: var(--pm-text-primary);
+  box-shadow: var(--pm-shadow-sm);
+}
+
+.pm-privacy-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--pm-status-success);
+  transition: background-color 0.2s ease;
+}
+
+.pm-engine-cloud .pm-privacy-dot { background-color: var(--pm-accent-blue); }
+.pm-engine-offline .pm-privacy-dot { background-color: var(--pm-status-warning); }
+
+.pm-sound-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--pm-radius-sm);
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid var(--pm-border-subtle);
+  box-shadow: var(--pm-shadow-xs);
+  color: var(--pm-text-secondary);
+  font-size: 0.85rem;
+  transition: all var(--pm-anim-fast) ease;
+}
+
+.pm-sound-btn:hover {
+  background: #ffffff;
+  color: var(--pm-text-primary);
+  border-color: var(--pm-border-active);
+  box-shadow: var(--pm-shadow-sm);
+  transform: scale(1.05);
+}
+
+/* ── Preset Navigation Bar (Refined) ── */
+.pm-preset-bar {
+  background: rgba(255, 255, 255, 0.8);
+  border-bottom: 1px solid var(--pm-border-subtle);
+  padding: 8px 24px;
+  backdrop-filter: blur(12px);
+}
+
+.pm-preset-bar-inner {
+  max-width: 1440px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.pm-preset-label {
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--pm-text-muted);
+  text-transform: uppercase;
+}
+
+.pm-preset-auto-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--pm-accent-blue);
+  background: var(--pm-accent-blue-bg);
+  padding: 2px 8px;
+  border-radius: var(--pm-radius-full);
+  border: 1px solid rgba(0, 113, 227, 0.18);
+  animation: pmFadeIn 0.3s var(--pm-anim-spring);
+}
+
+.pm-preset-tabs {
+  display: flex;
+  gap: 2px;
+  background: rgba(0, 0, 0, 0.06);
+  padding: 3px;
+  border-radius: var(--pm-radius-sm);
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  flex-wrap: wrap;
+}
+
+.pm-preset-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: var(--pm-radius-xs);
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--pm-text-secondary);
+  font-size: 0.78rem;
+  font-weight: 500;
+  transition: all var(--pm-anim-fast) ease;
+}
+
+.pm-preset-btn:hover {
+  color: var(--pm-text-primary);
+  background: rgba(255, 255, 255, 0.65);
+}
+
+.pm-preset-btn.active {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12), 0 0 0 0.5px rgba(0, 0, 0, 0.04);
+  color: var(--pm-text-primary);
+  font-weight: 700;
+}
+
+/* ── Main Studio Layout ── */
+.pm-main {
+  flex: 1;
+  max-width: 1440px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.pm-studio-grid {
+  display: grid;
+  grid-template-columns: 1fr 368px;
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 1100px) {
+  .pm-studio-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Apple Glass Card (Refined) ── */
+.pm-card {
+  background: #ffffff;
+  border: 1px solid var(--pm-border-subtle);
+  border-radius: var(--pm-radius-lg);
+  box-shadow: var(--pm-shadow-md);
+  overflow: hidden;
+  transition: box-shadow var(--pm-anim-normal) ease;
+}
+
+.pm-card:hover {
+  box-shadow: var(--pm-shadow-lg);
+}
+
+/* ── Toolbar & View Controls ── */
+.pm-view-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: #fafafa;
+  border-bottom: 1px solid var(--pm-border-subtle);
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.pm-view-toolbar-primary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.pm-view-toolbar-secondary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-top: 8px;
+  border-top: 1px solid var(--pm-border-light);
+  width: 100%;
+}
+
+.pm-toggle-group-pro {
+  background: rgba(0, 0, 0, 0.04);
+  padding: 2px;
+  border-radius: var(--pm-radius-sm);
+  border: 1px solid var(--pm-border-subtle);
+}
+
+.pm-toggle-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-wrap: wrap;
+}
+
+.pm-tool-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: var(--pm-radius-xs);
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--pm-text-secondary);
+  font-size: 0.75rem;
+  font-weight: 500;
+  transition: all var(--pm-anim-fast) ease;
+}
+
+.pm-tool-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--pm-text-primary);
+}
+
+.pm-tool-btn.active {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  color: var(--pm-text-primary);
+  font-weight: 700;
+}
+
+/* ── Paper Selector (Refined Segmented) ── */
+.pm-paper-selector,
+.pm-foil-selector {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: rgba(0, 0, 0, 0.05);
+  padding: 3px;
+  border-radius: var(--pm-radius-sm);
+  border: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.pm-paper-btn,
+.pm-foil-btn {
+  padding: 3px 9px;
+  border-radius: var(--pm-radius-xs);
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--pm-text-secondary);
+  font-size: 0.71rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--pm-anim-fast) ease;
+  white-space: nowrap;
+}
+
+.pm-paper-btn:hover,
+.pm-foil-btn:hover {
+  color: var(--pm-text-primary);
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.pm-paper-btn.active,
+.pm-foil-btn.active {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+  color: var(--pm-text-primary);
+  font-weight: 700;
+}
+
+/* ── Export Bar ── */
+.pm-export-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 16px;
+  background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%);
+  border-top: 1px solid var(--pm-border-subtle);
+  flex-wrap: wrap;
+}
+
+.pm-export-left-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pm-export-right-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── Apple Solid Button System (Premium) ── */
+.pm-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: var(--pm-radius-md);
+  font-size: 0.82rem;
+  font-weight: 600;
+  transition: all var(--pm-anim-normal) var(--pm-anim-spring);
+  white-space: nowrap;
+  letter-spacing: -0.01em;
+}
+
+.pm-btn-primary {
+  background: var(--pm-accent-blue);
+  color: #ffffff;
+  border: 1px solid transparent;
+  box-shadow: 0 2px 8px rgba(0, 113, 227, 0.28), 0 1px 2px rgba(0, 113, 227, 0.15);
+}
+
+.pm-btn-primary:hover {
+  background: var(--pm-accent-blue-hover);
+  box-shadow: 0 4px 16px rgba(0, 113, 227, 0.36), 0 1px 4px rgba(0, 113, 227, 0.2);
+  transform: translateY(-1px);
+}
+
+.pm-btn-primary:active {
+  transform: scale(0.97);
+  box-shadow: 0 1px 4px rgba(0, 113, 227, 0.2);
+}
+
+.pm-btn-secondary {
+  background: #ffffff;
+  border: 1px solid var(--pm-border-subtle);
+  color: var(--pm-text-primary);
+  box-shadow: var(--pm-shadow-xs);
+}
+
+.pm-btn-secondary:hover {
+  background: #fafafa;
+  border-color: var(--pm-border-active);
+  box-shadow: var(--pm-shadow-sm);
+  transform: translateY(-1px);
+}
+
+.pm-btn-secondary:active { transform: scale(0.97); }
+
+.pm-btn-artisan {
+  background: #ffffff;
+  border: 1px solid var(--pm-border-subtle);
+  color: var(--pm-text-primary);
+  box-shadow: var(--pm-shadow-xs);
+}
+
+.pm-btn-artisan:hover {
+  background: #fafafa;
+  border-color: var(--pm-border-active);
+}
+
+.pm-btn-artisan:active { transform: scale(0.97); }
+
+.pm-btn-ghost {
+  background: transparent;
+  color: var(--pm-text-secondary);
+  border: 1px solid transparent;
+}
+
+.pm-btn-ghost:hover {
+  color: var(--pm-text-primary);
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.pm-btn-md {
+  padding: 10px 18px;
+  font-size: 0.86rem;
+  border-radius: var(--pm-radius-md);
+}
+
+/* ── Studio Footer (Refined) ── */
+.pm-footer {
+  padding: 24px;
+  border-top: 1px solid var(--pm-border-subtle);
+  text-align: center;
+  color: var(--pm-text-dim);
+  font-size: 0.72rem;
+  background: rgba(255, 255, 255, 0.6);
+}
+
+/* ── Responsive Mobile ── */
+@media (max-width: 768px) {
+  .pm-header-inner { padding: 0 14px; }
+  .pm-logo-text { font-size: 0.98rem; }
+  .pm-badge-pro { display: none; }
+
+  .pm-preset-bar {
+    padding: 6px 12px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .pm-preset-bar::-webkit-scrollbar { display: none; }
+  .pm-preset-bar-inner { flex-wrap: nowrap; width: max-content; gap: 8px; }
+  .pm-preset-tabs { flex-wrap: nowrap; overflow-x: auto; }
+  .pm-preset-btn { white-space: nowrap; padding: 7px 12px; font-size: 0.76rem; min-height: 36px; }
+
+  .pm-main { padding: 12px; gap: 14px; }
+
+  .pm-stage-view { min-height: 320px; padding: 16px 8px; }
+
+  .pm-view-toolbar { padding: 8px 12px; gap: 8px; }
+
+  .pm-toggle-group {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    width: 100%;
+    padding-bottom: 2px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .pm-toggle-group::-webkit-scrollbar { display: none; }
+  .pm-tool-btn { white-space: nowrap; padding: 6px 10px; min-height: 36px; }
+
+  .pm-paper-selector {
+    width: 100%;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    scrollbar-width: none;
+  }
+  .pm-paper-selector::-webkit-scrollbar { display: none; }
+  .pm-paper-btn { white-space: nowrap; padding: 5px 10px; min-height: 32px; }
+
+  .pm-export-bar { padding: 12px; flex-direction: column; gap: 10px; }
+  .pm-export-left-tools,
+  .pm-export-right-actions { width: 100%; flex-direction: column; gap: 8px; }
+  .pm-export-left-tools .pm-btn,
+  .pm-export-right-actions .pm-btn { width: 100%; min-height: 44px; font-size: 0.88rem; }
+
+  .pm-modal-dialog { max-height: 92vh; border-radius: var(--pm-radius-md); }
+}
+
 
 .pm-app {
   display: flex;

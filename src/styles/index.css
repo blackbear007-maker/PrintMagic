@@ -1,65 +1,87 @@
 /* ============================================================
-   PrintMagic v3.1 Pro - Apple Minimalist Light Design System
-   Human Interface Guidelines (HIG) & Low-Saturation Aesthetics
+   印象魔法 PrintMagic v3.2 — Apple HIG × Modern SaaS Design System
+   Upgraded Design Tokens · Mesh Gradient · Premium Aesthetics
    ============================================================ */
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
 :root {
-  /* Surfaces & Backgrounds (Apple Signature Light Studio) */
-  --pm-bg-canvas: #f5f5f7;           /* Apple Classic Neutral Backdrop */
-  --pm-bg-surface: #ffffff;          /* Pure White Card Surface */
-  --pm-bg-surface-elevated: #ffffff; /* Elevated White Layer */
-  --pm-bg-surface-hover: #f0f0f2;    /* Soft Gray Hover */
-  --pm-bg-surface-active: #e8e8ed;   /* Active Press State */
-  --pm-bg-surface-glass: rgba(255, 255, 255, 0.85); /* Frosted Glass */
-  --pm-bg-stage-lightbox: #e5e5ea;   /* Neutral Studio Lightbox Behind Paper */
+  /* ── Surfaces & Backgrounds ── */
+  --pm-bg-canvas: #f3f4f6;
+  --pm-bg-mesh: radial-gradient(ellipse at 20% 10%, rgba(139, 127, 168, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 85% 20%, rgba(0, 113, 227, 0.06) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 90%, rgba(52, 199, 89, 0.04) 0%, transparent 60%),
+                #f5f5f7;
+  --pm-bg-surface: #ffffff;
+  --pm-bg-surface-elevated: rgba(255, 255, 255, 0.98);
+  --pm-bg-surface-hover: rgba(0, 0, 0, 0.03);
+  --pm-bg-surface-active: rgba(0, 0, 0, 0.06);
+  --pm-bg-surface-glass: rgba(255, 255, 255, 0.88);
+  --pm-bg-stage-lightbox: #e5e5ea;
 
-  /* Hairline Borders & Dividers (Apple Precision Hairlines) */
-  --pm-border-subtle: rgba(0, 0, 0, 0.08);
-  --pm-border-light: rgba(0, 0, 0, 0.05);
-  --pm-border-active: rgba(0, 0, 0, 0.16);
+  /* ── Hairline Borders ── */
+  --pm-border-subtle: rgba(0, 0, 0, 0.07);
+  --pm-border-light: rgba(0, 0, 0, 0.04);
+  --pm-border-active: rgba(0, 0, 0, 0.14);
   --pm-border-focus: #0071e3;
+  --pm-border-glass: rgba(255, 255, 255, 0.6);
 
-  /* Typography (Apple SF Pro Deep Slate Hierarchy) */
-  --pm-text-primary: #1d1d1f;        /* Apple Deep Slate Black */
-  --pm-text-secondary: #6e6e73;      /* Apple Mid-tone Slate Gray */
-  --pm-text-muted: #86868b;          /* Light Slate Gray */
-  --pm-text-dim: #aeaeb2;            /* Subtle Caption Tone */
+  /* ── Typography ── */
+  --pm-text-primary: #1d1d1f;
+  --pm-text-secondary: #6e6e73;
+  --pm-text-muted: #98989d;
+  --pm-text-dim: #c2c2c7;
 
-  /* Apple Pro Low-Saturation Accent Colors */
-  --pm-accent-blue: #0071e3;         /* Apple System Blue */
-  --pm-accent-blue-hover: #0077ed;
+  /* ── Brand Accent ── */
+  --pm-accent-blue: #0071e3;
+  --pm-accent-blue-hover: #006edb;
   --pm-accent-blue-bg: rgba(0, 113, 227, 0.08);
+  --pm-accent-blue-glow: rgba(0, 113, 227, 0.2);
+  --pm-accent-purple: #8B7FA8;
+  --pm-accent-purple-bg: rgba(139, 127, 168, 0.1);
   --pm-accent-cyan: #32ade6;
-  --pm-accent-purple: #af52de;
-  --pm-accent-gray: #e5e5ea;
+  --pm-accent-green: #34c759;
+  --pm-accent-green-bg: rgba(52, 199, 89, 0.1);
+  --pm-accent-orange: #ff9500;
+  --pm-accent-red: #ff3b30;
 
-  /* Semantic Status Colors (Apple HIG Tones) */
-  --pm-status-success: #34c759;      /* System Green */
-  --pm-status-warning: #ff9500;      /* System Orange */
-  --pm-status-danger: #ff3b30;       /* System Red */
-  --pm-status-info: #0071e3;         /* System Blue */
+  /* ── Semantic Status ── */
+  --pm-status-success: #34c759;
+  --pm-status-warning: #ff9500;
+  --pm-status-danger: #ff3b30;
+  --pm-status-info: #0071e3;
 
-  /* Refined Multi-layer Soft Shadows */
-  --pm-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
-  --pm-shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.02);
-  --pm-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.03);
-  --pm-shadow-lg: 0 12px 36px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.03);
-  --pm-shadow-sheet: 0 16px 40px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.04);
+  /* ── Multi-layer Shadows (Refined) ── */
+  --pm-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(0, 0, 0, 0.02);
+  --pm-shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
+  --pm-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.07), 0 1px 4px rgba(0, 0, 0, 0.03);
+  --pm-shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.09), 0 2px 8px rgba(0, 0, 0, 0.04);
+  --pm-shadow-sheet: 0 20px 48px rgba(0, 0, 0, 0.12), 0 4px 12px rgba(0, 0, 0, 0.05);
+  --pm-shadow-glow-blue: 0 0 0 4px rgba(0, 113, 227, 0.15), 0 4px 16px rgba(0, 113, 227, 0.2);
+  --pm-shadow-glow-green: 0 0 0 4px rgba(52, 199, 89, 0.15), 0 4px 16px rgba(52, 199, 89, 0.18);
+  --pm-shadow-glow-purple: 0 0 0 4px rgba(139, 127, 168, 0.2), 0 4px 16px rgba(139, 127, 168, 0.18);
 
-  /* Continuous Squircles Radii */
+  /* ── Squircle Radii ── */
   --pm-radius-xs: 6px;
   --pm-radius-sm: 10px;
   --pm-radius-md: 14px;
   --pm-radius-lg: 20px;
   --pm-radius-xl: 28px;
+  --pm-radius-2xl: 36px;
   --pm-radius-full: 9999px;
 
-  /* Apple Typography */
-  --pm-font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "PingFang TC", "Helvetica Neue", "Microsoft JhengHei", sans-serif;
+  /* ── Typography Stack ── */
+  --pm-font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "PingFang TC", "Helvetica Neue", "Microsoft JhengHei", sans-serif;
   --pm-font-mono: "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+
+  /* ── Animation Durations ── */
+  --pm-anim-fast: 0.12s;
+  --pm-anim-normal: 0.22s;
+  --pm-anim-slow: 0.36s;
+  --pm-anim-spring: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Reset & Box Sizing */
+/* ── Global Reset ── */
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
@@ -68,6 +90,8 @@
 
 html, body {
   background-color: var(--pm-bg-canvas);
+  background-image: var(--pm-bg-mesh);
+  background-attachment: fixed;
   color: var(--pm-text-primary);
   font-family: var(--pm-font-sans);
   font-size: 14px;
@@ -76,25 +100,22 @@ html, body {
   -moz-osx-font-smoothing: grayscale;
   min-height: 100vh;
   overflow-x: hidden;
-  letter-spacing: -0.012em;
+  letter-spacing: -0.011em;
 }
 
-/* Typography */
+/* ── Typography ── */
 h1, h2, h3, h4, h5, h6 {
-  font-weight: 600;
-  letter-spacing: -0.02em;
+  font-weight: 700;
+  letter-spacing: -0.022em;
   color: var(--pm-text-primary);
 }
 
 a {
   color: var(--pm-accent-blue);
   text-decoration: none;
-  transition: opacity 0.15s ease;
+  transition: opacity var(--pm-anim-fast) ease;
 }
-
-a:hover {
-  opacity: 0.8;
-}
+a:hover { opacity: 0.8; }
 
 button {
   font-family: inherit;
@@ -110,21 +131,65 @@ input, select, textarea {
   color: inherit;
 }
 
-/* Minimalist Light Scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+/* ── Focus Ring (Accessibility) ── */
+button:focus-visible,
+[tabindex]:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.35);
+  border-radius: var(--pm-radius-xs);
 }
 
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
+/* ── Minimalist Scrollbar ── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.16);
+  background: rgba(0, 0, 0, 0.14);
   border-radius: var(--pm-radius-full);
 }
+::-webkit-scrollbar-thumb:hover { background: rgba(0, 0, 0, 0.25); }
 
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.28);
+/* ── Global Animation Library ── */
+@keyframes pmFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pmScaleIn {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes pmSlideUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pmPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.7; transform: scale(0.96); }
+}
+
+@keyframes pmBreath {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(139, 127, 168, 0); }
+  50%       { box-shadow: 0 0 0 6px rgba(139, 127, 168, 0.15); }
+}
+
+@keyframes pmRingBreath {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(0, 113, 227, 0), 0 4px 20px rgba(0, 113, 227, 0.25); }
+  50%       { box-shadow: 0 0 0 8px rgba(0, 113, 227, 0.12), 0 4px 24px rgba(0, 113, 227, 0.35); }
+}
+
+@keyframes pmShimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+@keyframes pmSpin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pmBounceIn {
+  0%   { transform: scale(0.7); opacity: 0; }
+  70%  { transform: scale(1.06); opacity: 1; }
+  100% { transform: scale(1); }
 }
