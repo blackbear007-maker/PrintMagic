@@ -5,8 +5,7 @@ const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './manifest.json',
-  './xiaoxiang-avatar.svg',
-  './xiaoyin-avatar.svg'
+  './xiaoxiang.jpg'
 ];
 
 self.addEventListener('install', (event) => {

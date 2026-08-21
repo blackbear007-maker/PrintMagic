@@ -5,8 +5,7 @@ const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './manifest.json',
-  './xiaoxiang-avatar.svg',
-  './xiaoyin-avatar.svg'
+  './xiaoxiang.jpg'
 ];
 
 self.addEventListener('install', (event) => {
@@ -32,10 +31,12 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+  // Only cache GET requests
   if (event.request.method !== 'GET') return;
 
   const url = new URL(event.request.url);
 
+  // Exclude external APIs or cloud server calls
   if (url.port === '3001' || url.pathname.startsWith('/api/')) {
     return;
   }
@@ -43,13 +44,16 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       if (cachedResponse) {
+        // Fetch in background to revalidate cache if online
         fetch(event.request).then((networkResponse) => {
           if (networkResponse && networkResponse.status === 200) {
             caches.open(CACHE_NAME).then((cache) => {
               cache.put(event.request, networkResponse);
             });
           }
-        }).catch(() => {});
+        }).catch(() => {
+          // Ignore network errors when offline
+        });
         return cachedResponse;
       }
 
@@ -65,6 +69,7 @@ self.addEventListener('fetch', (event) => {
 
         return networkResponse;
       }).catch(() => {
+        // If navigating and offline, return cached index.html
         if (event.request.mode === 'navigate') {
           return caches.match('./index.html') || caches.match('./');
         }

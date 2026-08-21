@@ -21,7 +21,7 @@ export class OnboardingModal {
       <div class="pm-modal-dialog" style="max-width: 620px;">
         <div class="pm-modal-header" style="border-bottom: none; padding-bottom: 0;">
           <div style="display: flex; align-items: center; gap: 10px;">
-            <img src="xiaoxiang-avatar.svg" alt="吉祥物小象" style="width: 42px; height: 42px; border-radius: 50%; object-fit: cover; box-shadow: 0 2px 8px rgba(108, 99, 255, 0.3); flex-shrink: 0;" />
+            <img src="xiaoxiang.jpg" alt="吉祥物小象" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid #8B7FA8; box-shadow: 0 2px 8px rgba(108, 99, 255, 0.3); flex-shrink: 0;" />
             <div>
               <h3 class="pm-modal-title" style="font-size: 1.22rem; font-weight: 800;">
                 小象陪您 30 秒上手【印象魔法】
