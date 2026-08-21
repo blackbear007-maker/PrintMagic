@@ -27,7 +27,7 @@ export class OnboardingModal {
                 小象陪您 30 秒上手【印象魔法】
               </h3>
               <p style="font-size: 0.78rem; color: var(--pm-text-muted); margin: 2px 0 0 0;">
-                【樓下的朋友們】系列專案 · 只需 3 個直覺步驟，從相片變身完美印刷品
+                只需 3 個直覺步驟，從相片變身符合印刷標準的完美成品
               </p>
             </div>
           </div>

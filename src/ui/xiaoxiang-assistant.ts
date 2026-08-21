@@ -60,7 +60,7 @@ export class XiaoxiangAssistant {
           <div class="pm-xiang-header">
             <div class="pm-xiang-title-row">
               <span class="pm-xiang-name">小象</span>
-              <span class="pm-xiang-badge">印刷廠之子 · 樓下的朋友們</span>
+              <span class="pm-xiang-badge">印刷廠之子</span>
             </div>
             <div id="xiangActs" class="pm-xiang-actions">
               <button id="btnXiangGuide" class="pm-xiang-act-btn" title="查看 3 步速成指南">💡 30秒指南</button>
@@ -72,7 +72,7 @@ export class XiaoxiangAssistant {
         </div>
 
         <!-- Xiaoxiang Avatar (Right Side) -->
-        <div id="xiangAvatar" class="pm-xiang-avatar-wrap" title="小象（印刷廠之子 · 樓下的朋友們）">
+        <div id="xiangAvatar" class="pm-xiang-avatar-wrap" title="小象（印刷廠之子）">
           <img id="xiangFace" src="xiaoxiang.jpg" alt="小象" class="pm-xiang-avatar-img" />
           <span class="pm-xiang-status-dot" title="小象在線守護印刷品質"></span>
         </div>
