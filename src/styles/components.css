@@ -2863,9 +2863,10 @@
 }
 
 /* ============================================================
-   Mode Switcher: Simple (Default) vs Advanced Mode
+   🍏 Apple Dynamic Morph & Spring Unfold Transition Engine
    ============================================================ */
 .pm-mode-switch-wrapper {
+  position: relative;
   display: inline-flex;
   align-items: center;
   background: rgba(0, 0, 0, 0.06);
@@ -2873,10 +2874,14 @@
   border-radius: var(--pm-radius-full);
   padding: 3px;
   gap: 2px;
-  transition: all 0.2s ease;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: all 0.24s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .pm-mode-btn {
+  position: relative;
+  z-index: 2;
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -2888,7 +2893,7 @@
   font-weight: 600;
   color: var(--pm-text-secondary);
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: color 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.16s cubic-bezier(0.16, 1, 0.3, 1);
   white-space: nowrap;
 }
 
@@ -2896,21 +2901,76 @@
   color: var(--pm-text-primary);
 }
 
+.pm-mode-btn:active {
+  transform: scale(0.95);
+}
+
 .pm-mode-btn.active {
   background: #ffffff;
   color: var(--pm-text-primary);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.06);
+  animation: pmModeBtnPop 0.28s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Visibility Rules based on body[data-ui-mode] */
+@keyframes pmModeBtnPop {
+  0% { transform: scale(0.92); }
+  60% { transform: scale(1.04); }
+  100% { transform: scale(1); }
+}
+
+/* Dynamic Spring Unfold Keyframes */
+@keyframes pmSpringUnfold {
+  0% {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.98);
+    filter: blur(3px);
+  }
+  60% {
+    transform: translateY(2px) scale(1.005);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes pmSpringMorphIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.95);
+    filter: blur(3px);
+  }
+  60% {
+    transform: scale(1.01);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0);
+  }
+}
+
+/* Visibility Rules based on body[data-ui-mode] with Spring Animations */
 body[data-ui-mode="simple"] .pm-advanced-only {
   display: none !important;
+}
+
+body[data-ui-mode="advanced"] .pm-advanced-only {
+  display: inline-flex !important;
+  animation: pmSpringUnfold 0.34s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+body[data-ui-mode="advanced"] .pm-view-toolbar-secondary {
+  display: flex !important;
+  animation: pmSpringUnfold 0.36s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 body[data-ui-mode="simple"] .pm-view-toolbar {
   padding: 6px 12px;
   background: rgba(255, 255, 255, 0.6);
   border-bottom: 1px solid var(--pm-border-subtle);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 body[data-ui-mode="simple"] .pm-view-toolbar-primary {
@@ -2923,6 +2983,7 @@ body[data-ui-mode="simple"] .pm-view-toolbar-primary {
 
 body[data-ui-mode="simple"] #simplePresetBar {
   display: flex !important;
+  animation: pmSpringMorphIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 body[data-ui-mode="simple"] #advancedPresetBar {
@@ -2935,10 +2996,12 @@ body[data-ui-mode="advanced"] #simplePresetBar {
 
 body[data-ui-mode="advanced"] #advancedPresetBar {
   display: block !important;
+  animation: pmSpringMorphIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 body[data-ui-mode="simple"] #simpleExportRow {
   display: flex !important;
+  animation: pmSpringMorphIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 body[data-ui-mode="advanced"] #simpleExportRow {
@@ -2947,6 +3010,23 @@ body[data-ui-mode="advanced"] #simpleExportRow {
 
 body[data-ui-mode="advanced"] #advancedExportRow {
   display: flex !important;
+  animation: pmSpringUnfold 0.36s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Mode Transition Flash / Ripple Feedback */
+.pm-mode-ripple-flash {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  background: radial-gradient(circle at 50% 8%, rgba(0, 113, 227, 0.12) 0%, transparent 60%);
+  animation: pmRippleDissolve 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes pmRippleDissolve {
+  0% { opacity: 0; transform: scale(0.85); }
+  30% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.15); }
 }
 
 /* Simple Mode Auto-Detected Interactive Capsule Preset Bar */

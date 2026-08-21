@@ -878,20 +878,31 @@ class App {
       }
     });
 
-    // Mode Switcher (Simple vs Advanced)
-    this.btnModeSimple?.addEventListener('click', () => {
+    // Mode Switcher (Simple vs Advanced) with Apple Dynamic Spring Transition
+    const triggerModeSwitch = (mode: 'simple' | 'advanced') => {
       SoundEffects.sliderTick();
-      store.setUiMode('simple');
-      store.setEngineMode('local');
-      store.setState({ aiUpscaleMode: 'local' });
-      Toast.info('⚡ 已切換為【簡易模式】：手機專用、100% 離線免連網、極速輸出！');
-    });
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        navigator.vibrate([15, 30, 15]);
+      }
 
-    this.btnModeAdvanced?.addEventListener('click', () => {
-      SoundEffects.sliderTick();
-      store.setUiMode('advanced');
-      Toast.info('🎛️ 已切換為【進階模式】：展開全部專業製版、工藝與管線工具！');
-    });
+      // Optical transition ripple flash
+      const flash = document.createElement('div');
+      flash.className = 'pm-mode-ripple-flash';
+      document.body.appendChild(flash);
+      setTimeout(() => flash.remove(), 420);
+
+      store.setUiMode(mode);
+      if (mode === 'simple') {
+        store.setEngineMode('local');
+        store.setState({ aiUpscaleMode: 'local' });
+        Toast.info('⚡ 已切換為【簡易模式】：極簡純粹、手機專用、極速輸出！');
+      } else {
+        Toast.info('🎛️ 已切換為【進階模式】：展開全部專業製版、工藝與管線工具！');
+      }
+    };
+
+    this.btnModeSimple?.addEventListener('click', () => triggerModeSwitch('simple'));
+    this.btnModeAdvanced?.addEventListener('click', () => triggerModeSwitch('advanced'));
 
     // Text Inspection Buttons
     document.getElementById('btnOpenTextInspectHeader')?.addEventListener('click', () => {
