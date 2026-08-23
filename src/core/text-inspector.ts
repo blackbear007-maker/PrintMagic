@@ -87,175 +87,32 @@ export class TextInspector {
    * font sizes, and text content for zero-effort one-click vector text overlay.
    */
   public static autoDetectTextLayers(imageData: ImageData): AutoDetectedTextItem[] {
-    const { width, height, data } = imageData;
-    const aspect = width / height;
+    const { width, height } = imageData;
 
-    // Sample background luminance across corners and center
-    let cornerLumSum = 0;
-    const samplePoints = [
-      0,
-      Math.max(0, (width - 1) * 4),
-      Math.max(0, ((height - 1) * width) * 4),
-      Math.max(0, ((height - 1) * width + (width - 1)) * 4),
-      Math.max(0, (Math.floor(height / 2) * width + Math.floor(width / 2)) * 4)
-    ];
-    for (const p of samplePoints) {
-      if (p >= 0 && p < data.length - 4) {
-        cornerLumSum += 0.299 * data[p] + 0.587 * data[p + 1] + 0.114 * data[p + 2];
-      }
-    }
-    const avgCornerLum = cornerLumSum / samplePoints.length;
-
-    // Scenario A: Business Card Layout (Aspect ~ 1.35 - 1.95, light background)
-    if (aspect >= 1.35 && aspect <= 1.95 && avgCornerLum > 160) {
-      return [
-        {
-          text: 'STUDIO MAGIC',
-          xPercent: 8.5,
-          yPercent: 28,
-          fontSizePx: Math.max(28, Math.round(height * 0.105)),
-          fontFamily: 'sans-serif',
-          isK100: true,
-          color: '#000000',
-          isOverprint: true,
-          confidence: 0.98
-        },
-        {
-          text: 'AI CREATIVE & INDUSTRIAL DESIGN',
-          xPercent: 8.5,
-          yPercent: 36,
-          fontSizePx: Math.max(16, Math.round(height * 0.044)),
-          fontFamily: 'sans-serif',
-          isK100: true,
-          color: '#0071e3',
-          isOverprint: true,
-          confidence: 0.95
-        },
-        {
-          text: 'Steve C. Wang',
-          xPercent: 8.5,
-          yPercent: 56,
-          fontSizePx: Math.max(20, Math.round(height * 0.06)),
-          fontFamily: 'sans-serif',
-          isK100: true,
-          color: '#000000',
-          isOverprint: true,
-          confidence: 0.99
-        },
-        {
-          text: 'Chief Executive Designer',
-          xPercent: 8.5,
-          yPercent: 63,
-          fontSizePx: Math.max(14, Math.round(height * 0.04)),
-          fontFamily: 'sans-serif',
-          isK100: true,
-          color: '#555555',
-          isOverprint: true,
-          confidence: 0.94
-        },
-        {
-          text: '✉️ hello@printmagic.ai',
-          xPercent: 8.5,
-          yPercent: 75,
-          fontSizePx: Math.max(14, Math.round(height * 0.038)),
-          fontFamily: 'sans-serif',
-          isK100: true,
-          color: '#000000',
-          isOverprint: true,
-          confidence: 0.96
-        },
-        {
-          text: '🌐 https://printmagic.studio',
-          xPercent: 8.5,
-          yPercent: 82.5,
-          fontSizePx: Math.max(14, Math.round(height * 0.038)),
-          fontFamily: 'sans-serif',
-          isK100: true,
-          color: '#000000',
-          isOverprint: true,
-          confidence: 0.96
-        },
-        {
-          text: 'SCAN CARD',
-          xPercent: 76,
-          yPercent: 68,
-          fontSizePx: Math.max(14, Math.round(height * 0.035)),
-          fontFamily: 'sans-serif',
-          isK100: true,
-          color: '#000000',
-          isOverprint: true,
-          confidence: 0.92
-        }
-      ];
-    }
-
-    // Scenario B: Dark Poster Layout (Aspect < 0.95, dark background)
-    if (aspect < 0.95 && avgCornerLum < 90) {
-      return [
-        {
-          text: 'NEON TOKYO 2099',
-          xPercent: 20,
-          yPercent: 19,
-          fontSizePx: Math.max(28, Math.round(height * 0.05)),
-          fontFamily: 'sans-serif',
-          isK100: true,
-          color: '#00f5d4',
-          isOverprint: true,
-          confidence: 0.97
-        },
-        {
-          text: 'CYBERPUNK ART EXHIBITION POSTER',
-          xPercent: 12,
-          yPercent: 24,
-          fontSizePx: Math.max(18, Math.round(height * 0.024)),
-          fontFamily: 'sans-serif',
-          isK100: true,
-          color: '#ff007f',
-          isOverprint: true,
-          confidence: 0.95
-        }
-      ];
-    }
-
-    // Scenario C: Sticker Layout (Aspect 0.85 - 1.25)
-    if (aspect >= 0.85 && aspect <= 1.25) {
-      return [
-        {
-          text: 'AI Anime Character Sticker',
-          xPercent: 15,
-          yPercent: 86,
-          fontSizePx: Math.max(18, Math.round(height * 0.05)),
-          fontFamily: 'sans-serif',
-          isK100: true,
-          color: '#800f2f',
-          isOverprint: true,
-          confidence: 0.94
-        }
-      ];
-    }
-
-    // Scenario D: General Arbitrary Image — Optical Text Line Clustering
+    // Optical Text Line Clustering - only extract real bounding regions, never invent fake demo text
     const regions = this.detectTextRegions(imageData);
     if (regions.length === 0) {
       return [];
     }
 
-    return regions.map((r, idx) => {
-      const relX = Math.round((r.x / width) * 100);
-      const relY = Math.round(((r.y + r.height * 0.5) / height) * 100);
-      const fontSize = Math.max(18, Math.min(64, Math.round(r.height * 0.75)));
-      return {
-        text: r.text || `TEXT BLOCK #${idx + 1}`,
-        xPercent: Math.max(5, Math.min(90, relX)),
-        yPercent: Math.max(5, Math.min(95, relY)),
-        fontSizePx: fontSize,
-        fontFamily: 'sans-serif',
-        isK100: true,
-        color: '#000000',
-        isOverprint: true,
-        confidence: 0.88
-      };
-    });
+    return regions
+      .filter((r) => r.text && r.text.trim().length > 0)
+      .map((r) => {
+        const relX = Math.round((r.x / width) * 100);
+        const relY = Math.round(((r.y + r.height * 0.5) / height) * 100);
+        const fontSize = Math.max(18, Math.min(64, Math.round(r.height * 0.75)));
+        return {
+          text: r.text.trim(),
+          xPercent: Math.max(5, Math.min(90, relX)),
+          yPercent: Math.max(5, Math.min(95, relY)),
+          fontSizePx: fontSize,
+          fontFamily: 'sans-serif',
+          isK100: true,
+          color: '#000000',
+          isOverprint: true,
+          confidence: 0.88
+        };
+      });
   }
 
   /**
@@ -436,31 +293,10 @@ export class TextInspector {
   }
 
   /**
-   * Generates heuristic recognized tokens based on text line structural metrics
+   * Generates heuristic recognized tokens based on text line structural metrics (no hardcoded fake text)
    */
-  private static heuristicExtractSampleText(relY: number, relW: number, aspect: number = 1.0): string {
-    if (aspect >= 1.35 && aspect <= 1.95) {
-      // Business card heuristics
-      if (relY < 0.35) {
-        return relW > 0.5 ? 'STUDIO MAGIC' : 'AI CREATIVE & INDUSTRIAL DESIGN';
-      } else if (relY < 0.65) {
-        return relW > 0.4 ? 'Steve C. Wang' : 'Chief Executive Designer';
-      } else if (relY < 0.8) {
-        return 'hello@printmagic.ai';
-      } else {
-        return 'https://printmagic.studio';
-      }
-    }
-
-    if (relY < 0.25) {
-      return relW > 0.5 ? 'CYBERPUNK ART EXHIBITION' : 'SPECIAL EDITION';
-    } else if (relY < 0.5) {
-      return relW > 0.5 ? 'NEON TOKYO 2099' : 'LIMITED DESIGN';
-    } else if (relY < 0.75) {
-      return relW > 0.4 ? 'PREMIUM QUALITY STUDIO' : 'CREATIVE FESTIVAL';
-    } else {
-      return relW > 0.5 ? 'OFFICIAL POSTER COLLECTION' : 'PRINTMAGIC STUDIO';
-    }
+  private static heuristicExtractSampleText(_relY: number, _relW: number, _aspect: number = 1.0): string {
+    return '';
   }
 
   /**

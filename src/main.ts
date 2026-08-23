@@ -1521,21 +1521,15 @@ class App {
         processedImgData = clampResult.imageData;
       }
 
-      // Step 3.5: Automatic High-Precision Text Vectorization & Anti-Blur Overlay (全自動開啟 · 0 點擊)
-      if (opts.enableVectorOverlay !== false) {
-        const detectedLayers = TextInspector.autoDetectTextLayers(processedImgData);
-        if (detectedLayers.length > 0) {
-          this.vectorOverlayEngine.clear();
-          this.vectorOverlayEngine.addTextItems(detectedLayers);
-
-          const canvas = document.createElement('canvas');
-          canvas.width = processedImgData.width;
-          canvas.height = processedImgData.height;
-          const ctx = canvas.getContext('2d')!;
-          ctx.putImageData(processedImgData, 0, 0);
-          this.vectorOverlayEngine.renderOverlay(ctx, canvas.width, canvas.height);
-          processedImgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        }
+      // Step 3.5: User-Configured Vector Text Overlay (僅在用戶手動編輯或確認後套用，絕不自動覆蓋假浮水印文字)
+      if (opts.enableVectorOverlay === true && this.vectorOverlayEngine.getTextItems().length > 0) {
+        const canvas = document.createElement('canvas');
+        canvas.width = processedImgData.width;
+        canvas.height = processedImgData.height;
+        const ctx = canvas.getContext('2d')!;
+        ctx.putImageData(processedImgData, 0, 0);
+        this.vectorOverlayEngine.renderOverlay(ctx, canvas.width, canvas.height);
+        processedImgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       }
 
       // Step 4: Post-Processing Comprehensive Diagnostic & Scientific Quality Evaluation
