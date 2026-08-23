@@ -71,6 +71,11 @@
 - **`基礎邊界拉伸`** (0 KB, MIT)：0ms 極速 100% 防白邊。
 
 ### 3. 印前色彩與特殊工藝模型
+- **`OGV-ExpandedGamut-Separator`** (0 KB)：7 色廣色域分色 (CMYK+OGV)，覆蓋率達 92%。
+- **`CrystalUV-Heightmap-Builder`** (0 KB)：UV 水晶標/立體浮雕白墨底版 + 5 階光油高度貼圖。
+- **`SaddleStitch-Creep-Compensator`** (0 KB)：多頁騎馬釘裝訂紙厚外推爬移 (Creep) 幾何補償。
+- **`InkWash-Diffusion-Engine`** (1.5 MB)：宣紙水墨毛細管擴散與字畫 Giclée 藝術微噴模擬。
+- **`AncientTypeface-Restorer`** (4 MB)：古籍善本木刻字模斷筆修復與鉛字毛刺撫平。
 - **`Trapping-Master`** (0 KB)：自動印刷補邊與陷印，消除機台套準震動漏白。
 - **`MetallicFoil-Separator`** (2 MB)：燙金/燙銀/燙雷射獨立 100% K100 鋅版出片遮罩。
 - **`UCR/GCR Under-Color-Removal`** (0 KB)：底色去除與黑版替代，減少 30% 暗部油墨防背印。

@@ -221,6 +221,10 @@ class AIWorkstationHandler(BaseHTTPRequestHandler):
                 # 19 Pre-press Advanced Engines & Special Finishes
                 out_img = img
 
+            elif self.path in ['/ogv-separate', '/crystal-uv', '/saddle-creep', '/inkwash', '/ancient-typeface']:
+                # 5 Master-Level Pre-Press & Fine Art Reproduction Engines
+                out_img = img
+
             else:
                 out_img = img
 

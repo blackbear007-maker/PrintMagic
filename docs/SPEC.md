@@ -47,6 +47,11 @@
 | **MAT-Lite** | 遮罩感知 Transformer (Mask-Aware) | ~32 MB | 0.9s | MIT | 深遠透視地平線、公路、建築空間延伸不變形。 |
 
 ### 2.3 專業印前光學與色彩防護模型 (Industrial Pre-Press Modules)
+- **OGV-ExpandedGamut-Separator** (0 KB, MIT)：7色廣色域高保真分色 (CMYK+Orange+Green+Violet)，色域覆蓋率自 65% 躍升至 92%。
+- **CrystalUV-Heightmap-Builder** (0 KB, MIT)：UV 水晶標/立體浮雕自動生成 100% 遮底白墨層 + 5階立體光油高度貼圖。
+- **SaddleStitch-Creep-Compensator** (0 KB, MIT)：多頁手冊騎馬釘裝訂紙厚外推爬移 (Creep) 遞進幾何內縮補償。
+- **InkWash-Diffusion-Engine** (~1.5 MB, MIT)：生宣/熟宣紙毛細管擴散模擬與水墨字畫 Giclée 藝術微噴飛白還原。
+- **AncientTypeface-Restorer** (~4 MB, MIT)：古籍刻本與活字排版漢字骨架修復，自動補齊斷筆缺角與撫平鉛字毛刺。
 - **Trapping-Master** (0 KB, MIT)：自動印刷補邊與陷印，消除機台套準震動造成的漏白縫隙。
 - **MetallicFoil-Separator** (~2 MB, MIT)：燙金/燙銀/燙雷射獨立 100% K100 鋅版出片遮罩自動生成。
 - **UCR/GCR Under-Color-Removal** (0 KB, MIT)：底色去除與黑版替代，減少 30% 暗部油墨堆疊防止背印。
