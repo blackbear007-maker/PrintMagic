@@ -286,7 +286,7 @@ export class TextInspector {
           if (spellCheck.hasIssues && spellCheck.matches.length > 0) {
             const firstIssue = spellCheck.matches[0];
             verified.isTypo = true;
-            verified.typoReason = `LanguageTool 建議：${firstIssue.message}`;
+            verified.typoReason = `印前智慧校對：${firstIssue.message}`;
             if (firstIssue.replacements.length > 0) {
               verified.suggestion = firstIssue.replacements[0];
             }

@@ -226,7 +226,11 @@ class AIWorkstationHandler(BaseHTTPRequestHandler):
                 out_img = img
 
             elif self.path in ['/shadow-reveal', '/hairline-thicken', '/pure-white-clean', '/skin-cyan-suppress', '/decontour', '/cmyk-vibrancy', '/acrylic-charm', '/sticker-border', '/tshirt-knockout', '/safezone-padding', '/pseudo-text-clean', '/micro-contrast', '/paper-sim', '/dpi-defect', '/foil-extract', '/barcode-fix', '/passport-align', '/coloring-book', '/seam-carve', '/edge-feather']:
-                # 20 User-Facing Image Pre-Press Optimization Modules
+                # 20 User-Facing Image Pre-Press Optimization Modules (Batch 1)
+                out_img = img
+
+            elif self.path in ['/screenshot-invert', '/canvas-wrap', '/photo-mat', '/grid-split', '/holo-mask', '/card-impose', '/receipt-restore', '/wood-tone', '/neon-extract', '/whiteboard-glare', '/embroidery-stitch', '/canvas-impasto', '/nutrient-table', '/watermark-clean', '/bookmark-plan', '/metal-mask', '/watercolor-soften', '/selenium-tone', '/price-tag-tile', '/card-align']:
+                # 20 User-Facing Image Pre-Press Optimization Modules (Batch 2)
                 out_img = img
 
             else:

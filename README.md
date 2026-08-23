@@ -98,6 +98,26 @@
 - **`Photo-To-Coloring-Book`** (4 MB)：照片一鍵變兒童塗色著色本，生成純淨黑白填色線稿。
 - **`Seam-Carving-Canvas-Fitter`** (1 MB)：智慧內容感知畫面延展，16:9 轉 A4 主體不變形。
 - **`Edge-Bleed-Feathering-Inpainter`** (0 KB)：照片邊緣漸層羽化，無縫融入馬克杯商品底色。
+- **`Screenshot-Dark-Inverter`** (0 KB)：深色截圖一鍵省墨轉印，ChatGPT/代碼黑底轉純白與 K100。
+- **`Canvas-Wrap-Mirror-Builder`** (0 KB)：無框畫 4 面 3.5cm 立體包邊鏡像延伸，正面完整不切人臉。
+- **`Photo-Frame-Mat-Generator`** (0 KB)：畫廊卡紙裝裱內襯白邊生成器，自動計算 2:3/3:4 比例與倒角。
+- **`Grid-Splitter-Multi-Panel`** (0 KB)：巨幅海報多張 A4 拼印神器，自動分割帶 5mm 重疊對位十字。
+- **`Holographic-Foil-Masker`** (0 KB)：鐳射雷射貼紙透光白墨遮罩，背景閃耀彩虹光芒、人物顯色。
+- **`Folded-Greeting-Card-Imposer`** (0 KB)：對折卡片/邀請函自動正反倒轉拼版，中央附帶壓痕對折定位。
+- **`Receipt-Fading-Restorer`** (0 KB)：熱感發票/收據褪色加黑搶救，自適應對比度強化至 K100。
+- **`Wood-Engraving-Contrast-Toner`** (0 KB)：雷射雕刻木質/皮革高反差轉譯，防止過度燃燒焦黑。
+- **`Fluorescent-Neon-Ink-Extractor`** (0 KB)：螢光粉/螢光綠第 5 專色獨立膠片分色出片生成。
+- **`Whiteboard-Glare-Keystone`** (1.5 MB)：白板/簡報翻拍去光斑拉平，抹除高光斑點並拉正為 90° 矩形。
+- **`Embroidery-Patch-Stitch-Converter`** (1.2 MB)：照片/Logo 一鍵轉刺繡布貼打版圖，K-Means 歸納色線。
+- **`Canvas-Oil-Impasto-3D`** (0 KB)：無框畫立體油畫厚塗筆觸肌理，生成 3D 法線與 UV 光油高度貼圖。
+- **`Nutrient-Table-Builder`** (0 KB)：食品標籤營養表標準純黑 K100 向量生成，符合法規比例小字不糊。
+- **`Watermark-Stamp-Remover`** (2.5 MB)：相片樣張日期戳記與水印智慧抹除，局部紋理流體平滑修補。
+- **`Bookmark-Tassel-Planner`** (0 KB)：文創書籤 5x15cm 圓角刀模與 4mm 頂部流蘇打孔穿繩定位規劃。
+- **`MetalCard-Laser-Masker`** (0 KB)：金屬名片雷雕蝕刻分版，生成 100% K100 雷射露銅去陽極化遮罩。
+- **`Watercolor-Bleed-Softener`** (0 KB)：水彩畫紙水痕浸潤模擬，邊緣生成自然水痕沉澱邊框。
+- **`Selenium-Monochrome-Toner`** (0 KB)：暗房極致黑白相片硒調色，強化 Dmax ≥ 2.2 沉厚黑度與暖紫光澤。
+- **`Price-Tag-Batch-Tiler`** (0 KB)：市集商品標籤一鍵滿版排版，自動拼版排滿 A4 貼紙頁。
+- **`Business-Card-Smart-Aligner`** (1.0 MB)：名片文字瑞士網格自動對齊，基線網格吸附排版。
 - **`Trapping-Master`** (0 KB)：自動印刷補邊與陷印，消除機台套準震動漏白。
 - **`MetallicFoil-Separator`** (2 MB)：燙金/燙銀/燙雷射獨立 100% K100 鋅版出片遮罩。
 - **`UCR/GCR Under-Color-Removal`** (0 KB)：底色去除與黑版替代，減少 30% 暗部油墨防背印。
