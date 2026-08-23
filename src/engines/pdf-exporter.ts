@@ -35,6 +35,12 @@ export class PdfExporter {
     const contentWidth = trimWidthMm + bleedMm * 2;
     const contentHeight = trimHeightMm + bleedMm * 2;
 
+    // 0. Auto White Ink Underlay (for transparent stickers/clear prints to prevent see-through)
+    if (preset.id === 'sticker') {
+      pdf.setFillColor(255, 255, 255);
+      pdf.rect(contentX, contentY, contentWidth, contentHeight, 'F');
+    }
+
     // 1. Draw Image
     pdf.addImage(
       imageDataUrl,
@@ -159,6 +165,12 @@ export class PdfExporter {
     const contentY = outerMarginMm;
     const contentWidth = trimWidthMm + bleedMm * 2;
     const contentHeight = trimHeightMm + bleedMm * 2;
+
+    // 0. Auto White Ink Underlay (for transparent stickers/clear prints to prevent see-through)
+    if (preset.id === 'sticker') {
+      pdf.setFillColor(255, 255, 255);
+      pdf.rect(contentX, contentY, contentWidth, contentHeight, 'F');
+    }
 
     // 1. Draw Image
     pdf.addImage(

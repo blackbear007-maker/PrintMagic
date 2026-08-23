@@ -1,19 +1,20 @@
-import type {
-  BatchItem,
-  CloudHealthStatus,
-  CropAnchor,
-  CropOffset,
-  DpiAnalysis,
-  EngineMode,
-  ImagePixelStats,
-  InkAnalysis,
-  PaperType,
-  PipelineOptions,
-  PrintPreset,
-  PrintPresetId,
-  PrintScoreResult,
-  TextInspectionResult,
-  UiMode
+import {
+  type BatchItem,
+  type CloudHealthStatus,
+  type CropAnchor,
+  type CropOffset,
+  type DpiAnalysis,
+  type EngineMode,
+  type ImagePixelStats,
+  type InkAnalysis,
+  type PaperType,
+  type PipelineOptions,
+  DEFAULT_PIPELINE_OPTIONS,
+  type PrintPreset,
+  type PrintPresetId,
+  type PrintScoreResult,
+  type TextInspectionResult,
+  type UiMode
 } from '../types';
 import { DEFAULT_PRESET, getPresetById } from '../core/presets';
 
@@ -155,7 +156,10 @@ class StateStore {
       enableInkLimiting: true,
       enableShadowLift: true,
       enableBleedExpand: true,
-      enableColorProofing: true
+      enableColorProofing: true,
+      enableVectorOverlay: true,
+      enableAntiBanding: true,
+      enableDeshadow: true
     }
   };
 
@@ -379,12 +383,7 @@ class StateStore {
   public resetPipelineOptions(): void {
     this.setState({
       pipelineOptions: {
-        enableUpscale: true,
-        enableSharpening: true,
-        enableInkLimiting: true,
-        enableShadowLift: true,
-        enableBleedExpand: true,
-        enableColorProofing: true
+        ...DEFAULT_PIPELINE_OPTIONS
       }
     });
   }

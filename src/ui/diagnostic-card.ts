@@ -10,6 +10,7 @@ export class DiagnosticCard {
   private onExportPdfClick?: () => void;
   private onOpenPipelineMatrix?: () => void;
   private onOpenTextInspectorClick?: () => void;
+  private onOpenExportCenterClick?: () => void;
   private isDetailsExpanded = false;
 
   constructor(
@@ -17,7 +18,8 @@ export class DiagnosticCard {
     onDirectPrintClick?: () => void,
     onExportPdfClick?: () => void,
     onOpenPipelineMatrix?: () => void,
-    onOpenTextInspectorClick?: () => void
+    onOpenTextInspectorClick?: () => void,
+    onOpenExportCenterClick?: () => void
   ) {
     const el = document.getElementById(containerId);
     if (!el) throw new Error(`Diagnostic card #${containerId} not found`);
@@ -26,6 +28,7 @@ export class DiagnosticCard {
     this.onExportPdfClick = onExportPdfClick;
     this.onOpenPipelineMatrix = onOpenPipelineMatrix;
     this.onOpenTextInspectorClick = onOpenTextInspectorClick;
+    this.onOpenExportCenterClick = onOpenExportCenterClick;
   }
 
   public render(state: AppState): void {
@@ -96,7 +99,7 @@ export class DiagnosticCard {
             <span style="font-size: 1.1rem;">${isTypo ? '⚠️' : '📝'}</span>
             <div>
               <div style="font-weight: 700; font-size: 0.82rem; color: var(--pm-text-primary);">
-                ${isTypo ? `發現 ${textInspectionResult.typoCount} 處文字疑似異常` : '文字拼寫與排版檢驗通過'}
+                ${isTypo ? `發現 ${textInspectionResult.typoCount} 處文字疑似異常` : '✓ 文字拼寫與清晰度已全自動優化'}
               </div>
               <div style="font-size: 0.72rem; color: var(--pm-text-secondary);">
                 ${textInspectionResult.summary}
@@ -127,14 +130,35 @@ export class DiagnosticCard {
 
     // Render depending on uiMode (Simple vs Advanced)
     if (uiMode === 'simple') {
+      const typoWarningHtml = (textInspectionResult && textInspectionResult.typoCount > 0)
+        ? `
+          <div class="pm-diag-text-inspect-banner pm-banner-warning" id="btnOpenTextInspectFromCard" style="cursor: pointer; margin-bottom: 10px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 1.1rem;">⚠️</span>
+              <div>
+                <div style="font-weight: 700; font-size: 0.82rem; color: var(--pm-text-primary);">
+                  發現 ${textInspectionResult.typoCount} 處文字疑似異常
+                </div>
+                <div style="font-size: 0.72rem; color: var(--pm-text-secondary);">
+                  ${textInspectionResult.summary}
+                </div>
+              </div>
+            </div>
+            <button class="pm-btn pm-btn-xs pm-btn-artisan" type="button">
+              點擊糾錯 ➔
+            </button>
+          </div>
+        `
+        : '';
+
       this.container.innerHTML = `
         <div class="pm-card pm-diagnostic-panel pm-panel-simple">
           <!-- 1. Hero Score Header -->
-          <div class="pm-diagnostic-header">
-            <div class="pm-score-summary-box">
-              <div class="pm-score-circle" style="border-color: ${levelColor}">
-                <span class="pm-score-value" style="color: ${levelColor}">${currentScore}</span>
-                <span class="pm-score-max">/100分</span>
+          <div class="pm-diagnostic-header" style="margin-bottom: 10px;">
+            <div class="pm-score-summary-box" style="padding: 12px 14px;">
+              <div class="pm-score-circle" style="border-color: ${levelColor}; width: 68px; height: 68px;">
+                <span class="pm-score-value" style="color: ${levelColor}; font-size: 1.55rem;">${currentScore}</span>
+                <span class="pm-score-max" style="font-size: 0.65rem;">/100分</span>
               </div>
 
               <div class="pm-score-meta">
@@ -145,54 +169,79 @@ export class DiagnosticCard {
                   ${deltaBadge}
                 </div>
                 <div class="pm-score-verdict ${levelClass}">✨ ${scoreResult.verdict}</div>
+                <div style="font-size: 0.72rem; color: var(--pm-text-muted); margin-top: 2px;">
+                  ${currentPreset.nameZh} · ${physicalSizeText} ${currentPreset.realWorldRef ? `<span style="color: var(--pm-accent-blue); font-weight: 600;">(${currentPreset.realWorldRef})</span>` : ''}
+                </div>
               </div>
             </div>
           </div>
 
-          <!-- 2. Plain Language 3-Pillar Quality Upgrade Cards -->
-          <div class="pm-simple-upgrades-grid">
-            <div class="pm-upgrade-card">
-              <div class="pm-upgrade-icon">🌟</div>
-              <div class="pm-upgrade-content">
-                <div class="pm-upgrade-title">畫質超解析度升級</div>
-                <div class="pm-upgrade-desc">自動由 72 DPI 提升至 <strong>${finalDpi} DPI 印刷級超高清晰度</strong>，細節銳利無鋸齒。</div>
+          <!-- 2. Converged All-in-One Defense Grid (全自動 10 大無腦印前守護) -->
+          <div class="pm-simple-defense-box">
+            <div class="pm-defense-box-header">
+              <span class="pm-defense-title">🛡️ 10 大商業印前守護 · 背景 100% 全自動就緒</span>
+              <span class="pm-defense-status">✓ 完美就緒</span>
+            </div>
+
+            <div class="pm-defense-chips-grid" style="grid-template-columns: repeat(2, 1fr); gap: 6px;">
+              <div class="pm-defense-chip" title="自動由 72 DPI 升級至 ${finalDpi} DPI 視網膜印刷畫質">
+                <span class="pm-chip-icon">🌟</span>
+                <span class="pm-chip-text"><strong>${finalDpi} DPI</strong> 超解析補齊</span>
+              </div>
+              <div class="pm-defense-chip" title="已適配 ${currentPreset.nameZh} 3mm 出血外推防裁切">
+                <span class="pm-chip-icon">📐</span>
+                <span class="pm-chip-text"><strong>3mm</strong> 出血防白邊</span>
+              </div>
+              <div class="pm-defense-chip" title="抹除手機拍畫時的手部黑影與光照不均">
+                <span class="pm-chip-icon">☀️</span>
+                <span class="pm-chip-text"><strong>手機拍照</strong> 均光抹影</span>
+              </div>
+              <div class="pm-defense-chip" title="平滑 8-bit 色階斷層與消除 JPEG 塊狀噪點">
+                <span class="pm-chip-icon">🌊</span>
+                <span class="pm-chip-text"><strong>漸層防斷階</strong> 去噪</span>
+              </div>
+              <div class="pm-defense-chip" title="油墨安全壓制至 ${finalTac}% 防吸墨沾黏">
+                <span class="pm-chip-icon">🎨</span>
+                <span class="pm-chip-text"><strong>TAC ≤${finalTac}%</strong> 安全控墨</span>
+              </div>
+              <div class="pm-defense-chip" id="btnCardOpenVectorOverlay" style="cursor: pointer;" title="小字自動純黑向量化，保證印刷邊緣銳利不模糊">
+                <span class="pm-chip-icon">🔤</span>
+                <span class="pm-chip-text"><strong>純黑 K100</strong> 文字防糊</span>
+              </div>
+              <div class="pm-defense-chip" title="Gamma 階調自動補償，印刷暗部層次分明不死黑">
+                <span class="pm-chip-icon">🌓</span>
+                <span class="pm-chip-text"><strong>暗部階調</strong> 防死黑</span>
+              </div>
+              <div class="pm-defense-chip" title="自動萃取主要專色並匹配 Pantone 國際標準色票">
+                <span class="pm-chip-icon">🌈</span>
+                <span class="pm-chip-text"><strong>Pantone</strong> 專色配墨</span>
+              </div>
+              <div class="pm-defense-chip" title="檢查條碼光學反差比與物理毫米尺寸">
+                <span class="pm-chip-icon">🏁</span>
+                <span class="pm-chip-text"><strong>條碼光學</strong> 防呆校驗</span>
+              </div>
+              <div class="pm-defense-chip" title="已套用印刷廠色彩描述檔，直出零色偏">
+                <span class="pm-chip-icon">🇹🇼</span>
+                <span class="pm-chip-text"><strong>CMYK</strong> 色彩校正</span>
               </div>
             </div>
 
-            <div class="pm-upgrade-card">
-              <div class="pm-upgrade-icon">📐</div>
-              <div class="pm-upgrade-content">
-                <div class="pm-upgrade-title">3mm 出血防裁切保護</div>
-                <div class="pm-upgrade-desc">已適配 <strong>${currentPreset.nameZh} (${physicalSizeText})</strong>，保證重要內容不被切掉。</div>
-              </div>
-            </div>
-
-            <div class="pm-upgrade-card">
-              <div class="pm-upgrade-icon">🎨</div>
-              <div class="pm-upgrade-content">
-                <div class="pm-upgrade-title">印刷墨量色彩安全校正</div>
-                <div class="pm-upgrade-desc">墨量安全壓制至 <strong>${finalTac}%</strong>，防吸墨過重背印沾黏，顏色自然還原。</div>
-              </div>
+            <div class="pm-defense-reassurance" style="background: rgba(52, 199, 89, 0.08); border-radius: 8px; padding: 8px 10px; margin-top: 6px; font-size: 0.73rem; color: #248a3d; font-weight: 600;">
+              ✨ 系統已為您全自動完成 10 道印刷工序，無需任何專業知識，點擊下方即可直接無腦送印！
             </div>
           </div>
 
-          <!-- 3. Text Inspection Banner -->
-          ${textInspectHtml}
-
-          <!-- Beginner Peace of Mind Banner (消除新手送印恐慌) -->
-          <div style="background: rgba(0, 113, 227, 0.05); border: 1px solid rgba(0, 113, 227, 0.15); border-radius: 10px; padding: 8px 12px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; font-size: 0.75rem; color: var(--pm-text-secondary); line-height: 1.4;">
-            <span style="font-size: 1rem;">🛡️</span>
-            <span><strong>零退件品質保證：</strong>檔案已內嵌標準向量裁切標記、CMYK 色彩與安全墨量，直接傳給任何印刷廠或超商機台即可安心出機！</span>
-          </div>
+          <!-- 3. Typo Warning Banner (Only if abnormal) -->
+          ${typoWarningHtml}
 
           <!-- 4. Big Action Buttons -->
           <div class="pm-diag-hero-actions">
-            <button class="pm-btn pm-btn-primary pm-btn-lg btn-diag-export-pdf" style="font-size: 0.95rem; font-weight: 700; width: 100%; box-shadow: 0 4px 14px rgba(0, 113, 227, 0.35);" title="一鍵下載最高畫質印刷標準檔">
+            <button class="pm-btn pm-btn-primary pm-btn-lg btn-diag-export-pdf" style="font-size: 0.95rem; font-weight: 700; width: 100%; box-shadow: 0 4px 14px rgba(0, 113, 227, 0.35);" title="一鍵下載最高畫質標準印刷 PDF">
               <span>🌟</span> 一鍵下載標準印刷檔 (PDF)
             </button>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px;">
-              <button class="pm-btn pm-btn-secondary pm-btn-md btn-diag-export-png" title="下載 300 DPI 高解析度 PNG 影像檔">
-                <span>📥</span> 下載高清 PNG
+              <button class="pm-btn pm-btn-secondary pm-btn-md btn-diag-open-export" title="選擇輸出 TIFF / JPG / 向量刀模 SVG 或一鍵全打包出機 ZIP">
+                <span>🖨️</span> 更多格式 (TIFF/ZIP)
               </button>
               <button class="pm-btn pm-btn-secondary pm-btn-md" id="btnSimpleOpenConvPrint" title="7-11 / 全家超商雲端 30 秒下樓立印">
                 <span>🏪</span> 超商 30 秒立印
@@ -422,7 +471,18 @@ export class DiagnosticCard {
       }
     });
 
-    // 2b. Export PNG CTA
+    // 2b. Export Multi-Format CTA (TIFF, PNG, JPG, SVG, ZIP)
+    this.container.querySelectorAll('.btn-diag-open-export').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        if (this.onOpenExportCenterClick) {
+          this.onOpenExportCenterClick();
+        } else {
+          document.getElementById('btnExportAllFormats')?.click();
+        }
+      });
+    });
+
+    // 2c. Export PNG CTA
     this.container.querySelector('.btn-diag-export-png')?.addEventListener('click', () => {
       document.getElementById('btnExportPng')?.click();
     });
@@ -444,6 +504,11 @@ export class DiagnosticCard {
     // 5. Simple mode convenience print button
     this.container.querySelector('#btnSimpleOpenConvPrint')?.addEventListener('click', () => {
       document.getElementById('btnOpenConvPrint')?.click();
+    });
+
+    // 5b. Simple mode text clarity button
+    this.container.querySelector('#btnCardOpenVectorOverlay')?.addEventListener('click', () => {
+      document.getElementById('btnOpenVectorOverlay')?.click();
     });
 
     // 6. Accordion Toggle

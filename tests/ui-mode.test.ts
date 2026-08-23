@@ -129,9 +129,11 @@ describe('UI Mode (Simple vs Advanced) & Diagnostic Rendering', () => {
 
     const html = dummyContainer.innerHTML;
     expect(html).toContain('pm-panel-simple');
-    expect(html).toContain('畫質超解析度升級');
-    expect(html).toContain('3mm 出血防裁切保護');
-    expect(html).toContain('印刷墨量色彩安全校正');
+    expect(html).toContain('pm-simple-defense-box');
+    expect(html).toContain('10 大商業印前守護');
+    expect(html).toContain('超解析');
+    expect(html).toContain('出血防白邊');
+    expect(html).toContain('安全控墨');
     expect(html).toContain('一鍵下載標準印刷檔');
 
     // Switch to advanced mode and verify technical panel

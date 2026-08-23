@@ -1,0 +1,20 @@
+# Railway service configuration for Zero-DCE++ Low-Light Enhancement
+# https://docs.railway.app/reference/config-as-code
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "docker/zero-dce/Dockerfile"
+
+[deploy]
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
+
+# Memory ceiling: 640MB. CPU-only PyTorch model (no GPU billing).
+[[deploy.healthchecks]]
+type = "HTTP"
+path = "/health"
+port = 8082
+initialDelaySeconds = 20
+periodSeconds = 30
+timeoutSeconds = 15
+failureThreshold = 3

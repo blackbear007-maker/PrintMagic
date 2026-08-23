@@ -1,0 +1,189 @@
+# PrintMagic Studio 3.1 系統產品規格說明書 (System & Product SPEC)
+
+> **版本**：v3.1.0-Release  
+> **最後更新日期**：2026-08-23  
+> **系統定位**：全自動商業印前修復與出機工作站 (AI Pre-Press Engine & Multi-Format Exporter)  
+> **核心哲學**：100% 自由開源商用架構 · 0 外部收費 API 依賴 · 新手無腦一鍵出機 · 商業合規舉證  
+
+---
+
+## 1. 系統全景與技術架構 (System Architecture)
+
+### 1.1 雲端微服務矩陣 (Railway Docker Multi-Container Architecture)
+系統在雲端採用 4 大獨立輕量化容器，記憶體硬體上限嚴格鎖定在 1.4 GB 內，確保每月主機總開銷控制在 **$6.5 美元 (約 NT$ 210)** 內：
+
+| 服務容器名稱 | 執行語言 / 運行環境 | 端口 (Port) | RAM 硬上限 | 核心職責與承載模組 |
+| :--- | :--- | :---: | :---: | :--- |
+| **`printmagic`** | Node.js 22 (Alpine) + Vite SSR | `3000` | **256 MB** | 主應用入口、UI 渲染、合版拼版算力、PDF/X-1a 出機檔壓製。 |
+| **`vtracer`** | Rust 1.78 + Tokio (Distroless) | `8080` | **128 MB** | VTracer 向量化引擎、Kurbo 2mm 刀模幾何運算、OxiPNG 無損壓縮。 |
+| **`tesseract`** | Python 3.11 + Tesseract 5.3 C++ | `8081` | **384 MB** | 繁中/英/日 OCR 文字辨識、PP-OCRv4 邊界包圍盒幾何解析。 |
+| **`zero-dce`** | Python 3.11 + PyTorch 2.3+ (CPU) | `8082` | **640 MB** | 統一神經網路工作站 (共用 300MB 常駐池，承載 10+ 款 PyTorch 模型)。 |
+
+### 1.2 零外部付費 API 規則 (Strict 100% Zero-Commercial-API Policy)
+- ❌ 徹底剔除 Google Cloud Vision、Remove.bg、PhotoRoom、Midjourney 等任何需第三方 Token/按次計費之商業 API。
+- ✅ 100% 採用 **MIT / Apache 2.0 / BSD** 開源協議之演算法與模型，杜絕任何隱形成本與超額扣款風險。
+
+---
+
+## 2. AI 模型與印前演算法陣列 (AI Models & Pre-Press Matrix)
+
+### 2.1 超解析度放大模型矩陣 (Super-Resolution Suite)
+| 模型名稱 | 核心架構 | 權重體積 | 耗時 (CPU) | 開源協議 | 最佳適用場景 |
+| :--- | :--- | :---: | :---: | :---: | :--- |
+| **本機 Lanczos-3** | 純數學 Sinc 濾波卷積插值 | 0 KB | 0.05s | MIT | 0ms 離線極速平滑，消除馬賽克 (Free 標配)。 |
+| **FSRCNN** | 亞像素輕量卷積網絡 (Fast SRCNN) | 150 KB | 0.02s | BSD | 畫布 20x 放大鏡即時預覽，超低耗電。 |
+| **Anime4K** | 動漫幾何邊緣重構演算法 | ~5 MB | 0.1s | MIT | 二次元動漫插畫、同人誌，墨線刀削般漆黑無鋸齒。 |
+| **Real-ESRGAN Compact** | 深度殘差卷積 (RRDB + UNet) | ~12 MB | 0.8s | BSD-3 | 文字、插畫、包裝設計綜合重構王者。 |
+| **HAT-S (2024 SOTA)** | 混合注意力 Transformer (Hybrid Attention) | ~28 MB | 1.3s | Apache 2.0 | 寫實風景、人像婚紗、攝影大圖，重構真實毛孔細節。 |
+| **SwinIR-Lite** | Swin Transformer 影像修復網絡 | ~24 MB | 1.1s | Apache 2.0 | 去除 8x8 DCT JPEG 壓縮塊狀噪點 + 4x 超解析二合一。 |
+
+### 2.2 3mm 物理出血背景外推模型矩陣 (Bleed Outpainting Suite)
+| 模型名稱 | 核心架構 | 權重體積 | 耗時 (CPU) | 開源協議 | 外推生成專長 |
+| :--- | :--- | :---: | :---: | :---: | :--- |
+| **基礎邊界拉伸 / 鏡像** | 像素邊界延展 / 對稱鏡像 | 0 KB | 0.01s | MIT | 純色/漸層背景，100% 裁切不留白邊 (Free 標配)。 |
+| **OpenCV Telea** | Navier-Stokes 流體力學偏微分擴散 | ~2 MB | 0.05s | Apache 2.0 | 邊界色彩融接極度柔和，自然擴散。 |
+| **LaMa-Lite** | 快速傅立葉頻域卷積 (FFC) | ~25 MB | 0.4s | Apache 2.0 | 幾何磚牆、重複紋理、格紋布料外推無破綻。 |
+| **AOT-GAN Lite** | 多孔徑上下文聚合生成對抗網絡 | ~28 MB | 0.5s | Apache 2.0 | 大自然風景、天空、草地自然向外生長。 |
+| **MAT-Lite** | 遮罩感知 Transformer (Mask-Aware) | ~32 MB | 0.9s | MIT | 深遠透視地平線、公路、建築空間延伸不變形。 |
+
+### 2.3 專業印前光學與色彩防護模型 (Industrial Pre-Press Modules)
+- **Trapping-Master** (0 KB, MIT)：自動印刷補邊與陷印，消除機台套準震動造成的漏白縫隙。
+- **MetallicFoil-Separator** (~2 MB, MIT)：燙金/燙銀/燙雷射獨立 100% K100 鋅版出片遮罩自動生成。
+- **UCR/GCR Under-Color-Removal** (0 KB, MIT)：底色去除與黑版替代，減少 30% 暗部油墨堆疊防止背印。
+- **Nesting-Optimizer** (~2 MB, Apache 2.0)：異形貼紙 2D 凸包旋轉排版，A3/A4 紙張利用率提升至 90%。
+- **CMYK-DotGain-Predictor** (0 KB, MIT)：Murray-Davies 實體網點擴大預補償，消除無塗佈紙印刷變黑。
+- **Barcode-Vector-Synthesizer** (~500 KB, MIT)：GS1 EAN-13 / Code-128 純向量 K100 條碼重構。
+- **Varnish-SpotUV-Dilator** (0 KB, MIT)：局部上光 (Spot UV) 0.15mm 套準溢光補償與邊緣修飾。
+- **Packaging-Crease-Fold3D** (~4 MB, MIT)：包裝紙盒 2D 刀模壓痕驗證與 3D 摺疊網格推導。
+- **SpineWidth-Calculator** (0 KB, MIT)：基重 (gsm) 與頁數精確推導 0.1mm 級膠裝/精裝書背厚度。
+- **DeltaE-Gamut-Remapper** (~1 MB, MIT)：CIECAM02 視覺感知色域映射，保留 RGB 霓虹色印刷活力。
+- **ShadowHighlight-HDR-Toner** (~3 MB, Apache 2.0)：14 EV 手機 HDR 動態範圍平滑壓縮至 5.5 EV 紙張反射率。
+- **TextCurvature-Unbender** (~3 MB, Apache 2.0)：圓形印章與瓶身杯身環狀弧形文字展開拉直。
+- **Photo-To-Vector-Silhouette** (~4 MB, MIT)：照片一鍵生成高對比純單色向量剪影刀模。
+- **GripMargin-Checker** (0 KB, MIT)：平版印刷機 10mm 夾爪咬口 (Gripper Margin) 碰撞自動預警。
+- **Metallic-Sheen-Renderer** (~2 MB, MIT)：薄膜干涉與 BRDF 物理渲染鐳射彩虹反光動態。
+- **ColorFont-Layer-Splitter** (~1 MB, Apache 2.0)：OpenType-SVG / COLR 彩色字體 CMYK 四色版拆解。
+- **HDP-Detail-Booster** (~8 MB, MIT)：手錶面盤與精密銘牌 0.1mm 級微刻度高頻增強。
+- **Woodblock-Halftone-Stipple** (~1 MB, MIT)：復古美式漫畫點陣與浮世繪木刻版畫抖動。
+- **ScreenAngle-Optimizer** (0 KB, MIT)：ISO 12647-2 四色網點角度 (C:15, M:75, Y:0, K:45) 撞網防護。
+- **LineArt-Extractor** (~9 MB, MIT)：彩色插畫/照片一鍵提取純單色純黑 K100 向量線稿，專供著色本與雷雕。
+- **PaperTexture-Engine** (~2 MB, MIT)：3D 物理法線貼圖即時模擬萊妮、牛皮、水彩紙微觀纖維手感與油墨吸收。
+- **RisoSeparator** (~1 MB, MIT)：衣服網版絹印 / Risograph 孔版印刷 2~6 專色獨立黑色膠片版自動分離。
+- **QR-Preflight-Enhancer** (~1.5 MB, Apache 2.0)：餐廳菜單/名片 QR Code ECC 容錯與高反差對比驗證 + 純黑向量重構。
+- **Braille-Builder** (0 KB, MIT)：標準 6 點盲文點字自動轉譯與 0.3mm 局部上光/打凸鋅版遮罩生成。
+- **DeGlare-Net** (~12 MB, MIT)：自動分離並抹除玻璃裱框、壓克力櫃與光面相紙的刺眼強光眩光。
+- **AOD-Net DeHaze** (~5 MB, MIT)：大氣光透射率估算，1秒穿透霧霾水氣還原深邃藍天與高對比建築。
+- **Homography-Net** (~4 MB, MIT)：四角點單應性幾何變換，將斜拍看板/證書自動拉正為 90° 矩形。
+- **Scratch-Net** (~14 MB, Apache 2.0)：實體老照片紙張長條折痕、白色裂紋與霉斑筆觸級自動修補。
+- **GuillocheGuard** (0 KB, MIT)：0.5pt 防偽微文字與扭索紋開口率 (≥0.08mm) 防黏墨檢驗。
+- **Moiré / DeScreen-Net** (~8 MB, MIT)：過濾掃描/翻拍實體印刷品的蜂巢狀網點與二次干涉摩爾紋。
+- **CodeFormer-Lite / FaceRestorer** (~18 MB, Apache 2.0)：人臉先驗特徵重構，瞳孔高光、睫毛與自然笑臉微對比增強。
+- **GAIC-Lite / SmartCropper** (~3 MB, MIT)：美學顯著度感知，跨長寬比切換時黃金分割防切頭構圖。
+- **DDColor-Lite / VintageColorizer** (~22 MB, Apache 2.0)：雙解耦神經網絡，黑白/復古老照片智慧擬真上色。
+- **FontMatcher-Lite** (~6 MB, Apache 2.0)：視覺字體特徵分類與 Google Fonts 開源商用字庫精確配對。
+- **Zero-DCE++** (~79 KB, MIT)：深度可分離卷積非線性曲線調光，防止暗部印刷死黑。
+- **Deshadow-Net** (~5 MB, MIT)：Retinex 光照場均勻化，抹除手機翻拍實體作品的手部黑影。
+- **SCUNet-Lite** (~15 MB, Apache 2.0)：實用盲去噪與高 ISO 噪點抑制。
+- **NAFNet-Lite** (~16 MB, MIT)：非線性無激活運動模糊與脫焦還原。
+- **DocTr-Dewarp** (~18 MB, Apache 2.0)：圓柱形曲面書頁拉平與透視形變消除。
+- **MODNet-Lite / BiRefNet** (~6~18 MB, Apache 2.0)：髮絲級透明通道 Alpha Matting。
+- **TinySAM** (~28 MB, Apache 2.0)：1-Click 智慧物件分割消除筆 (Magic Eraser)。
+- **DexiNed-Lite** (~10 MB, MIT)：單像素極細連續邊界提取（激光刀模專用）。
+- **DGF-Net / 防斷階引擎** (MIT)：引導式濾波 + 藍噪點抖動，消除 8-bit 色階階梯紋。
+- **Kurbo Geometry (Rust)** (Apache 2.0)：2mm 壓克力刀模外推線與 0.2mm 內縮白墨布林運算。
+- **PyVips SIMD 串流** (LGPL-2.1+)：需求驅動切片管線，處理 20,000px 巨幅看版記憶體控制在 30MB 內。
+- **Pantone 色票比對** (MIT)：CIE $\Delta E_{2000}$ 國際專色匹配與調墨比矩陣。
+- **純黑 K100 向量轉曲** (MIT)：小字自動轉單色純黑向量，杜絕 4 色混墨重影。
+
+---
+
+## 3. 智慧照片類型自動偵測分流 (SceneClassifier Auto-Routing)
+
+系統於圖片上傳後 0.01 秒內完成特徵分析，自動派發最佳模型：
+
+```
+                              【5 大場景自動分流路徑】
+┌─────────────────────────────┬────────────────────────────────────────────────────────┐
+│ 1. 🎨 動漫 / 二次元插畫     │ ➔ 套用 Anime4K 墨線銳化 + MODNet 角色立牌 + Kurbo 2mm 刀模 │
+├─────────────────────────────┼────────────────────────────────────────────────────────┤
+│ 2. 📷 寫實人像 / 婚紗寫真   │ ➔ 套用 HAT-S 真毛孔重構 + Deshadow 去陰影 + SCUNet 去噪│
+├─────────────────────────────┼────────────────────────────────────────────────────────┤
+│ 3. 📄 文件 / 名片 / 證書    │ ➔ 套用 純黑 K100 向量轉曲 + OpenCV 歪斜校正 + DocTr 拉平│
+├─────────────────────────────┼────────────────────────────────────────────────────────┤
+│ 4. 🏞️ 風景 / 建築 / 展覽    │ ➔ 套用 AOT-GAN 背景生長 + MAT-Lite 深度透視 + DGF 防斷階│
+├─────────────────────────────┼────────────────────────────────────────────────────────┤
+│ 5. 🏷️ 模切貼紙 / 圖標       │ ➔ 套用 Rust VTracer 轉向量 + 0.2mm 白墨 + 2mm 洋紅刀模 │
+└─────────────────────────────┴────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 4. 簡易模式與極致新手體驗 (Simple Mode & Beginner UX)
+
+1. **預設簡易模式 (Simple Mode by Default)**：
+   - 漸進式揭露 (Progressive Disclosure)，隱藏 90% 複雜技術參數。
+   - 展現 **「🛡️ 10 大商業印前守護 · 100% 完美就緒」** 綠色徽章網格。
+2. **0-Click 全自動背景流水線**：
+   - 丟圖即自動完成：比例適配、300DPI 補齊、3mm 出血、暗部防死黑、TAC 300% 控墨、K100 文字純黑。
+3. **小象印前助理 (Xiaoxiang Assistant)**：
+   - 擬人化白話語音引導與即時反饋。
+4. **超商 30 秒立印與送印小抄**：
+   - 一鍵生成 7-11 ibon / 全家 雲端列印碼。
+   - 下載 PDF 時自動複製標準送印規格小抄至剪貼簿（便於 LINE 給印刷廠）。
+
+---
+
+## 5. 多格式商業印刷出機中心 (Multi-Format Pre-Press Export)
+
+原生支援印刷廠與製版要求的 6 大標準格式：
+
+1. **📄 標準印刷 PDF (PDF/X-1a 300 DPI)**：ISO 15930 規範、3mm 物理出血、向量角線、CMYK 色條。
+2. **🖨️ 工業級無損 TIFF (.tif 300 DPI)**：Tag 282/283 內嵌 300DPI 點陣檔，無失真分色首選。
+3. **📥 高清透明 PNG (.png 300 DPI)**：保留 8-bit Alpha 透明通道，貼紙/立牌預覽。
+4. **🖼️ 商用高畫質 JPG (.jpg 300 DPI)**：100% 最高畫質 JPEG，相片沖印必備。
+5. **✂️ 向量刀模與白墨 SVG (.svg)**：100% 洋紅 (Spot Magenta) 向量激光割字線與 0.2mm 內縮白墨。
+6. **📦 印刷廠出機全套包 (.zip)**：一鍵打包 PDF + TIFF + PNG + JPG + 刀模 SVG + PrintPass 合格證書。
+
+---
+
+## 6. 會員分級與商業模式規格 (M365 雙棲混合訂閱架構)
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ 🟢 Free 完整體驗版 (NT$ 0 永久免費)：                       │
+│    • 100% 享受全部 19 大 AI 模型與功能 (無閹割、無浮水印)   │
+│    • 每日處理上限：3 張 / 天                                │
+│    • 單張上傳、標準佇列、超商 30 秒立印                     │
+├─────────────────────────────────────────────────────────────┤
+│ 🔵 Pro 專業生產力版 (建議 NT$ 199 /月)：                    │
+│    • Web 雲端每日 100 張 + 【下載 Mac / Windows 原生桌面版】│
+│    • 20 張多圖批次連續製版 (一鍵打包 ZIP)                   │
+│    • A4/A3 智慧合版拼模試算 (省 70% 費用)                   │
+│    • 雙面合版綁定 (正面 + 背面 2 頁 PDF)                    │
+│    • 高速運算佇列 (快 3 倍)                                 │
+├─────────────────────────────────────────────────────────────┤
+│ 👑 VIP 企業工作室版 (建議 NT$ 699 /月)：                    │
+│    • Web 雲端 + 原生桌面版【無上限張數 (Unlimited)】         │
+│    • 專屬 VIP 0 秒插隊算力通道 (最高優先級 GPU/CPU)         │
+│    • 20,000px 巨幅戶外看板 / 車體廣告串流 (pyvips)          │
+│    • 商業隱私保護盾 (Privacy Shield 100% 離線 + 0秒粉碎)    │
+│    • PrintPass™ ISO 15930 合格證書 (含 SHA-256 防偽舉證戳記)│
+│    • 自訂上傳印刷廠機台 ICC 描述檔                          │
+│    • 3~5 人團隊席位 + 統一開立公司統編發票報帳              │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 7. 桌面離線版與 Mac (Apple Silicon) 規格規劃
+
+### 7.1 雙棲模式授權與資安機制 (Microsoft 365 Hybrid Model)
+- **登入一次，離線 30~90 天可用**：桌面 App 透過加密 JWT Token 記錄離線授權心跳包。
+- **實體斷網專用 (Air-Gapped License)**：支援讀取機器碼 (Machine Hardware ID) 產生離線 `License.key` 授權檔。
+- **營運端成本優勢**：重度設計師使用本地 Mac/PC 算力，**伺服器雲端成本降低 90%，毛利率 >95%**。
+
+### 7.2 macOS (Apple Silicon M 系列) 原生優勢
+- **蘋果 CoreML + 16 核心神經網絡引擎 (Apple Neural Engine, ANE)**：
+  - Real-ESRGAN / HAT-S 放大從 1.5 秒降至 **0.1~0.2 秒**，無風扇噪音、極度省電。
+- **Tauri 2.0 原生外殼**：安裝包小於 15 MB，原生支援 macOS 毛玻璃與 Retina XDR 視網膜螢幕。
+- **ColorSync 與 Display P3 廣色域**：完美對接 Japan Color 2001 CMYK 描述檔，螢幕到印刷 0 色差。

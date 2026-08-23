@@ -1,0 +1,20 @@
+# Railway configuration for PrintMagic Main App
+# https://docs.railway.app/reference/config-as-code
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+startCommand = "tsx server/index.ts"
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
+
+[[deploy.healthchecks]]
+type = "HTTP"
+path = "/api/health"
+port = 3000
+initialDelaySeconds = 10
+periodSeconds = 30
+timeoutSeconds = 5
+failureThreshold = 3

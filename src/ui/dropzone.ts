@@ -10,7 +10,7 @@ export interface LoadedImageResult {
 export type MultiFileLoadHandler = (results: LoadedImageResult[]) => void;
 
 /**
- * DropZone Component with Multi-Format Batch Support (Max 20 Images) and Direct Clipboard Paste (Ctrl+V)
+ * DropZone Component with Multi-Format Batch Support (Max 20 Images) and Direct Clipboard Picker
  */
 export class DropZone {
   public static readonly MAX_BATCH_LIMIT = 20;
@@ -76,27 +76,6 @@ export class DropZone {
 
       if (e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
         this.handleFiles(Array.from(e.dataTransfer.files));
-      }
-    });
-
-    // Global Paste Support (Ctrl+V / Cmd+V)
-    window.addEventListener('paste', (e: ClipboardEvent) => {
-      const items = e.clipboardData?.items;
-      if (!items) return;
-
-      const pastedFiles: File[] = [];
-      for (let i = 0; i < items.length; i++) {
-        if (items[i].type.startsWith('image/')) {
-          const file = items[i].getAsFile();
-          if (file) {
-            pastedFiles.push(file);
-          }
-        }
-      }
-
-      if (pastedFiles.length > 0) {
-        Toast.info(`✦ 已從剪貼簿讀取 ${pastedFiles.length} 張圖片`);
-        this.handleFiles(pastedFiles);
       }
     });
   }

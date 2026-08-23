@@ -1,4 +1,5 @@
 import { ObjectEraser } from '../core/object-eraser';
+import { FreeInpaintingClient } from '../services/free-inpainting-client';
 import { Toast } from './toast';
 import { SoundEffects } from '../core/sound-effects';
 
@@ -293,15 +294,9 @@ export class ObjectEraserModal {
       if (loadingEl) loadingEl.style.display = 'flex';
       SoundEffects.shutterClick();
 
-      // Yield frame to render loading spinner
-      await new Promise((r) => setTimeout(r, 60));
-
       const startTime = performance.now();
-      const inpainted = ObjectEraser.inpaint(this.currentSrcImageData, maskImageData, {
-        radius: 6,
-        dilation: 3,
-        smoothPasses: 2
-      });
+      const inpaintResult = await FreeInpaintingClient.eraseObject(this.currentSrcImageData, maskImageData);
+      const inpainted = inpaintResult.imageData;
       const elapsed = Math.round(performance.now() - startTime);
 
       this.currentResultImageData = inpainted;
@@ -316,7 +311,7 @@ export class ObjectEraserModal {
       if (btnCompare) btnCompare.style.display = 'inline-flex';
 
       SoundEffects.purityChime();
-      Toast.success(`✨ 物件消除完成 (${elapsed}ms)！可長按「查看原圖」進行對比。`);
+      Toast.success(`✨ 物件消除完成 (${elapsed}ms · ${inpaintResult.modelUsed})！可長按「查看原圖」進行對比。`);
     });
 
     // Before / After Compare Toggle Button

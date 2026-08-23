@@ -37,4 +37,18 @@ export class LaserScanController {
       }, 950);
     });
   }
+
+  /**
+   * ✨ Photonic/Deep Fusion style Magic Reveal Glow Sweep
+   */
+  public async triggerMagicReveal(): Promise<void> {
+    SoundEffects.purityChime();
+    const revealEl = document.createElement('div');
+    revealEl.className = 'pm-magic-reveal pm-magic-reveal-active';
+    this.container.appendChild(revealEl);
+
+    setTimeout(() => {
+      revealEl.remove();
+    }, 700);
+  }
 }

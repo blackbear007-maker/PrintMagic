@@ -47,7 +47,7 @@ export class OnboardingModal {
                   📸 選擇相片、拍照掃描或貼上剪貼簿
                 </h4>
                 <p style="font-size: 0.8rem; color: var(--pm-text-secondary); margin: 0; line-height: 1.45;">
-                  直接將照片拖入畫面、手機相機拍照或按 <strong>Ctrl+V 貼上剪貼簿</strong>，點選<strong>「貼紙 / 海報 / 明信片 / 名片」</strong>自動適配印刷尺寸與 3mm 出血。
+                  直接將照片拖入畫面或用手機相機掃描匯入，點選<strong>「貼紙 / 海報 / 明信片 / 名片」</strong>自動適配印刷尺寸與 3mm 出血。
                 </p>
               </div>
             </div>

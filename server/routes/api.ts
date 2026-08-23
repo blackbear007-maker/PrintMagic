@@ -85,3 +85,177 @@ apiRouter.post('/ai-upscale', async (req: Request, res: Response) => {
     res.status(502).json({ success: false, error: err?.message || 'AI Upscale Failed' });
   }
 });
+
+// 📐 VTracer Rust Vectorizer Microservice Proxy
+apiRouter.post('/vectorize', async (req: Request, res: Response) => {
+  try {
+    const { imageDataUrl, colors = 12, tolerance = 1.5 } = req.body;
+    if (!imageDataUrl) {
+      res.status(400).json({ success: false, error: 'imageDataUrl is required' });
+      return;
+    }
+
+    const vtracerUrl = process.env.VTRACER_URL || 'http://localhost:8080';
+    const base64Data = imageDataUrl.replace(/^data:image\/\w+;base64,/, '');
+    const buffer = Buffer.from(base64Data, 'base64');
+
+    // Prepare multipart form data using Blob / FormData
+    const formData = new FormData();
+    const blob = new Blob([buffer], { type: 'image/png' });
+    formData.append('image', blob, 'input.png');
+
+    const targetUrl = `${vtracerUrl}/vectorize?colors=${encodeURIComponent(colors)}&tolerance=${encodeURIComponent(tolerance)}`;
+    
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 12000);
+
+    const vtracerRes = await fetch(targetUrl, {
+      method: 'POST',
+      body: formData,
+      signal: controller.signal
+    });
+    clearTimeout(timer);
+
+    if (vtracerRes.ok) {
+      const data = await vtracerRes.json();
+      res.json({
+        success: true,
+        svg: data.svg,
+        elapsed_ms: data.elapsed_ms,
+        engine: 'VTracer Rust 向量核心'
+      });
+      return;
+    }
+
+    res.status(vtracerRes.status).json({
+      success: false,
+      error: `VTracer returned HTTP ${vtracerRes.status}`
+    });
+  } catch (err: any) {
+    res.status(503).json({
+      success: false,
+      error: err?.message || 'VTracer service offline / unavailable'
+    });
+  }
+});
+
+// 🧠 Self-Hosted Tesseract OCR Microservice Proxy (100% Private / 0 External API)
+apiRouter.post('/ocr', async (req: Request, res: Response) => {
+  try {
+    const { imageDataUrl, lang = 'chi_tra+eng' } = req.body;
+    if (!imageDataUrl) {
+      res.status(400).json({ success: false, error: 'imageDataUrl is required' });
+      return;
+    }
+
+    const tesseractUrl = process.env.TESSERACT_URL || 'http://localhost:8081';
+    const base64Data = imageDataUrl.replace(/^data:image\/\w+;base64,/, '');
+    const buffer = Buffer.from(base64Data, 'base64');
+
+    const formData = new FormData();
+    const blob = new Blob([buffer], { type: 'image/png' });
+    formData.append('image', blob, 'input.png');
+    formData.append('lang', lang);
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 15000);
+
+    const tesseractRes = await fetch(`${tesseractUrl}/ocr`, {
+      method: 'POST',
+      body: formData,
+      signal: controller.signal
+    });
+    clearTimeout(timer);
+
+    if (tesseractRes.ok) {
+      const data = await tesseractRes.json();
+      res.json({
+        success: true,
+        text: data.text,
+        lang: data.lang,
+        elapsed_ms: data.elapsed_ms,
+        engine: 'Tesseract OCR 私有微服務 (100% 離線隱私)'
+      });
+      return;
+    }
+
+    res.status(tesseractRes.status).json({
+      success: false,
+      error: `Tesseract returned HTTP ${tesseractRes.status}`
+    });
+  } catch (err: any) {
+    res.status(503).json({
+      success: false,
+      error: err?.message || 'Tesseract OCR service offline / unavailable'
+    });
+  }
+});
+
+// 🏁 K100 Pure Black Vector Barcode / QR Generator Endpoint
+apiRouter.post('/prepress/k100-barcode', async (req: Request, res: Response) => {
+  try {
+    const { text, type = 'qr' } = req.body;
+    if (!text) {
+      res.status(400).json({ success: false, error: 'text is required' });
+      return;
+    }
+    const { PrepressToolkitService } = await import('../services/prepress-toolkit.js');
+    const svg = PrepressToolkitService.generateBarcode(text, type);
+    res.setHeader('Content-Type', 'image/svg+xml; charset=utf-8');
+    res.send(svg);
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err?.message || 'Barcode generation failed' });
+  }
+});
+
+// ⚡ SVGO Vector Path & Dieline Optimizer Endpoint
+apiRouter.post('/prepress/optimize-svg', async (req: Request, res: Response) => {
+  try {
+    const { svg, precision = 1 } = req.body;
+    if (!svg) {
+      res.status(400).json({ success: false, error: 'svg content is required' });
+      return;
+    }
+    const { PrepressToolkitService } = await import('../services/prepress-toolkit.js');
+    const result = PrepressToolkitService.optimizeSvg(svg, precision);
+    res.json({ success: true, ...result });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err?.message || 'SVG optimization failed' });
+  }
+});
+
+// 📐 Gang-Run Imposition Layout Calculator Endpoint
+apiRouter.post('/prepress/imposition', async (req: Request, res: Response) => {
+  try {
+    const { itemWidthMm, itemHeightMm, sheetId = 'A3', cuttingGapMm = 3 } = req.body;
+    if (!itemWidthMm || !itemHeightMm) {
+      res.status(400).json({ success: false, error: 'itemWidthMm and itemHeightMm are required' });
+      return;
+    }
+    const { PrepressToolkitService } = await import('../services/prepress-toolkit.js');
+    const result = PrepressToolkitService.calculateImposition(Number(itemWidthMm), Number(itemHeightMm), sheetId, Number(cuttingGapMm));
+    res.json({ success: true, result });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err?.message || 'Imposition calculation failed' });
+  }
+});
+
+// 🌈 Pantone Spot Color Matcher Endpoint
+apiRouter.post('/prepress/pantone-match', async (req: Request, res: Response) => {
+  try {
+    const { r, g, b } = req.body;
+    if (r === undefined || g === undefined || b === undefined) {
+      res.status(400).json({ success: false, error: 'r, g, b are required' });
+      return;
+    }
+    const { PrepressToolkitService } = await import('../services/prepress-toolkit.js');
+    const match = PrepressToolkitService.matchPantone(Number(r), Number(g), Number(b));
+    res.json({ success: true, match });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err?.message || 'Pantone match failed' });
+  }
+});
+
+
+
+

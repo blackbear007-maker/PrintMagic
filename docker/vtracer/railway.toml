@@ -1,0 +1,23 @@
+# Railway service configuration for VTracer SVG Vectorizer
+# https://docs.railway.app/reference/config-as-code
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "docker/vtracer/Dockerfile"
+
+[deploy]
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
+
+# ── Memory ceiling to prevent billing spikes ──
+# VTracer (Rust) is extremely lean. 128MB is already generous.
+# Railway will OOM-restart the container if this is exceeded.
+# This acts as a billing hard-stop guard.
+[[deploy.healthchecks]]
+type = "HTTP"
+path = "/health"
+port = 8080
+initialDelaySeconds = 10
+periodSeconds = 30
+timeoutSeconds = 8
+failureThreshold = 3

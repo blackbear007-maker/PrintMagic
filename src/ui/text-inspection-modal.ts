@@ -9,12 +9,17 @@ import { SoundEffects } from '../core/sound-effects';
 export class TextInspectionModal {
   private overlay: HTMLElement;
   private onFixWithVectorOverlay?: (suggestedText: string) => void;
+  private onAutoFixAll?: () => void;
   private currentResult: TextInspectionResult | null = null;
   private currentImageDataUrl: string | null = null;
   private selectedRegionId: string | null = null;
 
-  constructor(onFixWithVectorOverlay?: (suggestedText: string) => void) {
+  constructor(
+    onFixWithVectorOverlay?: (suggestedText: string) => void,
+    onAutoFixAll?: () => void
+  ) {
     this.onFixWithVectorOverlay = onFixWithVectorOverlay;
+    this.onAutoFixAll = onAutoFixAll;
     this.overlay = document.createElement('div');
     this.overlay.className = 'pm-modal-overlay pm-text-inspect-overlay';
     this.overlay.style.display = 'none';
@@ -115,14 +120,17 @@ export class TextInspectionModal {
         </div>
 
         <!-- Footer -->
-        <div class="pm-modal-footer">
+        <div class="pm-modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
           <div style="font-size: 0.78rem; color: var(--pm-text-secondary); display: flex; align-items: center; gap: 6px;">
-            <span>💡 印刷小秘訣：AI 生成的小字容易糊邊，建議點擊「K100 純黑文字」覆蓋清晰向量字！</span>
+            <span>💡 印刷防糊小秘訣：可直接點擊「一鍵自動轉為 K100 向量字」，系統將自動辨識全圖文字並覆蓋純黑防糊層！</span>
           </div>
           <div style="display: flex; gap: 10px;">
             <button class="pm-btn pm-btn-ghost" id="btnCancelTextInspect">關閉</button>
-            <button class="pm-btn pm-btn-primary" id="btnInspectFixWithK100">
-              <span>🔤</span> 使用 K100 純黑文字修復 ➔
+            <button class="pm-btn pm-btn-artisan pm-btn-md" id="btnAutoFixAllK100" style="font-weight: 700;">
+              <span>⚡</span> 一鍵自動修復全圖文字 (免手動)
+            </button>
+            <button class="pm-btn pm-btn-secondary" id="btnInspectFixWithK100">
+              <span>🔤</span> 開啟圖層編輯器 ➔
             </button>
           </div>
         </div>
@@ -141,7 +149,7 @@ export class TextInspectionModal {
       return `
         <div class="pm-inspect-bbox ${borderClass} ${selectedClass}"
              data-region-id="${reg.id}"
-             title="${reg.text} (${reg.isTypo ? '疑似錯字' : '正常'})">
+             title="${this.escapeHtml(reg.text)} (${reg.isTypo ? '疑似錯字' : '正常'})">
           <span class="pm-bbox-tag">${reg.isTypo ? '⚠️ 錯字' : reg.isBlurry ? '🔍 模糊' : '✅ 正常'}</span>
         </div>
       `;
@@ -203,7 +211,17 @@ export class TextInspectionModal {
     this.overlay.querySelector('#btnCloseTextInspect')?.addEventListener('click', () => this.close());
     this.overlay.querySelector('#btnCancelTextInspect')?.addEventListener('click', () => this.close());
 
-    // Fix with K100
+    // Auto Fix All with K100 (Zero-click automation)
+    this.overlay.querySelector('#btnAutoFixAllK100')?.addEventListener('click', () => {
+      this.close();
+      if (this.onAutoFixAll) {
+        this.onAutoFixAll();
+      } else if (this.onFixWithVectorOverlay) {
+        this.onFixWithVectorOverlay('');
+      }
+    });
+
+    // Fix with K100 (Open editor)
     this.overlay.querySelector('#btnInspectFixWithK100')?.addEventListener('click', () => {
       const typoWithSuggestion = this.currentResult?.regions.find(r => r.suggestion);
       const defaultText = typoWithSuggestion?.suggestion || this.currentResult?.regions[0]?.text || 'PrintMagic';

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { VIP_AI_MODELS, VipAiClient } from '../src/services/vip-ai-client';
 import { SubscriptionManager } from '../src/core/subscription-tier';
 
-describe('VipAiClient (High-End Paid API Engine: Fal.ai / Topaz / Replicate)', () => {
+describe('VipAiClient (100% 開源自建頂級旗艦 AI 模型陣列: HAT-S / NAFNet / Anime4K)', () => {
   let store: Record<string, string> = {};
 
   beforeEach(() => {
@@ -41,20 +41,20 @@ describe('VipAiClient (High-End Paid API Engine: Fal.ai / Topaz / Replicate)', (
     } as any;
   });
 
-  it('should define 3 core high-end VIP AI models', () => {
+  it('should define 3 core 100% open-source self-hosted VIP AI models', () => {
     expect(VIP_AI_MODELS.length).toBe(3);
 
-    const clarity = VIP_AI_MODELS.find((m) => m.id === 'fal-clarity-8k')!;
-    expect(clarity).toBeDefined();
-    expect(clarity.provider).toContain('Fal.ai');
+    const hats = VIP_AI_MODELS.find((m) => m.id === 'hat-s-8k')!;
+    expect(hats).toBeDefined();
+    expect(hats.provider).toContain('PyTorch');
 
-    const topaz = VIP_AI_MODELS.find((m) => m.id === 'topaz-photo-pro')!;
-    expect(topaz).toBeDefined();
-    expect(topaz.provider).toContain('Topaz');
+    const nafnet = VIP_AI_MODELS.find((m) => m.id === 'nafnet-scunet-pro')!;
+    expect(nafnet).toBeDefined();
+    expect(nafnet.provider).toContain('PyTorch');
 
-    const replicate = VIP_AI_MODELS.find((m) => m.id === 'replicate-anime-pro')!;
-    expect(replicate).toBeDefined();
-    expect(replicate.provider).toContain('Replicate');
+    const anime = VIP_AI_MODELS.find((m) => m.id === 'anime4k-lineart-pro')!;
+    expect(anime).toBeDefined();
+    expect(anime.provider).toContain('WASM');
   });
 
   it('should allow all flagship AI upscaling during free beta growth phase', async () => {
@@ -62,7 +62,7 @@ describe('VipAiClient (High-End Paid API Engine: Fal.ai / Topaz / Replicate)', (
     expect(SubscriptionManager.canUseFeature('vipAi')).toBe(true);
   });
 
-  it('should process VIP upscale successfully when user is on VIP plan', async () => {
+  it('should process VIP upscale successfully using self-hosted pipeline', async () => {
     SubscriptionManager.setPlan('vip');
 
     global.fetch = vi.fn().mockResolvedValue({
@@ -97,10 +97,10 @@ describe('VipAiClient (High-End Paid API Engine: Fal.ai / Topaz / Replicate)', (
     } as any;
 
     const dummyUrl = 'data:image/png;base64,dummy';
-    const result = await VipAiClient.upscale(dummyUrl, 'fal-clarity-8k');
+    const result = await VipAiClient.upscale(dummyUrl, 'hat-s-8k');
 
     expect(result.success).toBe(true);
-    expect(result.provider).toContain('Fal.ai');
+    expect(result.provider).toContain('PyTorch');
     expect(SubscriptionManager.getQuotaUsed()).toBe(1);
   });
 });

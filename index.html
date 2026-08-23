@@ -170,7 +170,7 @@
             <button class="pm-dropzone-sub-btn" id="btnPickCamera" type="button" title="手機相機直接拍照掃描實體畫作/作品">
               <span>📷</span> 拍照掃描
             </button>
-            <button class="pm-dropzone-sub-btn" id="btnPasteClipboard" type="button" title="直接貼上已複製之 Midjourney/Canva/截圖 (或按 Ctrl+V)">
+            <button class="pm-dropzone-sub-btn" id="btnPasteClipboard" type="button" title="直接讀取剪貼簿中已複製之圖片">
               <span>📋</span> 貼上剪貼簿
             </button>
           </div>
@@ -223,8 +223,11 @@
                 <button id="btnOpenObjectEraser" class="pm-tool-btn" style="background: rgba(255, 45, 85, 0.08); color: #d6204b; border-color: rgba(255, 45, 85, 0.25); font-weight: 600;" title="使用 AI 智慧塗抹消除筆移除相片中多餘的人物、浮水印、背景雜物或瑕疵">
                   <span>🪄</span> 消除物件
                 </button>
-                <button id="btnOpenTextInspect" class="pm-tool-btn" style="background: rgba(52, 199, 89, 0.08); color: #248a3d; border-color: rgba(52, 199, 89, 0.25); font-weight: 600;" title="自動辨識圖中文字，檢查 AI 繪圖常見的英文拼寫錯誤與怪異亂碼">
+                <button id="btnOpenTextInspect" class="pm-tool-btn pm-advanced-only" style="background: rgba(52, 199, 89, 0.08); color: #248a3d; border-color: rgba(52, 199, 89, 0.25); font-weight: 600;" title="自動辨識圖中文字，檢查 AI 繪圖常見的英文拼寫錯誤與怪異亂碼">
                   <span>📝</span> 檢查文字
+                </button>
+                <button id="btnOpenVectorOverlayTop" class="pm-tool-btn pm-advanced-only" style="background: rgba(0, 113, 227, 0.08); color: var(--pm-accent-blue); border-color: rgba(0, 113, 227, 0.25); font-weight: 600;" title="將圖片中模糊的小字轉為純黑清晰字，印刷絕對銳利不糊邊">
+                  <span>🔤</span> 文字清晰
                 </button>
                 <button id="btnToggleLoupe" class="pm-tool-btn pm-advanced-only" title="切換 20x CMYK 玫瑰網點顯微放大鏡">
                   <span>🔍</span> 20x 網點
@@ -360,6 +363,11 @@
               <div class="pm-processing-text" id="processingText">正在以 Lanczos-3 演算法重採樣...</div>
             </div>
 
+            <!-- Backside Quick Add Card (Intuitive for Business Cards & Postcards) -->
+            <button id="btnPromptAddBack" class="pm-backside-prompt" type="button" style="display: none;" title="點擊載入背面公版或選擇圖片">
+              <span>📇 ＋ 加入【背面】視覺 (選用 · 雙圖自動合併為雙面 PDF)</span>
+            </button>
+
             <!-- Reassurance Note for Beginners (消除新手擔心輔助線會被印出來的恐慌) -->
             <div class="pm-canvas-reassurance-note" style="position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); font-size: 0.72rem; color: var(--pm-text-muted); background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(8px); padding: 3px 12px; border-radius: 20px; border: 1px solid var(--pm-border-subtle); pointer-events: none; white-space: nowrap; z-index: 10;">
               🔒 畫布輔助框線僅供對齊參考 · 實體印刷成品保證純淨無任何線條
@@ -374,14 +382,14 @@
                 <button id="btnSimpleExportPdf" class="pm-btn pm-btn-primary pm-btn-md" style="font-weight: 700; box-shadow: 0 4px 14px rgba(0, 113, 227, 0.32);" title="一鍵下載含 3mm 出血之標準印刷 PDF（送印印刷廠專用 · 零退件）">
                   <span>🌟</span> 一鍵下載標準印刷 PDF <span style="font-size: 0.68rem; opacity: 0.85; font-weight: 500; margin-left: 2px;">(送印專用)</span>
                 </button>
-                <button id="btnSimpleShare" class="pm-btn pm-btn-secondary pm-btn-md" style="background: rgba(0, 113, 227, 0.08); color: var(--pm-accent-blue); border-color: rgba(0, 113, 227, 0.25);" title="以 iPhone / Android 原生分享選單 AirDrop、傳送 LINE 或無線列印">
-                  <span>📤</span> 分享 / AirDrop
-                </button>
                 <button id="btnSimpleExportPng" class="pm-btn pm-btn-secondary pm-btn-md" title="匯出 300 DPI 高畫質 PNG 圖檔（相簿保存 / 傳 LINE / 手機沖洗）">
                   <span>📥</span> 下載高清 PNG <span style="font-size: 0.68rem; color: var(--pm-text-muted); font-weight: 500;">(相簿/LINE)</span>
                 </button>
                 <button id="btnSimpleConvPrint" class="pm-btn pm-btn-secondary pm-btn-md" title="7-11 ibon / 全家 FamiPort 超商 30 秒下樓立印">
                   <span>🏪</span> 超商 30 秒立印
+                </button>
+                <button id="btnSimpleShare" class="pm-btn pm-btn-secondary pm-btn-md" style="background: rgba(0, 113, 227, 0.08); color: var(--pm-accent-blue); border-color: rgba(0, 113, 227, 0.25);" title="以 iPhone / Android 原生分享選單 AirDrop、傳送 LINE 或無線列印">
+                  <span>📤</span> 分享
                 </button>
               </div>
             </div>
@@ -402,9 +410,9 @@
                   <span class="pm-dock-icon">✒️</span>
                   <span class="pm-dock-name">轉真向量</span>
                 </button>
-                <button id="btnOpenVectorOverlay" class="pm-dock-btn" title="防止小字混黑糊邊！添加單色 K100 純黑文字與向量標誌">
+                <button id="btnOpenVectorOverlay" class="pm-dock-btn" title="文字防糊保護：將彩色混墨小字轉為 K100 單色純黑向量字，保證針尖般銳利">
                   <span class="pm-dock-icon">🔤</span>
-                  <span class="pm-dock-name">K100黑字</span>
+                  <span class="pm-dock-name">文字防糊</span>
                 </button>
               </div>
 
@@ -441,9 +449,17 @@
                   <span class="pm-dock-icon">📤</span>
                   <span class="pm-dock-name">分享</span>
                 </button>
-                <button id="btnExportPdf" class="pm-dock-btn pm-dock-btn-primary" title="匯出含裁切十字與出血之標準印刷 PDF（零退件認證）">
+                <button id="btnOpenExportModal" class="pm-dock-btn pm-dock-btn-primary" title="商業多格式出機中心：PDF / TIFF / JPG / PNG / 刀模 / 出機全套包">
+                  <span class="pm-dock-icon">🖨️</span>
+                  <span class="pm-dock-name">出機中心</span>
+                </button>
+                <button id="btnExportPdf" class="pm-dock-btn" title="匯出含裁切十字與出血之標準印刷 PDF（零退件認證）">
                   <span class="pm-dock-icon">📄</span>
                   <span class="pm-dock-name">標準 PDF</span>
+                </button>
+                <button id="btnExportTiff" class="pm-dock-btn" title="匯出 300 DPI 工業級無損 TIFF 點陣檔">
+                  <span class="pm-dock-icon">🖨️</span>
+                  <span class="pm-dock-name">無損 TIFF</span>
                 </button>
                 <button id="btnExportPng" class="pm-dock-btn" title="匯出 300 DPI 高解析度 PNG">
                   <span class="pm-dock-icon">📥</span>

@@ -38,6 +38,8 @@ import { AiSettingsModal } from './ui/ai-settings-modal';
 import { PricingModal } from './ui/pricing-modal';
 import { OnboardingModal } from './ui/onboarding-modal';
 import { PipelineMatrixModal } from './ui/pipeline-matrix-modal';
+import { ExportModal } from './ui/export-modal';
+import { MultiFormatExporter } from './engines/multi-format-exporter';
 import { TextInspectionModal } from './ui/text-inspection-modal';
 import { TextInspector } from './core/text-inspector';
 import { ObjectEraserModal } from './ui/object-eraser-modal';
@@ -45,12 +47,24 @@ import { SubscriptionManager } from './core/subscription-tier';
 import { BleedExpander } from './core/bleed-expander';
 import { AiMatting } from './core/ai-matting';
 import { AiVectorizer } from './core/ai-vectorizer';
+import { FreeVectorizeClient } from './services/free-vectorize-client';
 import { PdfExporter } from './engines/pdf-exporter';
 import { VectorTracer } from './engines/vector-tracer';
 import { workerClient } from './workers/worker-client';
+import { ShadowLift } from './core/shadow-lift';
+import { DeshadowEngine } from './core/deshadow-engine';
+import { AntiBandingFilter } from './core/anti-banding';
+import { NimaAssessor } from './core/nima-assessor';
+import { PantoneMatcher } from './core/pantone-matcher';
+import { BarcodeVerifier } from './core/barcode-verifier';
+import { PassportModal } from './ui/passport-modal';
 import { CanvasZoomController } from './ui/canvas-zoom';
 import { WebShareService } from './services/web-share';
 import { XiaoxiangAssistant } from './ui/xiaoxiang-assistant';
+import { SceneClassifier } from './core/scene-classifier';
+import { Anime4kUpscaler } from './core/anime4k-upscaler';
+import { HatSUpscaler } from './core/hat-s-upscaler';
+import { SwinirUpscaler } from './core/swinir-upscaler';
 import type { BatchItem, PaperType, PrintPresetId } from './types';
 
 /**
@@ -70,6 +84,7 @@ class App {
   public laserScan!: LaserScanController;
   public mockupModal!: MockupModal;
   public specModal!: SpecModal;
+  public passportModal!: PassportModal;
   public calibrationModal!: RulerCalibrationModal;
   public shopsModal!: NearbyShopsModal;
   public directPrintModal!: DirectPrintModal;
@@ -83,6 +98,7 @@ class App {
   public pricingModal!: PricingModal;
   public onboardingModal!: OnboardingModal;
   public pipelineMatrixModal!: PipelineMatrixModal;
+  public exportModal!: ExportModal;
   public dropZoneInstance!: DropZone;
   public batchBar!: BatchBar;
   public cropController!: CropController;
@@ -191,6 +207,9 @@ class App {
       },
       () => {
         this.openTextInspectionModal();
+      },
+      () => {
+        this.exportModal.open();
       }
     );
 
@@ -218,6 +237,7 @@ class App {
     // 9. Modals
     this.mockupModal = new MockupModal();
     this.specModal = new SpecModal();
+    this.passportModal = new PassportModal();
     this.calibrationModal = new RulerCalibrationModal();
     this.shopsModal = new NearbyShopsModal();
     this.directPrintModal = new DirectPrintModal(() => this.shopsModal.open());
@@ -227,9 +247,14 @@ class App {
     this.vectorOverlayModal = new VectorOverlayModal(this.vectorOverlayEngine, () => {
       this.renderVectorOverlayOnCanvas();
     });
-    this.textInspectionModal = new TextInspectionModal((suggestedText) => {
-      this.vectorOverlayModal.open(suggestedText);
-    });
+    this.textInspectionModal = new TextInspectionModal(
+      (suggestedText) => {
+        this.vectorOverlayModal.open(suggestedText);
+      },
+      () => {
+        this.vectorOverlayModal.autoDetectFromCurrentState(true);
+      }
+    );
     this.objectEraserModal = new ObjectEraserModal((newImageData, newDataUrl) => {
       // Replace original with the erased image and re-run optimization pipeline
       store.setState({
@@ -243,6 +268,7 @@ class App {
       this.pipelineMatrixModal.render();
     });
     this.onboardingModal = new OnboardingModal();
+    this.exportModal = new ExportModal();
     this.aiSettingsModal = new AiSettingsModal(
       () => {
         const state = store.getState();
@@ -704,6 +730,12 @@ class App {
       Toast.success(`✨ 已載入【${state.currentPreset.nameZh}】專用 300 DPI 背面公版！`);
     });
 
+    // Backside Quick Prompt Click
+    document.getElementById('btnPromptAddBack')?.addEventListener('click', () => {
+      document.getElementById('btnSideBack')?.click();
+      this.xiangAssistant?.say('切換至【背面】。你可以拖曳背面圖片進來，或點【載入公版】直接使用設計好的背面！', 5000);
+    });
+
     // International ICC Profile Selector
     document.getElementById('selectIccProfile')?.addEventListener('change', (e) => {
       const iccId = (e.target as HTMLSelectElement).value as IccProfileId;
@@ -761,8 +793,8 @@ class App {
       Toast.success('✓ 髮絲級去背完成！可直接點擊【🏷️ 造型刀模 & 白墨】一鍵生成透明貼紙製版檔！');
     });
 
-    // ✒️ AI 點陣轉真向量 SVG 貝茲曲線檔
-    document.getElementById('btnAiVectorizer')?.addEventListener('click', () => {
+    // ✒️ AI 點陣轉真向量 SVG 貝茲曲線檔 (VTracer Rust / 本機三次貝茲曲線雙通道)
+    document.getElementById('btnAiVectorizer')?.addEventListener('click', async () => {
       const state = store.getState();
       const imgData = state.processedImageData || state.originalImageData;
       if (!imgData) {
@@ -771,12 +803,20 @@ class App {
       }
 
       SoundEffects.laserScan();
-      Toast.info('✒️ 正在執行多色階量化與三次貝茲曲線擬合 (Bezier Tracing)...');
+      Toast.info('✒️ 正在啟動 VTracer Rust / 貝茲向量引擎提取精準路徑...');
 
-      const svgString = AiVectorizer.traceToSvg(imgData, 12, 2);
-      AiVectorizer.downloadSvg(svgString, `PrintMagic_Vector_${state.currentPreset.id}_${Date.now()}.svg`);
-      SoundEffects.shutterClick();
-      Toast.success('✓ 頂級真向量 SVG 檔案已成功生成並下載！');
+      try {
+        const { svg, engineName, elapsedMs } = await FreeVectorizeClient.vectorizeImage(imgData, 12, 1.5);
+        AiVectorizer.downloadSvg(svg, `PrintMagic_Vector_${state.currentPreset.id}_${Date.now()}.svg`);
+        SoundEffects.shutterClick();
+        Toast.success(`✓ 向量 SVG 已生成並下載！[${engineName}] ${elapsedMs ? `(${elapsedMs}ms)` : ''}`);
+      } catch (err: any) {
+        // Ultimate fallback
+        const svgString = AiVectorizer.traceToSvg(imgData, 12, 2);
+        AiVectorizer.downloadSvg(svgString, `PrintMagic_Vector_${state.currentPreset.id}_${Date.now()}.svg`);
+        SoundEffects.shutterClick();
+        Toast.success('✓ 向量 SVG 檔案已由本機引擎生成並下載！');
+      }
     });
 
     // Open AI Object Eraser Modal
@@ -820,11 +860,15 @@ class App {
       this.xiangAssistant?.say(XiaoxiangAssistant.LINES.dieline, 5000);
     });
 
-    // Open K100 Pure Black & Vector Overlay Modal
-    document.getElementById('btnOpenVectorOverlay')?.addEventListener('click', () => {
+    // Open Text Clarity & Vector Overlay Modal (Simple & Advanced Modes)
+    const openVectorOverlayModal = () => {
       this.vectorOverlayModal.open();
-      this.xiangAssistant?.say(XiaoxiangAssistant.LINES.vectorOverlay, 5000);
-    });
+      this.xiangAssistant?.say('開啟【文字防糊清晰化】。AI 自動幫你把小字轉為純黑銳利字，印刷保證字字清晰見骨！', 5000);
+    };
+
+    document.getElementById('btnOpenVectorOverlay')?.addEventListener('click', openVectorOverlayModal);
+    document.getElementById('btnOpenVectorOverlayTop')?.addEventListener('click', openVectorOverlayModal);
+    document.getElementById('btnSimpleVectorOverlay')?.addEventListener('click', openVectorOverlayModal);
 
     // Open Direct Print & Live Quote Modal
     document.getElementById('btnOpenDirectPrint')?.addEventListener('click', () => {
@@ -843,10 +887,14 @@ class App {
       this.xiangAssistant?.say(XiaoxiangAssistant.LINES.imposition, 5000);
     });
 
-    // Open Nearby Commercial Print Shops Finder (if present)
-    document.getElementById('btnOpenShops')?.addEventListener('click', () => {
-      SoundEffects.sliderTick();
-      this.shopsModal.open();
+    // Open Multi-Format Pre-Press Export Center Modal (PDF, TIFF, JPG, PNG, SVG, ZIP)
+    document.getElementById('btnOpenExportModal')?.addEventListener('click', () => {
+      this.exportModal.open();
+    });
+
+    // Quick Export 300 DPI TIFF
+    document.getElementById('btnExportTiff')?.addEventListener('click', () => {
+      void MultiFormatExporter.exportFormat('tiff', store.getState());
     });
 
     // Export Standard PDF (Client Engine with Double-Sided Support)
@@ -861,6 +909,11 @@ class App {
 
       try {
         SoundEffects.shutterClick();
+        const specSummary = `【送印規格小抄】尺寸：${state.currentPreset.nameZh} (${state.currentPreset.widthMm}×${state.currentPreset.heightMm}mm) · 解析度：${state.currentPreset.targetDpi} DPI · 色彩：CMYK · 出血：${state.currentPreset.bleedMm}mm · 純黑向量銳化 · 零退件認證`;
+        if (navigator.clipboard) {
+          void navigator.clipboard.writeText(specSummary).catch(() => {});
+        }
+
         if (ds.hasBack && ds.backDataUrl) {
           Toast.info('📄 正在生成 2 頁標準【雙面合版 PDF】(Page 1 正面 + Page 2 背面)...');
           const pdfBlob = await DoubleSidedManager.exportDoubleSidedPdf(
@@ -876,11 +929,18 @@ class App {
           link.click();
           link.remove();
           URL.revokeObjectURL(url);
-          Toast.success('✓ 標準雙面 2-Page PDF 已成功輸出！');
+          Toast.success('✓ 標準雙面 2-Page PDF 已成功輸出！已自動複製「送印溝通小抄」至剪貼簿！');
         } else {
           Toast.info('📄 正在以本機極速引擎生成標準 PDF (含 0.1mm 裁切標記與 CMYK 色條)...');
           await PdfExporter.export(state.processedDataUrl, state.currentPreset, undefined, state.cropAnchor);
-          Toast.success('✓ 本機標準單面 PDF 已成功輸出！');
+          Toast.success('✓ 標準印刷 PDF 已成功輸出！已自動複製「送印溝通小抄」至剪貼簿！');
+        }
+
+        // In Simple Mode, pop up the Print-Ready Passport to reassure beginners
+        if (state.uiMode === 'simple') {
+          setTimeout(() => {
+            this.passportModal.open();
+          }, 450);
         }
       } catch (err: any) {
         Toast.error(`PDF 匯出失敗: ${err?.message || err}`);
@@ -1023,9 +1083,9 @@ class App {
             return;
           }
         }
-        Toast.info('💡 請在鍵盤上按 Ctrl+V (或 Cmd+V) 直接貼上圖片');
+        Toast.info('💡 直接把圖片拖進畫面，或用手機相機掃描匯入');
       } catch {
-        Toast.info('💡 請在鍵盤上按 Ctrl+V (或 Cmd+V) 直接貼上圖片');
+        Toast.info('💡 直接把圖片拖進畫面，或用手機相機掃描匯入');
       }
     });
 
@@ -1303,7 +1363,35 @@ class App {
     this.paper3D.updatePreset(autoPreset);
     this.updatePresetButtonsUI(autoPreset.id, true);
 
-    Toast.success(`✓ 已載入 ${results.length} 張作品，智慧推薦【${autoPreset.nameZh}】(可隨時手動彈性更換)`);
+    // Auto-match ICC Profile by preset material/category
+    const iccSelect = document.getElementById('selectIccProfile') as HTMLSelectElement | null;
+    if (autoPreset.category === 'art' || autoPreset.id === 'postcard') {
+      if (iccSelect) iccSelect.value = 'japan-color-2001-uncoated';
+    } else {
+      if (iccSelect) iccSelect.value = 'japan-color-2001-coated';
+    }
+
+    // Auto-configure Double-Sided pairing if 2 images uploaded
+    if (batchItems.length >= 2) {
+      const backItem = batchItems[1];
+      this.doubleSidedManager.setBackImage(backItem.originalDataUrl, backItem.originalImageData);
+      Toast.info(`✨ 偵測到 2 張作品，已自動為您綁定為【正面 + 背面】雙面合版印刷！`);
+    }
+
+    // Auto-detect Scene & Image Category
+    const scene = SceneClassifier.classifyImage(firstItem.originalImageData);
+    this.xiangAssistant?.say(`🎯 偵測到為【${scene.categoryIcon} ${scene.categoryNameZh}】！已為您自動匹配【${autoPreset.nameZh}】並套用最佳專屬模型（${scene.recommendedPipeline.superResolutionModel} 與 ${scene.recommendedPipeline.outpaintingModel}）！`, 7500);
+    Toast.success(`✨ 智慧辨識：【${scene.categoryIcon} ${scene.categoryNameZh}】· 已自動適配最佳專屬模型！`);
+
+    // Show/hide backside quick prompt based on preset and batch count
+    const promptAddBack = document.getElementById('btnPromptAddBack');
+    if (promptAddBack) {
+      if ((autoPreset.id === 'business-card' || autoPreset.id === 'postcard') && batchItems.length === 1) {
+        promptAddBack.style.display = 'flex';
+      } else {
+        promptAddBack.style.display = 'none';
+      }
+    }
 
     // Show First-Time Coachmark Banner if not previously dismissed
     const isDismissed = localStorage.getItem('pm_coachmark_dismissed');
@@ -1389,6 +1477,26 @@ class App {
           });
           processedImgData = await workerClient.lanczos(srcImageData, appliedScale);
         }
+
+        // Apply Scene-Aware Neural/Algorithmic Post-Enhancement
+        const scene = SceneClassifier.classifyImage(processedImgData);
+        if (scene.category === 'anime') {
+          processedImgData = Anime4kUpscaler.upscaleAnime(processedImgData, 1 as 2);
+        } else if (scene.category === 'portrait') {
+          processedImgData = HatSUpscaler.upscalePhoto(processedImgData, 1);
+        } else if (scene.category === 'landscape') {
+          processedImgData = SwinirUpscaler.upscaleAndDeblock(processedImgData, 1);
+        }
+      }
+
+      // Step 1.5: Auto Deshadow & Illumination Field Normalization (手機拍照光照均勻化)
+      if (opts.enableDeshadow !== false) {
+        processedImgData = DeshadowEngine.deshadow(processedImgData, 0.70);
+      }
+
+      // Step 1.8: Auto Anti-Banding & Gradient Smoothing (漸層防斷階去噪)
+      if (opts.enableAntiBanding !== false) {
+        processedImgData = AntiBandingFilter.apply(processedImgData, 0.65);
       }
 
       // Step 2: Pre-press Unsharp Mask Sharpening
@@ -1397,6 +1505,11 @@ class App {
           processingStep: '3/4 正在套用印刷微細邊緣銳化補償 (USM)...'
         });
         processedImgData = await workerClient.unsharp(processedImgData, 1.5, 1, 3);
+      }
+
+      // Step 2.5: Pre-press Shadow Tone Recovery (暗部階調防死黑補償)
+      if (opts.enableShadowLift) {
+        processedImgData = ShadowLift.apply(processedImgData, 0.10);
       }
 
       // Step 3: Total Area Coverage (TAC 300%) Clamp & Verification
@@ -1408,7 +1521,24 @@ class App {
         processedImgData = clampResult.imageData;
       }
 
-      // Step 4: Post-Processing Diagnostic Evaluation
+      // Step 3.5: Automatic High-Precision Text Vectorization & Anti-Blur Overlay (全自動開啟 · 0 點擊)
+      if (opts.enableVectorOverlay !== false) {
+        const detectedLayers = TextInspector.autoDetectTextLayers(processedImgData);
+        if (detectedLayers.length > 0) {
+          this.vectorOverlayEngine.clear();
+          this.vectorOverlayEngine.addTextItems(detectedLayers);
+
+          const canvas = document.createElement('canvas');
+          canvas.width = processedImgData.width;
+          canvas.height = processedImgData.height;
+          const ctx = canvas.getContext('2d')!;
+          ctx.putImageData(processedImgData, 0, 0);
+          this.vectorOverlayEngine.renderOverlay(ctx, canvas.width, canvas.height);
+          processedImgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        }
+      }
+
+      // Step 4: Post-Processing Comprehensive Diagnostic & Scientific Quality Evaluation
       const { stats, inkAnalysis } = await workerClient.analyze(processedImgData);
       const dpiAnalysis = DpiCalculator.analyze(
         processedImgData.width,
@@ -1416,6 +1546,21 @@ class App {
         preset
       );
       const scoreResult = PrintScoreCalculator.calculate(stats, preset, inkAnalysis);
+      const nimaReport = NimaAssessor.assess(processedImgData);
+      const dominantPantones = PantoneMatcher.extractDominantSpotColors(processedImgData, 3);
+      const barcodeReport = BarcodeVerifier.verifyImage(processedImgData, 300);
+
+      if (dominantPantones.length > 0) {
+        const pantoneSummary = dominantPantones.map((p) => `${p.pantone.code} (${p.pantone.name})`).join(' · ');
+        scoreResult.recommendations.push(`🌈 Pantone 專色配對：${pantoneSummary}`);
+      }
+      if (barcodeReport.hasBarcode && !barcodeReport.isLegible) {
+        scoreResult.issues.push(...barcodeReport.issues);
+        scoreResult.recommendations.push(...barcodeReport.recommendations);
+      }
+      if (nimaReport.score >= 80) {
+        scoreResult.recommendations.push(`📊 NIMA 科學質量分：${nimaReport.score}/100 (${nimaReport.grade} 級印刷標準)`);
+      }
 
       const processedDataUrl = this.imageDataToDataUrl(processedImgData);
 
@@ -1457,6 +1602,7 @@ class App {
       }
 
       SoundEffects.purityChime();
+      void this.laserScan.triggerMagicReveal();
       const delta = scoreResult.score - originalScoreResult.score;
       const deltaStr = delta > 0 ? ` (+${delta}分提升)` : '';
       Toast.success(`✓ 印刷優化完成！原圖 ${originalScoreResult.score}分 ➔ 優化後 ${scoreResult.score}分${deltaStr}`);
@@ -1485,8 +1631,9 @@ class App {
       const inspectResult = await TextInspector.inspectImage(imgData);
       store.setTextInspectionResult(inspectResult);
       if (inspectResult.typoCount > 0) {
+        this.xiangAssistant?.say(`⚠️ AI 文字檢查：發現 ${inspectResult.typoCount} 處文字疑似拼寫或邊緣發虛，點擊【🔤 文字清晰】可一鍵自動修復！`, 6000);
         setTimeout(() => {
-          Toast.info(`📝 AI 文字檢查：發現 ${inspectResult.typoCount} 處文字疑似拼寫或亂碼異常，點擊診斷卡可一鍵檢視！`);
+          Toast.info(`📝 發現 ${inspectResult.typoCount} 處文字需注意，點擊【🔤 文字清晰防糊】可一鍵修復！`);
         }, 1500);
       }
     } catch (err) {

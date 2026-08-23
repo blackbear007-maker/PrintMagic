@@ -1,0 +1,162 @@
+##############################################################################
+#  PrintMagic — Railway-Safe Docker Compose
+#  RAM Ceilings are enforced to prevent Railway billing spikes.
+#
+#  Monthly cost estimate (Railway Hobby $5/mo plan):
+#  ┌──────────────────────┬────────────┬───────────┬────────────┐
+#  │ Service              │ RAM Limit  │ CPU Limit │ $/mo est.  │
+#  ├──────────────────────┼────────────┼───────────┼────────────┤
+#  │ printmagic (Node.js) │ 256 MB     │ 0.5 vCPU  │ ~$1.28     │
+#  │ vtracer (Rust)       │ 128 MB     │ 0.3 vCPU  │ ~$0.28     │
+#  │ tesseract (Python)   │ 384 MB     │ 0.5 vCPU  │ ~$1.84     │
+#  │ zero-dce (PyTorch)   │ 640 MB     │ 0.5 vCPU  │ ~$3.14     │
+#  ├──────────────────────┼────────────┼───────────┼────────────┤
+#  │ TOTAL                │ 1,408 MB   │ 1.8 vCPU  │ ~$6.54/mo  │
+#  └──────────────────────┴────────────┴───────────┴────────────┘
+#
+#  ⚠️  LanguageTool is NOT included here (JVM heap = $5-$15/mo risk).
+#      Replaced by 3-endpoint public API rotation in free-spellcheck-client.ts
+#
+#  Usage:
+#    Local dev:  docker compose up
+#    Railway:    Each service has its own railway.toml in docker/<service>/
+##############################################################################
+
+version: '3.9'
+
+# Shared resource limit macro (reused via YAML anchors)
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "5m"
+    max-file: "2"
+
+services:
+
+  # ── PrintMagic Main App (Node.js / Vite SSR) ──────────────────────────────
+  printmagic:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: printmagic
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      # Microservice endpoints (internal Docker network)
+      - VTRACER_URL=http://vtracer:8080
+      - TESSERACT_URL=http://tesseract:8081
+      - ZERO_DCE_URL=http://zero-dce:8082
+    deploy:
+      resources:
+        limits:
+          memory: 256M        # Hard ceiling — OOM-killed if exceeded
+          cpus: '0.5'
+        reservations:
+          memory: 128M        # Guaranteed minimum
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    logging: *default-logging
+    networks:
+      - printmagic-net
+
+  # ── VTracer SVG Vectorizer (Rust — ultra-light) ───────────────────────────
+  vtracer:
+    build:
+      context: ./docker/vtracer
+      dockerfile: Dockerfile
+    container_name: vtracer
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - RUST_LOG=warn
+      - TOKIO_WORKER_THREADS=2
+    deploy:
+      resources:
+        limits:
+          memory: 128M        # Rust is lean — 128MB is generous
+          cpus: '0.3'
+        reservations:
+          memory: 32M
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 8s
+      retries: 3
+      start_period: 10s
+    logging: *default-logging
+    networks:
+      - printmagic-net
+
+  # ── Tesseract OCR (Python slim + zh-TW/en/ja lang packs) ─────────────────
+  tesseract:
+    build:
+      context: ./docker/tesseract
+      dockerfile: Dockerfile
+    container_name: tesseract
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      - PORT=8081
+      - OMP_THREAD_LIMIT=1   # Single-thread: prevents CPU spike billing
+      - TESSERACT_MAX_THREADS=1
+    deploy:
+      resources:
+        limits:
+          memory: 384M        # 150MB Python + 200MB Tesseract model + 34MB buffer
+          cpus: '0.5'
+        reservations:
+          memory: 150M
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8081/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    logging: *default-logging
+    networks:
+      - printmagic-net
+
+  # ── Zero-DCE++ Low-Light Enhancer (CPU-only PyTorch) ─────────────────────
+  zero-dce:
+    build:
+      context: ./docker/zero-dce
+      dockerfile: Dockerfile
+    container_name: zero-dce
+    restart: unless-stopped
+    ports:
+      - "8082:8082"
+    environment:
+      - PORT=8082
+      - OMP_NUM_THREADS=2    # CPU thread limit to prevent billing spike
+      - TORCH_NUM_THREADS=2
+      - MKL_NUM_THREADS=2
+    deploy:
+      resources:
+        limits:
+          memory: 640M        # PyTorch CPU: 250MB + model 1MB + headroom
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8082/health"]
+      interval: 30s
+      timeout: 15s
+      retries: 3
+      start_period: 30s      # PyTorch model load needs extra warmup time
+    logging: *default-logging
+    networks:
+      - printmagic-net
+
+networks:
+  printmagic-net:
+    driver: bridge

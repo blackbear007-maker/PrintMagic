@@ -40,6 +40,23 @@ export class VectorOverlayEngine {
     return newItem;
   }
 
+  public addTextItems(items: Omit<OverlayTextItem, 'id'>[]): OverlayTextItem[] {
+    const added: OverlayTextItem[] = [];
+    for (let i = 0; i < items.length; i++) {
+      const newItem: OverlayTextItem = {
+        ...items[i],
+        id: `text-${Date.now()}-${i}-${Math.random().toString(36).substring(2, 6)}`
+      };
+      this.textItems.push(newItem);
+      added.push(newItem);
+    }
+    return added;
+  }
+
+  public setTextItems(items: OverlayTextItem[]): void {
+    this.textItems = [...items];
+  }
+
   public addLogo(item: Omit<OverlayLogoItem, 'id'>): OverlayLogoItem {
     const newItem: OverlayLogoItem = {
       ...item,

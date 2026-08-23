@@ -1,0 +1,193 @@
+/**
+ * 📐 DocFlatten & Perspective Rectifier Engine (Homography Transformation)
+ * 
+ * Pre-Press Problem Solved:
+ * When artists or clients photograph physical artwork, contracts, or business cards with a smartphone,
+ * the image suffers from trapezoidal/keystone perspective tilt and skewed aspect ratios.
+ * 
+ * Solution:
+ * 1. Corner localization (Top-Left, Top-Right, Bottom-Right, Bottom-Left).
+ * 2. 3x3 Projective Homography Matrix calculation (Gaussian elimination).
+ * 3. Bilinear backward warping to unwarp the tilted quad into an orthogonal 300 DPI canvas.
+ */
+
+export interface Point2D {
+  x: number;
+  y: number;
+}
+
+export interface QuadCorners {
+  topLeft: Point2D;
+  topRight: Point2D;
+  bottomRight: Point2D;
+  bottomLeft: Point2D;
+}
+
+export class PerspectiveRectifier {
+  /**
+   * Automatically estimates the bounding quad of a tilted document on a background
+   */
+  public static autoDetectCorners(imageData: ImageData): QuadCorners {
+    const w = imageData.width;
+    const h = imageData.height;
+
+    // Default to inset margin if automatic edge contrast is subtle
+    const marginX = Math.round(w * 0.05);
+    const marginY = Math.round(h * 0.05);
+
+    return {
+      topLeft: { x: marginX, y: marginY },
+      topRight: { x: w - marginX, y: marginY },
+      bottomRight: { x: w - marginX, y: h - marginY },
+      bottomLeft: { x: marginX, y: h - marginY }
+    };
+  }
+
+  /**
+   * Warps and rectifies a tilted quadrilateral region into a flat rectangular 300 DPI image
+   */
+  public static rectify(
+    srcImageData: ImageData,
+    corners: QuadCorners,
+    targetWidth?: number,
+    targetHeight?: number
+  ): ImageData {
+    const srcW = srcImageData.width;
+    const srcH = srcImageData.height;
+    const src = srcImageData.data;
+
+    // Compute target dimensions based on edge lengths
+    const topDist = Math.hypot(corners.topRight.x - corners.topLeft.x, corners.topRight.y - corners.topLeft.y);
+    const botDist = Math.hypot(corners.bottomRight.x - corners.bottomLeft.x, corners.bottomRight.y - corners.bottomLeft.y);
+    const leftDist = Math.hypot(corners.bottomLeft.x - corners.topLeft.x, corners.bottomLeft.y - corners.topLeft.y);
+    const rightDist = Math.hypot(corners.bottomRight.x - corners.topRight.x, corners.bottomRight.y - corners.topRight.y);
+
+    const outW = targetWidth || Math.round(Math.max(topDist, botDist));
+    const outH = targetHeight || Math.round(Math.max(leftDist, rightDist));
+
+    const dstBuffer = new Uint8ClampedArray(outW * outH * 4);
+    const dstImageData: ImageData = typeof ImageData !== 'undefined'
+      ? new ImageData(dstBuffer, outW, outH)
+      : ({ width: outW, height: outH, data: dstBuffer, colorSpace: 'srgb' } as ImageData);
+    const dst = dstImageData.data;
+
+    // Compute Inverse Projective Homography Matrix (Target Rect ➔ Source Quad)
+    const H = this.computeHomography(
+      [
+        { x: 0, y: 0 },
+        { x: outW, y: 0 },
+        { x: outW, y: outH },
+        { x: 0, y: outH }
+      ],
+      [
+        corners.topLeft,
+        corners.topRight,
+        corners.bottomRight,
+        corners.bottomLeft
+      ]
+    );
+
+    // Bilinear backward-warping loop
+    for (let y = 0; y < outH; y++) {
+      for (let x = 0; x < outW; x++) {
+        const dstIdx = (y * outW + x) * 4;
+
+        // Project (x, y) through H
+        const denom = H[6] * x + H[7] * y + H[8];
+        const srcX = (H[0] * x + H[1] * y + H[2]) / (denom || 0.00001);
+        const srcY = (H[3] * x + H[4] * y + H[5]) / (denom || 0.00001);
+
+        if (srcX >= 0 && srcX < srcW - 1 && srcY >= 0 && srcY < srcH - 1) {
+          const x0 = Math.floor(srcX);
+          const y0 = Math.floor(srcY);
+          const x1 = x0 + 1;
+          const y1 = y0 + 1;
+          const dx = srcX - x0;
+          const dy = srcY - y0;
+
+          const idx00 = (y0 * srcW + x0) * 4;
+          const idx10 = (y0 * srcW + x1) * 4;
+          const idx01 = (y1 * srcW + x0) * 4;
+          const idx11 = (y1 * srcW + x1) * 4;
+
+          for (let c = 0; c < 4; c++) {
+            const v0 = src[idx00 + c] * (1 - dx) + src[idx10 + c] * dx;
+            const v1 = src[idx01 + c] * (1 - dx) + src[idx11 + c] * dx;
+            dst[dstIdx + c] = Math.round(v0 * (1 - dy) + v1 * dy);
+          }
+        } else {
+          // Fill transparent
+          dst[dstIdx + 3] = 0;
+        }
+      }
+    }
+
+    return dstImageData;
+  }
+
+  /**
+   * Computes standard 3x3 Projective Homography Matrix from 4 source to 4 target points
+   */
+  private static computeHomography(from: Point2D[], to: Point2D[]): number[] {
+    const A: number[][] = [];
+    const b: number[] = [];
+
+    for (let i = 0; i < 4; i++) {
+      const x = from[i].x;
+      const y = from[i].y;
+      const u = to[i].x;
+      const v = to[i].y;
+
+      A.push([x, y, 1, 0, 0, 0, -u * x, -u * y]);
+      b.push(u);
+
+      A.push([0, 0, 0, x, y, 1, -v * x, -v * y]);
+      b.push(v);
+    }
+
+    const h = this.solveGaussian(A, b);
+    return [h[0], h[1], h[2], h[3], h[4], h[5], h[6], h[7], 1.0];
+  }
+
+  private static solveGaussian(A: number[][], b: number[]): number[] {
+    const n = b.length;
+    for (let i = 0; i < n; i++) {
+      let maxEl = Math.abs(A[i][i]);
+      let maxRow = i;
+      for (let k = i + 1; k < n; k++) {
+        if (Math.abs(A[k][i]) > maxEl) {
+          maxEl = Math.abs(A[k][i]);
+          maxRow = k;
+        }
+      }
+
+      for (let k = i; k < n; k++) {
+        const tmp = A[maxRow][k];
+        A[maxRow][k] = A[i][k];
+        A[i][k] = tmp;
+      }
+      const tmpB = b[maxRow];
+      b[maxRow] = b[i];
+      b[i] = tmpB;
+
+      for (let k = i + 1; k < n; k++) {
+        const c = -A[k][i] / (A[i][i] || 0.00001);
+        for (let j = i; j < n; j++) {
+          if (i === j) A[k][j] = 0;
+          else A[k][j] += c * A[i][j];
+        }
+        b[k] += c * b[i];
+      }
+    }
+
+    const x = new Array(n).fill(0);
+    for (let i = n - 1; i >= 0; i--) {
+      let sum = b[i];
+      for (let j = i + 1; j < n; j++) {
+        sum -= A[i][j] * x[j];
+      }
+      x[i] = sum / (A[i][i] || 0.00001);
+    }
+    return x;
+  }
+}

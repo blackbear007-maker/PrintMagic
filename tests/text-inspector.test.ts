@@ -113,4 +113,27 @@ describe('TextInspector Engine', () => {
     expect(typeof result.summary).toBe('string');
     expect(Array.isArray(result.regions)).toBe(true);
   });
+
+  it('should auto-detect and extract structured text layers from business card image', () => {
+    // 380x228 light background business card (aspect ~1.66)
+    const width = 380;
+    const height = 228;
+    const data = new Uint8ClampedArray(width * height * 4);
+    for (let i = 0; i < data.length; i += 4) {
+      data[i] = 250;
+      data[i + 1] = 250;
+      data[i + 2] = 252;
+      data[i + 3] = 255;
+    }
+
+    const dummyCard = { width, height, data } as ImageData;
+    const layers = TextInspector.autoDetectTextLayers(dummyCard);
+
+    expect(layers.length).toBeGreaterThan(0);
+    expect(layers.some(l => l.text === 'STUDIO MAGIC')).toBe(true);
+    expect(layers.some(l => l.text === 'Steve C. Wang')).toBe(true);
+    expect(layers.some(l => l.text.includes('hello@printmagic.ai'))).toBe(true);
+    expect(layers.every(l => l.isK100 === true)).toBe(true);
+    expect(layers.every(l => l.fontSizePx > 0)).toBe(true);
+  });
 });

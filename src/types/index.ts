@@ -98,6 +98,7 @@ export interface PrintPreset {
   targetDpi: number;
   bleedMm: number;
   safeMarginMm: number;
+  realWorldRef?: string; // e.g. '≈ 健保卡/信用卡大小'
   colorMode: ColorMode;
   recommendedPaper: PaperType;
   cropMarks: boolean;
@@ -168,6 +169,9 @@ export interface PipelineOptions {
   enableShadowLift: boolean;    // 🌓 暗部階調浮起與反差補償
   enableBleedExpand: boolean;   // 📐 3mm 智慧出血自動補足
   enableColorProofing: boolean; // 🌈 CMYK 描述檔色域映射
+  enableVectorOverlay: boolean; // 🔤 自動文字清晰防糊重構
+  enableAntiBanding: boolean;   // 🌊 漸層防斷階與抗色階條紋平滑 (Auto)
+  enableDeshadow: boolean;      // ☀️ 手機拍畫手機倒影與光照均勻化 (Auto)
 }
 
 export const DEFAULT_PIPELINE_OPTIONS: PipelineOptions = {
@@ -176,7 +180,10 @@ export const DEFAULT_PIPELINE_OPTIONS: PipelineOptions = {
   enableInkLimiting: true,
   enableShadowLift: true,
   enableBleedExpand: true,
-  enableColorProofing: true
+  enableColorProofing: true,
+  enableVectorOverlay: true,
+  enableAntiBanding: true,
+  enableDeshadow: true
 };
 
 export interface OptimizationOptions {

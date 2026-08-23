@@ -32,6 +32,7 @@ export interface SubscriptionPlan {
   aiMattingAllowed: boolean;
   aiVectorizerAllowed: boolean;
   pipelineCustomizerAllowed: boolean;
+  privacyShieldAllowed: boolean;
   monthlyAiQuota: number;
 }
 
@@ -58,6 +59,7 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
       { text: '🖼️ AI 智慧 3mm 出血外擴延伸', included: false },
       { text: '✂️ 髮絲級 AI 模切貼紙去背', included: false },
       { text: '✒️ AI 點陣轉真向量 SVG 貝茲曲線', included: false },
+      { text: '🔒 商業機密 100% 純本機/自建隱私保護盾', included: false },
       { text: '💎 VIP 高階商業 AI 影像重建引擎', included: false }
     ],
     maxBatchSize: 1,
@@ -70,6 +72,7 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     aiMattingAllowed: false,
     aiVectorizerAllowed: false,
     pipelineCustomizerAllowed: false,
+    privacyShieldAllowed: false,
     monthlyAiQuota: 0
   },
   {
@@ -85,6 +88,7 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     features: [
       { text: '包含免費版全部功能', included: true },
       { text: '🎛️ 專家印前管線逐項開關自訂 (放大/銳化/控墨/階調)', included: true, highlight: true },
+      { text: '🔒 商業機密 100% 純本機/自建隱私保護盾 (強固資安)', included: true, highlight: true },
       { text: '每月 500 點 AI 算力點數', included: true, highlight: true },
       { text: '20 張多圖批次連續製版', included: true, highlight: true },
       { text: '雙面合版關聯製版 (名片/明信片/DM)', included: true, highlight: true },
@@ -107,6 +111,7 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     aiMattingAllowed: true,
     aiVectorizerAllowed: false,
     pipelineCustomizerAllowed: true,
+    privacyShieldAllowed: true,
     monthlyAiQuota: 500
   },
   {
@@ -121,6 +126,7 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     features: [
       { text: '包含 Pro 版全部功能', included: true },
       { text: '🎛️ 專家印前管線逐項開關自訂 (放大/銳化/控墨/階調)', included: true, highlight: true },
+      { text: '🔒 商業機密 100% 純本機/自建隱私保護盾 (強固資安)', included: true, highlight: true },
       { text: '每月 1000 點高階 GPU 算力點數', included: true, highlight: true },
       { text: '🖼️ AI 智慧 3mm 出血外擴延伸 (解決裁切痛點)', included: true, highlight: true },
       { text: '✒️ AI 點陣圖轉真向量 SVG/EPS 貝茲曲線檔', included: true, highlight: true },
@@ -141,6 +147,7 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     aiMattingAllowed: true,
     aiVectorizerAllowed: true,
     pipelineCustomizerAllowed: true,
+    privacyShieldAllowed: true,
     monthlyAiQuota: 1000
   }
 ];
@@ -238,13 +245,24 @@ export class SubscriptionManager {
   }
 
   public static canUseFeature(
-    feature: 'doubleSided' | 'dieline' | 'imposition' | 'pdfx' | 'vipAi' | 'batch' | 'bleedExpander' | 'aiMatting' | 'aiVectorizer' | 'pipelineCustomizer'
+    feature: 'doubleSided' | 'dieline' | 'imposition' | 'pdfx' | 'vipAi' | 'batch' | 'bleedExpander' | 'aiMatting' | 'aiVectorizer' | 'pipelineCustomizer' | 'privacyShield'
   ): boolean {
     if (this.ALL_FREE_UNLOCKED) {
       return true; // Unlock all features for free
     }
 
     const plan = this.getPlan();
+    return this.isPlanFeatureAllowed(plan.id, feature);
+  }
+
+  /**
+   * Strictly evaluates whether a given subscription plan includes the specified feature
+   */
+  public static isPlanFeatureAllowed(
+    planId: SubscriptionPlanId,
+    feature: 'doubleSided' | 'dieline' | 'imposition' | 'pdfx' | 'vipAi' | 'batch' | 'bleedExpander' | 'aiMatting' | 'aiVectorizer' | 'pipelineCustomizer' | 'privacyShield'
+  ): boolean {
+    const plan = this.getPlan(planId);
     switch (feature) {
       case 'doubleSided':
         return plan.doubleSidedAllowed;
@@ -264,6 +282,8 @@ export class SubscriptionManager {
         return plan.aiVectorizerAllowed;
       case 'pipelineCustomizer':
         return plan.pipelineCustomizerAllowed;
+      case 'privacyShield':
+        return plan.privacyShieldAllowed;
       case 'batch':
         return plan.maxBatchSize > 1;
       default:
@@ -271,3 +291,4 @@ export class SubscriptionManager {
     }
   }
 }
+

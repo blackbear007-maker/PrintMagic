@@ -70,17 +70,18 @@ export class BatchBar {
         const thumbSrc = item.processedDataUrl || item.originalDataUrl;
         const isProcessing = item.status === 'processing';
 
+        const safeName = this.escape(item.name);
         return `
-          <div class="pm-film-item ${isActive ? 'active' : ''}" data-id="${item.id}" title="${item.name}">
+          <div class="pm-film-item ${isActive ? 'active' : ''}" data-id="${item.id}" title="${safeName}">
             <div class="pm-film-thumb-wrap">
-              <img src="${thumbSrc}" alt="${item.name}" class="pm-film-thumb" />
+              <img src="${thumbSrc}" alt="${safeName}" class="pm-film-thumb" />
               ${isProcessing ? '<div class="pm-film-spinner"><div class="pm-mini-spinner"></div></div>' : ''}
               ${scoreBadge}
               <button class="pm-film-remove" data-remove-id="${item.id}" title="移除此作品">✕</button>
             </div>
             <div class="pm-film-meta">
               <span class="pm-film-num">#${idx + 1}</span>
-              <span class="pm-film-name">${this.escape(item.name)}</span>
+              <span class="pm-film-name">${safeName}</span>
             </div>
           </div>
         `;
