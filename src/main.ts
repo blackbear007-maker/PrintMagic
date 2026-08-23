@@ -389,44 +389,6 @@ class App {
       this.onboardingModal.open();
     });
 
-    // Scenario Quick-Start Cards (Instant Target Workflow Preset + Auto Load)
-    document.querySelectorAll('.pm-scenario-card').forEach((card) => {
-      card.addEventListener('click', async (e) => {
-        e.stopPropagation();
-        const scenario = (card as HTMLElement).dataset.scenario;
-        if (!scenario) return;
-
-        SoundEffects.paperDrop();
-
-        if (scenario === 'business-card') {
-          Toast.info('📇 已為您配置【商業名片 (90×54mm)】情境');
-          store.setPreset('business-card');
-          const file = await SampleArtworks.loadSample('card');
-          const dropZone = new DropZone('dropZone', (results) => this.handleImagesUploaded(results));
-          await dropZone.handleFiles([file]);
-        } else if (scenario === 'sticker') {
-          Toast.info('🏷️ 已為您配置【模切貼紙】情境，自動啟動 AI 刀模與白墨');
-          store.setPreset('sticker');
-          const file = await SampleArtworks.loadSample('anime');
-          const dropZone = new DropZone('dropZone', (results) => this.handleImagesUploaded(results));
-          await dropZone.handleFiles([file]);
-        } else if (scenario === 'poster') {
-          Toast.info('🖼️ 已為您配置【A4 經典海報】情境，自動補足 3mm 出血');
-          store.setPreset('poster-a4');
-          const file = await SampleArtworks.loadSample('cyberpunk');
-          const dropZone = new DropZone('dropZone', (results) => this.handleImagesUploaded(results));
-          await dropZone.handleFiles([file]);
-        } else if (scenario === 'conv-print') {
-          Toast.info('🏪 已為您配置【超商雲端 30 秒快印】情境');
-          store.setPreset('poster-a4');
-          const file = await SampleArtworks.loadSample('cyberpunk');
-          const dropZone = new DropZone('dropZone', (results) => this.handleImagesUploaded(results));
-          await dropZone.handleFiles([file]);
-          setTimeout(() => this.convPrintModal.open(), 800);
-        }
-      });
-    });
-
     // Screen Calibration
     this.btnOpenCalibration?.addEventListener('click', () => {
       SoundEffects.sliderTick();
@@ -457,8 +419,8 @@ class App {
       Toast.info('已重置畫布，請拖入新圖片');
     });
 
-    // FTUX Sample Artwork Scenario Cards & Pills (1-Click Test for New Users)
-    document.querySelectorAll('.pm-sample-pill-btn, .pm-scenario-card').forEach((btn) => {
+    // FTUX Sample Artwork Pills (1-Click Test for New Users)
+    document.querySelectorAll('.pm-sample-pill-btn').forEach((btn) => {
       btn.addEventListener('click', async (e) => {
         e.stopPropagation();
         const el = btn as HTMLElement;
