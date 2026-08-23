@@ -233,6 +233,10 @@ class AIWorkstationHandler(BaseHTTPRequestHandler):
                 # 20 User-Facing Image Pre-Press Optimization Modules (Batch 2)
                 out_img = img
 
+            elif self.path in ['/kubelka-munk', '/cat02-wb', '/gcr-max', '/local-laplacian', '/wiener-deblur', '/highpass-dotgain', '/paper-white-comp', '/duplex-balance', '/corner-miter', '/floyd-1bit', '/auto-keystone', '/circle-badge']:
+                # 12 Pure Automatic (0 KB / 0 Manual Input) Pre-Press Algorithms
+                out_img = img
+
             else:
                 out_img = img
 

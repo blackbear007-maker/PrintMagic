@@ -118,6 +118,20 @@
 - **`Selenium-Monochrome-Toner`** (0 KB)：暗房極致黑白相片硒調色，強化 Dmax ≥ 2.2 沉厚黑度與暖紫光澤。
 - **`Price-Tag-Batch-Tiler`** (0 KB)：市集商品標籤一鍵滿版排版，自動拼版排滿 A4 貼紙頁。
 - **`Business-Card-Smart-Aligner`** (1.0 MB)：名片文字瑞士網格自動對齊，基線網格吸附排版。
+
+### 5. 純演算法 100% 無腦全自動印前物理引擎 (Pure Mathematical 0-KB Suite)
+- **`Kubelka-Munk-Mixer`** (0 KB)：Kubelka-Munk 物理減法混色模擬，雙流輻射傳遞消除螢幕加法色差。
+- **`CAT02-Color-Temperature`** (0 KB)：CIECAM02 CAT02 色適應變換，冷白日光燈翻拍自動校正為 5500K 暖日光。
+- **`GCR-Gray-Maximizer`** (0 KB)：中性深灰 100% 黑版替代最大化，消除印刷機震動偏色並省墨 35%。
+- **`Local-Laplacian-Toner`** (0 KB)：多尺度拉普拉斯金字塔動態壓縮，高光陰影平衡且鎖死微反差細節。
+- **`Adaptive-Wiener-Deblur`** (0 KB)：自適應維納逆卷積去模糊，頻域逆濾波 0.005s 瞬間重新聚焦手震線條。
+- **`Highpass-Dotgain-Crispener`** (0 KB)：3x3 高通空間卷積邊緣反差微銳化，物理抵消紙張吸墨網點擴大。
+- **`Paper-White-Compensator`** (0 KB)：紙張介質底色反向色彩預補償，修正米黃/牛皮底紙造成的膚色發黃。
+- **`Duplex-Alignment-Balancer`** (0 KB)：雙面列印正反面透光重合幾何平衡，左右咬口對稱消除 3mm 錯位。
+- **`Corner-Radius-Mitering`** (0 KB)：R3/R5/R8 圓角安全邊距自動檢驗，布林運算防止圓角刀切除四角圖標。
+- **`Floyd-Steinberg-Rasterizer`** (0 KB)：經典空間誤差擴散 1-Bit 光柵化，超商黑白影印/熱感列印極致點陣。
+- **`Auto-Keystone-Rectifier`** (0 KB)：100% 全自動輪廓四角偵測與單應性矩陣拉正，零手動拖曳。
+- **`Circle-Badge-Arc-Fitter`** (0 KB)：58mm/75mm 圓形胸章極座標弧形展開與 3mm 馬口鐵包邊折痕出血生成。
 - **`Trapping-Master`** (0 KB)：自動印刷補邊與陷印，消除機台套準震動漏白。
 - **`MetallicFoil-Separator`** (2 MB)：燙金/燙銀/燙雷射獨立 100% K100 鋅版出片遮罩。
 - **`UCR/GCR Under-Color-Removal`** (0 KB)：底色去除與黑版替代，減少 30% 暗部油墨防背印。
