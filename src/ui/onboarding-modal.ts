@@ -21,10 +21,10 @@ export class OnboardingModal {
       <div class="pm-modal-dialog" style="max-width: 620px;">
         <div class="pm-modal-header" style="border-bottom: none; padding-bottom: 0;">
           <div style="display: flex; align-items: center; gap: 10px;">
-            <img src="xiaoxiang.jpg" alt="吉祥物小象" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid #8B7FA8; box-shadow: 0 2px 8px rgba(108, 99, 255, 0.3); flex-shrink: 0;" />
+            <img src="xiaoxiang.jpg" alt="小象助理" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid #8B7FA8; box-shadow: 0 2px 8px rgba(108, 99, 255, 0.3); flex-shrink: 0;" />
             <div>
               <h3 class="pm-modal-title" style="font-size: 1.22rem; font-weight: 800;">
-                小象陪您 30 秒上手【印象魔法】
+                30 秒快速上手【印象魔法】
               </h3>
               <p style="font-size: 0.78rem; color: var(--pm-text-muted); margin: 2px 0 0 0;">
                 只需 3 個直覺步驟，從相片變身符合印刷標準的完美成品
