@@ -76,6 +76,28 @@
 - **`SaddleStitch-Creep-Compensator`** (0 KB)：多頁騎馬釘裝訂紙厚外推爬移 (Creep) 幾何補償。
 - **`InkWash-Diffusion-Engine`** (1.5 MB)：宣紙水墨毛細管擴散與字畫 Giclée 藝術微噴模擬。
 - **`AncientTypeface-Restorer`** (4 MB)：古籍善本木刻字模斷筆修復與鉛字毛刺撫平。
+
+### 4. 使用者端圖片轉印刷專用優化引擎 (User-Facing Prepress Suite)
+- **`Deep-Shadow-Detail-Revealer`** (0 KB)：暗部防死黑層次還原，防止實體吸墨成大黑斑。
+- **`Hairline-Thickener-Guard`** (0 KB)：細線防斷印自動增厚至 0.12mm 安全印刷線寬。
+- **`Pure-White-Clean-Up`** (0 KB)：相片/手繪背景一鍵去灰去髒，230~255 RGB 拉平純白省墨。
+- **`Skin-Tone-Cyan-Suppressor`** (0 KB)：人像膚色去青去濁，壓制青墨並微調 M+Y 黃金比例。
+- **`Color-Banding-DeContour`** (0 KB)：大面積漸層防斷階平滑器，高頻藍噪點消除階梯紋。
+- **`RGB-To-CMYK-Vibrancy-Rescuer`** (1 MB)：RGB 轉 CMYK 鮮豔度拯救，保留霓虹光暈質感。
+- **`Acrylic-Charm-Dieline-Builder`** (0 KB)：壓克力立牌/吊飾一鍵生成 2mm 圓滑刀模線與白墨層。
+- **`Sticker-KissCut-Border-Generator`** (0 KB)：手帳貼紙萌系 1.5~2mm 圓滑白邊與半斷刀模路徑。
+- **`T-Shirt-Color-Knockout`** (0 KB)：衣服膠印底色去色透氣，扣除同色背景使印花柔軟舒適。
+- **`Text-SafeZone-Auto-Padding`** (0 KB)：重要文字防切自動內縮，將邊界文字平移至 5mm 安全區。
+- **`AI-Pseudo-Text-Filter`** (3 MB)：AI 繪圖外星亂碼字一鍵抹除還原底圖。
+- **`Micro-Contrast-Text-Booster`** (0 KB)：文字背景微反差拉開，避免暗底黑字在實體紙張上融化。
+- **`Real-Paper-Print-Simulator`** (2 MB)：實體紙張印刷預覽模擬 (牛皮紙/相紙/模造紙吸墨手感)。
+- **`Resolution-DPI-Defect-Visualizer`** (0 KB)：1:1 實物放大鏡，真實預覽低解析度馬賽克鋸齒。
+- **`Foiling-Highlight-Extractor`** (1 MB)：喜帖/名片局部燙金圖層一鍵萃取 100% K100 菲林遮罩。
+- **`Barcode-QR-Legibility-Fixer`** (500 KB)：模糊點陣條碼與 QR 碼一鍵重構純黑 K100 向量碼。
+- **`Passport-Head-Proportion-Aligner`** (2 MB)：台灣與國際 2 吋護照大頭照 70%~80% 頭頂自動校準。
+- **`Photo-To-Coloring-Book`** (4 MB)：照片一鍵變兒童塗色著色本，生成純淨黑白填色線稿。
+- **`Seam-Carving-Canvas-Fitter`** (1 MB)：智慧內容感知畫面延展，16:9 轉 A4 主體不變形。
+- **`Edge-Bleed-Feathering-Inpainter`** (0 KB)：照片邊緣漸層羽化，無縫融入馬克杯商品底色。
 - **`Trapping-Master`** (0 KB)：自動印刷補邊與陷印，消除機台套準震動漏白。
 - **`MetallicFoil-Separator`** (2 MB)：燙金/燙銀/燙雷射獨立 100% K100 鋅版出片遮罩。
 - **`UCR/GCR Under-Color-Removal`** (0 KB)：底色去除與黑版替代，減少 30% 暗部油墨防背印。

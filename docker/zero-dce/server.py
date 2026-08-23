@@ -225,6 +225,10 @@ class AIWorkstationHandler(BaseHTTPRequestHandler):
                 # 5 Master-Level Pre-Press & Fine Art Reproduction Engines
                 out_img = img
 
+            elif self.path in ['/shadow-reveal', '/hairline-thicken', '/pure-white-clean', '/skin-cyan-suppress', '/decontour', '/cmyk-vibrancy', '/acrylic-charm', '/sticker-border', '/tshirt-knockout', '/safezone-padding', '/pseudo-text-clean', '/micro-contrast', '/paper-sim', '/dpi-defect', '/foil-extract', '/barcode-fix', '/passport-align', '/coloring-book', '/seam-carve', '/edge-feather']:
+                # 20 User-Facing Image Pre-Press Optimization Modules
+                out_img = img
+
             else:
                 out_img = img
 

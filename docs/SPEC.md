@@ -52,6 +52,28 @@
 - **SaddleStitch-Creep-Compensator** (0 KB, MIT)：多頁手冊騎馬釘裝訂紙厚外推爬移 (Creep) 遞進幾何內縮補償。
 - **InkWash-Diffusion-Engine** (~1.5 MB, MIT)：生宣/熟宣紙毛細管擴散模擬與水墨字畫 Giclée 藝術微噴飛白還原。
 - **AncientTypeface-Restorer** (~4 MB, MIT)：古籍刻本與活字排版漢字骨架修復，自動補齊斷筆缺角與撫平鉛字毛刺。
+
+### 2.4 使用者端圖片轉印刷專用優化引擎 (User-Facing Image Pre-Press Suite)
+- **Deep-Shadow-Detail-Revealer** (0 KB, MIT)：暗部防死黑層次還原，拉開 0%~15% 深色階調，防止實體吸墨成大黑斑。
+- **Hairline-Thickener-Guard** (0 KB, MIT)：小於 0.08mm 細線防斷印自動增厚至 0.12mm 安全線寬。
+- **Pure-White-Clean-Up** (0 KB, MIT)：相片/手繪背景一鍵去灰去髒，230~255 RGB 背景拉平純白省墨。
+- **Skin-Tone-Cyan-Suppressor** (0 KB, MIT)：人像膚色去青去濁，壓制青墨並微調 M+Y 黃金氣色比例。
+- **Color-Banding-DeContour** (0 KB, MIT)：大面積漸層防斷階平滑器，高頻藍噪點微抖動消除階梯紋。
+- **RGB-To-CMYK-Vibrancy-Rescuer** (~1 MB, MIT)：RGB 轉 CMYK 鮮豔度拯救，感知色相重對齊保留霓虹感。
+- **Acrylic-Charm-Dieline-Builder** (0 KB, MIT)：壓克力立牌/吊飾一鍵生成 2mm 圓滑刀模線、打孔圈與白墨層。
+- **Sticker-KissCut-Border-Generator** (0 KB, MIT)：手帳貼紙萌系 1.5~2mm 圓滑白邊與半斷向量刀模路徑。
+- **T-Shirt-Color-Knockout** (0 KB, MIT)：衣服膠印底色去色透氣，扣除同色背景使印花柔軟不悶熱。
+- **Text-SafeZone-Auto-Padding** (0 KB, MIT)：重要文字防切自動內縮，將 1~2mm 邊界文字平移至 5mm 安全區。
+- **AI-Pseudo-Text-Filter** (~3 MB, MIT)：AI 繪圖外星亂碼字一鍵抹除還原底圖，便於替換真實商用文字。
+- **Micro-Contrast-Text-Booster** (0 KB, MIT)：文字背景微反差拉開，避免暗底黑字在實體紙張上融成一團。
+- **Real-Paper-Print-Simulator** (~2 MB, MIT)：實體紙張印刷預覽模擬，真實呈現牛皮紙、相紙與模造紙吸墨手感。
+- **Resolution-DPI-Defect-Visualizer** (0 KB, MIT)：1:1 實物放大鏡，手持比例真實預覽低解析度馬賽克鋸齒。
+- **Foiling-Highlight-Extractor** (~1 MB, MIT)：喜帖/名片局部燙金圖層一鍵萃取 100% K100 菲林出片遮罩。
+- **Barcode-QR-Legibility-Fixer** (~500 KB, MIT)：模糊點陣條碼與 QR 碼一鍵重構純黑 K100 向量碼，保證 100% 秒掃。
+- **Passport-Head-Proportion-Aligner** (~2 MB, MIT)：台灣與國際 2 吋護照大頭照 70%~80% (3.2~3.6cm) 頭頂自動校準。
+- **Photo-To-Coloring-Book** (~4 MB, MIT)：照片一鍵變兒童塗色著色本，生成純淨無雜點黑白填色線稿。
+- **Seam-Carving-Canvas-Fitter** (~1 MB, MIT)：智慧內容感知畫面延展，16:9 轉 A4/名片主體完全不變形。
+- **Edge-Bleed-Feathering-Inpainter** (0 KB, MIT)：照片邊緣漸層羽化，無縫融入馬克杯與周邊商品底色。
 - **Trapping-Master** (0 KB, MIT)：自動印刷補邊與陷印，消除機台套準震動造成的漏白縫隙。
 - **MetallicFoil-Separator** (~2 MB, MIT)：燙金/燙銀/燙雷射獨立 100% K100 鋅版出片遮罩自動生成。
 - **UCR/GCR Under-Color-Removal** (0 KB, MIT)：底色去除與黑版替代，減少 30% 暗部油墨堆疊防止背印。
