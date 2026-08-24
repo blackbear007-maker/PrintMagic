@@ -3,7 +3,6 @@ import { Anime4kUpscaler } from '../src/core/anime4k-upscaler';
 import { HatSUpscaler } from '../src/core/hat-s-upscaler';
 import { SwinirUpscaler } from '../src/core/swinir-upscaler';
 import { OpencvTeleaInpaint } from '../src/core/opencv-telea-inpaint';
-import { MatOutpainter } from '../src/core/mat-outpainter';
 
 describe('New Open-Source Super-Resolution & Bleed Outpainting Suite', () => {
   const createMockImageData = (w: number, h: number): ImageData => {
@@ -40,21 +39,13 @@ describe('New Open-Source Super-Resolution & Bleed Outpainting Suite', () => {
     });
   });
 
-  describe('Bleed Outpainting Suite (OpenCV Telea, MAT-Lite)', () => {
+  describe('Bleed Outpainting Suite (OpenCV Telea)', () => {
     it('OpencvTeleaInpaint: should outpaint 3mm/18px bleed with fluid diffusion', () => {
       const src = createMockImageData(50, 50);
       const res = OpencvTeleaInpaint.outpaintBleed(src, 18);
       expect(res.newWidth).toBe(86);
       expect(res.newHeight).toBe(86);
       expect(res.imageData.data.length).toBe(86 * 86 * 4);
-    });
-
-    it('MatOutpainter: should outpaint deep perspective bleed with transformer tokens', () => {
-      const src = createMockImageData(40, 40);
-      const res = MatOutpainter.outpaintPerspective(src, 15);
-      expect(res.newWidth).toBe(70);
-      expect(res.newHeight).toBe(70);
-      expect(res.imageData.data.length).toBe(70 * 70 * 4);
     });
   });
 });

@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest';
 
-// Import all 19 PyTorch & Pre-Press Core Models (#01 to #19)
+// Import SOTA PyTorch & Pre-Press Core Models
 import { AotGanInpainter } from '../src/core/aot-gan-inpaint';          // #19 AOT-GAN Lite
 import { ScunetDenoiser } from '../src/core/scunet-denoiser';          // #05 SCUNet-Lite
 import { NafnetDeblur } from '../src/core/nafnet-deblur';              // #10 NAFNet-Lite
 import { NanodetFocal } from '../src/core/nanodet-focal';              // #07 NanoDet-Plus
 import { TinysamSegmenter } from '../src/core/tinysam-segmenter';      // #16 TinySAM / MobileSAM
-import { FsrcnnUpscaler } from '../src/core/fsrcnn-upscaler';          // #12 FSRCNN
+import { SwinirUpscaler } from '../src/core/swinir-upscaler';          // #12 SwinIR SOTA
 import { DexinedEdgeDetector } from '../src/core/dexined-edge';        // #13 DexiNed-Lite
 import { DoctrDewarp } from '../src/core/doctr-dewarp';                // #14 DocTr-Lite
 import { NimaAssessor } from '../src/core/nima-assessor';              // #06 NIMA
@@ -16,7 +16,7 @@ import { ShadowLift } from '../src/core/shadow-lift';                  // #04 Ze
 import { AntiBandingFilter } from '../src/core/anti-banding';          // #15 DGF-Net
 import { PantoneMatcher } from '../src/core/pantone-matcher';          // #18 Deep-Palette
 
-describe('Comprehensive 19-Model PyTorch Commercial Pre-Press Suite (#01 to #19)', () => {
+describe('Comprehensive PyTorch Commercial Pre-Press Suite', () => {
   const createMockImageData = (w: number, h: number, r = 180, g = 180, b = 180, a = 255): ImageData => {
     const data = new Uint8ClampedArray(w * h * 4);
     for (let i = 0; i < data.length; i += 4) {
@@ -74,10 +74,10 @@ describe('Comprehensive 19-Model PyTorch Commercial Pre-Press Suite (#01 to #19)
     expect(seg.boundingBox.width).toBeGreaterThan(0);
   });
 
-  // ─── #12 FSRCNN Sub-Pixel Upscaler ───────────────────────────────────────
-  it('#12 FSRCNN: should perform fast 2x sub-pixel convolution upscaling', () => {
+  // ─── #12 SwinIR Super-Resolution ─────────────────────────────────────────
+  it('#12 SwinIR: should perform high-fidelity 2x super-resolution', () => {
     const img = createMockImageData(25, 25);
-    const upscaled = FsrcnnUpscaler.upscale2x(img);
+    const upscaled = SwinirUpscaler.upscaleAndDeblock(img, 2);
     expect(upscaled.width).toBe(50);
     expect(upscaled.height).toBe(50);
   });
@@ -96,8 +96,8 @@ describe('Comprehensive 19-Model PyTorch Commercial Pre-Press Suite (#01 to #19)
     expect(dewarped.width).toBe(40);
   });
 
-  // ─── Verification of remaining models (#01, #02, #03, #04, #06, #08, #09, #11, #15, #17, #18) ───
-  it('should verify all other integrated models in the suite (#01-#18)', () => {
+  // ─── Verification of remaining integrated models ───────────────────────────
+  it('should verify all other integrated models in the suite', () => {
     const img = createMockImageData(40, 40);
 
     // #06 NIMA
