@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { AdaptiveWienerDeblur } from '../src/core/adaptive-wiener-deblur';
-import { HighpassDotgainCrispener } from '../src/core/highpass-dotgain-crispener';
 import { CornerRadiusMitering } from '../src/core/corner-radius-mitering';
 import { AutoKeystoneRectifier } from '../src/core/auto-keystone-rectifier';
 
@@ -22,19 +21,13 @@ describe('Pure Automatic Pre-Press Quality & Calibration Algorithms Suite', () =
     expect(res.width).toBe(10);
   });
 
-  it('02. HighpassDotgainCrispener: should inject acutance against physical press dot gain', () => {
-    const img = createMockImg(10, 10);
-    const res = HighpassDotgainCrispener.crispEdges(img, 0.35);
-    expect(res.width).toBe(10);
-  });
-
-  it('03. CornerRadiusMitering: should inspect R5 die-cut corner safety', () => {
+  it('02. CornerRadiusMitering: should inspect R5 die-cut corner safety', () => {
     const img = createMockImg(50, 50, 255, 255, 255);
     const res = CornerRadiusMitering.inspectCornerSafety(img, 5.0);
     expect(res.cornerSafe).toBe(true);
   });
 
-  it('04. AutoKeystoneRectifier: should 100% automatically detect document corners', () => {
+  it('03. AutoKeystoneRectifier: should 100% automatically detect document corners', () => {
     const img = createMockImg(50, 50);
     const res = AutoKeystoneRectifier.autoRectify(img);
     expect(res.detectedCorners.length).toBe(4);

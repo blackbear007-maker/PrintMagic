@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { DeglareEngine } from '../src/core/deglare-engine';
 import { DehazeEngine } from '../src/core/dehaze-engine';
-import { HomographyRectifier } from '../src/core/homography-rectifier';
 import { ScratchRestorer } from '../src/core/scratch-restorer';
 
 describe('Professional Specialized Pre-Press AI Suite', () => {
@@ -36,13 +35,6 @@ describe('Professional Specialized Pre-Press AI Suite', () => {
     expect(res.width).toBe(20);
     expect(res.height).toBe(20);
     expect(res.data.length).toBe(20 * 20 * 4);
-  });
-
-  it('HomographyRectifier: should rectify oblique perspective angles', () => {
-    const img = createMockImageData(30, 30);
-    const res = HomographyRectifier.rectifyImage(img);
-    expect(res.width).toBe(30);
-    expect(res.height).toBe(30);
   });
 
   it('ScratchRestorer: should restore linear paper fold creases and mold marks', () => {

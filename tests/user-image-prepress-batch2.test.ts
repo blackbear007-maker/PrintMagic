@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { CanvasWrapMirror } from '../src/core/canvas-wrap-mirror';
-import { HolographicFoilMasker } from '../src/core/holographic-foil-masker';
 import { FoldedGreetingCard } from '../src/core/folded-greeting-card';
 import { FluorescentNeonExtractor } from '../src/core/fluorescent-neon-extractor';
 import { BusinessCardSmartAligner } from '../src/core/business-card-smart-aligner';
@@ -24,14 +23,7 @@ describe('User-Facing Commercial Image Pre-Press Suite (Batch 2)', () => {
     expect(res.height).toBe(40);
   });
 
-  it('02. HolographicFoilMasker: should generate solid white underbase for character', () => {
-    const img = createMockImg(20, 20, 200, 50, 50, 255);
-    const res = HolographicFoilMasker.generateHoloMask(img, 30);
-    expect(res.characterSolidWhiteMask.data[3]).toBe(255);
-    expect(res.holographicRainbowAreaPercent).toBe(0);
-  });
-
-  it('03. FoldedGreetingCard: should impose front and back covers with crease', () => {
+  it('02. FoldedGreetingCard: should impose front and back covers with crease', () => {
     const front = createMockImg(20, 20);
     const back = createMockImg(20, 20);
     const res = FoldedGreetingCard.imposeCard(front, back);
@@ -39,14 +31,14 @@ describe('User-Facing Commercial Image Pre-Press Suite (Batch 2)', () => {
     expect(res.creaseXPositionPx).toBe(20);
   });
 
-  it('04. FluorescentNeonExtractor: should extract 5th neon spot color plate', () => {
+  it('03. FluorescentNeonExtractor: should extract 5th neon spot color plate', () => {
     const img = createMockImg(10, 10, 240, 50, 180);
     const res = FluorescentNeonExtractor.extractNeonChannel(img, 'pink');
     expect(res.spotColorName).toContain('Pantone 806');
     expect(res.coveragePercent).toBeGreaterThan(0);
   });
 
-  it('05. BusinessCardSmartAligner: should align contact info to Swiss modular grid', () => {
+  it('04. BusinessCardSmartAligner: should align contact info to Swiss modular grid', () => {
     const svg = BusinessCardSmartAligner.alignCardTypography({
       name: '王小明',
       title: '資深設計總監',

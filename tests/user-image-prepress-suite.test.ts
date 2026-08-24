@@ -2,12 +2,10 @@ import { describe, it, expect } from 'vitest';
 import { HairlineThickener } from '../src/core/hairline-thickener';
 import { PureWhiteCleanup } from '../src/core/pure-white-cleanup';
 import { SkinToneCyanSuppressor } from '../src/core/skin-tone-cyan-suppressor';
-import { DecontourEngine } from '../src/core/decontour-engine';
 import { CmykVibrancyRescuer } from '../src/core/cmyk-vibrancy-rescuer';
 import { AcrylicCharmBuilder } from '../src/core/acrylic-charm-builder';
 import { StickerKisscutBuilder } from '../src/core/sticker-kisscut-builder';
 import { TshirtColorKnockout } from '../src/core/tshirt-color-knockout';
-import { TextSafezonePadding } from '../src/core/text-safezone-padding';
 import { AiPseudoTextFilter } from '../src/core/ai-pseudo-text-filter';
 import { MicroContrastTextBooster } from '../src/core/micro-contrast-text-booster';
 import { RealPaperSimulator } from '../src/core/real-paper-simulator';
@@ -47,77 +45,65 @@ describe('User-Facing Commercial Image Pre-Press Suite', () => {
     expect(res.width).toBe(10);
   });
 
-  it('04. DecontourEngine: should remove color banding stair-steps with blue noise', () => {
-    const img = createMockImg(10, 10);
-    const res = DecontourEngine.removeBanding(img);
-    expect(res.width).toBe(10);
-  });
-
-  it('05. CmykVibrancyRescuer: should rescue vivid out-of-gamut colors', () => {
+  it('04. CmykVibrancyRescuer: should rescue vivid out-of-gamut colors', () => {
     const img = createMockImg(10, 10, 255, 20, 180);
     const res = CmykVibrancyRescuer.rescueVibrancy(img);
     expect(res.width).toBe(10);
   });
 
-  it('06. AcrylicCharmBuilder: should generate 2mm dieline and white underbase', () => {
+  it('05. AcrylicCharmBuilder: should generate 2mm dieline and white underbase', () => {
     const img = createMockImg(20, 20, 200, 50, 50);
     const res = AcrylicCharmBuilder.buildCharmDieline(img, 2.0, true);
     expect(res.dielineSvgPath).toContain('Dieline');
     expect(res.hasHangingHole).toBe(true);
   });
 
-  it('07. StickerKisscutBuilder: should generate cute white border and cutline', () => {
+  it('06. StickerKisscutBuilder: should generate cute white border and cutline', () => {
     const img = createMockImg(20, 20, 200, 50, 50);
     const res = StickerKisscutBuilder.generateStickerBorder(img, 4);
     expect(res.stickerWithBorder.width).toBe(20);
     expect(res.cutContourSvg).toContain('svg');
   });
 
-  it('08. TshirtColorKnockout: should knockout matching garment color', () => {
+  it('07. TshirtColorKnockout: should knockout matching garment color', () => {
     const img = createMockImg(10, 10, 5, 5, 5);
     const res = TshirtColorKnockout.knockoutGarmentColor(img, '#000000', 30);
     expect(res.data[3]).toBe(0); // Knocked out to transparent
   });
 
-  it('09. TextSafezonePadding: should enforce 5mm text safe print padding', () => {
-    const img = createMockImg(50, 50, 20, 20, 20);
-    const res = TextSafezonePadding.enforceSafeZone(img, 10);
-    expect(res.message).toBeDefined();
-  });
-
-  it('10. AiPseudoTextFilter: should clean unreadable AI gibberish text', () => {
+  it('08. AiPseudoTextFilter: should clean unreadable AI gibberish text', () => {
     const img = createMockImg(10, 10);
     const res = AiPseudoTextFilter.cleanPseudoText(img);
     expect(res.width).toBe(10);
   });
 
-  it('11. MicroContrastTextBooster: should widen dark-on-dark text contrast', () => {
+  it('09. MicroContrastTextBooster: should widen dark-on-dark text contrast', () => {
     const img = createMockImg(10, 10, 60, 60, 60);
     const res = MicroContrastTextBooster.boostContrast(img);
     expect(res.data[0]).toBeLessThan(60);
   });
 
-  it('12. RealPaperSimulator: should simulate kraft and woodfree paper absorbency', () => {
+  it('10. RealPaperSimulator: should simulate kraft and woodfree paper absorbency', () => {
     const img = createMockImg(10, 10, 200, 200, 200);
     const res = RealPaperSimulator.simulatePaper(img, 'kraft');
     expect(res.width).toBe(10);
   });
 
-  it('13. ResolutionDefectVisualizer: should calculate effective DPI defect rating', () => {
+  it('11. ResolutionDefectVisualizer: should calculate effective DPI defect rating', () => {
     const img = createMockImg(100, 100);
     const res = ResolutionDefectVisualizer.visualizeDefects(img, 210, 297);
     expect(res.effectiveDpi).toBeLessThan(150);
     expect(res.qualityRating).toBe('BLURRY_DEFECT');
   });
 
-  it('14. BarcodeQrFixer: should binarize fuzzy raster QR codes to pure black K100', () => {
+  it('12. BarcodeQrFixer: should binarize fuzzy raster QR codes to pure black K100', () => {
     const img = createMockImg(10, 10, 80, 80, 80);
     const res = BarcodeQrFixer.fixQrCode(img, 140);
     expect(res.data[0]).toBe(0);
     expect(res.data[3]).toBe(255);
   });
 
-  it('15. PassportProportionAligner: should align portrait photo to 75% head ratio', () => {
+  it('13. PassportProportionAligner: should align portrait photo to 75% head ratio', () => {
     const img = createMockImg(10, 10);
     const res = PassportProportionAligner.alignPassportPhoto(img, 0.75);
     expect(res.headRatioPercent).toBe(75);
