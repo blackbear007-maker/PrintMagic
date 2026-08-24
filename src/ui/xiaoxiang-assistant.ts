@@ -2,8 +2,8 @@ import { store, type AppState } from './state';
 import { SoundEffects } from '../core/sound-effects';
 
 /**
- * 🐘 小象（向俊傑）對白與陪伴助手系統
- * 參考《單單環島 GO》danCard 架構，統整全站指引與提示於專屬對話框
+ * 🐘 小象對白與陪伴助手系統
+ * 統整全站指引與提示於專屬對話框
  */
 export class XiaoxiangAssistant {
   private container: HTMLElement;
@@ -76,7 +76,7 @@ export class XiaoxiangAssistant {
           <div class="pm-xiang-header">
             <div class="pm-xiang-title-row">
               <span class="pm-xiang-name">小象</span>
-              <span class="pm-xiang-badge">印刷廠之子</span>
+              <span class="pm-xiang-badge">印前助手</span>
             </div>
             <div id="xiangActs" class="pm-xiang-actions">
               <button id="btnXiangGuide" class="pm-xiang-act-btn" title="查看 3 步速成指南">💡 30秒指南</button>
@@ -88,7 +88,7 @@ export class XiaoxiangAssistant {
         </div>
 
         <!-- Xiaoxiang Avatar (Right Side) -->
-        <div id="xiangAvatar" class="pm-xiang-avatar-wrap" title="小象（印刷廠之子）">
+        <div id="xiangAvatar" class="pm-xiang-avatar-wrap" title="小象（印前助手）">
           <img id="xiangFace" src="xiaoxiang.jpg" alt="小象" class="pm-xiang-avatar-img" />
           <span class="pm-xiang-status-dot" title="小象在線守護印刷品質"></span>
         </div>
