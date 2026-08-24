@@ -10,7 +10,6 @@ import { PackagingCreaseFold } from '../src/core/packaging-crease-fold';
 import { SpineWidthCalculator } from '../src/core/spine-width-calculator';
 import { GamutRemapper } from '../src/core/gamut-remapper';
 import { HdrToner } from '../src/core/hdr-toner';
-import { TextCurvatureUnbender } from '../src/core/text-curvature-unbender';
 import { VectorSilhouette } from '../src/core/vector-silhouette';
 import { GripMarginChecker } from '../src/core/grip-margin-checker';
 import { MetallicSheenRenderer } from '../src/core/metallic-sheen-renderer';
@@ -99,12 +98,6 @@ describe('Advanced Commercial Pre-Press Enhancements Suite', () => {
     const img = createMockImageData(15, 15);
     const res = HdrToner.toneMap(img, 0.8, 0.7);
     expect(res.width).toBe(15);
-  });
-
-  it('12. TextCurvatureUnbender: should unbend polar arc text into rectangular baseline', () => {
-    const img = createMockImageData(20, 20);
-    const res = TextCurvatureUnbender.unrollCurvedText(img, 180);
-    expect(res.width).toBe(20);
   });
 
   it('13. VectorSilhouette: should extract single-color vector silhouette', () => {

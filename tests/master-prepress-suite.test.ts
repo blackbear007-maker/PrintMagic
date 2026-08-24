@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 import { OgvSeparator } from '../src/core/ogv-separator';
 import { CrystalUvHeightmap } from '../src/core/crystal-uv-heightmap';
 import { SaddleStitchCreep } from '../src/core/saddle-stitch-creep';
-import { InkWashDiffusion } from '../src/core/inkwash-diffusion';
 
 describe('Master-Level Pre-Press & Fine Art Reproduction Suite', () => {
   const createMockImageData = (w: number, h: number): ImageData => {
@@ -39,12 +38,5 @@ describe('Master-Level Pre-Press & Fine Art Reproduction Suite', () => {
     expect(plan.maxCreepMm).toBeGreaterThan(0);
     expect(plan.pageShifts.length).toBe(32);
     expect(plan.recommendations.length).toBeGreaterThan(0);
-  });
-
-  it('InkWashDiffusion: should simulate capillary bleeding on porous Xuan rice paper', () => {
-    const img = createMockImageData(20, 20);
-    const res = InkWashDiffusion.simulateInkWash(img, 2, 0.7);
-    expect(res.width).toBe(20);
-    expect(res.height).toBe(20);
   });
 });

@@ -16,7 +16,6 @@ import { ResolutionDefectVisualizer } from '../src/core/resolution-defect-visual
 import { FoilingHighlightExtractor } from '../src/core/foiling-highlight-extractor';
 import { BarcodeQrFixer } from '../src/core/barcode-qr-fixer';
 import { PassportProportionAligner } from '../src/core/passport-proportion-aligner';
-import { PhotoToColoringBook } from '../src/core/photo-to-coloring-book';
 import { SeamCarvingCanvasFitter } from '../src/core/seam-carving-canvas-fitter';
 import { EdgeBleedFeathering } from '../src/core/edge-bleed-feathering';
 
@@ -141,12 +140,6 @@ describe('20 User-Facing Image Pre-Press Optimization Suite', () => {
     const res = PassportProportionAligner.alignPassportPhoto(img, 0.75);
     expect(res.headRatioPercent).toBe(75);
     expect(res.isIcaoCompliant).toBe(true);
-  });
-
-  it('18. PhotoToColoringBook: should extract clean coloring line art', () => {
-    const img = createMockImg(20, 20);
-    const res = PhotoToColoringBook.createColoringSheet(img);
-    expect(res.width).toBe(20);
   });
 
   it('19. SeamCarvingCanvasFitter: should fit canvas aspect ratio without distortion', () => {

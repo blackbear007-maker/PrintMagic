@@ -1,16 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { ScreenshotDarkInverter } from '../src/core/screenshot-dark-inverter';
 import { CanvasWrapMirror } from '../src/core/canvas-wrap-mirror';
 import { PhotoFrameMat } from '../src/core/photo-frame-mat';
 import { GridSplitterMultiPanel } from '../src/core/grid-splitter-multi-panel';
 import { HolographicFoilMasker } from '../src/core/holographic-foil-masker';
 import { FoldedGreetingCard } from '../src/core/folded-greeting-card';
 import { FluorescentNeonExtractor } from '../src/core/fluorescent-neon-extractor';
-import { WhiteboardGlareKeystone } from '../src/core/whiteboard-glare-keystone';
-import { CanvasOilImpasto } from '../src/core/canvas-oil-impasto';
 import { WatermarkStampRemover } from '../src/core/watermark-stamp-remover';
-import { WatercolorBleedSoftener } from '../src/core/watercolor-bleed-softener';
-import { PriceTagBatchTiler } from '../src/core/price-tag-batch-tiler';
 import { BusinessCardSmartAligner } from '../src/core/business-card-smart-aligner';
 
 describe('User-Facing Image Pre-Press Optimization Suite (Batch 2)', () => {
@@ -24,14 +19,6 @@ describe('User-Facing Image Pre-Press Optimization Suite (Batch 2)', () => {
     }
     return { width: w, height: h, data, colorSpace: 'srgb' } as ImageData;
   };
-
-  it('01. ScreenshotDarkInverter: should invert dark background to paper white', () => {
-    const img = createMockImg(10, 10, 20, 20, 20);
-    const res = ScreenshotDarkInverter.invertDarkTheme(img, 80);
-    expect(res.data[0]).toBe(255);
-    expect(res.data[1]).toBe(255);
-    expect(res.data[2]).toBe(255);
-  });
 
   it('02. CanvasWrapMirror: should extend 4 borders with mirror reflection', () => {
     const img = createMockImg(20, 20, 150, 120, 80);
@@ -76,39 +63,10 @@ describe('User-Facing Image Pre-Press Optimization Suite (Batch 2)', () => {
     expect(res.coveragePercent).toBeGreaterThan(0);
   });
 
-  it('10. WhiteboardGlareKeystone: should flatten specular glare hotspots to white', () => {
-    const img = createMockImg(10, 10, 250, 250, 250);
-    const res = WhiteboardGlareKeystone.cleanWhiteboard(img, 240);
-    expect(res.data[0]).toBe(255);
-  });
-
-  it('12. CanvasOilImpasto: should generate 3D impasto heightmap', () => {
-    const img = createMockImg(20, 20, 120, 120, 120);
-    const res = CanvasOilImpasto.generateImpasto(img, 0.45);
-    expect(res.normalBumpMap.width).toBe(20);
-    expect(res.tactileUvHeightmap.width).toBe(20);
-    expect(res.maxReliefDepthMm).toBe(0.45);
-  });
-
   it('14. WatermarkStampRemover: should inpaint date stamps and watermarks', () => {
     const img = createMockImg(10, 10, 245, 100, 100);
     const res = WatermarkStampRemover.removeWatermark(img, 200);
     expect(res.width).toBe(10);
-  });
-
-  it('17. WatercolorBleedSoftener: should simulate watercolor edge water-ring bleeding', () => {
-    const img = createMockImg(20, 20, 150, 180, 220);
-    const res = WatercolorBleedSoftener.softenWatercolorEdges(img, 2);
-    expect(res.width).toBe(20);
-  });
-
-  it('19. PriceTagBatchTiler: should tile batch price tags onto A4 sticker sheet', () => {
-    const svg = PriceTagBatchTiler.tilePriceTags([
-      { productName: '手工餅乾', priceNtd: 120 },
-      { productName: '草莓果醬', priceNtd: 250 }
-    ], 3, 7);
-    expect(svg).toContain('手工餅乾');
-    expect(svg).toContain('NT$ 120');
   });
 
   it('20. BusinessCardSmartAligner: should align contact info to Swiss modular grid', () => {

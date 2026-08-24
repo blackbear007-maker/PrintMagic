@@ -122,28 +122,15 @@
 - **`Foiling-Highlight-Extractor`** (1 MB)：喜帖/名片局部燙金圖層一鍵萃取 100% K100 菲林遮罩。
 - **`Barcode-QR-Legibility-Fixer`** (500 KB)：模糊點陣條碼與 QR 碼一鍵重構純黑 K100 向量碼。
 - **`Passport-Head-Proportion-Aligner`** (2 MB)：台灣與國際 2 吋護照大頭照 70%~80% 頭頂自動校準。
-- **`Photo-To-Coloring-Book`** (4 MB)：照片一鍵變兒童塗色著色本，生成純淨黑白填色線稿。
 - **`Seam-Carving-Canvas-Fitter`** (1 MB)：智慧內容感知畫面延展，16:9 轉 A4 主體不變形。
 - **`Edge-Bleed-Feathering-Inpainter`** (0 KB)：照片邊緣漸層羽化，無縫融入馬克杯商品底色。
-- **`Screenshot-Dark-Inverter`** (0 KB)：深色截圖一鍵省墨轉印，ChatGPT/代碼黑底轉純白與 K100。
 - **`Canvas-Wrap-Mirror-Builder`** (0 KB)：無框畫 4 面 3.5cm 立體包邊鏡像延伸，正面完整不切人臉。
 - **`Photo-Frame-Mat-Generator`** (0 KB)：畫廊卡紙裝裱內襯白邊生成器，自動計算 2:3/3:4 比例與倒角。
 - **`Grid-Splitter-Multi-Panel`** (0 KB)：巨幅海報多張 A4 拼印神器，自動分割帶 5mm 重疊對位十字。
 - **`Holographic-Foil-Masker`** (0 KB)：鐳射雷射貼紙透光白墨遮罩，背景閃耀彩虹光芒、人物顯色。
 - **`Folded-Greeting-Card-Imposer`** (0 KB)：對折卡片/邀請函自動正反倒轉拼版，中央附帶壓痕對折定位。
-- **`Receipt-Fading-Restorer`** (0 KB)：熱感發票/收據褪色加黑搶救，自適應對比度強化至 K100。
-- **`Wood-Engraving-Contrast-Toner`** (0 KB)：雷射雕刻木質/皮革高反差轉譯，防止過度燃燒焦黑。
 - **`Fluorescent-Neon-Ink-Extractor`** (0 KB)：螢光粉/螢光綠第 5 專色獨立膠片分色出片生成。
-- **`Whiteboard-Glare-Keystone`** (1.5 MB)：白板/簡報翻拍去光斑拉平，抹除高光斑點並拉正為 90° 矩形。
-- **`Embroidery-Patch-Stitch-Converter`** (1.2 MB)：照片/Logo 一鍵轉刺繡布貼打版圖，K-Means 歸納色線。
-- **`Canvas-Oil-Impasto-3D`** (0 KB)：無框畫立體油畫厚塗筆觸肌理，生成 3D 法線與 UV 光油高度貼圖。
-- **`Nutrient-Table-Builder`** (0 KB)：食品標籤營養表標準純黑 K100 向量生成，符合法規比例小字不糊。
 - **`Watermark-Stamp-Remover`** (2.5 MB)：相片樣張日期戳記與水印智慧抹除，局部紋理流體平滑修補。
-- **`Bookmark-Tassel-Planner`** (0 KB)：文創書籤 5x15cm 圓角刀模與 4mm 頂部流蘇打孔穿繩定位規劃。
-- **`MetalCard-Laser-Masker`** (0 KB)：金屬名片雷雕蝕刻分版，生成 100% K100 雷射露銅去陽極化遮罩。
-- **`Watercolor-Bleed-Softener`** (0 KB)：水彩畫紙水痕浸潤模擬，邊緣生成自然水痕沉澱邊框。
-- **`Selenium-Monochrome-Toner`** (0 KB)：暗房極致黑白相片硒調色，強化 Dmax ≥ 2.2 沉厚黑度與暖紫光澤。
-- **`Price-Tag-Batch-Tiler`** (0 KB)：市集商品標籤一鍵滿版排版，自動拼版排滿 A4 貼紙頁。
 - **`Business-Card-Smart-Aligner`** (1.0 MB)：名片文字瑞士網格自動對齊，基線網格吸附排版。
 
 ### 5. 純演算法 100% 無腦全自動印前物理引擎 (Pure Mathematical 0-KB Suite)
@@ -156,7 +143,6 @@
 - **`Paper-White-Compensator`** (0 KB)：紙張介質底色反向色彩預補償，修正米黃/牛皮底紙造成的膚色發黃。
 - **`Duplex-Alignment-Balancer`** (0 KB)：雙面列印正反面透光重合幾何平衡，左右咬口對稱消除 3mm 錯位。
 - **`Corner-Radius-Mitering`** (0 KB)：R3/R5/R8 圓角安全邊距自動檢驗，布林運算防止圓角刀切除四角圖標。
-- **`Floyd-Steinberg-Rasterizer`** (0 KB)：經典空間誤差擴散 1-Bit 光柵化，超商黑白影印/熱感列印極致點陣。
 - **`Auto-Keystone-Rectifier`** (0 KB)：100% 全自動輪廓四角偵測與單應性矩陣拉正，零手動拖曳。
 - **`Circle-Badge-Arc-Fitter`** (0 KB)：58mm/75mm 圓形胸章極座標弧形展開與 3mm 馬口鐵包邊折痕出血生成。
 - **`Trapping-Master`** (0 KB)：自動印刷補邊與陷印，消除機台套準震動漏白。
@@ -170,7 +156,6 @@
 - **`SpineWidth-Calculator`** (0 KB)：基重 (gsm) 與頁數精確推導 0.1mm 級膠裝/精裝書背厚度。
 - **`DeltaE-Gamut-Remapper`** (1 MB)：CIECAM02 視覺感知色域映射，保留 RGB 霓虹色印刷活力。
 - **`ShadowHighlight-HDR-Toner`** (3 MB)：14 EV 手機 HDR 動態範圍平滑壓縮至 5.5 EV 紙張反射率。
-- **`TextCurvature-Unbender`** (3 MB)：圓形印章與瓶身杯身環狀弧形文字展開拉直。
 - **`Photo-To-Vector-Silhouette`** (4 MB)：照片一鍵生成高對比純單色向量剪影刀模。
 - **`GripMargin-Checker`** (0 KB)：平版印刷機 10mm 夾爪咬口 (Gripper Margin) 碰撞預警。
 - **`Metallic-Sheen-Renderer`** (2 MB)：薄膜干涉與 BRDF 物理渲染鐳射彩虹反光動態。

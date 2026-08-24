@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { PantoneMatcher } from '../src/core/pantone-matcher';
 import { AntiBandingFilter } from '../src/core/anti-banding';
-import { DaltonizeSimulator } from '../src/core/daltonize-simulator';
 import { PerspectiveRectifier } from '../src/core/perspective-rectifier';
 import { U2NetLiteMatting } from '../src/core/u2net-lite-matting';
 
@@ -68,24 +67,6 @@ describe('Advanced Pre-Press Commercial Models Suite (5大超輕量印前 AI 模
     const edgePixelIdx = (25 * 50 + 35) * 4;
     expect(filtered.data[edgePixelIdx]).toBe(255);
     expect(filtered.data[edgePixelIdx + 1]).toBe(0);
-  });
-
-  // ─── 3. Daltonize Color Blindness Pre-Flight Proofing Simulator ───────────
-  it('should simulate Protanopia, Deuteranopia, and Tritanopia color spaces', () => {
-    const img = createMockImageData(20, 20, 255, 0, 0); // Pure Red
-    const protanopia = DaltonizeSimulator.simulate(img, 'protanopia');
-    // In Protanopia, pure red is perceived as dark yellow/brownish, not bright red
-    expect(protanopia.data[0]).toBeLessThan(200);
-
-    const normal = DaltonizeSimulator.simulate(img, 'normal');
-    expect(normal.data[0]).toBe(255);
-  });
-
-  it('should detect red/green confusion accessibility issues', () => {
-    const img = createMockImageData(30, 30, 200, 20, 20); // Red on green
-    const report = DaltonizeSimulator.verifyAccessibility(img);
-    expect(typeof report.passed).toBe('boolean');
-    expect(report.minContrastRatio).toBeGreaterThan(0);
   });
 
   // ─── 4. DocFlatten & Perspective Rectifier Engine ────────────────────────

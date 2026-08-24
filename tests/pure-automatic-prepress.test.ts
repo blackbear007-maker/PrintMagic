@@ -8,7 +8,6 @@ import { HighpassDotgainCrispener } from '../src/core/highpass-dotgain-crispener
 import { PaperWhiteCompensator } from '../src/core/paper-white-compensator';
 import { DuplexAlignmentBalancer } from '../src/core/duplex-alignment-balancer';
 import { CornerRadiusMitering } from '../src/core/corner-radius-mitering';
-import { FloydSteinbergRasterizer } from '../src/core/floyd-steinberg-rasterizer';
 import { AutoKeystoneRectifier } from '../src/core/auto-keystone-rectifier';
 import { CircleBadgeArcFitter } from '../src/core/circle-badge-arc-fitter';
 
@@ -79,12 +78,6 @@ describe('12 Pure Automatic (0 KB / 0 Manual Input) Pre-Press Algorithms Suite',
     const img = createMockImg(50, 50, 255, 255, 255);
     const res = CornerRadiusMitering.inspectCornerSafety(img, 5.0);
     expect(res.cornerSafe).toBe(true);
-  });
-
-  it('10. FloydSteinbergRasterizer: should rasterize continuous tones into 1-bit dot halftone', () => {
-    const img = createMockImg(10, 10, 120, 120, 120);
-    const res = FloydSteinbergRasterizer.rasterize1Bit(img);
-    expect(res.data[0] === 0 || res.data[0] === 255).toBe(true);
   });
 
   it('11. AutoKeystoneRectifier: should 100% automatically detect document corners', () => {

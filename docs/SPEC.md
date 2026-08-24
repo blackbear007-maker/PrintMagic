@@ -74,7 +74,6 @@
 - **OGV-ExpandedGamut-Separator** (0 KB, MIT)：7色廣色域高保真分色 (CMYK+Orange+Green+Violet)，色域覆蓋率自 65% 躍升至 92%。
 - **CrystalUV-Heightmap-Builder** (0 KB, MIT)：UV 水晶標/立體浮雕自動生成 100% 遮底白墨層 + 5階立體光油高度貼圖。
 - **SaddleStitch-Creep-Compensator** (0 KB, MIT)：多頁手冊騎馬釘裝訂紙厚外推爬移 (Creep) 遞進幾何內縮補償。
-- **InkWash-Diffusion-Engine** (~1.5 MB, MIT)：生宣/熟宣紙毛細管擴散模擬與水墨字畫 Giclée 藝術微噴飛白還原。
 
 ### 2.4 使用者端圖片轉印刷專用優化引擎 (User-Facing Image Pre-Press Suite)
 - **Deep-Shadow-Detail-Revealer** (0 KB, MIT)：暗部防死黑層次還原，拉開 0%~15% 深色階調，防止實體吸墨成大黑斑。
@@ -94,21 +93,15 @@
 - **Foiling-Highlight-Extractor** (~1 MB, MIT)：喜帖/名片局部燙金圖層一鍵萃取 100% K100 菲林出片遮罩。
 - **Barcode-QR-Legibility-Fixer** (~500 KB, MIT)：模糊點陣條碼與 QR 碼一鍵重構純黑 K100 向量碼，保證 100% 秒掃。
 - **Passport-Head-Proportion-Aligner** (~2 MB, MIT)：台灣與國際 2 吋護照大頭照 70%~80% (3.2~3.6cm) 頭頂自動校準。
-- **Photo-To-Coloring-Book** (~4 MB, MIT)：照片一鍵變兒童塗色著色本，生成純淨無雜點黑白填色線稿。
 - **Seam-Carving-Canvas-Fitter** (~1 MB, MIT)：智慧內容感知畫面延展，16:9 轉 A4/名片主體完全不變形。
 - **Edge-Bleed-Feathering-Inpainter** (0 KB, MIT)：照片邊緣漸層羽化，無縫融入馬克杯與周邊商品底色。
-- **Screenshot-Dark-Inverter** (0 KB, MIT)：深色截圖一鍵省墨轉印，將 ChatGPT/代碼黑底反轉為純白紙基與 K100 文字。
 - **Canvas-Wrap-Mirror-Builder** (0 KB, MIT)：無框畫 4 面 3.5cm 立體包邊鏡像延伸，正面 100% 完整不切人臉。
 - **Photo-Frame-Mat-Generator** (0 KB, MIT)：畫廊卡紙裝裱內襯白邊生成器，自動計算 2:3/3:4 比例與 45° 倒角陰影。
 - **Grid-Splitter-Multi-Panel** (0 KB, MIT)：巨幅海報多張 A4 拼印神器，自動分割帶 5mm 重疊對位十字虛線。
 - **Holographic-Foil-Masker** (0 KB, MIT)：鐳射雷射貼紙透光白墨遮罩，背景閃耀彩虹光芒、人物清晰顯色。
 - **Folded-Greeting-Card-Imposer** (0 KB, MIT)：對折卡片/邀請函自動正反倒轉拼版，中央附帶壓痕對折定位。
 - **Fluorescent-Neon-Ink-Extractor** (0 KB, MIT)：螢光粉/螢光綠第 5 專色獨立膠片分色出片生成。
-- **Whiteboard-Glare-Keystone** (~1.5 MB, MIT)：白板/簡報翻拍去光斑拉平，抹除高光斑點並拉正為 90° 矩形。
-- **Canvas-Oil-Impasto-3D** (0 KB, MIT)：無框畫立體油畫厚塗筆觸肌理，生成 3D 法線與 UV 光油高度貼圖。
 - **Watermark-Stamp-Remover** (~2.5 MB, Apache 2.0)：相片樣張日期戳記與水印智慧抹除，局部紋理流體平滑修補。
-- **Watercolor-Bleed-Softener** (0 KB, MIT)：水彩畫紙水痕浸潤模擬，邊緣生成自然水痕沉澱邊框。
-- **Price-Tag-Batch-Tiler** (0 KB, MIT)：市集商品標籤一鍵滿版排版，自動拼版排滿 A4 貼紙頁。
 - **Business-Card-Smart-Aligner** (~1.0 MB, MIT)：名片文字瑞士網格自動對齊，基線網格吸附排版。
 - **Wedding-Skin-Pore-Preserver** (0 KB, MIT)：婚紗寫真天然微晶磨皮，高低頻空間分離 100% 鎖死毛孔細節。
 - **Photocard-Holo-Glitter-Masker** (0 KB, MIT)：K-Pop 偶像小卡/動漫碎玻璃閃粉遮罩，分離人物白墨與雷射碎晶背景。
@@ -135,7 +128,6 @@
 - **Paper-White-Compensator** (0 KB, MIT)：紙張介質底色反向色彩預補償，修正米黃/牛皮底紙造成的膚色發黃。
 - **Duplex-Alignment-Balancer** (0 KB, MIT)：雙面列印正反面透光重合幾何平衡，左右咬口對稱消除 3mm 錯位。
 - **Corner-Radius-Mitering** (0 KB, MIT)：R3/R5/R8 圓角安全邊距自動檢驗，布林運算防止圓角刀切除四角圖標。
-- **Floyd-Steinberg-Rasterizer** (0 KB, MIT)：經典空間誤差擴散 1-Bit 光柵化，超商黑白影印/熱感列印極致點陣。
 - **Auto-Keystone-Rectifier** (0 KB, MIT)：100% 全自動輪廓四角偵測與單應性矩陣拉正，零手動拖曳。
 - **Circle-Badge-Arc-Fitter** (0 KB, MIT)：58mm/75mm 圓形胸章極座標弧形展開與 3mm 馬口鐵包邊折痕出血生成。
 - **Trapping-Master** (0 KB, MIT)：自動印刷補邊與陷印，消除機台套準震動造成的漏白縫隙。
@@ -149,7 +141,6 @@
 - **SpineWidth-Calculator** (0 KB, MIT)：基重 (gsm) 與頁數精確推導 0.1mm 級膠裝/精裝書背厚度。
 - **DeltaE-Gamut-Remapper** (~1 MB, MIT)：CIECAM02 視覺感知色域映射，保留 RGB 霓虹色印刷活力。
 - **ShadowHighlight-HDR-Toner** (~3 MB, Apache 2.0)：14 EV 手機 HDR 動態範圍平滑壓縮至 5.5 EV 紙張反射率。
-- **TextCurvature-Unbender** (~3 MB, Apache 2.0)：圓形印章與瓶身杯身環狀弧形文字展開拉直。
 - **Photo-To-Vector-Silhouette** (~4 MB, MIT)：照片一鍵生成高對比純單色向量剪影刀模。
 - **GripMargin-Checker** (0 KB, MIT)：平版印刷機 10mm 夾爪咬口 (Gripper Margin) 碰撞自動預警。
 - **Metallic-Sheen-Renderer** (~2 MB, MIT)：薄膜干涉與 BRDF 物理渲染鐳射彩虹反光動態。
