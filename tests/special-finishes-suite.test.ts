@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { LineartExtractor } from '../src/core/lineart-extractor';
 import { PaperTextureEngine } from '../src/core/paper-texture-engine';
-import { RisoSeparator } from '../src/core/riso-separator';
 import { QrPreflightEnhancer } from '../src/core/qr-preflight-enhancer';
 
 describe('Special Finishes & Artisanal Pre-Press Suite', () => {
@@ -30,15 +29,6 @@ describe('Special Finishes & Artisanal Pre-Press Suite', () => {
     const kraft = PaperTextureEngine.applyTexture(img, 'kraft', 0.5);
     expect(linen.width).toBe(15);
     expect(kraft.width).toBe(15);
-  });
-
-  it('RisoSeparator: should separate artwork into discrete spot color plates', () => {
-    const img = createMockImageData(25, 25);
-    const plates = RisoSeparator.separatePlates(img, 3);
-    expect(plates.length).toBe(3);
-    expect(plates[0].inkName).toContain('Black');
-    expect(plates[1].inkName).toContain('Pink');
-    expect(plates[0].plateImageData.width).toBe(25);
   });
 
   it('QrPreflightEnhancer: should evaluate scan safety of QR codes', () => {

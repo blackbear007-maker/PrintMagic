@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { OgvSeparator } from '../src/core/ogv-separator';
 import { CrystalUvHeightmap } from '../src/core/crystal-uv-heightmap';
-import { SaddleStitchCreep } from '../src/core/saddle-stitch-creep';
 
 describe('Master-Level Pre-Press & Fine Art Reproduction Suite', () => {
   const createMockImageData = (w: number, h: number): ImageData => {
@@ -29,14 +28,5 @@ describe('Master-Level Pre-Press & Fine Art Reproduction Suite', () => {
     expect(layers.totalReliefDepthMm).toBe(0.32);
     expect(layers.whiteUnderbaseMask.width).toBe(25);
     expect(layers.varnishHeightmap.width).toBe(25);
-  });
-
-  it('SaddleStitchCreep: should calculate progressive shingling offsets to prevent inner page creep', () => {
-    const plan = SaddleStitchCreep.calculateCreepPlan(32, 120);
-    expect(plan.totalPages).toBe(32);
-    expect(plan.sheetCount).toBe(8);
-    expect(plan.maxCreepMm).toBeGreaterThan(0);
-    expect(plan.pageShifts.length).toBe(32);
-    expect(plan.recommendations.length).toBeGreaterThan(0);
   });
 });

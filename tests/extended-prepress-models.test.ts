@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 import { DescreenEngine } from '../src/core/descreen-engine';
 import { FaceRestorer } from '../src/core/face-restorer';
 import { SmartCropper } from '../src/core/smart-cropper';
-import { VintageColorizer } from '../src/core/vintage-colorizer';
 import { FontMatcher } from '../src/core/font-matcher';
 
 describe('Extended Commercial Open-Source Pre-Press AI Suite', () => {
@@ -49,20 +48,6 @@ describe('Extended Commercial Open-Source Pre-Press AI Suite', () => {
     expect(crop.width).toBe(1000);
     expect(crop.height).toBe(600);
     expect(crop.y).toBe(120); // 30% top bias preserving head
-  });
-
-  it('VintageColorizer: should inject natural warm chrominance into monochrome photos', () => {
-    const img = createMockImageData(25, 25);
-    // Set to perfect grayscale (R = G = B = 150)
-    for (let i = 0; i < img.data.length; i += 4) {
-      img.data[i] = 150;
-      img.data[i + 1] = 150;
-      img.data[i + 2] = 150;
-    }
-    const res = VintageColorizer.colorize(img, 0.85);
-    expect(res.width).toBe(25);
-    expect(res.height).toBe(25);
-    expect(res.data[0]).toBeGreaterThan(res.data[2]); // Warm red > blue
   });
 
   it('FontMatcher: should recommend matching Google Fonts with open licenses', () => {

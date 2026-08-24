@@ -6,11 +6,8 @@ import { NestingOptimizer } from '../src/core/nesting-optimizer';
 import { DotgainPredictor } from '../src/core/dotgain-predictor';
 import { BarcodeVectorSynthesizer } from '../src/core/barcode-vector-synthesizer';
 import { SpotUvDilator } from '../src/core/spot-uv-dilator';
-import { PackagingCreaseFold } from '../src/core/packaging-crease-fold';
-import { SpineWidthCalculator } from '../src/core/spine-width-calculator';
 import { GamutRemapper } from '../src/core/gamut-remapper';
 import { HdrToner } from '../src/core/hdr-toner';
-import { VectorSilhouette } from '../src/core/vector-silhouette';
 import { GripMarginChecker } from '../src/core/grip-margin-checker';
 import { MetallicSheenRenderer } from '../src/core/metallic-sheen-renderer';
 import { ScreenAngleOptimizer } from '../src/core/screen-angle-optimizer';
@@ -76,50 +73,32 @@ describe('Advanced Commercial Pre-Press Enhancements Suite', () => {
     expect(res.width).toBe(20);
   });
 
-  it('08. PackagingCreaseFold: should validate tuck flap clearances for 3D box folding', () => {
-    const res = PackagingCreaseFold.validateBoxDieLine(80, 120, 40);
-    expect(res.isValidBox).toBe(true);
-    expect(res.panelCount).toBe(6);
-  });
-
-  it('09. SpineWidthCalculator: should calculate precise millimeter spine thickness', () => {
-    const res = SpineWidthCalculator.calculateSpine(120, 100, 'perfect');
-    expect(res.spineWidthMm).toBeGreaterThan(0);
-    expect(res.recommendations.length).toBeGreaterThan(0);
-  });
-
-  it('10. GamutRemapper: should remap neon out-of-gamut colors to ISO CMYK safety', () => {
+  it('08. GamutRemapper: should remap neon out-of-gamut colors to ISO CMYK safety', () => {
     const img = createMockImageData(10, 10);
     const res = GamutRemapper.remapGamut(img);
     expect(res.width).toBe(10);
   });
 
-  it('11. HdrToner: should compress 14EV dynamic range into 5EV paper reflectance', () => {
+  it('09. HdrToner: should compress 14EV dynamic range into 5EV paper reflectance', () => {
     const img = createMockImageData(15, 15);
     const res = HdrToner.toneMap(img, 0.8, 0.7);
     expect(res.width).toBe(15);
   });
 
-  it('13. VectorSilhouette: should extract single-color vector silhouette', () => {
-    const img = createMockImageData(15, 15);
-    const res = VectorSilhouette.extractSilhouette(img, 130);
-    expect(res.width).toBe(15);
-  });
-
-  it('14. GripMarginChecker: should verify press mechanical gripper margin clearances', () => {
+  it('10. GripMarginChecker: should verify press mechanical gripper margin clearances', () => {
     const img = createMockImageData(50, 50);
     const res = GripMarginChecker.checkGripperMargin(img, 10, 300);
     expect(res).toHaveProperty('hasGripperCollision');
     expect(res.gripperMarginMm).toBe(10);
   });
 
-  it('15. MetallicSheenRenderer: should render interactive rainbow thin-film sheen', () => {
+  it('11. MetallicSheenRenderer: should render interactive rainbow thin-film sheen', () => {
     const img = createMockImageData(20, 20);
     const res = MetallicSheenRenderer.renderMetallicSheen(img, 45, 0.8);
     expect(res.width).toBe(20);
   });
 
-  it('19. ScreenAngleOptimizer: should verify ISO 12647-2 rosette collision angles', () => {
+  it('12. ScreenAngleOptimizer: should verify ISO 12647-2 rosette collision angles', () => {
     const res = ScreenAngleOptimizer.verifyScreenAngles(15, 75, 0, 45);
     expect(res.isOptimal).toBe(true);
     expect(res.rosetteQuality).toBe('clean');

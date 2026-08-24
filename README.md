@@ -69,47 +69,53 @@
 │ 4. ☀️ 手機拍照光照均勻化     │ 5. 🌊 漸層防斷階去階梯紋      │ 6. 🔪 印刷微細邊緣 USM 銳化   │
 │   • Deshadow 抹除手部陰影     │   • DGF-Net + 藍噪點抖動      │   • 補償紙張吸墨擴散 (Dot Gain)│
 ├───────────────────────────────┼───────────────────────────────┼───────────────────────────────┤
-│ 7. 🌓 暗部階調防死黑 (Lift)   │ 8. 🛡️ 總墨量 TAC ≤300% 壓制   │ 9. 🔤 純黑 K100 向量文字轉曲  │
-│   • S 曲線提升暗部細節防暗沉  │   • 防止背面吸墨沾黏          │   • 消除 4 色混墨重影毛邊     │
-├───────────────────────────────┴───────────────────────────────┴───────────────────────────────┤
-│ 10. 🎯 7 大維度印前公證評分 (PrintScore 0~100 分) + Pantone 色票配對 + 條碼光學驗證           │
-└───────────────────────────────────────────────────────────────────────────────────────────────┘
-```
+│ 7. 🌓 暗部階調防死黑 (Lift)   │ 8. 🛡️ 總墨量 TAC ≤300% 壓制   �- **`Seam-Carving-Canvas-Fitter`** (1 MB)：智慧內容感知畫面延展，16:9 轉 A4 主體不變形。
+- **`Canvas-Wrap-Mirror-Builder`** (0 KB)：無框畫 4 面 3.5cm 立體包邊鏡像延伸，正面完整不切人臉。
+- **`Grid-Splitter-Multi-Panel`** (0 KB)：巨幅海報多張 A4 拼印神器，自動分割帶 5mm 重疊對位十字。
+- **`Holographic-Foil-Masker`** (0 KB)：鐳射雷射貼紙透光白墨遮罩，背景閃耀彩虹光芒、人物顯色。
+- **`Folded-Greeting-Card-Imposer`** (0 KB)：對折卡片/邀請函自動正反倒轉拼版，中央附帶壓痕對折定位。
+- **`Fluorescent-Neon-Ink-Extractor`** (0 KB)：螢光粉/螢光綠第 5 專色獨立膠片分色出片生成。
+- **`Watermark-Stamp-Remover`** (2.5 MB)：相片樣張日期戳記與水印智慧抹除，局部紋理流體平滑修補。
+- **`Business-Card-Smart-Aligner`** (1.0 MB)：名片文字瑞士網格自動對齊，基線網格吸附排版。
 
----
-
-## 🧠 19 款開源商用 AI 模型陣列
-
-全站堅持 **100% 自由開源商用協議（MIT / Apache 2.0 / BSD）**，絕無任何外部按次收費 API 帳單：
-
-### 1. 超解析度與修復 (Super-Resolution Suite)
-- **`Real-ESRGAN Compact`** (12 MB, BSD-3)：文字、插畫與包裝設計綜合重構王者。
-- **`HAT-S`** (28 MB, Apache 2.0)：2024 SOTA 混合注意力 Transformer，真實重構寫實攝影毛孔與布料紋理。
-- **`Anime4K`** (5 MB, MIT)：動漫二次元墨線銳化，墨色如向量貝茲曲線般漆黑結實。
-- **`SwinIR-Lite`** (24 MB, Apache 2.0)：去 8x8 DCT JPEG 壓縮雜訊 + 4x 超解析二合一。
-- **`FSRCNN`** (150 KB, BSD)：畫布 20x 放大鏡即時預覽。
-- **`本機 Lanczos-3`** (0 KB, MIT)：0ms 純本機離線 Sinc 濾波插值。
-
-### 2. 出血外推與影像生長 (Bleed Outpainting Suite)
-- **`AOT-GAN Lite`** (28 MB, Apache 2.0)：多孔徑上下文聚合，大自然風景/天空/草地自然外推。
-- **`MAT-Lite`** (32 MB, MIT)：遮罩感知 Transformer，深遠透視地平線與建築空間延伸。
-- **`LaMa-Lite`** (25 MB, Apache 2.0)：快速傅立葉頻域卷積，幾何磚牆與重複圖騰外推。
-- **`OpenCV Telea`** (2 MB, Apache 2.0)：Navier-Stokes 流體力學偏微分平滑過渡。
-- **`基礎邊界拉伸`** (0 KB, MIT)：0ms 極速 100% 防白邊。
-
-### 3. 印前色彩與特殊工藝模型
-- **`OGV-ExpandedGamut-Separator`** (0 KB)：7 色廣色域分色 (CMYK+OGV)，覆蓋率達 92%。
-- **`CrystalUV-Heightmap-Builder`** (0 KB)：UV 水晶標/立體浮雕白墨底版 + 5 階光油高度貼圖。
-- **`SaddleStitch-Creep-Compensator`** (0 KB)：多頁騎馬釘裝訂紙厚外推爬移 (Creep) 幾何補償。
-- **`InkWash-Diffusion-Engine`** (1.5 MB)：宣紙水墨毛細管擴散與字畫 Giclée 藝術微噴模擬。
-- **`AncientTypeface-Restorer`** (4 MB)：古籍善本木刻字模斷筆修復與鉛字毛刺撫平。
-
-### 4. 使用者端圖片轉印刷專用優化引擎 (User-Facing Prepress Suite)
-- **`Deep-Shadow-Detail-Revealer`** (0 KB)：暗部防死黑層次還原，防止實體吸墨成大黑斑。
-- **`Hairline-Thickener-Guard`** (0 KB)：細線防斷印自動增厚至 0.12mm 安全印刷線寬。
-- **`Pure-White-Clean-Up`** (0 KB)：相片/手繪背景一鍵去灰去髒，230~255 RGB 拉平純白省墨。
-- **`Skin-Tone-Cyan-Suppressor`** (0 KB)：人像膚色去青去濁，壓制青墨並微調 M+Y 黃金比例。
-- **`Color-Banding-DeContour`** (0 KB)：大面積漸層防斷階平滑器，高頻藍噪點消除階梯紋。
+### 5. 純演算法 100% 無腦全自動印前物理引擎 (Pure Mathematical 0-KB Suite)
+- **`Kubelka-Munk-Mixer`** (0 KB)：Kubelka-Munk 物理減法混色模擬，雙流輻射傳遞消除螢幕加法色差。
+- **`CAT02-Color-Temperature`** (0 KB)：CIECAM02 CAT02 色適應變換，冷白日光燈翻拍自動校正為 5500K 暖日光。
+- **`GCR-Gray-Maximizer`** (0 KB)：中性深灰 100% 黑版替代最大化，消除印刷機震動偏色並省墨 35%。
+- **`Local-Laplacian-Toner`** (0 KB)：多尺度拉普拉斯金字塔動態壓縮，高光陰影平衡且鎖死微反差細節。
+- **`Adaptive-Wiener-Deblur`** (0 KB)：自適應維納逆卷積去模糊，頻域逆濾波 0.005s 瞬間重新聚焦手震線條。
+- **`Highpass-Dotgain-Crispener`** (0 KB)：3x3 高通空間卷積邊緣反差微銳化，物理抵消紙張吸墨網點擴大。
+- **`Paper-White-Compensator`** (0 KB)：紙張介質底色反向色彩預補償，修正米黃/牛皮底紙造成的膚色發黃。
+- **`Duplex-Alignment-Balancer`** (0 KB)：雙面列印正反面透光重合幾何平衡，左右咬口對稱消除 3mm 錯位。
+- **`Corner-Radius-Mitering`** (0 KB)：R3/R5/R8 圓角安全邊距自動檢驗，布林運算防止圓角刀切除四角圖標。
+- **`Auto-Keystone-Rectifier`** (0 KB)：100% 全自動輪廓四角偵測與單應性矩陣拉正，零手動拖曳。
+- **`Circle-Badge-Arc-Fitter`** (0 KB)：58mm/75mm 圓形胸章極座標弧形展開與 3mm 馬口鐵包邊折痕出血生成。
+- **`Trapping-Master`** (0 KB)：自動印刷補邊與陷印，消除機台套準震動漏白。
+- **`MetallicFoil-Separator`** (2 MB)：燙金/燙銀/燙雷射獨立 100% K100 鋅版出片遮罩。
+- **`UCR/GCR Under-Color-Removal`** (0 KB)：底色去除與黑版替代，減少 30% 暗部油墨防背印。
+- **`Nesting-Optimizer`** (2 MB)：異形貼紙 2D 凸包旋轉排版，A3/A4 紙張利用率達 90%。
+- **`CMYK-DotGain-Predictor`** (0 KB)：Murray-Davies 實體網點擴大預補償，消除印刷變黑。
+- **`Barcode-Vector-Synthesizer`** (500 KB)：GS1 EAN-13 / Code-128 純向量 K100 條碼重構。
+- **`Varnish-SpotUV-Dilator`** (0 KB)：局部上光 (Spot UV) 0.15mm 套準溢光補償。
+- **`Packaging-Crease-Fold3D`** (4 MB)：包裝紙盒 2D 刀模壓痕驗證與 3D 摺疊網格推導。
+- **`SpineWidth-Calculator`** (0 KB)：基重 (gsm) 與頁數精確推導 0.1mm 級膠裝/精裝書背厚度。
+- **`DeltaE-Gamut-Remapper`** (1 MB)：CIECAM02 視覺感知色域映射，保留 RGB 霓虹色印刷活力。
+- **`ShadowHighlight-HDR-Toner`** (3 MB)：14 EV 手機 HDR 動態範圍平滑壓縮至 5.5 EV 紙張反射率。
+- **`GripMargin-Checker`** (0 KB)：平版印刷機 10mm 夾爪咬口 (Gripper Margin) 碰撞預警。
+- **`Metallic-Sheen-Renderer`** (2 MB)：薄膜干涉與 BRDF 物理渲染鐳射彩虹反光動態。
+- **`ScreenAngle-Optimizer`** (0 KB)：ISO 12647-2 四色網點角度 (C:15, M:75, Y:0, K:45) 撞網防護。
+- **`LineArt-Extractor`** (9 MB)：彩色插畫/照片一鍵提取純黑 K100 單色線稿。
+- **`PaperTexture-Engine`** (2 MB)：3D 物理法線貼圖模擬萊妮、牛皮、水彩紙微觀手感。
+- **`RisoSeparator`** (1 MB)：衣服網版絹印 / Risograph 孔版印刷 2~6 專色分色膠片。
+- **`QR-Preflight-Enhancer`** (1.5 MB)：菜單 QR Code 容錯率驗證與純黑向量重構。
+- **`DeGlare-Net`** (12 MB)：自動抹除玻璃裱框與壓克力反光眩光。
+- **`AOD-Net DeHaze`** (5 MB)：大氣透霧水氣穿透，還原深邃藍天與高對比。
+- **`Homography-Net`** (4 MB)：斜拍梯形視角單應性變換 90° 垂直拉正。
+- **`Scratch-Net`** (14 MB)：實體老照片紙張折痕、白色裂紋與霉斑修補。
+- **`Moiré-Lite / DeScreen`** (8 MB)：過濾翻拍實體印刷品網點與二次摩爾紋。
+- **`CodeFormer-Lite / FaceRestorer`** (18 MB)：人像瞳孔、睫毛與自然笑臉微對比重構。
+- **`GAIC-Lite / SmartCropper`** (3 MB)：跨長寬比黃金分割構圖與防切頭保護。
+- **`FontMatcher-Lite`** (6 MB)：視覺字體辨識與 Google Fonts 開源字庫配對。ing-DeContour`** (0 KB)：大面積漸層防斷階平滑器，高頻藍噪點消除階梯紋。
 - **`RGB-To-CMYK-Vibrancy-Rescuer`** (1 MB)：RGB 轉 CMYK 鮮豔度拯救，保留霓虹光暈質感。
 - **`Acrylic-Charm-Dieline-Builder`** (0 KB)：壓克力立牌/吊飾一鍵生成 2mm 圓滑刀模線與白墨層。
 - **`Sticker-KissCut-Border-Generator`** (0 KB)：手帳貼紙萌系 1.5~2mm 圓滑白邊與半斷刀模路徑。

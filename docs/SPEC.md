@@ -94,9 +94,7 @@
 - **Barcode-QR-Legibility-Fixer** (~500 KB, MIT)：模糊點陣條碼與 QR 碼一鍵重構純黑 K100 向量碼，保證 100% 秒掃。
 - **Passport-Head-Proportion-Aligner** (~2 MB, MIT)：台灣與國際 2 吋護照大頭照 70%~80% (3.2~3.6cm) 頭頂自動校準。
 - **Seam-Carving-Canvas-Fitter** (~1 MB, MIT)：智慧內容感知畫面延展，16:9 轉 A4/名片主體完全不變形。
-- **Edge-Bleed-Feathering-Inpainter** (0 KB, MIT)：照片邊緣漸層羽化，無縫融入馬克杯與周邊商品底色。
 - **Canvas-Wrap-Mirror-Builder** (0 KB, MIT)：無框畫 4 面 3.5cm 立體包邊鏡像延伸，正面 100% 完整不切人臉。
-- **Photo-Frame-Mat-Generator** (0 KB, MIT)：畫廊卡紙裝裱內襯白邊生成器，自動計算 2:3/3:4 比例與 45° 倒角陰影。
 - **Grid-Splitter-Multi-Panel** (0 KB, MIT)：巨幅海報多張 A4 拼印神器，自動分割帶 5mm 重疊對位十字虛線。
 - **Holographic-Foil-Masker** (0 KB, MIT)：鐳射雷射貼紙透光白墨遮罩，背景閃耀彩虹光芒、人物清晰顯色。
 - **Folded-Greeting-Card-Imposer** (0 KB, MIT)：對折卡片/邀請函自動正反倒轉拼版，中央附帶壓痕對折定位。
@@ -141,7 +139,6 @@
 - **SpineWidth-Calculator** (0 KB, MIT)：基重 (gsm) 與頁數精確推導 0.1mm 級膠裝/精裝書背厚度。
 - **DeltaE-Gamut-Remapper** (~1 MB, MIT)：CIECAM02 視覺感知色域映射，保留 RGB 霓虹色印刷活力。
 - **ShadowHighlight-HDR-Toner** (~3 MB, Apache 2.0)：14 EV 手機 HDR 動態範圍平滑壓縮至 5.5 EV 紙張反射率。
-- **Photo-To-Vector-Silhouette** (~4 MB, MIT)：照片一鍵生成高對比純單色向量剪影刀模。
 - **GripMargin-Checker** (0 KB, MIT)：平版印刷機 10mm 夾爪咬口 (Gripper Margin) 碰撞自動預警。
 - **Metallic-Sheen-Renderer** (~2 MB, MIT)：薄膜干涉與 BRDF 物理渲染鐳射彩虹反光動態。
 - **ScreenAngle-Optimizer** (0 KB, MIT)：ISO 12647-2 四色網點角度 (C:15, M:75, Y:0, K:45) 撞網防護。
@@ -156,7 +153,6 @@
 - **Moiré / DeScreen-Net** (~8 MB, MIT)：過濾掃描/翻拍實體印刷品的蜂巢狀網點與二次干涉摩爾紋。
 - **CodeFormer-Lite / FaceRestorer** (~18 MB, Apache 2.0)：人臉先驗特徵重構，瞳孔高光、睫毛與自然笑臉微對比增強。
 - **GAIC-Lite / SmartCropper** (~3 MB, MIT)：美學顯著度感知，跨長寬比切換時黃金分割防切頭構圖。
-- **DDColor-Lite / VintageColorizer** (~22 MB, Apache 2.0)：雙解耦神經網絡，黑白/復古老照片智慧擬真上色。
 - **FontMatcher-Lite** (~6 MB, Apache 2.0)：視覺字體特徵分類與 Google Fonts 開源商用字庫精確配對。
 - **Zero-DCE++** (~79 KB, MIT)：深度可分離卷積非線性曲線調光，防止暗部印刷死黑。
 - **Deshadow-Net** (~5 MB, MIT)：Retinex 光照場均勻化，抹除手機翻拍實體作品的手部黑影。
