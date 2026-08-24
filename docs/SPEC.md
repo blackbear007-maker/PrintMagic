@@ -118,6 +118,12 @@
 - **Luxury-Embossing-Bevel-Builder** (0 KB, MIT)：名媛喜帖/頂級名片立體打凸浮雕高度圖，45° 倒角灰階圖直通鋅版雕刻機。
 - **Giclee-FineArt-Dmax-Toner** (0 KB, MIT)：博物館級藝術微噴黑階深度與紙張動態增強，Ansel Adams 11 階動態擴展。
 - **Apparel-HangTag-Planner** (0 KB, MIT)：獨立服飾品牌吊牌排版與 3.5mm 穿繩打孔規劃，自動拼滿 A4/A3。
+- **Chromatic-Aberration-Corrector** (0 KB, MIT)：珠寶飾品/白紗邊緣紫綠光學色差消減器，亞像素級色相修復。
+- **Fabric-Moire-Neutralizer** (0 KB, MIT)：服飾型錄/千鳥格/絲綢抗印刷撞網防護，Gabor 小波消除干涉波紋。
+- **Neon-Halation-Compressor** (0 KB, MIT)：發光燈箱/霓虹招牌防死白光暈壓縮，動態重灌飽和發光中性色。
+- **Packaging-3D-Mockup-Renderer** (0 KB, MIT)：電商彩盒/手提袋 3D 實體預覽與燙金打光，即時軸測投影渲染。
+- **FlatField-Vignette-Corrector** (0 KB, MIT)：廣角鏡頭四角暗角平坦化校正，反向 cos^4 光學增益防黑斑。
+- **RedEye-Pupil-Fixer** (0 KB, MIT)：婚宴派對閃光燈紅眼/白瞳孔智慧修復，還原天然黑色素與眼神高光。
 
 ### 2.5 純演算法 100% 無腦全自動印前物理引擎 (Pure Mathematical 0-KB Pre-Press Suite)
 - **Kubelka-Munk-Mixer** (0 KB, MIT)：Kubelka-Munk 物理減法混色模擬，雙流輻射傳遞消除螢幕加法色差。
