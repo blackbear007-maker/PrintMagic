@@ -1340,9 +1340,11 @@ class App {
       Toast.info(`✨ 偵測到 2 張作品，已自動為您綁定為【正面 + 背面】雙面合版印刷！`);
     }
 
-    // Auto-detect Scene & Image Category
-    const scene = SceneClassifier.classifyImage(firstItem.originalImageData);
-    this.xiangAssistant?.say(`🎯 偵測到為【${scene.categoryIcon} ${scene.categoryNameZh}】！已為您自動匹配【${autoPreset.nameZh}】並套用最佳專屬模型（${scene.recommendedPipeline.superResolutionModel} 與 ${scene.recommendedPipeline.outpaintingModel}）！`, 7500);
+    // Auto-detect Scene & Image Category (Multi-Spectral + EXIF Sniffing)
+    const fileBytes = firstItem.file ? await firstItem.file.arrayBuffer() : undefined;
+    const scene = SceneClassifier.classifyImage(firstItem.originalImageData, fileBytes);
+    const traitInfo = scene.detectedTraits.length > 0 ? ` (${scene.detectedTraits[0]})` : '';
+    this.xiangAssistant?.say(`🎯 偵測到為【${scene.categoryIcon} ${scene.categoryNameZh}${traitInfo}】！已為您自動匹配【${autoPreset.nameZh}】並套用最佳專屬模型（${scene.recommendedPipeline.superResolutionModel}）！`, 7500);
     Toast.success(`✨ 智慧辨識：【${scene.categoryIcon} ${scene.categoryNameZh}】· 已自動適配最佳專屬模型！`);
 
     // Show/hide backside quick prompt based on preset and batch count

@@ -105,4 +105,30 @@ describe('Intelligent Pre-Press Scene & Image Type Auto-Classifier', () => {
     expect(res.category).toBe('landscape');
     expect(res.categoryNameZh).toContain('風景');
   });
+
+  it('should detect Food / Dish when warm appetite hues are dominant', () => {
+    const img = createBlankImageData(50, 50);
+    // Fill with warm roasted food colors (R: 210, G: 110, B: 30)
+    for (let i = 0; i < img.data.length; i += 4) {
+      img.data[i] = 210;
+      img.data[i + 1] = 110;
+      img.data[i + 2] = 30;
+      img.data[i + 3] = 255;
+    }
+
+    const res = SceneClassifier.classifyImage(img);
+    expect(res.category).toBe('food');
+    expect(res.categoryNameZh).toContain('美食');
+    expect(res.recommendedPipeline.superResolutionModel).toContain('FoodMenuMouthwatering');
+  });
+
+  it('should instantly identify Anime via Clip Studio Paint EXIF software tag', () => {
+    const img = createBlankImageData(20, 20);
+    const mockFileBytes = new TextEncoder().encode('ICC_PROFILE...Software: Clip Studio Paint 2.0...Photoshop');
+
+    const res = SceneClassifier.classifyImage(img, mockFileBytes);
+    expect(res.category).toBe('anime');
+    expect(res.confidence).toBeGreaterThanOrEqual(0.99);
+    expect(res.detectedTraits.some(t => t.includes('Clip Studio'))).toBe(true);
+  });
 });
