@@ -154,33 +154,33 @@ export class SceneClassifier {
       };
     }
 
-    // Rule 4: Realistic Human Portrait / Photo
-    if (skinRatio > 0.12) {
+    // Rule 4: Realistic Human Portrait / Photo / Wedding
+    if (skinRatio > 0.10) {
       return {
         category: 'portrait',
         categoryNameZh: '寫實人像 / 婚紗寫真',
         categoryIcon: '📷',
-        confidence: 0.91,
+        confidence: 0.93,
         recommendedPipeline: {
-          superResolutionModel: 'HAT-S (皮膚毛孔真實細節)',
+          superResolutionModel: 'HAT-S + WeddingSkinPorePreserver (高低頻毛孔保留磨皮)',
           outpaintingModel: 'Deshadow-Net (手機光照均勻化)',
-          specialCraft: 'SCUNet-Lite (實用盲去噪)',
-          reasonZh: '偵測到寫實人物肌膚，已自動套用 HAT-S 毛孔真細節重建與去陰影。'
+          specialCraft: 'PhotocardHoloGlitter (碎玻璃閃底) / 畫廊卡紙裝裱',
+          reasonZh: '偵測到寫實人物肌膚，已全自動啟動高低頻毛孔保留磨皮與 HAT-S 超解析度。'
         }
       };
     }
 
-    // Rule 5: Default Landscape / Scenery / Fine Art
+    // Rule 5: Default Landscape / Scenery / Fine Art / Commercial Display
     return {
       category: 'landscape',
       categoryNameZh: '風景 / 攝影 / 展覽大圖',
       categoryIcon: '🏞️',
       confidence: 0.88,
       recommendedPipeline: {
-        superResolutionModel: 'SwinIR + HAT-S (超解析度)',
+        superResolutionModel: 'SwinIR + RollupBannerScaler (展架巨幅瓦片超解析)',
         outpaintingModel: 'AOT-GAN + MAT-Lite (深度透視外推)',
-        specialCraft: 'DGF-Net (平滑天空漸層防斷階)',
-        reasonZh: '偵測到廣色域風景大圖，已自動套用 AOT-GAN 背景生長與漸層防斷階。'
+        specialCraft: 'GicleeFineArtDmax (博物館級微噴 Dmax 增強)',
+        reasonZh: '偵測到廣色域大圖與藝術攝影，已全自動套用 AOT-GAN 背景生長與藝術微噴 Dmax 增強。'
       }
     };
   }

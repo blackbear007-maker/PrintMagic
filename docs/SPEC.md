@@ -110,6 +110,14 @@
 - **Watercolor-Bleed-Softener** (0 KB, MIT)：水彩畫紙水痕浸潤模擬，邊緣生成自然水痕沉澱邊框。
 - **Price-Tag-Batch-Tiler** (0 KB, MIT)：市集商品標籤一鍵滿版排版，自動拼版排滿 A4 貼紙頁。
 - **Business-Card-Smart-Aligner** (~1.0 MB, MIT)：名片文字瑞士網格自動對齊，基線網格吸附排版。
+- **Wedding-Skin-Pore-Preserver** (0 KB, MIT)：婚紗寫真天然微晶磨皮，高低頻空間分離 100% 鎖死毛孔細節。
+- **Photocard-Holo-Glitter-Masker** (0 KB, MIT)：K-Pop 偶像小卡/動漫碎玻璃閃粉遮罩，分離人物白墨與雷射碎晶背景。
+- **Food-Menu-Mouthwatering-Toner** (0 KB, MIT)：餐廳菜單美食色澤垂涎誘人增豔，600~650nm 暖紅黃與油脂反光提亮。
+- **Rollup-Banner-Gigantic-Scaler** (0 KB, MIT)：易拉寶/80x200cm 商業大圖展架瓦片分塊超解析，前端 0 崩潰輸出。
+- **Packaging-Box-Dieline-Gen** (0 KB, MIT)：電商飛機盒/扣底彩盒參數化 3D 刀模生成器，包含壓痕虛線與 15mm 糊邊。
+- **Luxury-Embossing-Bevel-Builder** (0 KB, MIT)：名媛喜帖/頂級名片立體打凸浮雕高度圖，45° 倒角灰階圖直通鋅版雕刻機。
+- **Giclee-FineArt-Dmax-Toner** (0 KB, MIT)：博物館級藝術微噴黑階深度與紙張動態增強，Ansel Adams 11 階動態擴展。
+- **Apparel-HangTag-Planner** (0 KB, MIT)：獨立服飾品牌吊牌排版與 3.5mm 穿繩打孔規劃，自動拼滿 A4/A3。
 
 ### 2.5 純演算法 100% 無腦全自動印前物理引擎 (Pure Mathematical 0-KB Pre-Press Suite)
 - **Kubelka-Munk-Mixer** (0 KB, MIT)：Kubelka-Munk 物理減法混色模擬，雙流輻射傳遞消除螢幕加法色差。
