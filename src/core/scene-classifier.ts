@@ -195,7 +195,7 @@ export class SceneClassifier {
     }
 
     // 2. Document / Business Card / Certificate (High Otsu variance + High light background)
-    if (lightBgRatio > 0.45 && darkLineRatio > 0.03 && satRatio < 0.20 && otsuSeparation > 2500) {
+    if (lightBgRatio > 0.40 && darkLineRatio > 0.02 && satRatio < 0.20 && otsuSeparation > 800) {
       traits.push(`Otsu 雙峰方差: ${otsuSeparation.toFixed(0)} (高反差黑白文字)`);
       traits.push(`白底佔比: ${(lightBgRatio * 100).toFixed(1)}%`);
       return {
