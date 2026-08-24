@@ -3,7 +3,6 @@ import { DeglareEngine } from '../src/core/deglare-engine';
 import { DehazeEngine } from '../src/core/dehaze-engine';
 import { HomographyRectifier } from '../src/core/homography-rectifier';
 import { ScratchRestorer } from '../src/core/scratch-restorer';
-import { GuillocheGuard } from '../src/core/guilloche-guard';
 
 describe('Professional Specialized Pre-Press AI Suite', () => {
   const createMockImageData = (w: number, h: number): ImageData => {
@@ -58,13 +57,5 @@ describe('Professional Specialized Pre-Press AI Suite', () => {
     const res = ScratchRestorer.restoreScratches(img, 0.9);
     expect(res.width).toBe(20);
     expect(res.height).toBe(20);
-  });
-
-  it('GuillocheGuard: should verify microprint fine line separation clearance', () => {
-    const img = createMockImageData(40, 40);
-    const report = GuillocheGuard.verifyGuilloche(img, 300);
-    expect(report).toHaveProperty('isSafeForPrint');
-    expect(report).toHaveProperty('minLineGapMm');
-    expect(report.recommendations.length).toBeGreaterThan(0);
   });
 });

@@ -51,7 +51,6 @@
 - **CrystalUV-Heightmap-Builder** (0 KB, MIT)：UV 水晶標/立體浮雕自動生成 100% 遮底白墨層 + 5階立體光油高度貼圖。
 - **SaddleStitch-Creep-Compensator** (0 KB, MIT)：多頁手冊騎馬釘裝訂紙厚外推爬移 (Creep) 遞進幾何內縮補償。
 - **InkWash-Diffusion-Engine** (~1.5 MB, MIT)：生宣/熟宣紙毛細管擴散模擬與水墨字畫 Giclée 藝術微噴飛白還原。
-- **AncientTypeface-Restorer** (~4 MB, MIT)：古籍刻本與活字排版漢字骨架修復，自動補齊斷筆缺角與撫平鉛字毛刺。
 
 ### 2.4 使用者端圖片轉印刷專用優化引擎 (User-Facing Image Pre-Press Suite)
 - **Deep-Shadow-Detail-Revealer** (0 KB, MIT)：暗部防死黑層次還原，拉開 0%~15% 深色階調，防止實體吸墨成大黑斑。
@@ -80,7 +79,6 @@
 - **Grid-Splitter-Multi-Panel** (0 KB, MIT)：巨幅海報多張 A4 拼印神器，自動分割帶 5mm 重疊對位十字虛線。
 - **Holographic-Foil-Masker** (0 KB, MIT)：鐳射雷射貼紙透光白墨遮罩，背景閃耀彩虹光芒、人物清晰顯色。
 - **Folded-Greeting-Card-Imposer** (0 KB, MIT)：對折卡片/邀請函自動正反倒轉拼版，中央附帶壓痕對折定位。
-- **Receipt-Fading-Restorer** (0 KB, MIT)：熱感發票/收據褪色加黑搶救，自適應對比度強化至 K100。
 - **Wood-Engraving-Contrast-Toner** (0 KB, MIT)：雷射雕刻木質/皮革高反差轉譯，防止過度燃燒焦黑。
 - **Fluorescent-Neon-Ink-Extractor** (0 KB, MIT)：螢光粉/螢光綠第 5 專色獨立膠片分色出片生成。
 - **Whiteboard-Glare-Keystone** (~1.5 MB, MIT)：白板/簡報翻拍去光斑拉平，抹除高光斑點並拉正為 90° 矩形。
@@ -91,7 +89,6 @@
 - **Bookmark-Tassel-Planner** (0 KB, MIT)：文創書籤 5x15cm 圓角刀模與 4mm 頂部流蘇打孔穿繩定位規劃。
 - **MetalCard-Laser-Masker** (0 KB, MIT)：金屬名片雷雕蝕刻分版，生成 100% K100 雷射露銅去陽極化遮罩。
 - **Watercolor-Bleed-Softener** (0 KB, MIT)：水彩畫紙水痕浸潤模擬，邊緣生成自然水痕沉澱邊框。
-- **Selenium-Monochrome-Toner** (0 KB, MIT)：暗房極致黑白相片硒調色，強化 Dmax ≥ 2.2 沉厚黑度與暖紫光澤。
 - **Price-Tag-Batch-Tiler** (0 KB, MIT)：市集商品標籤一鍵滿版排版，自動拼版排滿 A4 貼紙頁。
 - **Business-Card-Smart-Aligner** (~1.0 MB, MIT)：名片文字瑞士網格自動對齊，基線網格吸附排版。
 
@@ -131,12 +128,10 @@
 - **PaperTexture-Engine** (~2 MB, MIT)：3D 物理法線貼圖即時模擬萊妮、牛皮、水彩紙微觀纖維手感與油墨吸收。
 - **RisoSeparator** (~1 MB, MIT)：衣服網版絹印 / Risograph 孔版印刷 2~6 專色獨立黑色膠片版自動分離。
 - **QR-Preflight-Enhancer** (~1.5 MB, Apache 2.0)：餐廳菜單/名片 QR Code ECC 容錯與高反差對比驗證 + 純黑向量重構。
-- **Braille-Builder** (0 KB, MIT)：標準 6 點盲文點字自動轉譯與 0.3mm 局部上光/打凸鋅版遮罩生成。
 - **DeGlare-Net** (~12 MB, MIT)：自動分離並抹除玻璃裱框、壓克力櫃與光面相紙的刺眼強光眩光。
 - **AOD-Net DeHaze** (~5 MB, MIT)：大氣光透射率估算，1秒穿透霧霾水氣還原深邃藍天與高對比建築。
 - **Homography-Net** (~4 MB, MIT)：四角點單應性幾何變換，將斜拍看板/證書自動拉正為 90° 矩形。
 - **Scratch-Net** (~14 MB, Apache 2.0)：實體老照片紙張長條折痕、白色裂紋與霉斑筆觸級自動修補。
-- **GuillocheGuard** (0 KB, MIT)：0.5pt 防偽微文字與扭索紋開口率 (≥0.08mm) 防黏墨檢驗。
 - **Moiré / DeScreen-Net** (~8 MB, MIT)：過濾掃描/翻拍實體印刷品的蜂巢狀網點與二次干涉摩爾紋。
 - **CodeFormer-Lite / FaceRestorer** (~18 MB, Apache 2.0)：人臉先驗特徵重構，瞳孔高光、睫毛與自然笑臉微對比增強。
 - **GAIC-Lite / SmartCropper** (~3 MB, MIT)：美學顯著度感知，跨長寬比切換時黃金分割防切頭構圖。

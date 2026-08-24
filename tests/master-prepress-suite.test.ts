@@ -3,9 +3,8 @@ import { OgvSeparator } from '../src/core/ogv-separator';
 import { CrystalUvHeightmap } from '../src/core/crystal-uv-heightmap';
 import { SaddleStitchCreep } from '../src/core/saddle-stitch-creep';
 import { InkWashDiffusion } from '../src/core/inkwash-diffusion';
-import { AncientTypefaceRestorer } from '../src/core/ancient-typeface-restorer';
 
-describe('5 Master-Level Pre-Press & Fine Art Reproduction Suite', () => {
+describe('Master-Level Pre-Press & Fine Art Reproduction Suite', () => {
   const createMockImageData = (w: number, h: number): ImageData => {
     const data = new Uint8ClampedArray(w * h * 4);
     for (let i = 0; i < data.length; i += 4) {
@@ -45,13 +44,6 @@ describe('5 Master-Level Pre-Press & Fine Art Reproduction Suite', () => {
   it('InkWashDiffusion: should simulate capillary bleeding on porous Xuan rice paper', () => {
     const img = createMockImageData(20, 20);
     const res = InkWashDiffusion.simulateInkWash(img, 2, 0.7);
-    expect(res.width).toBe(20);
-    expect(res.height).toBe(20);
-  });
-
-  it('AncientTypefaceRestorer: should bridge hairline fractures and broken strokes in ancient movable type', () => {
-    const img = createMockImageData(20, 20);
-    const res = AncientTypefaceRestorer.restoreTypeface(img, 2);
     expect(res.width).toBe(20);
     expect(res.height).toBe(20);
   });

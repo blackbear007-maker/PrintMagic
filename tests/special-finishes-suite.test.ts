@@ -3,7 +3,6 @@ import { LineartExtractor } from '../src/core/lineart-extractor';
 import { PaperTextureEngine } from '../src/core/paper-texture-engine';
 import { RisoSeparator } from '../src/core/riso-separator';
 import { QrPreflightEnhancer } from '../src/core/qr-preflight-enhancer';
-import { BrailleBuilder } from '../src/core/braille-builder';
 
 describe('Special Finishes & Artisanal Pre-Press Suite', () => {
   const createMockImageData = (w: number, h: number): ImageData => {
@@ -48,14 +47,5 @@ describe('Special Finishes & Artisanal Pre-Press Suite', () => {
     expect(report).toHaveProperty('isScanSafe');
     expect(report).toHaveProperty('contrastRatioPercent');
     expect(report.recommendations.length).toBeGreaterThan(0);
-  });
-
-  it('BrailleBuilder: should translate text to Grade-1 Braille dots and generate embossing mask', () => {
-    const translated = BrailleBuilder.translateText('hello 123');
-    expect(translated.length).toBe(9);
-
-    const mask = BrailleBuilder.generateEmbossingMask('VIP PASS', 600, 150);
-    expect(mask.brailleText.length).toBe(8);
-    expect(mask.embossingMaskDataUrl).toContain('data:image/svg+xml');
   });
 });

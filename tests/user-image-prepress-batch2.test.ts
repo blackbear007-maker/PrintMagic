@@ -5,7 +5,6 @@ import { PhotoFrameMat } from '../src/core/photo-frame-mat';
 import { GridSplitterMultiPanel } from '../src/core/grid-splitter-multi-panel';
 import { HolographicFoilMasker } from '../src/core/holographic-foil-masker';
 import { FoldedGreetingCard } from '../src/core/folded-greeting-card';
-import { ReceiptFadingRestorer } from '../src/core/receipt-fading-restorer';
 import { WoodEngravingToner } from '../src/core/wood-engraving-toner';
 import { FluorescentNeonExtractor } from '../src/core/fluorescent-neon-extractor';
 import { WhiteboardGlareKeystone } from '../src/core/whiteboard-glare-keystone';
@@ -16,11 +15,10 @@ import { WatermarkStampRemover } from '../src/core/watermark-stamp-remover';
 import { BookmarkTasselPlanner } from '../src/core/bookmark-tassel-planner';
 import { MetalCardLaserMasker } from '../src/core/metal-card-laser-masker';
 import { WatercolorBleedSoftener } from '../src/core/watercolor-bleed-softener';
-import { SeleniumMonochromeToner } from '../src/core/selenium-monochrome-toner';
 import { PriceTagBatchTiler } from '../src/core/price-tag-batch-tiler';
 import { BusinessCardSmartAligner } from '../src/core/business-card-smart-aligner';
 
-describe('20 User-Facing Image Pre-Press Optimization Suite (Batch 2)', () => {
+describe('User-Facing Image Pre-Press Optimization Suite (Batch 2)', () => {
   const createMockImg = (w: number, h: number, r = 100, g = 100, b = 100, a = 255): ImageData => {
     const data = new Uint8ClampedArray(w * h * 4);
     for (let i = 0; i < data.length; i += 4) {
@@ -74,12 +72,6 @@ describe('20 User-Facing Image Pre-Press Optimization Suite (Batch 2)', () => {
     const res = FoldedGreetingCard.imposeCard(front, back);
     expect(res.imposedImageData.width).toBe(40);
     expect(res.creaseXPositionPx).toBe(20);
-  });
-
-  it('07. ReceiptFadingRestorer: should darken faded thermal text to black', () => {
-    const img = createMockImg(10, 10, 180, 180, 180);
-    const res = ReceiptFadingRestorer.restoreReceipt(img, 2.5);
-    expect(res.data[0]).toBeLessThan(100);
   });
 
   it('08. WoodEngravingToner: should binarize continuous tones for laser burning', () => {
@@ -156,12 +148,6 @@ describe('20 User-Facing Image Pre-Press Optimization Suite (Batch 2)', () => {
     const img = createMockImg(20, 20, 150, 180, 220);
     const res = WatercolorBleedSoftener.softenWatercolorEdges(img, 2);
     expect(res.width).toBe(20);
-  });
-
-  it('18. SeleniumMonochromeToner: should apply darkroom selenium toning', () => {
-    const img = createMockImg(10, 10, 60, 60, 60);
-    const res = SeleniumMonochromeToner.toneSelenium(img, 0.35);
-    expect(res.width).toBe(10);
   });
 
   it('19. PriceTagBatchTiler: should tile batch price tags onto A4 sticker sheet', () => {
