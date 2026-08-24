@@ -3842,6 +3842,105 @@ body[data-ui-mode="simple"] .pm-footer {
   }
 }
 
+/* 1.5 Mobile Advanced Mode View Toolbar Optimization (Smooth 2-Row Horizontal Ribbon) */
+@media (max-width: 768px) {
+  .pm-view-toolbar {
+    padding: 6px 8px !important;
+    gap: 6px !important;
+    background: rgba(255, 255, 255, 0.92) !important;
+    backdrop-filter: blur(24px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+    border-radius: var(--pm-radius-md);
+    overflow: hidden;
+  }
+
+  .pm-view-toolbar-primary {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    width: 100% !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    white-space: nowrap !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: none !important;
+    gap: 6px !important;
+    padding-bottom: 2px !important;
+  }
+  .pm-view-toolbar-primary::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  body[data-ui-mode="advanced"] .pm-view-toolbar-secondary {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    width: 100% !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    white-space: nowrap !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: none !important;
+    gap: 6px !important;
+    padding-top: 4px !important;
+    border-top: 1px solid rgba(0, 0, 0, 0.06) !important;
+  }
+  body[data-ui-mode="advanced"] .pm-view-toolbar-secondary::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  .pm-toggle-group,
+  .pm-double-sided-group,
+  .pm-paper-selector,
+  .pm-foil-selector,
+  .pm-icc-selector,
+  .pm-toggle-group-pro {
+    display: inline-flex !important;
+    align-items: center !important;
+    flex-shrink: 0 !important;
+    flex-wrap: nowrap !important;
+    gap: 3px !important;
+    background: rgba(0, 0, 0, 0.04) !important;
+    padding: 2px 4px !important;
+    border-radius: 9999px !important;
+    border: 1px solid rgba(0, 0, 0, 0.04) !important;
+  }
+
+  .pm-paper-label {
+    font-size: 0.68rem !important;
+    font-weight: 700 !important;
+    color: var(--pm-text-tertiary) !important;
+    margin: 0 2px 0 4px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .pm-tool-btn,
+  .pm-paper-btn,
+  .pm-foil-btn {
+    font-size: 0.72rem !important;
+    padding: 3px 8px !important;
+    min-height: 28px !important;
+    height: 28px !important;
+    line-height: 1.1 !important;
+    border-radius: 9999px !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+  }
+
+  .pm-paper-sub {
+    display: none !important;
+  }
+
+  .pm-select-field {
+    font-size: 0.70rem !important;
+    height: 26px !important;
+    padding: 1px 6px !important;
+    border-radius: 9999px !important;
+  }
+}
+
 /* 2. Mobile DropZone & Quick Scenario Carousel */
 @media (max-width: 768px) {
   .pm-dropzone {
