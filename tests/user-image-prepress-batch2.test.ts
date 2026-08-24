@@ -5,15 +5,10 @@ import { PhotoFrameMat } from '../src/core/photo-frame-mat';
 import { GridSplitterMultiPanel } from '../src/core/grid-splitter-multi-panel';
 import { HolographicFoilMasker } from '../src/core/holographic-foil-masker';
 import { FoldedGreetingCard } from '../src/core/folded-greeting-card';
-import { WoodEngravingToner } from '../src/core/wood-engraving-toner';
 import { FluorescentNeonExtractor } from '../src/core/fluorescent-neon-extractor';
 import { WhiteboardGlareKeystone } from '../src/core/whiteboard-glare-keystone';
-import { EmbroideryPatchConverter } from '../src/core/embroidery-patch-converter';
 import { CanvasOilImpasto } from '../src/core/canvas-oil-impasto';
-import { NutrientTableBuilder } from '../src/core/nutrient-table-builder';
 import { WatermarkStampRemover } from '../src/core/watermark-stamp-remover';
-import { BookmarkTasselPlanner } from '../src/core/bookmark-tassel-planner';
-import { MetalCardLaserMasker } from '../src/core/metal-card-laser-masker';
 import { WatercolorBleedSoftener } from '../src/core/watercolor-bleed-softener';
 import { PriceTagBatchTiler } from '../src/core/price-tag-batch-tiler';
 import { BusinessCardSmartAligner } from '../src/core/business-card-smart-aligner';
@@ -74,13 +69,6 @@ describe('User-Facing Image Pre-Press Optimization Suite (Batch 2)', () => {
     expect(res.creaseXPositionPx).toBe(20);
   });
 
-  it('08. WoodEngravingToner: should binarize continuous tones for laser burning', () => {
-    const img = createMockImg(10, 10, 80, 80, 80);
-    const res = WoodEngravingToner.toneForWood(img, 128);
-    expect(res.data[0]).toBe(0);
-    expect(res.data[3]).toBe(255);
-  });
-
   it('09. FluorescentNeonExtractor: should extract 5th neon spot color plate', () => {
     const img = createMockImg(10, 10, 240, 50, 180);
     const res = FluorescentNeonExtractor.extractNeonChannel(img, 'pink');
@@ -94,13 +82,6 @@ describe('User-Facing Image Pre-Press Optimization Suite (Batch 2)', () => {
     expect(res.data[0]).toBe(255);
   });
 
-  it('11. EmbroideryPatchConverter: should quantize image to thread palette', () => {
-    const img = createMockImg(20, 20, 100, 150, 200);
-    const res = EmbroideryPatchConverter.convertToEmbroidery(img, 8);
-    expect(res.threadPalette.length).toBeGreaterThan(0);
-    expect(res.totalThreadsUsed).toBeGreaterThan(0);
-  });
-
   it('12. CanvasOilImpasto: should generate 3D impasto heightmap', () => {
     const img = createMockImg(20, 20, 120, 120, 120);
     const res = CanvasOilImpasto.generateImpasto(img, 0.45);
@@ -109,39 +90,10 @@ describe('User-Facing Image Pre-Press Optimization Suite (Batch 2)', () => {
     expect(res.maxReliefDepthMm).toBe(0.45);
   });
 
-  it('13. NutrientTableBuilder: should build compliant SVG nutrition table', () => {
-    const svg = NutrientTableBuilder.buildTableSvg({
-      servingsPerPackage: 4,
-      servingSizeGrams: 50,
-      caloriesKcal: 220,
-      proteinGrams: 5.2,
-      totalFatGrams: 8.4,
-      carbsGrams: 30.1,
-      sugarGrams: 12.0,
-      sodiumMg: 140
-    }, 300);
-    expect(svg).toContain('營養標示');
-    expect(svg).toContain('220 大卡');
-  });
-
   it('14. WatermarkStampRemover: should inpaint date stamps and watermarks', () => {
     const img = createMockImg(10, 10, 245, 100, 100);
     const res = WatermarkStampRemover.removeWatermark(img, 200);
     expect(res.width).toBe(10);
-  });
-
-  it('15. BookmarkTasselPlanner: should plan 5x15cm bookmark dieline with punch hole', () => {
-    const img = createMockImg(50, 150);
-    const res = BookmarkTasselPlanner.planBookmark(img, 50, 150);
-    expect(res.dielineSvg).toContain('Tassel');
-    expect(res.bookmarkDimensionsMm).toBe('50 × 150 mm');
-  });
-
-  it('16. MetalCardLaserMasker: should generate 100% K100 laser etching mask', () => {
-    const img = createMockImg(10, 10, 200, 200, 200);
-    const res = MetalCardLaserMasker.generateMetalLaserMask(img, 128);
-    expect(res.data[0]).toBe(0);
-    expect(res.data[3]).toBe(255);
   });
 
   it('17. WatercolorBleedSoftener: should simulate watercolor edge water-ring bleeding', () => {

@@ -147,9 +147,6 @@
 - **`Photo-To-Vector-Silhouette`** (4 MB)：照片一鍵生成高對比純單色向量剪影刀模。
 - **`GripMargin-Checker`** (0 KB)：平版印刷機 10mm 夾爪咬口 (Gripper Margin) 碰撞預警。
 - **`Metallic-Sheen-Renderer`** (2 MB)：薄膜干涉與 BRDF 物理渲染鐳射彩虹反光動態。
-- **`ColorFont-Layer-Splitter`** (1 MB)：OpenType-SVG / COLR 彩色字體 CMYK 四色版拆解。
-- **`HDP-Detail-Booster`** (8 MB)：手錶面盤與精密銘牌 0.1mm 級微刻度高頻增強。
-- **`Woodblock-Halftone-Stipple`** (1 MB)：復古美式漫畫點陣與浮世繪木刻版畫抖動。
 - **`ScreenAngle-Optimizer`** (0 KB)：ISO 12647-2 四色網點角度 (C:15, M:75, Y:0, K:45) 撞網防護。
 - **`LineArt-Extractor`** (9 MB)：彩色插畫/照片一鍵提取純黑 K100 單色線稿。
 - **`PaperTexture-Engine`** (2 MB)：3D 物理法線貼圖模擬萊妮、牛皮、水彩紙微觀手感。

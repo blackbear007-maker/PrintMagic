@@ -14,12 +14,9 @@ import { TextCurvatureUnbender } from '../src/core/text-curvature-unbender';
 import { VectorSilhouette } from '../src/core/vector-silhouette';
 import { GripMarginChecker } from '../src/core/grip-margin-checker';
 import { MetallicSheenRenderer } from '../src/core/metallic-sheen-renderer';
-import { ColorFontLayerSplitter } from '../src/core/colorfont-layer-splitter';
-import { HdpDetailBooster } from '../src/core/hdp-detail-booster';
-import { WoodblockStipple } from '../src/core/woodblock-stipple';
 import { ScreenAngleOptimizer } from '../src/core/screen-angle-optimizer';
 
-describe('19 Advanced Commercial Pre-Press Enhancements Suite', () => {
+describe('Advanced Commercial Pre-Press Enhancements Suite', () => {
   const createMockImageData = (w: number, h: number): ImageData => {
     const data = new Uint8ClampedArray(w * h * 4);
     for (let i = 0; i < data.length; i += 4) {
@@ -126,25 +123,6 @@ describe('19 Advanced Commercial Pre-Press Enhancements Suite', () => {
   it('15. MetallicSheenRenderer: should render interactive rainbow thin-film sheen', () => {
     const img = createMockImageData(20, 20);
     const res = MetallicSheenRenderer.renderMetallicSheen(img, 45, 0.8);
-    expect(res.width).toBe(20);
-  });
-
-  it('16. ColorFontLayerSplitter: should split multi-color typography into CMYK process plates', () => {
-    const img = createMockImageData(15, 15);
-    const plates = ColorFontLayerSplitter.splitColorFontLayers(img);
-    expect(plates.length).toBe(4);
-    expect(plates[0].channel).toBe('C');
-  });
-
-  it('17. HdpDetailBooster: should boost high-frequency micro-scale 0.1mm lines', () => {
-    const img = createMockImageData(20, 20);
-    const res = HdpDetailBooster.boostMicroDetails(img, 0.8);
-    expect(res.width).toBe(20);
-  });
-
-  it('18. WoodblockStipple: should convert image to vintage woodcut stippling dithering', () => {
-    const img = createMockImageData(20, 20);
-    const res = WoodblockStipple.applyStipple(img, 2);
     expect(res.width).toBe(20);
   });
 
