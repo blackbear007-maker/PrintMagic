@@ -112,7 +112,7 @@ export class DirectPrintModal {
         <div class="pm-modal-header">
           <div class="pm-modal-title-group">
             <span class="pm-modal-title">🏭 台灣在地印刷廠一鍵估價與直通送印</span>
-            <span class="pm-modal-subtitle">已整合【${preset.nameZh}】標準規格，即時試算四大合版廠真實價格並打包標準工單</span>
+            <span class="pm-modal-subtitle">已整合【${preset.nameZh}】標準規格，估算四大合版廠參考價格並打包標準工單（估價公式，非即時串接廠商報價）</span>
           </div>
           <button class="pm-modal-close" id="btnDirectPrintClose">✕</button>
         </div>
@@ -298,7 +298,7 @@ export class DirectPrintModal {
     this.render();
 
     try {
-      Toast.info('📦 正在生成標準工業 PDF/X 印刷檔並打包工單封包...');
+      Toast.info('📦 正在生成標準印刷 PDF 並打包工單封包...');
 
       // 1. Generate PDF Data Url
       const activeBatch = state.batchItems.find((b) => b.id === state.activeBatchId);

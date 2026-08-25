@@ -40,7 +40,7 @@ export class MultiFormatExporter {
 
     switch (format) {
       case 'pdf': {
-        Toast.info('📄 正在壓製 300 DPI 標準印刷 PDF/X-1a...');
+        Toast.info('📄 正在壓製 300 DPI 標準印刷 PDF...');
         await PdfExporter.export(dataUrl, state.currentPreset, `${baseName}.pdf`);
         Toast.success('✓ 300 DPI 標準印刷 PDF 已成功下載！');
         break;
@@ -116,25 +116,30 @@ export class MultiFormatExporter {
     const svgContent = this.generateCutlineSvg(state);
     folder.file(`${baseName}_刀模層_Magenta.svg`, svgContent);
 
-    // 5. Pre-press Inspection Report
+    // 5. Pre-press Inspection Report (本機自動檢查清單，非第三方獨立驗證/合格證書)
     const preset = state.currentPreset;
     const nowStr = new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
+    const inkLimitApplied = state.pipelineOptions?.enableInkLimiting !== false;
+    const actualTac = state.inkAnalysis?.maxTotalInk;
+    const inkLine = inkLimitApplied
+      ? `油墨限制：${actualTac !== undefined ? `實測最高 ${actualTac}%` : '已啟用 TAC ≤ 300% 控墨'} (防背面沾黏安全控墨)`
+      : '油墨限制：本次匯出未啟用 TAC 控墨（可於管線設定開啟）';
     const reportText = `════════════════════════════════════════════════════════════════════════════
-🎖️ PrintMagic™ 商業印前出機檔案清單與品質合格證書
+📋 PrintMagic 商業印前出機檔案清單（本機自動檢查，非第三方獨立驗證）
 ════════════════════════════════════════════════════════════════════════════
 出機日期：${nowStr}
 成品規格：${preset.nameZh} (${preset.widthMm} × ${preset.heightMm} mm)
 含出血總尺寸：${preset.widthMm + preset.bleedMm * 2} × ${preset.heightMm + preset.bleedMm * 2} mm
 實體輸出解析度：300 DPI (視網膜印刷級)
-油墨限制：TAC ≤ 300% (防背面沾黏安全控墨)
-色彩空間：Japan Color 2001 Coated / FOGRA39
+${inkLine}
+色彩狀態：RGB（尚未做 CMYK 分色，印刷廠仍需依標準流程轉換；Japan Color 2001 Coated / FOGRA39 僅供參考，非嵌入描述檔）
 
 【全套包內容物明細】
 1. ${baseName}_300DPI.tif        -> 300 DPI 工業級無損 TIFF 點陣檔 (分色輸出首選)
 2. ${baseName}_300DPI.png        -> 300 DPI 高清透明通道 PNG (貼紙/立牌預覽)
 3. ${baseName}_300DPI.jpg        -> 300 DPI 高畫質 JPEG
 4. ${baseName}_刀模層_Magenta.svg -> 100% 洋紅 2mm 向量割字激光刀模線
-5. Readme_印前檢驗報告.txt      -> 本合格證書
+5. Readme_印前檢驗報告.txt      -> 本檢查清單
 
 【印刷廠師傅出機指引】
 • 本套件已依 1:1 實體尺寸內建 3mm 物理出血與安全框，請直接以 100% 比例出機，切勿任意縮放。

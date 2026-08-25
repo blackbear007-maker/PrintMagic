@@ -9,7 +9,7 @@ import { EdgeContourDetector } from '../src/core/edge-contour-detector';
 import { PixelStatQualityAssessor } from '../src/core/pixel-stat-quality-assessor';
 import { EdgeExtendInpainter } from '../src/core/edge-extend-inpaint';
 
-describe('SOTA Open-Source Commercial Pre-Press Suite (頂級可商用 AI 模型陣列)', () => {
+describe('Deterministic Pre-Press Algorithm Suite (本機決定性演算法陣列，非 AI 模型)', () => {
   const createMockImageData = (w: number, h: number, r = 180, g = 180, b = 180, a = 255): ImageData => {
     const data = new Uint8ClampedArray(w * h * 4);
     for (let i = 0; i < data.length; i += 4) {
@@ -21,8 +21,8 @@ describe('SOTA Open-Source Commercial Pre-Press Suite (頂級可商用 AI 模型
     return { width: w, height: h, data, colorSpace: 'srgb' } as ImageData;
   };
 
-  // 1. BiRefNet-Lite Matting
-  it('1. BiRefNet-Lite: should perform bilateral reference matting with sub-pixel edge choke', () => {
+  // 1. Corner-Sampled Color-Distance Matting
+  it('1. EdgeChokeMatting: should perform color-distance matting with sub-pixel edge choke', () => {
     const img = createMockImageData(64, 64, 255, 255, 255);
     for (let y = 16; y < 48; y++) {
       for (let x = 16; x < 48; x++) {
@@ -52,8 +52,8 @@ describe('SOTA Open-Source Commercial Pre-Press Suite (頂級可商用 AI 模型
     expect(result.noiseAmplificationRatio).toBeLessThanOrEqual(1.05);
   });
 
-  // 3. RealESRGAN-Compact 4x Super-Resolution
-  it('3. RealESRGAN-Compact: should upscale 2x and 4x with sharp gradient edges and no overshoot', () => {
+  // 3. Edge-Aware 4x Upscaling (deterministic, not a trained super-resolution model)
+  it('3. EdgeAwareUpscaler: should upscale 2x and 4x with sharp gradient edges and no overshoot', () => {
     const src = createMockImageData(32, 32, 100, 150, 200);
     const res2x = EdgeAwareUpscaler.upscale(src, 2, 0.5);
     expect(res2x.upscaledImageData.width).toBe(64);
@@ -67,8 +67,8 @@ describe('SOTA Open-Source Commercial Pre-Press Suite (頂級可商用 AI 模型
     expect(res4x.noiseSuppressedScore).toBeGreaterThan(90);
   });
 
-  // 4. PP-OCRv5 Mobile OCR
-  it('4. PP-OCRv5 Mobile: should detect text zones and check 0.25pt minimum legibility', () => {
+  // 4. Text Zone Detector (locates likely text regions; does not read/OCR content)
+  it('4. TextZoneDetector: should detect text zones and check 0.25pt minimum legibility', () => {
     const img = createMockImageData(80, 80, 255, 255, 255);
     for (let y = 10; y < 30; y += 2) {
       for (let x = 10; x < 60; x += 2) {
@@ -85,8 +85,8 @@ describe('SOTA Open-Source Commercial Pre-Press Suite (頂級可商用 AI 模型
     expect(typeof ocr.preflightPassed).toBe('boolean');
   });
 
-  // 5. MobileSAM / SAM 2.1 1-Click Spot Finish
-  it('5. SAM 2.1 Tiny: should isolate object from click coordinates and generate 100% K100 mask', () => {
+  // 5. Color-Region Flood-Fill 1-Click Spot Finish (color-distance based, not a segmentation model)
+  it('5. ColorRegionSelector: should isolate object from click coordinates and generate 100% K100 mask', () => {
     const img = createMockImageData(60, 60, 255, 255, 255);
     for (let y = 20; y < 40; y++) {
       for (let x = 20; x < 40; x++) {
@@ -110,8 +110,8 @@ describe('SOTA Open-Source Commercial Pre-Press Suite (頂級可商用 AI 模型
     expect(spotFoil.k100MaskData.data[centerIdx + 3]).toBe(255);
   });
 
-  // 6. DocTr-Dewarp-Lite 3D Surface Dewarping
-  it('6. DocTr-Dewarp-Lite: should calculate 3D geometric surface flow and unwarp curved pages', () => {
+  // 6. Curved Page Flattener (geometric dewarp, not a learned model)
+  it('6. CurvedPageFlattener: should calculate geometric surface flow and unwarp curved pages', () => {
     const img = createMockImageData(60, 60);
     const result = CurvedPageFlattener.dewarpWithMetrics(img, 0.3);
 
@@ -121,8 +121,8 @@ describe('SOTA Open-Source Commercial Pre-Press Suite (頂級可商用 AI 模型
     expect(result.linesStraightened).toBeGreaterThan(0);
   });
 
-  // 7. TEED Edge Detector (CVPR SOTA)
-  it('7. TEED Edge Detector: should extract crisp 1px hairline cut contour with 0 noise', () => {
+  // 7. Edge Contour Detector (Canny-style deterministic edge detection, not a trained model)
+  it('7. EdgeContourDetector: should extract crisp 1px hairline cut contour with 0 noise', () => {
     const img = createMockImageData(60, 60, 255, 255, 255);
     // Draw high contrast box in center
     for (let y = 15; y < 45; y++) {
@@ -141,8 +141,8 @@ describe('SOTA Open-Source Commercial Pre-Press Suite (頂級可商用 AI 模型
     expect(res.edgeComplexityScore).toBeGreaterThan(0);
   });
 
-  // 8. CLIP-IQA+ Zero-Shot Print Assessor
-  it('8. CLIP-IQA+: should score technical clarity and commercial aesthetics', () => {
+  // 8. Pixel-Statistics Quality Assessor (not CLIP, no vision-language model involved)
+  it('8. PixelStatQualityAssessor: should score technical clarity and commercial aesthetics', () => {
     const img = createMockImageData(60, 60, 120, 140, 160);
     const res = PixelStatQualityAssessor.assess(img);
 
@@ -152,8 +152,8 @@ describe('SOTA Open-Source Commercial Pre-Press Suite (頂級可商用 AI 模型
     expect(['EXCELLENT', 'GOOD', 'FAIR', 'POOR']).toContain(res.grade);
   });
 
-  // 9. Fast-LaMa v2 Bleed Extension
-  it('9. Fast-LaMa v2: should generate seamless 3mm bleed margin extension without boundary seam', () => {
+  // 9. Edge-Extend Bleed Inpainter (mirror/edge extrapolation, not a generative inpainting model)
+  it('9. EdgeExtendInpainter: should generate seamless 3mm bleed margin extension without boundary seam', () => {
     const img = createMockImageData(50, 50, 100, 120, 140);
     const res = EdgeExtendInpainter.generateBleedMargin(img, 36);
 

@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>印象魔法 PrintMagic — 專業印前影像優化系統</title>
-  <meta name="description" content="【印象魔法】（PrintMagic）：專為創作者打造的 100% 離線印前出圖與專業色彩解析度優化系統。" />
+  <meta name="description" content="【印象魔法】（PrintMagic）：專為創作者打造的印前出圖與專業色彩解析度優化系統，核心處理本機優先，可一鍵切換 100% 離線模式。" />
   <link rel="icon" type="image/jpeg" href="xiaoxiang.jpg" />
   <link rel="apple-touch-icon" href="xiaoxiang.jpg" />
   <link rel="manifest" href="manifest.json" />
@@ -38,7 +38,7 @@
 
         <div class="pm-header-actions">
           <!-- Dual-Engine Switcher: Local Offline vs Cloud Industrial (Advanced Only) -->
-          <button id="btnToggleEngine" class="pm-tool-btn pm-advanced-only pm-engine-pill" style="background: rgba(0, 113, 227, 0.08); color: var(--pm-accent-blue); border-color: rgba(0, 113, 227, 0.25); font-weight: 700;" title="點擊切換 🖥️ 100% 離線本機極速模式 與 ⚡ 雲端工業模式 (支援雲端 AI 深度學習細節重建與 ISO 15930 PDF/X)">
+          <button id="btnToggleEngine" class="pm-tool-btn pm-advanced-only pm-engine-pill" style="background: rgba(0, 113, 227, 0.08); color: var(--pm-accent-blue); border-color: rgba(0, 113, 227, 0.25); font-weight: 700;" title="點擊切換 🖥️ 100% 離線本機極速模式 與 ⚡ 自建服務模式 (自建 OCR / 向量化 / 低光提亮服務，離線時自動退回本機演算法)">
             <span id="engineStatusDot" class="pm-engine-dot" style="display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #0071e3; margin-right: 2px;"></span>
             <span id="engineStatusText">🖥️ 本機極速 (離線)</span>
           </button>
@@ -50,11 +50,11 @@
 
           <!-- AI Super-Resolution Neural Reconstructor Toggle (Advanced Only) -->
           <div class="pm-advanced-only" style="display: inline-flex; align-items: center; gap: 4px;">
-            <button id="btnToggleAiUpscale" class="pm-tool-btn" title="點擊切換 ⚡ 本機 8x 金字塔超解析度 (0.1s) 與 🧠 開源 AI 深度學習細節重建 (Real-ESRGAN 4x)">
+            <button id="btnToggleAiUpscale" class="pm-tool-btn" title="點擊切換 ⚡ 本機 8x 金字塔超解析度 (0.1s) 與 🔬 邊緣強化 4x 放大演算法 (決定性演算法，非神經網路)">
               <span id="aiUpscaleIcon">⚡</span>
               <span id="aiUpscaleText">本機 8x 放大</span>
             </button>
-            <button id="btnOpenAiSettings" class="pm-tool-btn" style="padding: 6px 8px;" title="設定 AI 超解析度神經網路模型 (Real-ESRGAN / Anime6B / Waifu2x) 與免費 Token">
+            <button id="btnOpenAiSettings" class="pm-tool-btn" style="padding: 6px 8px;" title="設定放大演算法與自建服務">
               <span>⚙️</span>
             </button>
             <button id="btnOpenPipelineMatrix" class="pm-tool-btn" style="padding: 6px 10px; background: rgba(88, 86, 214, 0.08); color: #5856d6; border-color: rgba(88, 86, 214, 0.25);" title="🎛️ 專家級印前管線開關：自由自訂 AI 放大、銳化、控墨與階調處理 (測試版免費開放)">
@@ -160,7 +160,7 @@
           <div class="pm-dropzone-feature-row">
             <span class="pm-dropzone-feature-badge blue">🖨️ 300 DPI 超高畫質</span>
             <span class="pm-dropzone-feature-badge green">✓ 3mm 出血防裁切</span>
-            <span class="pm-dropzone-feature-badge purple">🔒 100% 本機離線</span>
+            <span class="pm-dropzone-feature-badge purple">🔒 本機優先處理</span>
             <span class="pm-dropzone-feature-badge">💧 智慧墨量安全</span>
           </div>
           <div class="pm-dropzone-actions">
@@ -191,7 +191,7 @@
                 <button id="btnToggleCompare" class="pm-tool-btn" title="切換雙向滑桿對比檢視，一秒查看優化前後細節差異">
                   <span>👁️</span> 原圖對比
                 </button>
-                <button id="btnOpenObjectEraser" class="pm-tool-btn" style="background: rgba(255, 45, 85, 0.08); color: #d6204b; border-color: rgba(255, 45, 85, 0.25); font-weight: 600;" title="使用 AI 智慧塗抹消除筆移除相片中多餘的人物、浮水印、背景雜物或瑕疵">
+                <button id="btnOpenObjectEraser" class="pm-tool-btn" style="background: rgba(255, 45, 85, 0.08); color: #d6204b; border-color: rgba(255, 45, 85, 0.25); font-weight: 600;" title="使用智慧塗抹消除筆移除相片中多餘的人物、浮水印、背景雜物或瑕疵（本機演算法，非生成式 AI）">
                   <span>🪄</span> 消除物件
                 </button>
                 <button id="btnOpenTextInspect" class="pm-tool-btn pm-advanced-only" style="background: rgba(52, 199, 89, 0.08); color: #248a3d; border-color: rgba(52, 199, 89, 0.25); font-weight: 600;" title="自動辨識圖中文字，檢查 AI 繪圖常見的英文拼寫錯誤與怪異亂碼">
@@ -368,16 +368,16 @@
             <!-- Advanced Mode macOS Floating Glass Dock -->
             <div class="pm-macos-dock pm-advanced-only" id="advancedExportRow">
               <div class="pm-dock-section">
-                <span class="pm-dock-section-label">✨ AI 增強</span>
-                <button id="btnAiBleedOutpaint" class="pm-dock-btn" title="AI 智慧 3mm 出血外擴延伸，防止裁切切到主體頭部 (測試版免費開放)">
+                <span class="pm-dock-section-label">✨ 智慧增強</span>
+                <button id="btnAiBleedOutpaint" class="pm-dock-btn" title="3mm 出血鏡像外擴延伸（鏡像外推 + 接縫混合，非生成式 AI），防止裁切切到主體頭部 (測試版免費開放)">
                   <span class="pm-dock-icon">🖼️</span>
                   <span class="pm-dock-name">補足出血</span>
                 </button>
-                <button id="btnAiRemoveBg" class="pm-dock-btn" title="髮絲級一鍵 AI 精準去背，自動銜接白墨與刀模線 (測試版免費開放)">
+                <button id="btnAiRemoveBg" class="pm-dock-btn" title="髮絲級一鍵精準去背（本機色彩距離去背演算法），自動銜接白墨與刀模線 (測試版免費開放)">
                   <span class="pm-dock-icon">✂️</span>
                   <span class="pm-dock-name">髮絲去背</span>
                 </button>
-                <button id="btnAiVectorizer" class="pm-dock-btn" title="AI 點陣轉真向量 SVG 貝茲曲線檔，無限放大無鋸齒 (測試版免費開放)">
+                <button id="btnAiVectorizer" class="pm-dock-btn" title="點陣轉真向量 SVG 貝茲曲線檔（自建 VTracer 服務，離線時退回本機貝茲曲線描邊），無限放大無鋸齒 (測試版免費開放)">
                   <span class="pm-dock-icon">✒️</span>
                   <span class="pm-dock-name">轉真向量</span>
                 </button>
@@ -391,9 +391,9 @@
 
               <div class="pm-dock-section">
                 <span class="pm-dock-section-label">🏭 出圖工藝</span>
-                <button id="btnOpenConvPrint" class="pm-dock-btn" title="7-11 ibon / 全家 FamiPort 雲端立印，30秒下樓即可取件">
+                <button id="btnOpenConvPrint" class="pm-dock-btn" title="7-11 ibon / 全家 FamiPort 超商列印檔案產生器（產生列印檔並連結官方上傳頁，需自行至門市操作取件）">
                   <span class="pm-dock-icon">🏪</span>
-                  <span class="pm-dock-name">超商立印</span>
+                  <span class="pm-dock-name">超商列印檔</span>
                 </button>
                 <button id="btnOpenImposition" class="pm-dock-btn" title="一張 A4/A3 自動拼入 8~24 模，現省 70% 費用">
                   <span class="pm-dock-icon">🧩</span>
@@ -458,7 +458,7 @@
 
     <!-- Studio Footer -->
     <footer class="pm-footer">
-      【印象魔法】PrintMagic &nbsp;·&nbsp; 印前助手「小象」為您守護輸出品質 &nbsp;|&nbsp; 100% 離線隱私保護
+      【印象魔法】PrintMagic &nbsp;·&nbsp; 印前助手「小象」為您守護輸出品質 &nbsp;|&nbsp; 本機優先 · 可一鍵切換 100% 離線模式
     </footer>
   </div>
 

@@ -163,7 +163,7 @@ export interface PrintScoreResult {
 }
 
 export interface PipelineOptions {
-  enableUpscale: boolean;       // 🔍 AI 超解析度放大 (Lanczos-3 / AI Reconstructor)
+  enableUpscale: boolean;       // 🔍 決定性放大演算法 (Lanczos-3)
   enableSharpening: boolean;    // ✨ USM 微米邊緣銳化補償
   enableInkLimiting: boolean;   // 🎨 TAC 300% 總墨量強制壓制保護
   enableShadowLift: boolean;    // 🌓 暗部階調浮起與反差補償

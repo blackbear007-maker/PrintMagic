@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { BleedExpander } from '../src/core/bleed-expander';
 import { getPresetById } from '../src/core/presets';
 
-describe('BleedExpander (AI 3mm Generative Bleed Outpainting)', () => {
+describe('BleedExpander (3mm mirror-extrapolation bleed extension, non-generative)', () => {
   beforeEach(() => {
     const mockCtx = {
       save: vi.fn(),

@@ -68,7 +68,7 @@ export class PricingModal {
                   <li style="display: flex; gap: 8px;"><span style="color: #34c759; font-weight: 700;">✓</span><span><strong>專家級管線開關自訂</strong>：自由調控</span></li>
                   <li style="display: flex; gap: 8px;"><span style="color: #34c759; font-weight: 700;">✓</span><span><strong>雙面合版製版關聯</strong>：名片/明信片</span></li>
                   <li style="display: flex; gap: 8px;"><span style="color: #34c759; font-weight: 700;">✓</span><span><strong>造型刀模 + 0.2mm 內縮白墨</strong>：防溢白</span></li>
-                  <li style="display: flex; gap: 8px;"><span style="color: #34c759; font-weight: 700;">✓</span><span><strong>A4/A3 智慧拼模試算</strong>：現省 80% 費用</span></li>
+                  <li style="display: flex; gap: 8px;"><span style="color: #34c759; font-weight: 700;">✓</span><span><strong>A4/A3 智慧拼模試算</strong>：依模數而定，最高可省逾 8 成</span></li>
                   <li style="display: flex; gap: 8px;"><span style="color: #34c759; font-weight: 700;">✓</span><span><strong>3D 燙金與局部光物理渲染</strong></span></li>
                 </ul>
               </div>

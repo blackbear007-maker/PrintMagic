@@ -38,7 +38,7 @@ export class SpecModal {
 ■ 總墨量 TAC：${inkAnalysis?.maxTotalInk || 300}% (已套用 300% 安全壓制防溢)
 ■ 裁切標記：內嵌 0.1mm 標準向量角線、CMYK 密度條與十字套準
 ■ 建議紙材：${paperName}
-■ 檔案備註：已通過 PrintMagic 預檢直出標準`;
+■ 檔案備註：已通過 PrintMagic 本機自動預檢（非第三方獨立驗證）`;
 
     const bossMsgText = `老闆您好！我要印【${currentPreset.nameZh}】（成品淨尺寸 ${currentPreset.widthMm}×${currentPreset.heightMm} mm），紙材使用【${paperName}】。檔案為標準 PDF 格式，已內建 3mm 出血與 CMYK 安全墨量，請直接安排標準出機，感謝您！`;
 

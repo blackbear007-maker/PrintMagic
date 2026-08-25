@@ -1,6 +1,10 @@
 /**
- * 🔍 Barcode & QR Code Pre-Flight Readability Verifier (zbar style verification)
- * 
+ * 🔍 Barcode & QR Code Pre-Flight Readability Verifier
+ *
+ * A real contrast/size heuristic — not a decoder (does not use or replicate zbar). It cannot
+ * confirm a barcode actually decodes correctly, only flag mechanical print-readability risks
+ * (too small, too low-contrast). Real decode verification would need an actual decoder library.
+ *
  * Pre-Press Problem Solved:
  * Designers often place QR codes too small (<15mm) or with low contrast (e.g. gray on white, red on black),
  * leading to disastrous mass printing of un-scannable promotional posters and flyers.

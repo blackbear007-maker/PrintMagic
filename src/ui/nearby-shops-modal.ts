@@ -214,7 +214,7 @@ export class NearbyShopsModal {
 ■ 總墨量 TAC：${state.inkAnalysis?.maxTotalInk || 300}% (已套用安全壓制防溢)
 ■ 裁切標記：已內嵌 0.1mm 標準向量角線、CMYK 密度條與十字套準
 ■ 建議紙材：${preset.recommendedPaper}
-■ 備註：檔案已通過 PrintMagic Studio 3.1 印前合規審查`;
+■ 備註：已通過 PrintMagic 本機自動檢查（非第三方獨立驗證）`;
 
         navigator.clipboard.writeText(copyText).then(() => {
           Toast.success(`✓ 已複製適用於「${shopName}」的送印規格小抄！`);

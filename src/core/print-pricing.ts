@@ -121,11 +121,15 @@ export const VENDOR_PRINT_SHOPS: PrintShopVendor[] = [
 export const STANDARD_QUANTITY_TIERS = [10, 20, 50, 100, 200, 500, 1000];
 
 /**
- * Real-world Taiwan commercial print pricing calculation matrix
+ * Estimated Taiwan commercial print pricing formula
+ *
+ * This is a synthetic estimate (fixed base rate × hand-tuned multipliers below), not a live quote
+ * pulled from any vendor's real price list or API — no network call is made. Treat the numbers as
+ * a rough planning reference; actual vendor pricing may differ.
  */
 export class PrintPricingEngine {
   /**
-   * Calculate exact real-time quote for given print specifications
+   * Calculate an estimated quote for given print specifications (synthetic formula, not a live vendor price)
    */
   public static calculateQuote(
     shopId: string,

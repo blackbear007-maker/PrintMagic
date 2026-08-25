@@ -21,7 +21,7 @@ describe('New Open-Source Super-Resolution Suite', () => {
     expect(res.height).toBe(40);
   });
 
-  it('EdgeAwareUpscaler: should apply compact RRDB 2x and 4x pre-press super-resolution', () => {
+  it('EdgeAwareUpscaler: should apply deterministic edge-aware 2x and 4x pre-press upscaling', () => {
     const src = createMockImageData(25, 25);
     const res2x = EdgeAwareUpscaler.upscale(src, 2, 0.5);
     expect(res2x.upscaledImageData.width).toBe(50);

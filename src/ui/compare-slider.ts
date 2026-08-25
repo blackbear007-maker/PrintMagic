@@ -16,6 +16,7 @@ export class CompareSlider {
   private beforeScoreEl: HTMLElement;
   private afterScoreEl: HTMLElement;
   private scoreDeltaEl: HTMLElement;
+  private complianceBadgeEl: HTMLElement;
   private isDragging = false;
 
   constructor(containerId: string) {
@@ -33,6 +34,7 @@ export class CompareSlider {
     this.beforeScoreEl = this.container.querySelector('#cmpBeforeScore')!;
     this.afterScoreEl = this.container.querySelector('#cmpAfterScore')!;
     this.scoreDeltaEl = this.container.querySelector('#cmpScoreDelta')!;
+    this.complianceBadgeEl = this.container.querySelector('#cmpComplianceBadge')!;
 
     this.bindEvents();
   }
@@ -124,7 +126,7 @@ export class CompareSlider {
 
             <!-- Bottom Note -->
             <div class="pm-cmp-card-footer">
-              <span>🛡️ 檔案已符合本機印前檢查標準（尺寸/出血/DPI/墨量）</span>
+              <span id="cmpComplianceBadge">🛡️ 檔案已符合本機印前檢查標準（尺寸/出血/DPI/墨量）</span>
             </div>
           </div>
         </div>
@@ -167,6 +169,12 @@ export class CompareSlider {
     this.afterScoreEl.textContent = `${aScore}分`;
     this.scoreDeltaEl.textContent = delta >= 0 ? `+${delta} 分 🚀` : `${delta} 分`;
     this.scoreDeltaEl.className = `pm-cmp-delta-pill ${delta > 0 ? 'pm-delta-up' : ''}`;
+
+    if (afterScore.issues.length === 0) {
+      this.complianceBadgeEl.textContent = '🛡️ 檔案已符合本機印前檢查標準（尺寸/出血/DPI/墨量）';
+    } else {
+      this.complianceBadgeEl.textContent = `⚠️ 仍有 ${afterScore.issues.length} 項待改善：${afterScore.issues[0]}`;
+    }
 
     const b = beforeScore.breakdown;
     const a = afterScore.breakdown;

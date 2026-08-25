@@ -34,7 +34,7 @@ apiRouter.post('/preflight', (req: Request, res: Response) => {
   });
 });
 
-// Export Industrial PDF/X
+// Export server-side pre-press PDF (RGB content; not a validated PDF/X file — see pdfx-service.ts)
 apiRouter.post('/export-pdfx', async (req: Request, res: Response) => {
   try {
     const { imageDataUrl, preset, iccProfileId, pdfStandard, artworkName } = req.body;
@@ -188,7 +188,8 @@ apiRouter.post('/ocr', async (req: Request, res: Response) => {
   }
 });
 
-// 🏁 K100 Pure Black Vector Barcode / QR Generator Endpoint
+// 🏁 K100 Pure Black Vector Barcode / QR Generator Endpoint — ⚠️ not actually scannable, see
+// the honesty note in src/core/k100-barcode-generator.ts. Not called by any UI in this app.
 apiRouter.post('/prepress/k100-barcode', async (req: Request, res: Response) => {
   try {
     const { text, type = 'qr' } = req.body;

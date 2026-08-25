@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { FreeAiMattingClient } from '../src/services/free-ai-matting-client';
 
-describe('FreeAiMattingClient (BRIA RMBG-2.0 & RMBG-1.4 Free AI Background Removal)', () => {
+describe('FreeAiMattingClient (local color-distance matting, no AI model)', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
 

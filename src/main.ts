@@ -318,7 +318,7 @@ class App {
           Toast.success('⚡ 已切換至【自建服務引擎模式】：在線運行 (可使用自建 OCR / 向量化 / 低光提亮服務)');
         } else {
           store.setEngineMode('cloud');
-          Toast.info('⚡ 已切換至【雲端工業引擎模式】(伺服器未連線，可點擊齒輪設定 API 或維持本機極速)');
+          Toast.info('⚡ 已切換至【自建服務引擎模式】(伺服器未連線，會自動退回本機演算法)');
         }
       } else {
         store.setEngineMode('local');
@@ -1165,15 +1165,15 @@ class App {
 
       if (state.engineMode === 'cloud') {
         if (this.engineStatusText) {
-          this.engineStatusText.textContent = state.cloudStatus === 'online' ? '⚡ 雲端工業模式 (在線)' : '⚡ 雲端工業模式 (離線)';
+          this.engineStatusText.textContent = state.cloudStatus === 'online' ? '⚡ 自建服務模式 (在線)' : '⚡ 自建服務模式 (離線)';
         }
         if (engineDot) {
           engineDot.style.backgroundColor = state.cloudStatus === 'online' ? '#34c759' : '#ff9500';
         }
-        if (btnToggleAiUpscale) btnToggleAiUpscale.title = '點擊切換 ⚡ 本機 8x 放大 與 🧠 雲端 AI 4x 重建';
+        if (btnToggleAiUpscale) btnToggleAiUpscale.title = '點擊切換 ⚡ 本機 8x 放大 與 🔬 邊緣強化 4x 放大演算法';
         if (state.aiUpscaleMode === 'cloud-ai') {
-          if (aiUpscaleIcon) aiUpscaleIcon.textContent = '🧠';
-          if (aiUpscaleText) aiUpscaleText.textContent = 'AI 4x 重建';
+          if (aiUpscaleIcon) aiUpscaleIcon.textContent = '🔬';
+          if (aiUpscaleText) aiUpscaleText.textContent = '邊緣強化 4x';
         } else {
           if (aiUpscaleIcon) aiUpscaleIcon.textContent = '⚡';
           if (aiUpscaleText) aiUpscaleText.textContent = '本機 8x 放大';
@@ -1185,7 +1185,7 @@ class App {
         if (engineDot) {
           engineDot.style.backgroundColor = '#0071e3';
         }
-        if (btnToggleAiUpscale) btnToggleAiUpscale.title = '點擊切換為 🧠 雲端 AI 4x 深度學習重建';
+        if (btnToggleAiUpscale) btnToggleAiUpscale.title = '點擊切換為 🔬 邊緣強化 4x 放大演算法';
         if (aiUpscaleIcon) aiUpscaleIcon.textContent = '⚡';
         if (aiUpscaleText) aiUpscaleText.textContent = '本機 8x 放大';
       }

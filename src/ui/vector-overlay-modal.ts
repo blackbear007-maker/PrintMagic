@@ -55,6 +55,17 @@ export class VectorOverlayModal {
     this.modalEl.style.display = 'none';
   }
 
+  /**
+   * Detects likely text regions and loads them into the editable list.
+   *
+   * The `applyImmediately` parameter is accepted for call-site compatibility but no longer
+   * bypasses review. Fixed 2026-08-25: this used to, when `applyImmediately` was true, stamp the
+   * detected regions straight onto the canvas as final K100 vector text and report success —
+   * but TextInspector does not read what the text actually says (no OCR), so every region's
+   * `text` is a placeholder string. That meant this could silently overwrite real artwork with
+   * literal "（點此輸入文字）" placeholders while telling the user it succeeded. Detected regions
+   * always need a human to type the real text in before they're applied now.
+   */
   public autoDetectFromCurrentState(applyImmediately: boolean = false): boolean {
     const state = store.getState();
     const imgData = state.processedImageData || state.originalImageData;
@@ -65,23 +76,18 @@ export class VectorOverlayModal {
 
     const detected = TextInspector.autoDetectTextLayers(imgData);
     if (detected.length === 0) {
-      if (!applyImmediately) {
-        Toast.info('未偵測到明顯文字區塊');
-      }
+      Toast.info('未偵測到明顯文字區塊');
       return false;
     }
 
     this.engine.clear();
     this.engine.addTextItems(detected);
 
+    SoundEffects.sliderTick();
+    Toast.info(`✨ 已自動偵測 ${detected.length} 處文字區域——系統不會讀取文字內容，請逐一確認/輸入實際文字後再套用`);
     if (applyImmediately) {
-      SoundEffects.shutterClick();
-      this.onApplyCallback();
-      this.close();
-      Toast.success(`✓ 已自動辨識全部 ${detected.length} 處文字，並以 K100 向量層清晰渲染！`);
+      this.open(); // items are already non-empty, so this just shows the modal + renders once
     } else {
-      SoundEffects.sliderTick();
-      Toast.success(`✨ 已自動偵測並載入 ${detected.length} 處文字區域！`);
       this.render();
     }
     return true;
@@ -135,7 +141,7 @@ export class VectorOverlayModal {
 
             <div style="display: flex; gap: 8px; flex-wrap: wrap;">
               <button id="btnAutoDetectAndApply" class="pm-btn pm-btn-artisan pm-btn-md" style="flex: 1; min-width: 190px; background: linear-gradient(135deg, #0071e3 0%, #0051a8 100%); color: #fff; font-weight: 700;">
-                <span>⚡</span> 一鍵自動修復全圖文字 (立即變清晰)
+                <span>⚡</span> 一鍵掃描全圖文字區域 (需再確認文字內容)
               </button>
               <button id="btnAutoDetectOnly" class="pm-btn pm-btn-secondary pm-btn-md" style="font-weight: 600;">
                 <span>🤖</span> 重新自動掃描

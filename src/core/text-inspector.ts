@@ -125,6 +125,13 @@ export class TextInspector {
 
   /**
    * Main entry point to inspect text in image
+   *
+   * ⚠️ Structural limitation, not a bug to "fix" without real OCR: `detectTextRegions()` never
+   * populates `region.text` with real recognized content (it's always ''), so every typo/spelling
+   * check below is unreachable — this can only ever report "no issues found," which previously
+   * read as "checked, and it's clean." It has never actually checked spelling on real text. The
+   * summary text below is worded to reflect that honestly instead of claiming a clean bill of
+   * health for a check that never ran.
    */
   public static async inspectImage(
     imageData: ImageData,
@@ -174,11 +181,14 @@ export class TextInspector {
 
     let summary = '';
     if (processedRegions.length === 0) {
-      summary = '未檢測到明顯文字區塊，排版結構安全。';
-    } else if (typoCount === 0 && !hasIssues) {
-      summary = `檢測到 ${processedRegions.length} 處文字區塊，拼寫與清晰度皆正常。`;
+      summary = '未檢測到明顯文字區塊。';
     } else {
-      summary = `檢測到 ${processedRegions.length} 處文字，發現 ${typoCount} 處疑似拼寫或 AI 亂碼異常。`;
+      // Honesty note: this tool locates text regions but does not read their content (no OCR),
+      // so a real spelling/typo check never actually runs — don't claim "拼寫正常" (spelling
+      // verified clean), since nothing was verified. Only report what was genuinely checked
+      // (blur/clarity, which is real pixel analysis) and be explicit that content wasn't read.
+      const blurryCount = processedRegions.filter(r => r.isBlurry).length;
+      summary = `檢測到 ${processedRegions.length} 處文字區塊${blurryCount > 0 ? `，其中 ${blurryCount} 處清晰度不足` : '，清晰度正常'}。本工具不讀取文字內容，錯字仍需自行校對。`;
     }
 
     return {

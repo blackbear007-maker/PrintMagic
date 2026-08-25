@@ -80,8 +80,8 @@ describe('Advanced Pre-Press Commercial Models Suite', () => {
     expect(rectified.height).toBe(80);
   });
 
-  // ─── 4. BiRefNet-Lite Saliency & Alpha Boundary Matting ────────────────────
-  it('should extract alpha transparency and de-contaminate background fringe using BiRefNet', () => {
+  // ─── 4. Edge-Choke Color-Distance Matting ──────────────────────────────────
+  it('should extract alpha transparency and de-contaminate background fringe', () => {
     const img = createMockImageData(50, 50, 255, 255, 255); // White background
     for (let y = 15; y < 35; y++) {
       for (let x = 15; x < 35; x++) {

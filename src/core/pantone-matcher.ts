@@ -1,16 +1,24 @@
 /**
  * 🌈 Pantone Spot Color Matcher & CIELAB ΔE2000 Engine
- * 
+ *
+ * The color math is real and correctly implemented: genuine sRGB→CIE XYZ→CIELAB conversion and
+ * the real CIEDE2000 formula, not approximations. But two claims below were overstated, fixed:
+ * Pantone is a proprietary commercial color system, not an ISO standard — "ISO standard Pantone...
+ * database" was wrong on both counts. And it's not a database, it's a hardcoded list of 19 curated
+ * colors with approximate Lab values — nowhere near Pantone's actual licensed reference library
+ * (1,000+ Solid Coated colors alone). Treat matches as a rough nearest-swatch estimate among these
+ * 19, not an authoritative Pantone lookup.
+ *
  * Pre-Press Problem Solved:
  * Luxury packaging, stationery, foil-stamping, and corporate brand guidelines require
  * exact Pantone Solid Coated / Uncoated spot color codes (e.g. Pantone 185 C, Pantone 871 C Gold),
  * rather than arbitrary RGB/CMYK mixtures.
- * 
+ *
  * Solution:
  * 1. Converts pixel RGB to standard CIE XYZ and CIELAB color space.
  * 2. Samples dominant artwork palette via spatial color quantization.
- * 3. Matches colors against ISO standard Pantone Solid Coated & Metallic database using CIE ΔE2000.
- * 4. Outputs exact Pantone Code, HEX, CMYK ink-mix percentage, and Delta E accuracy.
+ * 3. Matches against a 19-color curated approximation table using the real CIE ΔE2000 formula.
+ * 4. Outputs the nearest Pantone Code, HEX, CMYK ink-mix percentage, and Delta E distance.
  */
 
 export interface PantoneColor {

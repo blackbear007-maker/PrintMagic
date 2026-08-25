@@ -52,8 +52,12 @@ export class TextInspectionModal {
     if (!this.currentResult) return;
     const { regions, totalWords, typoCount, summary, executionTimeMs } = this.currentResult;
 
+    // typoCount can only ever be > 0 in the rare case a detected region's placeholder text happens
+    // to match a local typo rule — it does not mean "checked N regions' real spelling and found
+    // issues." This tool doesn't read text content, so a green badge here means "not checked,"
+    // not "verified correct." Worded accordingly rather than claiming a clean spelling check.
     const statusBadgeClass = typoCount > 0 ? 'pm-badge-warning' : 'pm-badge-success';
-    const statusBadgeText = typoCount > 0 ? `⚠️ 發現 ${typoCount} 處需注意` : '✅ 拼寫與排版皆正常';
+    const statusBadgeText = typoCount > 0 ? `⚠️ 發現 ${typoCount} 處需注意` : 'ℹ️ 未讀取文字內容（僅偵測位置）';
 
     this.overlay.innerHTML = `
       <div class="pm-modal pm-modal-lg pm-text-inspect-modal" role="dialog" aria-modal="true">
@@ -122,12 +126,12 @@ export class TextInspectionModal {
         <!-- Footer -->
         <div class="pm-modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
           <div style="font-size: 0.78rem; color: var(--pm-text-secondary); display: flex; align-items: center; gap: 6px;">
-            <span>💡 印刷防糊小秘訣：可直接點擊「一鍵自動轉為 K100 向量字」，系統將自動辨識全圖文字並覆蓋純黑防糊層！</span>
+            <span>💡 印刷防糊小秘訣：點擊「一鍵掃描文字區域」可自動找出文字位置並轉為 K100 向量字——系統不會讀取文字內容，掃描後仍需你逐一確認/輸入實際文字！</span>
           </div>
           <div style="display: flex; gap: 10px;">
             <button class="pm-btn pm-btn-ghost" id="btnCancelTextInspect">關閉</button>
             <button class="pm-btn pm-btn-artisan pm-btn-md" id="btnAutoFixAllK100" style="font-weight: 700;">
-              <span>⚡</span> 一鍵自動修復全圖文字 (免手動)
+              <span>⚡</span> 一鍵掃描文字區域 (需再確認內容)
             </button>
             <button class="pm-btn pm-btn-secondary" id="btnInspectFixWithK100">
               <span>🔤</span> 開啟圖層編輯器 ➔

@@ -99,7 +99,7 @@ export class DiagnosticCard {
             <span style="font-size: 1.1rem;">${isTypo ? '⚠️' : '📝'}</span>
             <div>
               <div style="font-weight: 700; font-size: 0.82rem; color: var(--pm-text-primary);">
-                ${isTypo ? `發現 ${textInspectionResult.typoCount} 處文字疑似異常` : '✓ 文字拼寫與清晰度已全自動優化'}
+                ${isTypo ? `發現 ${textInspectionResult.typoCount} 處文字疑似異常` : 'ℹ️ 已偵測文字區域位置（未讀取內容，錯字需自行確認）'}
               </div>
               <div style="font-size: 0.72rem; color: var(--pm-text-secondary);">
                 ${textInspectionResult.summary}
@@ -117,8 +117,8 @@ export class DiagnosticCard {
           <div style="display: flex; align-items: center; gap: 8px;">
             <span style="font-size: 1.1rem;">🔍</span>
             <div>
-              <div style="font-weight: 700; font-size: 0.82rem; color: var(--pm-text-primary);">AI 智慧文字檢查</div>
-              <div style="font-size: 0.72rem; color: var(--pm-text-secondary);">點擊一鍵檢查圖片中是否有錯字或 AI 亂碼</div>
+              <div style="font-weight: 700; font-size: 0.82rem; color: var(--pm-text-primary);">文字區域偵測</div>
+              <div style="font-size: 0.72rem; color: var(--pm-text-secondary);">點擊偵測圖片中的文字位置（不讀取內容，錯字需自行確認）</div>
             </div>
           </div>
           <button class="pm-btn pm-btn-xs pm-btn-ghost" type="button">
@@ -179,8 +179,8 @@ export class DiagnosticCard {
           <!-- 2. Converged All-in-One Defense Grid (全自動 10 大無腦印前守護) -->
           <div class="pm-simple-defense-box">
             <div class="pm-defense-box-header">
-              <span class="pm-defense-title">🛡️ 10 大商業印前守護 · 背景 100% 全自動就緒</span>
-              <span class="pm-defense-status">✓ 完美就緒</span>
+              <span class="pm-defense-title">🛡️ 10 大商業印前守護 · 背景全自動處理</span>
+              <span class="pm-defense-status">${issues.length === 0 ? '✓ 完美就緒' : `⚠️ ${issues.length} 項待改善`}</span>
             </div>
 
             <div class="pm-defense-chips-grid" style="grid-template-columns: repeat(2, 1fr); gap: 6px;">
@@ -220,7 +220,7 @@ export class DiagnosticCard {
                 <span class="pm-chip-icon">🏁</span>
                 <span class="pm-chip-text"><strong>條碼光學</strong> 防呆校驗</span>
               </div>
-              <div class="pm-defense-chip" title="已套用印刷廠色彩描述檔，直出零色偏">
+              <div class="pm-defense-chip" title="已套用印刷廠色彩描述檔參考值進行控墨（非真正 ICC 色彩轉換，色差程度依印刷廠實際校色而定）">
                 <span class="pm-chip-icon">🇹🇼</span>
                 <span class="pm-chip-text"><strong>CMYK</strong> 色彩校正</span>
               </div>
@@ -334,7 +334,7 @@ export class DiagnosticCard {
               <button class="pm-btn pm-btn-secondary pm-btn-md btn-diag-export-png" title="下載 300 DPI 高解析度 PNG 影像檔">
                 <span>📥</span> 下載高清 PNG
               </button>
-              <button class="pm-btn pm-btn-secondary pm-btn-md btn-diag-open-pipeline" style="background: rgba(88, 86, 214, 0.08); color: #5856d6; border-color: rgba(88, 86, 214, 0.25);" title="🎛️ 專家管線自訂：逐項開關自訂 AI 放大、銳化、控墨與階調處理 (測試版免費開放)">
+              <button class="pm-btn pm-btn-secondary pm-btn-md btn-diag-open-pipeline" style="background: rgba(88, 86, 214, 0.08); color: #5856d6; border-color: rgba(88, 86, 214, 0.25);" title="🎛️ 專家管線自訂：逐項開關自訂放大、銳化、控墨與階調處理 (本機決定性演算法，測試版免費開放)">
                 <span>🎛️</span> 專家管線自訂
               </button>
             </div>

@@ -3,7 +3,8 @@ import type { CropAnchor, PrintPreset } from '../types';
 
 /**
  * Commercial Print PDF Exporter
- * Generates ISO pre-press ready PDFs with precise 0.1mm vector crop marks, bleed, color bars, and registration targets
+ * Generates RGB PDFs (not CMYK, not PDF/X) with precise 0.1mm vector crop marks, bleed, color bars,
+ * and registration targets. Print shops still need to run their own standard pre-press conversion.
  */
 export class PdfExporter {
   public static async export(

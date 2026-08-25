@@ -1,7 +1,14 @@
 ##############################################################################
-#  PrintMagic — Railway-Safe Docker Compose
-#  RAM Ceilings are enforced to prevent Railway billing spikes.
+#  PrintMagic — Docker Compose (local dev)
+#  RAM Ceilings below are enforced for `docker compose up` on this machine only.
+#  ⚠️ They do NOT carry over to Railway: Railway deploys from each service's own
+#     railway.toml (see docker/<service>/railway.toml), none of which set a memory
+#     limit field — Railway's config-as-code schema doesn't expose one; limits there
+#     are set via the Railway dashboard, outside this repo. So this file's comment
+#     about "preventing Railway billing spikes" was true for local runs but didn't
+#     actually constrain the Railway deployment the comment was about.
 #
+
 #  Monthly cost estimate (Railway Hobby $5/mo plan):
 #  ┌──────────────────────┬────────────┬───────────┬────────────┐
 #  │ Service              │ RAM Limit  │ CPU Limit │ $/mo est.  │
@@ -57,7 +64,11 @@ services:
         reservations:
           memory: 128M        # Guaranteed minimum
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+      # Fixed 2026-08-25: was "/health", which isn't a real route — the API is mounted at
+      # /api (see server/index.ts), so a bare GET /health fell through to the SPA catch-all
+      # and returned 200 regardless of whether the actual backend was healthy. This now hits
+      # the real health route, matching what root railway.toml already used correctly.
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3

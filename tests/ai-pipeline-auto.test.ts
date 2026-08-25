@@ -97,9 +97,9 @@ describe('Unified PyTorch AI & Automated Pre-Press Pipeline (全自動啟用驗�
     img = AntiBandingFilter.apply(img, 0.65);
     expect(img).toBeDefined();
 
-    // 3. Auto CLIP-IQA+
-    const clipReport = PixelStatQualityAssessor.assess(img);
-    expect(clipReport.score).toBeGreaterThan(0);
+    // 3. Auto Pixel-Stat Quality Assessment
+    const qualityReport = PixelStatQualityAssessor.assess(img);
+    expect(qualityReport.score).toBeGreaterThan(0);
 
     // 4. Auto Pantone
     const pantones = PantoneMatcher.extractDominantSpotColors(img, 2);

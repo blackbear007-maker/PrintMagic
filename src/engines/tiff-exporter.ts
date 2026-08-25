@@ -1,10 +1,11 @@
 /**
- * 🖨️ Professional 300 DPI TIFF (Tag Image File Format) Pre-Press Exporter
- * 
- * Complies with ISO 12639 / TIFF 6.0 Pre-Press Standard:
- * - 300 DPI XResolution & YResolution tags (Tag 282, 283) with Inch ResolutionUnit (Tag 296 = 2)
- * - Support for 24-bit RGB (Tag 262 = 2) and 32-bit RGBA (Tag 262 = 2 + ExtraSamples 284)
- * - Zero external dependencies — 100% Client-Side Pure TypeScript Binary Encoder
+ * 300 DPI TIFF (Tag Image File Format) Exporter
+ *
+ * Hand-written TIFF 6.0 encoder, uncompressed 24-bit RGB only (alpha channel is dropped —
+ * no ExtraSamples tag 284 is written). Sets 300 DPI XResolution/YResolution (Tag 282, 283)
+ * with Inch ResolutionUnit (Tag 296 = 2). Not an ISO 12639 (IT8/TIFF-IT) compliant file —
+ * that standard requires CMYK/CT-LW structures this encoder does not produce.
+ * Zero external dependencies — 100% client-side TypeScript binary encoder.
  */
 
 export class TiffExporter {

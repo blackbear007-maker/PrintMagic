@@ -1,15 +1,22 @@
 /**
- * ⚡ SVG Path Optimizer & Dieline Compressor (SVGO / svgcleaner logic)
- * 
+ * ⚡ SVG Path Optimizer & Dieline Compressor
+ *
+ * A real, working hand-rolled optimizer — not SVGO or svgcleaner (no plugin pipeline, no path
+ * re-parsing/curve simplification beyond what's listed below; "SVGO / svgcleaner logic" overstated
+ * what this is).
+ *
  * Pre-Press Problem Solved:
  * VTracer and auto-vectorizers produce raw SVGs with millions of dense points and 8-decimal precision.
  * Commercial Roland / Graphtec / Mimaki laser cutting plotters stall or stutter when processing bloated paths.
- * 
+ *
  * Solution:
  * 1. Decimal Precision Clamping (e.g. 124.54923184 ➔ 124.5)
  * 2. Collinear and Duplicate Node Removal
  * 3. Command Consolidation (e.g. L 10 10 L 20 20 ➔ L 10 10 20 20)
- * 4. 60% ~ 75% File Size Reduction with 0 visual degradation.
+ *
+ * Actual size reduction varies a lot by source SVG (precision/redundancy in the input) — the old
+ * "60% ~ 75%" figure was an unverified number, not measured against any benchmark in this repo.
+ * `reductionPercent` in the result is the real measured value for whatever was just optimized.
  */
 
 export interface SvgOptimizationResult {

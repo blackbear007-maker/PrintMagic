@@ -1,13 +1,23 @@
 /**
  * 🏁 K100 Pure Black Vector Barcode & QR Code Generator
- * 
+ *
+ * ⚠️ NOT ACTUALLY SCANNABLE (confirmed 2026-08-25). `createQrMatrix()` draws real QR finder/timing
+ * patterns but packs data bits with no Reed-Solomon error correction, no format/version info, and
+ * no masking — none of the things ISO/IEC 18004 requires for a decoder to read it. `encodeCode128()`
+ * only covers digits/space/-/./_ and a handful of letters (falls back to an arbitrary pattern for
+ * anything else), and it's missing the mandatory modulo-103 checksum symbol, which real Code128
+ * scanners require. The K100-pure-black-ink framing (real print concern: 4-color CMYK barcodes do
+ * risk misregistration) is legitimate, but the codes this generates will not scan. Also currently
+ * unreachable from any UI in this app (dead code) — listed here for whoever finds it next, not as
+ * a recommendation to use it as-is.
+ *
  * Pre-Press Problem Solved:
  * Standard RGB barcodes generate 4-color CMYK plates (C:60 M:50 Y:50 K:100 = 260% TAC).
  * Plate misalignment in offset printing causes fuzzy edges and 100% scanner failure.
- * 
- * Solution:
- * Generates 100% Pure K100 (C:0 M:0 Y:0 K:100) vector SVG paths with crisp optical edges,
- * quiet zone margins, and zero color contamination.
+ *
+ * Solution (visual only, not spec-compliant encoding — see warning above):
+ * Generates a K100 (C:0 M:0 Y:0 K:100) vector SVG that visually resembles a barcode/QR code, with
+ * quiet zone margins.
  */
 
 export interface BarcodeOptions {
