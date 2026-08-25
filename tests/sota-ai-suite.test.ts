@@ -3,7 +3,6 @@ import { BiRefNetMatting } from '../src/core/birefnet-matting';
 import { ZeroDceEnhancer } from '../src/core/zero-dce-enhancer';
 import { RealEsrganUpscaler } from '../src/core/realesrgan-upscaler';
 import { PpOcrEngine } from '../src/core/pp-ocr-engine';
-import { MobileSamSegmenter } from '../src/core/mobilesam-segmenter';
 import { Sam2Segmenter } from '../src/core/sam2-segmenter';
 import { DoctrDewarp } from '../src/core/doctr-dewarp';
 import { TeedEdgeDetector } from '../src/core/teed-edge';

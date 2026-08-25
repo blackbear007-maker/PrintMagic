@@ -29,7 +29,6 @@ export class ClipIqaAssessor {
     const w = srcImageData.width;
     const h = srcImageData.height;
     const src = srcImageData.data;
-    const totalPixels = w * h;
 
     let sumLum = 0;
     let sumGrad = 0;
