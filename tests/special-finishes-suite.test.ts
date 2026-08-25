@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { LineartExtractor } from '../src/core/lineart-extractor';
-import { PaperTextureEngine } from '../src/core/paper-texture-engine';
+import { RealPaperSimulator } from '../src/core/real-paper-simulator';
 import { QrPreflightEnhancer } from '../src/core/qr-preflight-enhancer';
 
 describe('Special Finishes & Artisanal Pre-Press Suite', () => {
@@ -23,11 +23,11 @@ describe('Special Finishes & Artisanal Pre-Press Suite', () => {
     expect([0, 255]).toContain(res.data[0]); // Binary 0 or 255
   });
 
-  it('PaperTextureEngine: should apply 3D Linen and Kraft procedural textures', () => {
+  it('RealPaperSimulator: should simulate woodfree and kraft physical substrate absorbency', () => {
     const img = createMockImageData(15, 15);
-    const linen = PaperTextureEngine.applyTexture(img, 'linen', 0.5);
-    const kraft = PaperTextureEngine.applyTexture(img, 'kraft', 0.5);
-    expect(linen.width).toBe(15);
+    const woodfree = RealPaperSimulator.simulatePaper(img, 'woodfree');
+    const kraft = RealPaperSimulator.simulatePaper(img, 'kraft');
+    expect(woodfree.width).toBe(15);
     expect(kraft.width).toBe(15);
   });
 

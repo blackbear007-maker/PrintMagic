@@ -4,7 +4,6 @@ import { MetallicFoilSeparator } from '../src/core/metallic-foil-separator';
 import { NestingOptimizer } from '../src/core/nesting-optimizer';
 import { SpotUvDilator } from '../src/core/spot-uv-dilator';
 import { GamutRemapper } from '../src/core/gamut-remapper';
-import { GripMarginChecker } from '../src/core/grip-margin-checker';
 
 describe('Advanced Commercial Pre-Press Enhancements Suite', () => {
   const createMockImageData = (w: number, h: number): ImageData => {
@@ -53,12 +52,5 @@ describe('Advanced Commercial Pre-Press Enhancements Suite', () => {
     const img = createMockImageData(10, 10);
     const res = GamutRemapper.remapGamut(img);
     expect(res.width).toBe(10);
-  });
-
-  it('06. GripMarginChecker: should verify press mechanical gripper margin clearances', () => {
-    const img = createMockImageData(50, 50);
-    const res = GripMarginChecker.checkGripperMargin(img, 10, 300);
-    expect(res).toHaveProperty('hasGripperCollision');
-    expect(res.gripperMarginMm).toBe(10);
   });
 });

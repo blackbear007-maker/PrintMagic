@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { NimaAssessor } from '../src/core/nima-assessor';
 import { DeshadowEngine } from '../src/core/deshadow-engine';
-import { LamaInpainter } from '../src/core/lama-inpainter';
+import { ObjectEraser } from '../src/core/object-eraser';
 import { DEFAULT_PIPELINE_OPTIONS } from '../src/types';
 import { PantoneMatcher } from '../src/core/pantone-matcher';
 import { BarcodeVerifier } from '../src/core/barcode-verifier';
@@ -68,7 +68,7 @@ describe('Unified PyTorch AI & Automated Pre-Press Pipeline (全自動啟用驗�
     expect(deshadowed.data[shadowIdx]).toBeGreaterThan(60);
   });
 
-  it('should inpaint masked pixels using LamaInpainter', () => {
+  it('should inpaint masked pixels using ObjectEraser', () => {
     const src = createMockImageData(40, 40, 200, 200, 200);
     const mask = createMockImageData(40, 40, 0, 0, 0, 0);
 
@@ -81,7 +81,7 @@ describe('Unified PyTorch AI & Automated Pre-Press Pipeline (全自動啟用驗�
       }
     }
 
-    const inpainted = LamaInpainter.inpaint(src, mask);
+    const inpainted = ObjectEraser.inpaint(src, mask);
     expect(inpainted.width).toBe(40);
     expect(inpainted.height).toBe(40);
   });
