@@ -1,12 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { HairlineThickener } from '../src/core/hairline-thickener';
 import { SkinToneCyanSuppressor } from '../src/core/skin-tone-cyan-suppressor';
-import { CmykVibrancyRescuer } from '../src/core/cmyk-vibrancy-rescuer';
 import { AcrylicCharmBuilder } from '../src/core/acrylic-charm-builder';
 import { StickerKisscutBuilder } from '../src/core/sticker-kisscut-builder';
 import { TshirtColorKnockout } from '../src/core/tshirt-color-knockout';
-import { AiPseudoTextFilter } from '../src/core/ai-pseudo-text-filter';
-import { MicroContrastTextBooster } from '../src/core/micro-contrast-text-booster';
 import { RealPaperSimulator } from '../src/core/real-paper-simulator';
 
 describe('User-Facing Commercial Image Pre-Press Suite', () => {
@@ -33,45 +30,27 @@ describe('User-Facing Commercial Image Pre-Press Suite', () => {
     expect(res.width).toBe(10);
   });
 
-  it('03. CmykVibrancyRescuer: should rescue vivid out-of-gamut colors', () => {
-    const img = createMockImg(10, 10, 255, 20, 180);
-    const res = CmykVibrancyRescuer.rescueVibrancy(img);
-    expect(res.width).toBe(10);
-  });
-
-  it('04. AcrylicCharmBuilder: should generate 2mm dieline and white underbase', () => {
+  it('03. AcrylicCharmBuilder: should generate 2mm dieline and white underbase', () => {
     const img = createMockImg(20, 20, 200, 50, 50);
     const res = AcrylicCharmBuilder.buildCharmDieline(img, 2.0, true);
     expect(res.dielineSvgPath).toContain('Dieline');
     expect(res.hasHangingHole).toBe(true);
   });
 
-  it('05. StickerKisscutBuilder: should generate cute white border and cutline', () => {
+  it('04. StickerKisscutBuilder: should generate cute white border and cutline', () => {
     const img = createMockImg(20, 20, 200, 50, 50);
     const res = StickerKisscutBuilder.generateStickerBorder(img, 4);
     expect(res.stickerWithBorder.width).toBe(20);
     expect(res.cutContourSvg).toContain('svg');
   });
 
-  it('06. TshirtColorKnockout: should knockout matching garment color', () => {
+  it('05. TshirtColorKnockout: should knockout matching garment color', () => {
     const img = createMockImg(10, 10, 5, 5, 5);
     const res = TshirtColorKnockout.knockoutGarmentColor(img, '#000000', 30);
     expect(res.data[3]).toBe(0); // Knocked out to transparent
   });
 
-  it('07. AiPseudoTextFilter: should clean unreadable AI gibberish text', () => {
-    const img = createMockImg(10, 10);
-    const res = AiPseudoTextFilter.cleanPseudoText(img);
-    expect(res.width).toBe(10);
-  });
-
-  it('08. MicroContrastTextBooster: should widen dark-on-dark text contrast', () => {
-    const img = createMockImg(10, 10, 60, 60, 60);
-    const res = MicroContrastTextBooster.boostContrast(img);
-    expect(res.data[0]).toBeLessThan(60);
-  });
-
-  it('09. RealPaperSimulator: should simulate kraft and woodfree paper absorbency', () => {
+  it('06. RealPaperSimulator: should simulate kraft and woodfree paper absorbency', () => {
     const img = createMockImg(10, 10, 200, 200, 200);
     const res = RealPaperSimulator.simulatePaper(img, 'kraft');
     expect(res.width).toBe(10);

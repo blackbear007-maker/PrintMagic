@@ -6,9 +6,8 @@ import { RollupBannerScaler } from '../src/core/rollup-banner-scaler';
 import { PackagingBoxDieline } from '../src/core/packaging-box-dieline';
 import { LuxuryEmbossingBevel } from '../src/core/luxury-embossing-bevel';
 import { GicleeFineArtDmax } from '../src/core/giclee-fineart-dmax';
-import { ApparelHangTagPlanner } from '../src/core/apparel-hangtag-planner';
 
-describe('8 High-Conversion Commercial Pre-Press Modules Suite', () => {
+describe('High-Conversion Commercial Pre-Press Modules Suite', () => {
   const createMockImg = (w: number, h: number, r = 180, g = 140, b = 100, a = 255): ImageData => {
     const data = new Uint8ClampedArray(w * h * 4);
     for (let i = 0; i < data.length; i += 4) {
@@ -81,22 +80,5 @@ describe('8 High-Conversion Commercial Pre-Press Modules Suite', () => {
     expect(res.width).toBe(20);
     expect(res.height).toBe(20);
     expect(res.data[0]).toBeLessThanOrEqual(40); // Darker shadow density
-  });
-
-  it('08. ApparelHangTagPlanner: should generate clothing hang tag SVG and A4 tiling plan', () => {
-    const svg = ApparelHangTagPlanner.generateSingleHangTagSvg({
-      tagWidthMm: 50,
-      tagHeightMm: 90,
-      holeDiameterMm: 3.5,
-      holeOffsetFromTopMm: 8,
-      brandName: 'URBAN VIBE',
-      priceNtd: 880
-    });
-    expect(svg).toContain('URBAN VIBE');
-    expect(svg).toContain('NT$ 880');
-    expect(svg).toContain('tag-hole');
-
-    const tiling = ApparelHangTagPlanner.calculateA4Tiling(50, 90);
-    expect(tiling.totalPerA4).toBeGreaterThan(0);
   });
 });

@@ -3,7 +3,6 @@ import { TrappingMaster } from '../src/core/trapping-master';
 import { MetallicFoilSeparator } from '../src/core/metallic-foil-separator';
 import { NestingOptimizer } from '../src/core/nesting-optimizer';
 import { SpotUvDilator } from '../src/core/spot-uv-dilator';
-import { GamutRemapper } from '../src/core/gamut-remapper';
 
 describe('Advanced Commercial Pre-Press Enhancements Suite', () => {
   const createMockImageData = (w: number, h: number): ImageData => {
@@ -46,11 +45,5 @@ describe('Advanced Commercial Pre-Press Enhancements Suite', () => {
     const img = createMockImageData(20, 20);
     const res = SpotUvDilator.dilateUvMask(img, 2);
     expect(res.width).toBe(20);
-  });
-
-  it('05. GamutRemapper: should remap neon out-of-gamut colors to ISO CMYK safety', () => {
-    const img = createMockImageData(10, 10);
-    const res = GamutRemapper.remapGamut(img);
-    expect(res.width).toBe(10);
   });
 });

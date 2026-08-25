@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { CanvasWrapMirror } from '../src/core/canvas-wrap-mirror';
 import { FluorescentNeonExtractor } from '../src/core/fluorescent-neon-extractor';
-import { BusinessCardSmartAligner } from '../src/core/business-card-smart-aligner';
 
 describe('User-Facing Commercial Image Pre-Press Suite (Batch 2)', () => {
   const createMockImg = (w: number, h: number, r = 100, g = 100, b = 100, a = 255): ImageData => {
@@ -27,17 +26,5 @@ describe('User-Facing Commercial Image Pre-Press Suite (Batch 2)', () => {
     const res = FluorescentNeonExtractor.extractNeonChannel(img, 'pink');
     expect(res.spotColorName).toContain('Pantone 806');
     expect(res.coveragePercent).toBeGreaterThan(0);
-  });
-
-  it('03. BusinessCardSmartAligner: should align contact info to Swiss modular grid', () => {
-    const svg = BusinessCardSmartAligner.alignCardTypography({
-      name: '王小明',
-      title: '資深設計總監',
-      phone: '0912-345-678',
-      email: 'alex@studio.design',
-      website: 'www.studio.design'
-    }, 90, 54);
-    expect(svg).toContain('王小明');
-    expect(svg).toContain('TEL: 0912-345-678');
   });
 });

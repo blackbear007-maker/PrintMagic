@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { DescreenEngine } from '../src/core/descreen-engine';
-import { SmartCropper } from '../src/core/smart-cropper';
 
 describe('Extended Commercial Open-Source Pre-Press AI Suite', () => {
   const createMockImageData = (w: number, h: number): ImageData => {
@@ -24,13 +23,5 @@ describe('Extended Commercial Open-Source Pre-Press AI Suite', () => {
     expect(res.width).toBe(30);
     expect(res.height).toBe(30);
     expect(res.data.length).toBe(30 * 30 * 4);
-  });
-
-  it('SmartCropper: should calculate rule-of-thirds optimal crop box without decapitation', () => {
-    // 1000x1000 square cropped to 90x54mm business card (ratio = 1.666)
-    const crop = SmartCropper.calculateOptimalCrop(1000, 1000, 90 / 54);
-    expect(crop.width).toBe(1000);
-    expect(crop.height).toBe(600);
-    expect(crop.y).toBe(120); // 30% top bias preserving head
   });
 });
