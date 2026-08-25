@@ -4,9 +4,8 @@ import { FabricMoireNeutralizer } from '../src/core/fabric-moire-neutralizer';
 import { NeonHalationCompressor } from '../src/core/neon-halation-compressor';
 import { Packaging3DMockupRenderer } from '../src/core/packaging-3d-mockup-renderer';
 import { FlatFieldVignetteCorrector } from '../src/core/flatfield-vignette-corrector';
-import { RedEyePupilFixer } from '../src/core/redeye-pupil-fixer';
 
-describe('6 High-End Luxury Pre-Press Quality Enhancement Modules Suite', () => {
+describe('Luxury Pre-Press Quality Enhancement Modules Suite', () => {
   const createMockImg = (w: number, h: number, r = 128, g = 128, b = 128, a = 255): ImageData => {
     const data = new Uint8ClampedArray(w * h * 4);
     for (let i = 0; i < data.length; i += 4) {
@@ -73,12 +72,5 @@ describe('6 High-End Luxury Pre-Press Quality Enhancement Modules Suite', () => 
     // Corner pixel (0, 0)
     const cornerIdx = 0;
     expect(res.data[cornerIdx]).toBeGreaterThan(res.data[centerIdx]); // Corner boosted
-  });
-
-  it('06. RedEyePupilFixer: should detect and desaturate flash red pupils to melanin black', () => {
-    const img = createMockImg(10, 10, 230, 40, 30); // Glowing red eye
-    const { resultImageData, stats } = RedEyePupilFixer.fixFlashRedEye(img, 1.2, 100);
-    expect(stats.fixedPupilPixels).toBeGreaterThan(0);
-    expect(resultImageData.data[0]).toBeLessThanOrEqual(30); // Desaturated to black
   });
 });

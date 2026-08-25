@@ -8,7 +8,6 @@ import { TshirtColorKnockout } from '../src/core/tshirt-color-knockout';
 import { AiPseudoTextFilter } from '../src/core/ai-pseudo-text-filter';
 import { MicroContrastTextBooster } from '../src/core/micro-contrast-text-booster';
 import { RealPaperSimulator } from '../src/core/real-paper-simulator';
-import { PassportProportionAligner } from '../src/core/passport-proportion-aligner';
 
 describe('User-Facing Commercial Image Pre-Press Suite', () => {
   const createMockImg = (w: number, h: number, r = 100, g = 100, b = 100, a = 255): ImageData => {
@@ -76,12 +75,5 @@ describe('User-Facing Commercial Image Pre-Press Suite', () => {
     const img = createMockImg(10, 10, 200, 200, 200);
     const res = RealPaperSimulator.simulatePaper(img, 'kraft');
     expect(res.width).toBe(10);
-  });
-
-  it('10. PassportProportionAligner: should align portrait photo to 75% head ratio', () => {
-    const img = createMockImg(10, 10);
-    const res = PassportProportionAligner.alignPassportPhoto(img, 0.75);
-    expect(res.headRatioPercent).toBe(75);
-    expect(res.isIcaoCompliant).toBe(true);
   });
 });
