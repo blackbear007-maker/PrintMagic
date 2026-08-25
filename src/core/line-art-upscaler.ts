@@ -1,19 +1,16 @@
 /**
- * 🎨 Anime4K-Lite Anime & Manga Vector-Like Line Art Upscaler (MIT)
- * 
- * Pre-Press Problem Solved:
- * Anime, comic book, and 2D character illustrations have high-contrast ink lines.
- * Standard bicubic or photo neural networks create blurry halos or color bleeding along ink lines.
- * 
- * Solution:
- * 1. Directional Gradient Derivative Estimation: Tracks stroke flow.
- * 2. Morphological Line Thinning & Darkening: Clamps ink edges to pure black/saturated tones.
- * 3. Bilateral Texture Refinement: Eliminates color bleed on flats while keeping lines razor sharp.
+ * 🎨 Directional Line-Art Upscaler (pure client-side algorithm, no model weights)
+ *
+ * What this actually is:
+ * Bilinear expansion plus a dark-line contrast push along luminance edges. It is inspired by the
+ * Anime4K project's general goal (crisp ink lines when upscaling flat-color illustration) but is
+ * an independent, much simpler reimplementation — not the Anime4K shader pipeline itself, and
+ * carries no affiliation with or license from that project.
  */
 
-export class Anime4kUpscaler {
+export class LineArtUpscaler {
   /**
-   * Applies Anime4K-style gradient line enhancement and 2x/4x sharpening
+   * Upscales flat-color illustration art with a directional dark-line contrast push
    */
   public static upscaleAnime(
     srcImageData: ImageData,
@@ -64,7 +61,7 @@ export class Anime4kUpscaler {
       }
     }
 
-    // 2. Anime4K Edge Push Filter: Enhance dark line art boundaries
+    // 2. Dark line-art edge push: darken pixels sitting on a high-contrast boundary
     for (let y = 1; y < dstH - 1; y++) {
       for (let x = 1; x < dstW - 1; x++) {
         const idx = (y * dstW + x) * 4;

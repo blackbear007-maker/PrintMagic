@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { ClipIqaAssessor } from '../src/core/clip-iqa-assessor';
-import { DeshadowEngine } from '../src/core/deshadow-engine';
+import { PixelStatQualityAssessor } from '../src/core/pixel-stat-quality-assessor';
+import { HandShadowBalancer } from '../src/core/hand-shadow-balancer';
 import { ObjectEraser } from '../src/core/object-eraser';
 import { DEFAULT_PIPELINE_OPTIONS } from '../src/types';
 import { PantoneMatcher } from '../src/core/pantone-matcher';
@@ -31,7 +31,7 @@ describe('Unified PyTorch AI & Automated Pre-Press Pipeline (全自動啟用驗�
     expect(DEFAULT_PIPELINE_OPTIONS.enableDeshadow).toBe(true);
   });
 
-  it('should evaluate image sharpness, noise, and score using ClipIqaAssessor', () => {
+  it('should evaluate image sharpness, noise, and score using PixelStatQualityAssessor', () => {
     const img = createMockImageData(60, 60, 150, 150, 150);
     // Draw some high frequency edges
     for (let i = 0; i < 60; i++) {
@@ -41,14 +41,14 @@ describe('Unified PyTorch AI & Automated Pre-Press Pipeline (全自動啟用驗�
       img.data[idx + 2] = 20;
     }
 
-    const report = ClipIqaAssessor.assess(img);
+    const report = PixelStatQualityAssessor.assess(img);
     expect(report.score).toBeGreaterThan(0);
     expect(report.score).toBeLessThanOrEqual(100);
     expect(['EXCELLENT', 'GOOD', 'FAIR', 'POOR']).toContain(report.grade);
     expect(report.recommendations).toBeDefined();
   });
 
-  it('should normalize non-uniform illumination gradient with DeshadowEngine', () => {
+  it('should normalize non-uniform illumination gradient with HandShadowBalancer', () => {
     const img = createMockImageData(60, 60);
     // Create dark gradient shadow on left side
     for (let y = 0; y < 60; y++) {
@@ -60,7 +60,7 @@ describe('Unified PyTorch AI & Automated Pre-Press Pipeline (全自動啟用驗�
       }
     }
 
-    const deshadowed = DeshadowEngine.deshadow(img, 0.8);
+    const deshadowed = HandShadowBalancer.deshadow(img, 0.8);
     expect(deshadowed.width).toBe(60);
     expect(deshadowed.height).toBe(60);
     // Shadowed pixels should be brightened
@@ -90,7 +90,7 @@ describe('Unified PyTorch AI & Automated Pre-Press Pipeline (全自動啟用驗�
     let img = createMockImageData(50, 50, 180, 50, 50);
 
     // 1. Auto Deshadow
-    img = DeshadowEngine.deshadow(img, 0.7);
+    img = HandShadowBalancer.deshadow(img, 0.7);
     expect(img).toBeDefined();
 
     // 2. Auto Anti-Banding
@@ -98,7 +98,7 @@ describe('Unified PyTorch AI & Automated Pre-Press Pipeline (全自動啟用驗�
     expect(img).toBeDefined();
 
     // 3. Auto CLIP-IQA+
-    const clipReport = ClipIqaAssessor.assess(img);
+    const clipReport = PixelStatQualityAssessor.assess(img);
     expect(clipReport.score).toBeGreaterThan(0);
 
     // 4. Auto Pantone

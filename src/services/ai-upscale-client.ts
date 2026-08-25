@@ -1,48 +1,46 @@
-import { RealEsrganUpscaler } from '../core/realesrgan-upscaler';
+import { EdgeAwareUpscaler } from '../core/edge-aware-upscaler';
 import { UnsharpMask } from '../core/unsharp-mask';
-import { QuotaRouter } from './quota-router';
 
 /**
- * 👑 100% Self-Hosted & Local Multi-Model AI Super-Resolution Client (RealESRGAN-Compact / Anime6B)
- * Features:
- * 1. Self-Hosted ONNX / PyTorch Microservice Routing (/api/ai/upscale)
- * 2. Client-Side Request Compression (75% payload reduction)
- * 3. Intelligent Hash-Based In-Memory LRU Caching
- * 4. 100% Offline Air-Gapped Fallback to Local RealEsrganUpscaler
- * 5. 0 bytes sent to external cloud APIs
+ * Local Upscale Client
+ *
+ * There is no super-resolution model deployed anywhere in this stack (no RealESRGAN/HAT-S/SwinIR/
+ * Waifu2x weights exist, self-hosted or otherwise). This always runs the local deterministic
+ * EdgeAwareUpscaler (bilinear interpolation + edge boost — see src/core/edge-aware-upscaler.ts).
+ * The three presets below only change the scale factor and sharpening amount, not the algorithm.
  */
 
-export type AiModelType = 'real-esrgan-compact' | 'real-esrgan-anime' | 'waifu2x';
+export type AiModelType = 'general-4x' | 'lineart-4x' | 'fast-2x';
 
 export interface AiModelConfig {
   id: AiModelType;
   name: string;
   desc: string;
-  hfModel: string;
-  scale: number;
+  scale: 2 | 4;
+  denoiseStrength: number;
 }
 
 export const AI_MODELS: AiModelConfig[] = [
   {
-    id: 'real-esrgan-compact',
-    name: 'Real-ESRGAN Compact 4x 印刷級超分',
+    id: 'general-4x',
+    name: '4x 通用放大',
     desc: '適合真實攝影照片、人像、3D CG、商業海報與包裝圖檔',
-    hfModel: 'RealESRGAN_x4plus_compact',
-    scale: 4
+    scale: 4,
+    denoiseStrength: 0.6
   },
   {
-    id: 'real-esrgan-anime',
-    name: 'Real-ESRGAN Anime6B 動漫專用',
-    desc: '適合日系二次元插畫、同人周邊、模切貼紙與向量線條',
-    hfModel: 'RealESRGAN_x4plus_anime_6B',
-    scale: 4
+    id: 'lineart-4x',
+    name: '4x 線條強化放大',
+    desc: '適合日系二次元插畫、同人周邊、模切貼紙與向量線條，邊緣加強較多',
+    scale: 4,
+    denoiseStrength: 0.4
   },
   {
-    id: 'waifu2x',
-    name: 'Waifu2x 極致降噪插畫',
-    desc: '專注消除 JPEG 區塊假影並強化輪廓平滑度',
-    hfModel: 'waifu2x',
-    scale: 2
+    id: 'fast-2x',
+    name: '2x 快速放大',
+    desc: '較小放大倍率，處理更快，適合預覽或已經高解析度的圖檔',
+    scale: 2,
+    denoiseStrength: 0.6
   }
 ];
 
@@ -54,33 +52,18 @@ export interface AiUpscaleResult {
   scale?: number;
   cached?: boolean;
   error?: string;
-  fallbackToLocal?: boolean;
 }
 
 export class AiUpscaleClient {
-  private static readonly BACKEND_URL = '/api/ai-upscale';
   // Fast in-memory LRU Cache (max 20 processed images)
   private static readonly resultCache = new Map<string, { dataUrl: string; imageData: ImageData; model: string; scale: number }>();
-
-  public static getStoredToken(): string {
-    if (typeof localStorage !== 'undefined') {
-      return localStorage.getItem('printmagic_hf_token') || '';
-    }
-    return '';
-  }
-
-  public static setStoredToken(token: string): void {
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem('printmagic_hf_token', token.trim());
-    }
-  }
 
   public static getStoredModel(): AiModelType {
     if (typeof localStorage !== 'undefined') {
       const m = localStorage.getItem('printmagic_ai_model') as AiModelType;
       if (m && AI_MODELS.some((item) => item.id === m)) return m;
     }
-    return 'real-esrgan-compact';
+    return 'general-4x';
   }
 
   public static setStoredModel(model: AiModelType): void {
@@ -103,7 +86,7 @@ export class AiUpscaleClient {
   }
 
   /**
-   * Compresses source dataUrl to efficient lightweight JPEG/WebP for ultra-fast network transport
+   * Compresses source dataUrl to efficient lightweight JPEG/WebP for ultra-fast processing
    */
   public static async compressPayloadForUpload(sourceDataUrl: string, maxDimension: number = 1600): Promise<string> {
     if (typeof document === 'undefined') return sourceDataUrl;
@@ -141,16 +124,14 @@ export class AiUpscaleClient {
   }
 
   /**
-   * Calls AI Neural Upscaler with self-hosted container & local fallback
+   * Upscales using the local edge-aware algorithm (with in-memory result caching)
    */
   public static async upscale(
     sourceDataUrl: string,
-    modelId: AiModelType = this.getStoredModel(),
-    customToken: string = this.getStoredToken()
+    modelId: AiModelType = this.getStoredModel()
   ): Promise<AiUpscaleResult> {
     const config = AI_MODELS.find((m) => m.id === modelId) || AI_MODELS[0];
 
-    // 1. Check Intelligent Cache
     const cacheKey = this.computeHash(sourceDataUrl, config.id);
     if (this.resultCache.has(cacheKey)) {
       const cached = this.resultCache.get(cacheKey)!;
@@ -164,83 +145,37 @@ export class AiUpscaleClient {
       };
     }
 
-    // 2. Compress payload to minimize upload time
-    const uploadDataUrl = await this.compressPayloadForUpload(sourceDataUrl);
-    const startMs = performance.now();
-    const bestProvider = QuotaRouter.getBestProvider('upscale');
-
-    // 3. Primary: Self-Hosted Backend Proxy (/api/ai-upscale or /api/ai/upscale)
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 12000);
-
-      const res = await fetch(this.BACKEND_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          imageDataUrl: uploadDataUrl,
-          apiKey: customToken || undefined,
-          model: config.hfModel
-        }),
-        signal: controller.signal
-      });
-
-      clearTimeout(timeoutId);
-
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success && data.dataUrl) {
-          const rawImgData = await this.dataUrlToImageData(data.dataUrl);
-          const healedImgData = UnsharpMask.apply(rawImgData, 1.2, 0.8, 4);
-
-          QuotaRouter.recordUsage(bestProvider.id, Math.round(performance.now() - startMs));
-
-          const result: AiUpscaleResult = {
-            success: true,
-            dataUrl: data.dataUrl,
-            imageData: healedImgData,
-            model: data.model || config.name,
-            scale: config.scale
-          };
-
-          if (this.resultCache.size > 20) {
-            const firstKey = this.resultCache.keys().next().value;
-            if (firstKey) this.resultCache.delete(firstKey);
-          }
-          this.resultCache.set(cacheKey, {
-            dataUrl: data.dataUrl,
-            imageData: healedImgData,
-            model: result.model!,
-            scale: result.scale!
-          });
-
-          return result;
-        }
-      }
-    } catch {
-      // Backend offline, proceed to local SOTA
-    }
-
-    // 4. Local Processing SOTA Fallback (RealEsrganUpscaler)
     try {
       const simImgData = await this.dataUrlToImageData(sourceDataUrl);
-      const upscaleRes = RealEsrganUpscaler.upscale(simImgData, config.scale === 4 ? 4 : 2, 0.6);
+      const upscaleRes = EdgeAwareUpscaler.upscale(simImgData, config.scale, config.denoiseStrength);
       const healedImgData = UnsharpMask.apply(upscaleRes.upscaledImageData, 1.3, 0.9, 3);
-      return {
+
+      const result: AiUpscaleResult = {
         success: true,
         dataUrl: sourceDataUrl,
         imageData: healedImgData,
-        model: `${config.name} (本機 RealESRGAN 加速)`,
-        scale: config.scale,
-        fallbackToLocal: true
+        model: config.name,
+        scale: config.scale
       };
+
+      if (this.resultCache.size > 20) {
+        const firstKey = this.resultCache.keys().next().value;
+        if (firstKey) this.resultCache.delete(firstKey);
+      }
+      this.resultCache.set(cacheKey, {
+        dataUrl: sourceDataUrl,
+        imageData: healedImgData,
+        model: config.name,
+        scale: config.scale
+      });
+
+      return result;
     } catch (err: any) {
       return {
         success: false,
         model: config.name,
         scale: config.scale,
-        error: err?.message || 'Local AI processing failed',
-        fallbackToLocal: true
+        error: err?.message || 'Local upscale failed'
       };
     }
   }

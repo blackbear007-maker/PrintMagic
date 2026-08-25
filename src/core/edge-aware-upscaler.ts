@@ -1,33 +1,30 @@
 /**
- * 👑 RealESRGAN-Compact (Ultra-Clean 4x Pre-Press Super-Resolution Engine - Apache 2.0 / ~14.2 MB)
- * 
- * Commercial Value & Pre-Press Problem Solved:
- * Midjourney, DALL-E, and smartphone images have fine JPEG ringing artifacts, compression blocking,
- * and AI hallucinations. When printed on A1/A0 posters, regular bicubic interpolation causes blurry
- * mud, while heavy Transformer models cause oversmoothed plastic textures.
- * 
- * Mathematical Solution:
- * 1. Compact Residual-in-Residual Dense Blocks (RRDB-Compact): 6-layer compact CNN preserves realistic micro-grain.
- * 2. Gradient-Aware Sub-Pixel Convolution: Reconstructs high-frequency typography contours and crisp borders.
- * 3. Ringing Artifact Clamping: Ensures zero overshoot halos around 100% black text and vector shapes.
+ * 👑 Edge-Aware Bilinear Upscaler (pure client-side algorithm, no model weights)
+ *
+ * What this actually is:
+ * Bilinear interpolation with a local-gradient edge boost. It has no learned parameters and does
+ * not run a neural network (this codebase ships no ONNX/TF.js/WASM ML runtime) — it is not
+ * RealESRGAN or any other trained super-resolution model. It sharpens contours reasonably well on
+ * clean vector-ish artwork but will not hallucinate plausible fine detail the way a trained
+ * super-resolution model can on genuinely low-resolution photographic sources.
  */
 
-export interface RealEsrganResult {
+export interface EdgeAwareUpscaleResult {
   upscaledImageData: ImageData;
   scaleFactor: number;
   noiseSuppressedScore: number;
   edgeCrispnessIndex: number;
 }
 
-export class RealEsrganUpscaler {
+export class EdgeAwareUpscaler {
   /**
-   * Upscales image 2x or 4x with realistic grain and sub-pixel edge reconstruction
+   * Upscales image 2x or 4x using bilinear interpolation with edge-aware sharpening
    */
   public static upscale(
     srcImageData: ImageData,
     scale: 2 | 4 = 2,
     denoiseStrength: number = 0.5
-  ): RealEsrganResult {
+  ): EdgeAwareUpscaleResult {
     const srcW = srcImageData.width;
     const srcH = srcImageData.height;
     const dstW = srcW * scale;
@@ -68,7 +65,7 @@ export class RealEsrganUpscaler {
           const bottom = src[i01 + c] * (1 - dx) + src[i11 + c] * dx;
           let val = top * (1 - dy) + bottom * dy;
 
-          // High-frequency gradient sharpening (Compact RRDB edge boost)
+          // Local-gradient edge boost
           const gradX = Math.abs(src[i10 + c] - src[i00 + c]);
           const gradY = Math.abs(src[i01 + c] - src[i00 + c]);
           const localEdge = Math.sqrt(gradX * gradX + gradY * gradY);

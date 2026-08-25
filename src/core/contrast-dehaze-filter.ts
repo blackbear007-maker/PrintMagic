@@ -1,19 +1,16 @@
 /**
- * 🌫️ DehazeFormer-Lite (SOTA Vision-Transformer Atmospheric Dehazing & Clarity Engine - MIT)
- * 
- * Commercial Value & Pre-Press Problem Solved:
- * Outdoor landscape posters, wedding garden photos, drone aerial photography, and architectural blueprints
- * frequently have atmospheric haze, fog, and light scattering, resulting in washed-out low-contrast prints.
- * 
- * Mathematical Solution:
- * 1. Rescale Atmospheric Scattering Model: J(x) = (I(x) - A) / max(t(x), t0) + A with non-local spatial filtering.
- * 2. Adaptive Sky White-Balance Lock: Prevents sky blue saturation blowouts and harsh halos around mountain/building ridges.
- * 3. Deep Color Contrast Dynamic Extension: Restores natural depth, vibrant greens, and deep shadow blacks.
+ * 🌫️ Atmospheric Scattering Model Dehaze (pure client-side algorithm, no model weights)
+ *
+ * What this actually is:
+ * The classical dark-channel-prior-style scattering inversion formula, J(x) = (I(x) - A) / t(x) + A
+ * (He et al., non-learned). This is a legitimate, well-established classical computer-vision
+ * technique — it is not "DehazeFormer" (a Vision Transformer model); no transformer weights are
+ * involved. Renamed to describe the actual technique instead of a borrowed SOTA paper name.
  */
 
-export class DehazeEngine {
+export class ContrastDehazeFilter {
   /**
-   * Clears atmospheric haze and enhances optical contrast with DehazeFormer physics
+   * Clears atmospheric haze using the classical scattering-inversion model
    */
   public static dehaze(
     srcImageData: ImageData,

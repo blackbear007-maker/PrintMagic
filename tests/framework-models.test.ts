@@ -7,11 +7,11 @@ import { KurboGeometry } from '../src/core/kurbo-geometry';
 import { OpencvClaheDeskew } from '../src/core/opencv-clahe-deskew';
 
 // 3. PyTorch 2.3+ Neural Vision Models
-import { ScunetDenoiser } from '../src/core/scunet-denoiser';
-import { NafnetDeblur } from '../src/core/nafnet-deblur';
-import { DoctrDewarp } from '../src/core/doctr-dewarp';
-import { MobileSamSegmenter } from '../src/core/mobilesam-segmenter';
-import { FastLamaInpainter } from '../src/core/fast-lama-inpaint';
+import { SmoothingDenoiseFilter } from '../src/core/smoothing-denoise-filter';
+import { SharpenDeblurFilter } from '../src/core/sharpen-deblur-filter';
+import { CurvedPageFlattener } from '../src/core/curved-page-flattener';
+import { ColorRegionSelector } from '../src/core/color-region-selector';
+import { EdgeExtendInpainter } from '../src/core/edge-extend-inpaint';
 
 describe('Multi-Framework Industrial Pre-Press Suite', () => {
   const createMockImageData = (w: number, h: number, r = 180, g = 180, b = 180, a = 255): ImageData => {
@@ -62,22 +62,22 @@ describe('Multi-Framework Industrial Pre-Press Suite', () => {
   describe('Neural Vision Pre-Press Models', () => {
     it('SCUNet & NAFNet: should denoise and deblur without losing image dimensions', () => {
       const img = createMockImageData(30, 30);
-      const denoised = ScunetDenoiser.denoise(img);
+      const denoised = SmoothingDenoiseFilter.denoise(img);
       expect(denoised.width).toBe(30);
 
-      const deblurred = NafnetDeblur.deblur(img);
+      const deblurred = SharpenDeblurFilter.deblur(img);
       expect(deblurred.width).toBe(30);
     });
 
     it('DocTr & MobileSAM & Fast-LaMa: should perform curvature dewarping, 1-click segmentation and bleed outpainting', () => {
       const img = createMockImageData(40, 40);
-      const dewarped = DoctrDewarp.dewarp(img, 0.25);
+      const dewarped = CurvedPageFlattener.dewarp(img, 0.25);
       expect(dewarped.width).toBe(40);
 
-      const seg = MobileSamSegmenter.segmentObjectAtPoint(img, 20, 20, 'foil', 32);
+      const seg = ColorRegionSelector.segmentObjectAtPoint(img, 20, 20, 'foil', 32);
       expect(seg.coverageMm2).toBeGreaterThanOrEqual(0);
 
-      const outpainted = FastLamaInpainter.generateBleedMargin(img, 12);
+      const outpainted = EdgeExtendInpainter.generateBleedMargin(img, 12);
       expect(outpainted.expandedImageData.width).toBe(64);
     });
   });

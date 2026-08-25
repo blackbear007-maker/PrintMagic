@@ -1,33 +1,10 @@
-import { describe, it, expect, vi } from 'vitest';
-import { AiUpscaleClient } from '../src/services/ai-upscale-client';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { AiUpscaleClient, AI_MODELS } from '../src/services/ai-upscale-client';
 
-describe('AiUpscaleClient (Free Real-ESRGAN Cloud & Local Fallback v2)', () => {
-  it('should gracefully fallback to local engine when network fails or times out', async () => {
-    // Mock fetch to simulate offline / server timeout
-    global.fetch = vi.fn().mockRejectedValue(new Error('Network error or server offline'));
+describe('AiUpscaleClient (local edge-aware upscale, no backend)', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
 
-    const dummyDataUrl = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
-    const result = await AiUpscaleClient.upscale(dummyDataUrl);
-
-    expect(result.success).toBe(true);
-    expect(result.fallbackToLocal).toBe(true);
-    expect(result.model).toContain('本機 RealESRGAN 加速');
-  });
-
-  it('should return reconstructed image data when API responds with success and cache subsequent calls', async () => {
-    const dummyOutputDataUrl = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAFElEQVR42mNk+M9Qz8DAwMDABAAAAAwBAgB6vM7SAAAAAElFTkSuQmCC';
-
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        success: true,
-        dataUrl: dummyOutputDataUrl,
-        model: 'Real-ESRGAN 4x+ (Deep Learning)',
-        scale: 4
-      })
-    });
-
-    // Mock Image decoding for node runtime
     const mockCtx = {
       drawImage: vi.fn(),
       getImageData: vi.fn(() => ({ width: 2, height: 2, data: new Uint8ClampedArray(16) }))
@@ -52,16 +29,30 @@ describe('AiUpscaleClient (Free Real-ESRGAN Cloud & Local Fallback v2)', () => {
         setTimeout(() => this.onload && this.onload(), 5);
       }
     } as any;
+  });
 
+  it('should upscale using the local algorithm and label the result honestly', async () => {
+    const dummyDataUrl = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+    const result = await AiUpscaleClient.upscale(dummyDataUrl, 'general-4x');
+
+    expect(result.success).toBe(true);
+    expect(result.scale).toBe(4);
+    expect(result.model).toBe('4x 通用放大');
+  });
+
+  it('should cache repeated calls with the same payload and model', async () => {
     const dummyDataUrl = 'data:image/png;base64,dummyinput_unique_123';
-    const result1 = await AiUpscaleClient.upscale(dummyDataUrl);
 
+    const result1 = await AiUpscaleClient.upscale(dummyDataUrl, 'fast-2x');
     expect(result1.success).toBe(true);
-    expect(result1.scale).toBe(4);
+    expect(result1.scale).toBe(2);
 
-    // Second call with same dataUrl should hit LRU cache instantly with cached: true
-    const result2 = await AiUpscaleClient.upscale(dummyDataUrl);
+    const result2 = await AiUpscaleClient.upscale(dummyDataUrl, 'fast-2x');
     expect(result2.success).toBe(true);
     expect(result2.cached).toBe(true);
+  });
+
+  it('should expose exactly the presets it actually implements', () => {
+    expect(AI_MODELS.map((m) => m.id)).toEqual(['general-4x', 'lineart-4x', 'fast-2x']);
   });
 });

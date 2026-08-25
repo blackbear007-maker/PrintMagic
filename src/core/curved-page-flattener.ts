@@ -1,24 +1,22 @@
 /**
- * 📐 DocTr-Dewarp-Lite (3D Surface Mesh & Cylindrical Book Page Dewarping - Apache 2.0 / ~18.3 MB)
- * 
- * Commercial Value & Pre-Press Problem Solved:
- * When users photograph thick books, multi-fold restaurant menus, wine bottle labels, or legal contracts,
- * the paper surface exhibits 3D curved deformation, making lines wavy and unprintable in gang-run imposition.
- * 
- * Mathematical Solution:
- * 1. 3D Surface Geometric Flow Estimation: Models parabolic page curvature across horizontal cross-sections.
- * 2. Reverse Mesh Grid Transformation: Straightens wavy text baselines into 100% horizontal printing lines.
- * 3. Orthogonal Boundary Squaring: Re-aligns margin boundaries to standard 90-degree rectangular bleed boxes.
+ * 📐 Parabolic Curve-Model Page Flattener (pure client-side algorithm, no model weights)
+ *
+ * What this actually is:
+ * A fixed parabolic displacement formula applied uniformly across the image, approximating
+ * typical book-spine curvature. It is not the DocTr neural dewarping network (no learned 3D mesh
+ * estimation) — it does not detect the actual curvature of the input photo, it applies the same
+ * assumed curve shape every time. Works as a rough correction for a generic curved-book photo;
+ * will not adapt to unusual or asymmetric page deformation.
  */
 
-export interface DocTrDewarpResult {
+export interface CurvedPageFlattenResult {
   dewarpedImageData: ImageData;
   estimatedCurvatureRadiusMm: number;
   flatnessConfidence: number;
   linesStraightened: number;
 }
 
-export class DoctrDewarp {
+export class CurvedPageFlattener {
   /**
    * Straightens curved/wavy photographed book pages and paper documents
    */
@@ -31,12 +29,12 @@ export class DoctrDewarp {
   }
 
   /**
-   * Performs 3D mesh dewarping and returns diagnostic metrics
+   * Applies the fixed parabolic-curve displacement model and returns diagnostic metrics
    */
   public static dewarpWithMetrics(
     srcImageData: ImageData,
     curveStrength: number = 0.25
-  ): DocTrDewarpResult {
+  ): CurvedPageFlattenResult {
     const w = srcImageData.width;
     const h = srcImageData.height;
     const src = srcImageData.data;
@@ -49,7 +47,7 @@ export class DoctrDewarp {
 
     let totalDisplacement = 0;
 
-    // 3D Cylindrical mesh reverse displacement
+    // Fixed parabolic spine-curvature displacement
     for (let y = 0; y < h; y++) {
       const ny = (y / h) - 0.5; // -0.5 to 0.5
 

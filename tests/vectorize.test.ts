@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { FreeVectorizeClient } from '../src/services/free-vectorize-client';
 import { NetworkGuard } from '../src/services/network-guard';
-import { QuotaRouter } from '../src/services/quota-router';
 
 describe('FreeVectorizeClient (VTracer Rust 微服務與本機三次貝茲曲線雙通道)', () => {
   let storeMock: Record<string, string> = {};
@@ -19,7 +18,6 @@ describe('FreeVectorizeClient (VTracer Rust 微服務與本機三次貝茲曲線
     } as any;
 
     NetworkGuard.setPrivacyShield(false);
-    QuotaRouter.resetQuota();
     FreeVectorizeClient.clearCache();
   });
 
@@ -72,7 +70,7 @@ describe('FreeVectorizeClient (VTracer Rust 微服務與本機三次貝茲曲線
     const res = await FreeVectorizeClient.vectorizeImage(dummyImageData, 8, 1.5);
     expect(res.svg).toBe(mockSvg);
     expect(res.isCloud).toBe(true);
-    expect(res.engineName).toContain('VTracer Rust');
+    expect(res.engineName).toContain('VTracer');
   });
 
   it('should fall back gracefully to local engine if VTracer microservice is unreachable', async () => {

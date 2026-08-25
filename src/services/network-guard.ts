@@ -1,20 +1,20 @@
-import { QuotaRouter } from './quota-router';
-
 /**
- * 🛡️ NetworkGuard & Privacy Shield (印前高容錯網路防護與隱私安全中繼器)
- * 
- * Provides:
- * 1. 100% Privacy Shield: Blocks all external network traffic when strict offline privacy mode is enabled.
- * 2. CORS & Network Resilience: Safe fetch with zero unhandled promise rejections.
- * 3. Cold-Start (503) & Timeout Circuit Breaker: Prevents hanging UI by aborting within threshold.
- * 4. Image Binary Validation: Validates magic headers (PNG/JPEG/WebP) to prevent corrupt payloads.
- * 5. Adaptive Payload Optimizer: Reduces 20MB+ print assets to <300KB before cloud transfer.
+ * 🛡️ NetworkGuard — Privacy Shield & Upload Payload Helpers
+ *
+ * Privacy Shield is a real, functional toggle: when active, the app skips the self-hosted
+ * services entirely (Tesseract OCR / VTracer / Zero-DCE++, all reachable at `/api/*`) and only
+ * ever runs the local deterministic algorithms in src/core/ — nothing leaves the browser. When
+ * inactive, the app still tries the self-hosted services first (better results) and gracefully
+ * falls back to the same local algorithms if they're unreachable.
+ *
+ * There is no third-party cloud API involved either way — "self-hosted" here means the server you
+ * (or whoever operates this deployment) run, not an external vendor.
  */
 export class NetworkGuard {
   private static readonly STORAGE_PRIVACY_KEY = 'printmagic_privacy_shield_active';
 
   /**
-   * Check if Privacy Shield is enabled (100% Local Offline Mode)
+   * Check if Privacy Shield is enabled (100% local-only mode — skip self-hosted services)
    */
   public static isPrivacyShieldActive(): boolean {
     if (typeof localStorage !== 'undefined') {
@@ -33,78 +33,7 @@ export class NetworkGuard {
   }
 
   /**
-   * Executes a robust, protected HTTP request with automatic timeout, 503 detection, and provider routing
-   */
-  public static async safeFetch(
-    url: string,
-    options: RequestInit,
-    timeoutMs: number = 9000,
-    providerId?: string
-  ): Promise<{ ok: boolean; status: number; data?: any; blob?: Blob; error?: string }> {
-    // 1. Privacy Shield Check
-    if (this.isPrivacyShieldActive()) {
-      return { ok: false, status: 403, error: 'Privacy Shield Active: External network access blocked' };
-    }
-
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
-
-    try {
-      const response = await fetch(url, {
-        ...options,
-        signal: controller.signal,
-        headers: {
-          ...options.headers,
-          'Accept': options.headers && (options.headers as any)['Accept'] ? (options.headers as any)['Accept'] : '*/*'
-        }
-      });
-
-      clearTimeout(timer);
-
-      // Handle 503 (Model Cold-Start / Loading)
-      if (response.status === 503) {
-        if (providerId) QuotaRouter.recordFailure(providerId, false);
-        return { ok: false, status: 503, error: 'Model is cold-starting, shifting to next provider' };
-      }
-
-      // Handle 429 (Rate-Limited)
-      if (response.status === 429 || response.status === 402) {
-        if (providerId) QuotaRouter.recordFailure(providerId, true);
-        return { ok: false, status: response.status, error: 'Rate limit / quota exceeded' };
-      }
-
-      if (!response.ok) {
-        if (providerId) QuotaRouter.recordFailure(providerId, false);
-        return { ok: false, status: response.status, error: `HTTP ${response.status} ${response.statusText}` };
-      }
-
-      const contentType = response.headers.get('content-type') || '';
-      if (contentType.includes('application/json')) {
-        const json = await response.json();
-        return { ok: true, status: response.status, data: json };
-      } else {
-        const blob = await response.blob();
-        // Validate valid image payload
-        if (blob.size < 100) {
-          if (providerId) QuotaRouter.recordFailure(providerId, false);
-          return { ok: false, status: 422, error: 'Payload too small or corrupted' };
-        }
-        return { ok: true, status: response.status, blob };
-      }
-    } catch (err: any) {
-      clearTimeout(timer);
-      if (providerId) QuotaRouter.recordFailure(providerId, false);
-      const isAbort = err?.name === 'AbortError';
-      return {
-        ok: false,
-        status: isAbort ? 408 : 500,
-        error: isAbort ? 'Request Timeout (Circuit Breaker)' : (err?.message || 'Network Fetch Error')
-      };
-    }
-  }
-
-  /**
-   * Optimize & downsample image payload before cloud transfer (< 300KB)
+   * Downsample an image payload before uploading to a self-hosted service (keeps requests fast)
    */
   public static async optimizePayloadForUpload(
     sourceDataUrl: string,

@@ -42,7 +42,6 @@ import { MultiFormatExporter } from './engines/multi-format-exporter';
 import { TextInspectionModal } from './ui/text-inspection-modal';
 import { TextInspector } from './core/text-inspector';
 import { ObjectEraserModal } from './ui/object-eraser-modal';
-import { SubscriptionManager } from './core/subscription-tier';
 import { BleedExpander } from './core/bleed-expander';
 import { AiMatting } from './core/ai-matting';
 import { AiVectorizer } from './core/ai-vectorizer';
@@ -51,9 +50,9 @@ import { PdfExporter } from './engines/pdf-exporter';
 import { VectorTracer } from './engines/vector-tracer';
 import { workerClient } from './workers/worker-client';
 import { ShadowLift } from './core/shadow-lift';
-import { DeshadowEngine } from './core/deshadow-engine';
+import { HandShadowBalancer } from './core/hand-shadow-balancer';
 import { AntiBandingFilter } from './core/anti-banding';
-import { ClipIqaAssessor } from './core/clip-iqa-assessor';
+import { PixelStatQualityAssessor } from './core/pixel-stat-quality-assessor';
 import { PantoneMatcher } from './core/pantone-matcher';
 import { BarcodeVerifier } from './core/barcode-verifier';
 import { PassportModal } from './ui/passport-modal';
@@ -61,8 +60,8 @@ import { CanvasZoomController } from './ui/canvas-zoom';
 import { WebShareService } from './services/web-share';
 import { XiaoxiangAssistant } from './ui/xiaoxiang-assistant';
 import { SceneClassifier } from './core/scene-classifier';
-import { Anime4kUpscaler } from './core/anime4k-upscaler';
-import { RealEsrganUpscaler } from './core/realesrgan-upscaler';
+import { LineArtUpscaler } from './core/line-art-upscaler';
+import { EdgeAwareUpscaler } from './core/edge-aware-upscaler';
 import { ZeroDceEnhancer } from './core/zero-dce-enhancer';
 import type { BatchItem, PaperType, PrintPresetId } from './types';
 
@@ -264,17 +263,12 @@ class App {
     });
     this.onboardingModal = new OnboardingModal();
     this.exportModal = new ExportModal();
-    this.aiSettingsModal = new AiSettingsModal(
-      () => {
-        const state = store.getState();
-        if (state.originalImageData && state.aiUpscaleMode === 'cloud-ai' && state.engineMode === 'cloud') {
-          this.runOptimizationPipeline(state.originalImageData);
-        }
-      },
-      () => {
-        this.pricingModal.open();
+    this.aiSettingsModal = new AiSettingsModal(() => {
+      const state = store.getState();
+      if (state.originalImageData && state.aiUpscaleMode === 'cloud-ai' && state.engineMode === 'cloud') {
+        this.runOptimizationPipeline(state.originalImageData);
       }
-    );
+    });
     this.pipelineMatrixModal = new PipelineMatrixModal(
       () => {
         const state = store.getState();
@@ -1441,15 +1435,15 @@ class App {
           processedImgData = await workerClient.lanczos(srcImageData, appliedScale);
         }
 
-        // Apply Scene-Aware Neural/Algorithmic Post-Enhancement (SOTA Real-ESRGAN & Zero-DCE++)
+        // Apply scene-aware algorithmic post-enhancement (deterministic filters, not neural models)
         const scene = SceneClassifier.classifyImage(processedImgData);
         if (scene.category === 'anime') {
-          processedImgData = Anime4kUpscaler.upscaleAnime(processedImgData, 1 as 2);
+          processedImgData = LineArtUpscaler.upscaleAnime(processedImgData, 1 as 2);
         } else if (scene.category === 'portrait') {
-          const res = RealEsrganUpscaler.upscale(processedImgData, 2, 0.4);
+          const res = EdgeAwareUpscaler.upscale(processedImgData, 2, 0.4);
           processedImgData = res.upscaledImageData;
         } else if (scene.category === 'landscape') {
-          const res = RealEsrganUpscaler.upscale(processedImgData, 2, 0.6);
+          const res = EdgeAwareUpscaler.upscale(processedImgData, 2, 0.6);
           processedImgData = res.upscaledImageData;
         }
 
@@ -1462,7 +1456,7 @@ class App {
 
       // Step 1.5: Auto Deshadow & Illumination Field Normalization (手機拍照光照均勻化)
       if (opts.enableDeshadow !== false) {
-        processedImgData = DeshadowEngine.deshadow(processedImgData, 0.70);
+        processedImgData = HandShadowBalancer.deshadow(processedImgData, 0.70);
       }
 
       // Step 1.8: Auto Anti-Banding & Gradient Smoothing (漸層防斷階去噪)
@@ -1511,7 +1505,7 @@ class App {
         preset
       );
       const scoreResult = PrintScoreCalculator.calculate(stats, preset, inkAnalysis);
-      const iqaReport = ClipIqaAssessor.assess(processedImgData);
+      const iqaReport = PixelStatQualityAssessor.assess(processedImgData);
       const dominantPantones = PantoneMatcher.extractDominantSpotColors(processedImgData, 3);
       const barcodeReport = BarcodeVerifier.verifyImage(processedImgData, 300);
 
@@ -1745,28 +1739,10 @@ class App {
     const badgeEl = document.getElementById('planBadgeText');
     const btnEl = document.getElementById('btnOpenPricing');
     if (badgeEl && btnEl) {
-      if (SubscriptionManager.ALL_FREE_UNLOCKED) {
-        badgeEl.textContent = '✨ 測試版 (全部免費)';
-        btnEl.style.background = 'linear-gradient(135deg, rgba(52, 199, 89, 0.15), rgba(0, 113, 227, 0.15))';
-        btnEl.style.color = '#1b7a34';
-        btnEl.style.fontWeight = '700';
-        return;
-      }
-
-      const state = SubscriptionManager.getSubscriptionState();
-      if (state.planId === 'vip') {
-        badgeEl.textContent = '💎 VIP 企業版';
-        btnEl.style.background = 'linear-gradient(135deg, #5856d6, #af52de)';
-        btnEl.style.color = '#ffffff';
-      } else if (state.planId === 'pro') {
-        badgeEl.textContent = '👑 PRO 設計版';
-        btnEl.style.background = 'rgba(0, 113, 227, 0.12)';
-        btnEl.style.color = 'var(--pm-accent)';
-      } else {
-        badgeEl.textContent = 'FREE 免費版';
-        btnEl.style.background = 'rgba(142, 142, 147, 0.12)';
-        btnEl.style.color = 'var(--pm-text-muted)';
-      }
+      badgeEl.textContent = '✨ 測試版 (全部免費)';
+      btnEl.style.background = 'linear-gradient(135deg, rgba(52, 199, 89, 0.15), rgba(0, 113, 227, 0.15))';
+      btnEl.style.color = '#1b7a34';
+      btnEl.style.fontWeight = '700';
     }
   }
 

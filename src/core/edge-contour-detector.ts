@@ -1,19 +1,14 @@
 /**
- * ✂️ TEED (Tiny and Efficient Edge Detector - CVPR SOTA / 58K params / ~230 KB / MIT)
- * 
- * Commercial Value & Pre-Press Problem Solved:
- * Preparing sticker die-cut borders, acrylic standee cutlines, and apparel laser cutting paths
- * requires continuous, noise-free, single-pixel (1px) hairline edge contours.
- * Heavy models like DexiNed (35MB) or HED are slow and produce fuzzy thick edges, while basic Canny
- * produces disconnected broken lines that jam cutting plotters.
- * 
- * Mathematical Solution:
- * 1. Ultra-Compact Multi-Scale Feature Extraction (58K parameters): Less than 0.2% the size of DexiNed.
- * 2. USNet Upsampling + Dfuse Fusion: Generates clean, crisp, 1-pixel continuous closed contours.
- * 3. 1ms Execution: Pure client-side CPU/WASM speed with 0 Railway memory overhead.
+ * ✂️ Gradient Edge Contour Detector (pure client-side algorithm, no model weights)
+ *
+ * What this actually is:
+ * A Sobel-style gradient pass (with alpha-channel boundary detection) followed by
+ * non-maximum suppression for 1px-thin contours — a classical edge-detection technique, not the
+ * TEED neural network. Works well for clean-alpha stickers/dielines; will not match a learned
+ * edge model's robustness on noisy photographic input.
  */
 
-export interface TeedEdgeResult {
+export interface EdgeContourResult {
   contourImageData: ImageData;
   edgeMask: Uint8ClampedArray;
   edgePixelCount: number;
@@ -21,7 +16,7 @@ export interface TeedEdgeResult {
   edgeComplexityScore: number;
 }
 
-export class TeedEdgeDetector {
+export class EdgeContourDetector {
   /**
    * Extracts sharp, continuous single-pixel cut contours for laser dielines and stickers
    */
@@ -35,13 +30,13 @@ export class TeedEdgeDetector {
   }
 
   /**
-   * Performs full TEED multi-scale edge detection with diagnostic topology metrics
+   * Performs gradient-based edge detection with diagnostic topology metrics
    */
   public static detectEdges(
     srcImageData: ImageData,
     threshold: number = 22,
     thinning: boolean = true
-  ): TeedEdgeResult {
+  ): EdgeContourResult {
     const w = srcImageData.width;
     const h = srcImageData.height;
     const src = srcImageData.data;
@@ -53,7 +48,7 @@ export class TeedEdgeDetector {
 
     let edgeCount = 0;
 
-    // 1. TEED Lightweight Multi-Scale Convolutional Gradient Pass
+    // 1. Multi-channel luminance gradient pass
     for (let y = 1; y < h - 1; y++) {
       for (let x = 1; x < w - 1; x++) {
         const idx = (y * w + x) * 4;
@@ -68,7 +63,7 @@ export class TeedEdgeDetector {
         // Alpha edge boundary (crucial for transparent PNG stickers)
         const alphaGrad = Math.abs(src[idx + 3] - src[idx + 4 + 3]) + Math.abs(src[idx + 3] - src[idx + w * 4 + 3]);
 
-        // Dfuse gradient magnitude: G = sqrt(Gx^2 + Gy^2) + G_alpha
+        // Gradient magnitude: G = sqrt(Gx^2 + Gy^2) + G_alpha
         const gx = (rLum - cLum) + 0.5 * (rbLum - bLum);
         const gy = (bLum - cLum) + 0.5 * (rbLum - rLum);
         const grad = Math.sqrt(gx * gx + gy * gy) + (alphaGrad > 20 ? 80 : 0);

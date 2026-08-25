@@ -1,19 +1,15 @@
 /**
- * 🌊 Restormer-Lite & NAFNet-Denoise (Transformer Blind Denoiser & Artifact Suppressor - CVPR SOTA / Apache 2.0)
- * 
- * Commercial Value & Pre-Press Problem Solved:
- * High-ISO mobile camera noise, Midjourney AI speckle artifacts, and lossy JPEG 8x8 block DCT compression
- * cause grainy noise and dirty halftones on offset litho plates. Standard blurs ruin fine fabrics and skin pores.
- * 
- * Mathematical Solution:
- * 1. Multi-Dconv Head Transposed Attention (MDTA): Separates chromatic sensor noise from high-frequency structural textures.
- * 2. Gated-Dconv Feed-Forward Network (GDFN): Suppresses 8x8 DCT grid blocking while keeping hair and fabric weave crisp.
- * 3. 100% Edge-Preserving Alpha Guard: Preserves fine transparent border cut contours.
+ * 🌊 Bilateral-Style Smoothing Denoiser (pure client-side algorithm, no model weights)
+ *
+ * What this actually is:
+ * A classical bilateral filter (spatial kernel × color-range kernel), the same well-established
+ * non-learned technique OpenCV ships as cv2.bilateralFilter. It is not the Restormer/NAFNet
+ * transformer denoiser — no attention mechanism, no learned weights.
  */
 
-export class ScunetDenoiser {
+export class SmoothingDenoiseFilter {
   /**
-   * Performs high-fidelity texture-preserving blind denoising
+   * Performs edge-preserving bilateral smoothing to reduce sensor/compression noise
    */
   public static denoise(
     srcImageData: ImageData,
@@ -68,7 +64,7 @@ export class ScunetDenoiser {
             const colorDist = Math.hypot(nR - cR, nG - cG, nB - cB);
             const spatialDist = Math.hypot(dx, dy);
 
-            // Restormer cross-covariance weighting (Range kernel × Spatial kernel)
+            // Bilateral weighting (range kernel × spatial kernel)
             const wRange = Math.exp(-(colorDist * colorDist) / (2 * sigmaColor * sigmaColor));
             const wSpatial = Math.exp(-(spatialDist * spatialDist) / (2 * 3.5));
             const weight = wRange * wSpatial;

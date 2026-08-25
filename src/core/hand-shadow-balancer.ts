@@ -1,20 +1,17 @@
 /**
- * ☀️ ShadowFormer-Lite (SOTA Transformer-Guided Document & Object Deshadowing - CVPR SOTA / MIT)
- * 
- * Commercial Value & Pre-Press Problem Solved:
- * Smartphone photos of business cards, menus, invoices, drawings, and luxury packaging
- * suffer from hard cast shadows from phones, fingers, and room lighting.
- * Naive exposure boosting washes out unshadowed areas and turns text gray.
- * 
- * Mathematical Solution:
- * 1. Shadow-Mask Decomposition: Context-driven cross-attention boundary estimation.
- * 2. Non-Linear Relighting Transformer: Equalizes luminance in shadow regions while locking unshadowed whites.
- * 3. Chromatic Tone Protection: 100% preserves original paper white-point and ink pigment saturation.
+ * ☀️ Grid-Interpolated Illumination Balancer (pure client-side algorithm, no model weights)
+ *
+ * What this actually is:
+ * Samples background luminance on a 24x24 grid, then applies a bilinearly-interpolated per-pixel
+ * gain to even out illumination. It is not a learned deshadowing network (no cross-attention, no
+ * shadow-mask decomposition) — it is a local gain-map relighting heuristic, similar in spirit to
+ * classical flat-field correction. Works on smooth, gradual shadows (phone/hand shadow on a
+ * document); will not cleanly remove a hard-edged, high-contrast shadow.
  */
 
-export class DeshadowEngine {
+export class HandShadowBalancer {
   /**
-   * Automatically detects and removes phone/hand shadows from photos of artwork & documents
+   * Automatically evens out phone/hand shadows from photos of artwork & documents
    */
   public static deshadow(
     srcImageData: ImageData,
@@ -30,7 +27,7 @@ export class DeshadowEngine {
       : ({ width: w, height: h, data: dstBuffer, colorSpace: 'srgb' } as ImageData);
     const dst = dstImageData.data;
 
-    // High-resolution spatial illumination grid (24x24)
+    // Spatial illumination sampling grid (24x24)
     const gridCols = 24;
     const gridRows = 24;
     const blockW = Math.max(1, Math.floor(w / gridCols));
@@ -39,7 +36,7 @@ export class DeshadowEngine {
     const illumGrid: number[][] = Array.from({ length: gridRows }, () => Array(gridCols).fill(0));
     let maxIllum = 0;
 
-    // 1. Compute 92nd-percentile background luminance per block
+    // 1. Compute average background luminance per grid block
     for (let gy = 0; gy < gridRows; gy++) {
       for (let gx = 0; gx < gridCols; gx++) {
         const startX = gx * blockW;
@@ -68,7 +65,7 @@ export class DeshadowEngine {
 
     if (maxIllum === 0) maxIllum = 255;
 
-    // 2. Smooth ShadowFormer Cross-Attention Relighting Field
+    // 2. Bilinearly-interpolated relighting gain field
     for (let y = 0; y < h; y++) {
       const gy = (y / h) * (gridRows - 1);
       const gy0 = Math.floor(gy);

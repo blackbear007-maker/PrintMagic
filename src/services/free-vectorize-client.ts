@@ -1,15 +1,14 @@
 import { AiVectorizer } from '../core/ai-vectorizer';
-import { QuotaRouter } from './quota-router';
 import { NetworkGuard } from './network-guard';
 
 /**
- * 📐 Free Multi-Engine Vectorizer Client (VTracer Rust / Local Bézier Splines)
- * 
+ * 📐 Vectorizer Client (self-hosted VTracer / local Bézier splines fallback)
+ *
  * Flow:
- * 1. Cache Check (LRU)
- * 2. Privacy Shield Check -> If active, execute 100% offline local Catmull-Rom/Bézier Splines.
- * 3. VTracer Rust Microservice -> High-speed multi-color polygon tracing with curve fitting.
- * 4. Fallback -> Local AiVectorizer (zero dependencies, works everywhere).
+ * 1. Cache check (LRU)
+ * 2. Privacy Shield check -> if active, run 100% local Bézier-spline tracer, skip the network entirely.
+ * 3. Self-hosted VTracer Rust microservice (/api/vectorize — real, see docker/vtracer/).
+ * 4. Fallback -> local AiVectorizer if the service is unreachable.
  */
 export class FreeVectorizeClient {
   private static readonly cache = new Map<string, string>();
@@ -35,7 +34,7 @@ export class FreeVectorizeClient {
   }
 
   /**
-   * Convert raster image data to clean SVG paths with dynamic quota routing & local fallback
+   * Convert raster image data to clean SVG paths, via self-hosted VTracer with local fallback
    */
   public static async vectorizeImage(
     imageData: ImageData,
@@ -48,31 +47,19 @@ export class FreeVectorizeClient {
       return { svg: cached, isCloud: true, engineName: '快取向量引擎' };
     }
 
-    // 1. Privacy Shield Check
+    // 1. Privacy Shield: skip the self-hosted service entirely, never send the image anywhere
     if (NetworkGuard.isPrivacyShieldActive()) {
       const svg = AiVectorizer.traceToSvg(imageData, colorsCount, smoothTolerance);
       return {
         svg,
         isCloud: false,
-        engineName: '本機三次貝茲曲線引擎 (100% 離線隱私模式)'
-      };
-    }
-
-    const bestProvider = QuotaRouter.getBestProvider('vectorize');
-
-    // 2. If provider is set to local unlimited -> execute Local Engine
-    if (bestProvider.isLocalUnlimited) {
-      const svg = AiVectorizer.traceToSvg(imageData, colorsCount, smoothTolerance);
-      return {
-        svg,
-        isCloud: false,
-        engineName: '本機三次貝茲曲線引擎'
+        engineName: '本機三次貝茲曲線引擎 (100% 本機模式)'
       };
     }
 
     const startMs = performance.now();
 
-    // 3. Attempt VTracer Rust Cloud / Local Microservice Inference
+    // 2. Attempt self-hosted VTracer microservice
     try {
       const dataUrl = this.imageDataToDataUrl(imageData);
       if (dataUrl) {
@@ -90,23 +77,22 @@ export class FreeVectorizeClient {
           const result = await response.json();
           if (result.success && result.svg) {
             const elapsed = Math.round(performance.now() - startMs);
-            QuotaRouter.recordUsage(bestProvider.id, elapsed);
             this.cache.set(cacheKey, result.svg);
 
             return {
               svg: result.svg,
               isCloud: true,
-              engineName: 'VTracer Rust 極速向量引擎 (微服務)',
+              engineName: '自建 VTracer 向量引擎',
               elapsedMs: result.elapsed_ms || elapsed
             };
           }
         }
       }
     } catch {
-      QuotaRouter.recordFailure(bestProvider.id, false);
+      // service unreachable, fall through to local
     }
 
-    // 4. Fallback to Local Bézier Spline Engine
+    // 3. Fallback to local Bézier-spline engine
     const svg = AiVectorizer.traceToSvg(imageData, colorsCount, smoothTolerance);
     return {
       svg,

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { FreeOcrClient } from '../src/services/free-ocr-client';
 
-describe('FreeOcrClient (100% 離線私有 Tesseract 5.3 & PP-OCR Client)', () => {
+describe('FreeOcrClient (self-hosted Tesseract OCR)', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
   });
@@ -35,10 +35,10 @@ describe('FreeOcrClient (100% 離線私有 Tesseract 5.3 & PP-OCR Client)', () =
     expect(result.tokens).toBeDefined();
     expect(result.tokens.length).toBeGreaterThan(0);
     expect(result.tokens[0].text).toBe('PRINTMAGIC');
-    expect(result.engineName).toContain('PP-OCRv5');
+    expect(result.engineName).toContain('Tesseract');
   });
 
-  it('should fall back gracefully to local positioning if network fails', async () => {
+  it('should return no tokens (no local text-recognition fallback) if the network fails', async () => {
     global.fetch = vi.fn().mockRejectedValueOnce(new Error('Network offline'));
 
     const result = await FreeOcrClient.extractTextLayers(

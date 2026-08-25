@@ -1,50 +1,46 @@
 /**
- * 🧠 PP-OCRv5 Mobile (High-Precision Pre-Press OCR & Typography Inspector - Apache 2.0 / ~18.2 MB)
- * 
- * Commercial Value & Pre-Press Problem Solved:
- * Typographical errors on business cards, menus, packaging labels, and commercial flyers (such as wrong
- * phone numbers, misspelled brand names, misplaced dates) cause 100% factory scrap and expensive reprints.
- * 
- * Mathematical Solution:
- * 1. Data-Centric DBNet++ Text Detection: Accurate bounding box localization under rotated, curved, and vertical conditions.
- * 2. SVTRv2 Recognition: 99.6% precision on Traditional Chinese (繁體中文), vertical calligraphy, English, and Numeric codes.
- * 3. Pre-Flight Legibility Validator: Checks if font stroke thickness is >= 0.25pt (0.08mm) to prevent plate ink fill-in.
+ * 🧠 Stroke-Density Text Zone Detector (pure client-side algorithm, no model weights)
+ *
+ * What this actually is:
+ * A grid-based dark-pixel and edge-transition density scan that flags which cells of an image
+ * probably contain text. It does NOT perform character recognition — it cannot tell you what the
+ * text says. `zoneLabel` is a placeholder like "[Text Zone R1C3]", not read text. There is no
+ * PP-OCR/DBNet/SVTR model here, no license, no accuracy number backing "99.6% precision."
+ *
+ * For actual text recognition, use FreeOcrClient, which calls the real self-hosted Tesseract
+ * service (see src/services/free-ocr-client.ts and docker/tesseract/). This detector only exists
+ * as a fast, offline "does this artwork have small/illegible text zones" pre-flight check.
  */
 
-export interface OcrTextBox {
-  text: string;
-  confidence: number;
+export interface TextZoneBox {
+  zoneLabel: string;
   box: { x: number; y: number; width: number; height: number };
   isPrintLegible: boolean;
   warning?: string;
 }
 
-export interface PpOcrResult {
-  detectedBlocks: OcrTextBox[];
-  fullText: string;
-  totalCharacters: number;
+export interface TextZoneResult {
+  detectedZones: TextZoneBox[];
+  totalZones: number;
   preflightPassed: boolean;
-  languageDetected: string;
 }
 
-export class PpOcrEngine {
+export class TextZoneDetector {
   /**
-   * Detects and inspects textual regions in commercial artwork
+   * Flags grid cells likely to contain text, and checks whether they meet a minimum legible height
    */
   public static inspectText(
     srcImageData: ImageData,
     minFontHeightPx: number = 8
-  ): PpOcrResult {
+  ): TextZoneResult {
     const w = srcImageData.width;
     const h = srcImageData.height;
     const src = srcImageData.data;
 
-    const detectedBlocks: OcrTextBox[] = [];
-    let fullText = '';
-    let totalChars = 0;
+    const detectedZones: TextZoneBox[] = [];
     let preflightPassed = true;
 
-    // 1. High-Contrast Stroke Density Gradient Search
+    // Grid-based dark-pixel / edge-transition density scan
     const gridCols = 8;
     const gridRows = 8;
     const cellW = Math.floor(w / gridCols);
@@ -77,9 +73,8 @@ export class PpOcrEngine {
           const isLegible = cellH >= minFontHeightPx;
           if (!isLegible) preflightPassed = false;
 
-          detectedBlocks.push({
-            text: `[Text Zone R${r+1}C${c+1}]`,
-            confidence: 0.98,
+          detectedZones.push({
+            zoneLabel: `[Text Zone R${r+1}C${c+1}]`,
             box: { x: startX, y: startY, width: cellW, height: cellH },
             isPrintLegible: isLegible,
             warning: isLegible ? undefined : '字體尺寸過小 (低於 0.25pt 安全印刷閥值)'
@@ -88,15 +83,10 @@ export class PpOcrEngine {
       }
     }
 
-    fullText = detectedBlocks.map(b => b.text).join(' ');
-    totalChars = detectedBlocks.length * 8;
-
     return {
-      detectedBlocks,
-      fullText,
-      totalCharacters: totalChars,
-      preflightPassed,
-      languageDetected: 'chi_tra+eng'
+      detectedZones,
+      totalZones: detectedZones.length,
+      preflightPassed
     };
   }
 }

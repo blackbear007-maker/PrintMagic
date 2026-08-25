@@ -1,19 +1,16 @@
 /**
- * ✂️ BiRefNet-Lite (Bilateral Reference Network for High-Resolution Dichotomous Image Segmentation - MIT)
- * 
- * Commercial Value & Pre-Press Problem Solved:
- * Standard consumer background removers (U2Net, naive grabcut) produce soft, fuzzy boundary halos,
- * eat fine hair strands, and clip delicate wedding veil laces or translucent glass edges.
- * In DTF textile printing, UV crystal stickers, and laser die-cutting, this leads to ugly white border leaks
- * or broken cutting plotter blades.
- * 
- * Mathematical Solution:
- * 1. Bilateral Reference Module (BRM): Fuses high-frequency localization gradients with global semantic priors.
- * 2. High-Resolution Native 2048x2048 Matting: Generates sub-pixel continuous Alpha transparency maps.
- * 3. Zero-Bleed Edge Choke: Automatically pinches alpha borders by 0.5px to guarantee 0 white fringe on colored shirts.
+ * ✂️ Corner-Sampled Color-Distance Matting (pure client-side algorithm, no model weights)
+ *
+ * What this actually is:
+ * Estimates a background color from the four image corners, then computes per-pixel alpha from
+ * color distance to that estimate, with a small edge choke to avoid white fringing. It is not
+ * BiRefNet (no bilateral reference network, no learned semantic priors) — it has no concept of
+ * "foreground object," only "pixels that differ from the corner color." It works reasonably on
+ * flat, evenly-lit product/sticker shots against a plain background; it will fail on busy
+ * backgrounds, gradients, or subjects that share the background's color.
  */
 
-export interface BiRefNetResult {
+export interface EdgeChokeMattingResult {
   mattedImageData: ImageData;
   alphaMask: Uint8ClampedArray;
   hairlineFidelityScore: number;
@@ -21,15 +18,15 @@ export interface BiRefNetResult {
   foregroundAreaRatio: number;
 }
 
-export class BiRefNetMatting {
+export class EdgeChokeMatting {
   /**
-   * Performs bilateral reference matting with high-frequency edge refinement
+   * Removes background via corner-sampled color-distance alpha estimation with edge choke
    */
   public static extractMatting(
     srcImageData: ImageData,
     edgeChokePx: number = 0.5,
     hairlineRefinement: boolean = true
-  ): BiRefNetResult {
+  ): EdgeChokeMattingResult {
     const w = srcImageData.width;
     const h = srcImageData.height;
     const src = srcImageData.data;
@@ -42,8 +39,7 @@ export class BiRefNetMatting {
     let translucencyCount = 0;
     let highFrequencyEdgeCount = 0;
 
-    // 1. Bilateral Spatial & Color Variance Analysis
-    // Computes background color baseline from corners (Top-Left, Top-Right, Bottom-Left, Bottom-Right)
+    // 1. Estimate background color baseline from corners (Top-Left, Top-Right, Bottom-Left, Bottom-Right)
     const corners = [
       0,
       (w - 1) * 4,
@@ -61,7 +57,7 @@ export class BiRefNetMatting {
     bgG /= 4;
     bgB /= 4;
 
-    // 2. High-Precision Bilateral Trilateral Segmentation Pass
+    // 2. Per-pixel color-distance-to-background alpha pass
     for (let y = 0; y < h; y++) {
       for (let x = 0; x < w; x++) {
         const i = (y * w + x) * 4;
@@ -84,18 +80,16 @@ export class BiRefNetMatting {
         const dB = b - bgB;
         const colorDist = Math.sqrt(dR * dR + dG * dG + dB * dB);
 
-        // Normalized distance from center (Spatial Bilateral Prior)
+        // Normalized distance from center (mild spatial prior toward image center)
         const dx = (x - w / 2) / (w / 2);
         const dy = (y - h / 2) / (h / 2);
         const spatialDist = Math.sqrt(dx * dx + dy * dy);
 
-        // Bilateral Saliency Energy Function: E(x) = S_color * 0.75 + S_spatial * 0.25
         let alpha = Math.min(255, Math.max(0, Math.round((colorDist / 70) * 255 * (1.15 - spatialDist * 0.2))));
 
-        // Hairline & Translucency Refinement
+        // High-pass gradient boost near partial-alpha boundaries (approximates hair/fringe edges)
         if (hairlineRefinement && alpha > 30 && alpha < 225) {
           translucencyCount++;
-          // High-pass gradient enhancement for fine hair fibers
           if (x > 0 && x < w - 1 && y > 0 && y < h - 1) {
             const leftLum = 0.299 * src[i - 4] + 0.587 * src[i - 3] + 0.114 * src[i - 2];
             const rightLum = 0.299 * src[i + 4] + 0.587 * src[i + 5] + 0.114 * src[i + 6];

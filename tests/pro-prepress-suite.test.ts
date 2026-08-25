@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { DehazeEngine } from '../src/core/dehaze-engine';
+import { ContrastDehazeFilter } from '../src/core/contrast-dehaze-filter';
 
 describe('Professional Specialized Pre-Press AI Suite', () => {
   const createMockImageData = (w: number, h: number): ImageData => {
@@ -13,9 +13,9 @@ describe('Professional Specialized Pre-Press AI Suite', () => {
     return { width: w, height: h, data, colorSpace: 'srgb' } as ImageData;
   };
 
-  it('DehazeEngine: should clear atmospheric veil and restore contrast', () => {
+  it('ContrastDehazeFilter: should clear atmospheric veil and restore contrast', () => {
     const img = createMockImageData(20, 20);
-    const res = DehazeEngine.dehaze(img, 0.8);
+    const res = ContrastDehazeFilter.dehaze(img, 0.8);
     expect(res.width).toBe(20);
     expect(res.height).toBe(20);
     expect(res.data.length).toBe(20 * 20 * 4);

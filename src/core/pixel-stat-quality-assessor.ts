@@ -1,31 +1,29 @@
 /**
- * 📊 CLIP-IQA+ (Zero-Shot Perceptual, Aesthetic & Technical Print Quality Assessor - Apache 2.0)
- * 
- * Commercial Value & Pre-Press Problem Solved:
- * Legacy 2018 NIMA assesses image quality via basic supervised classification trained on natural photos,
- * failing to understand Midjourney/SD generated artifacts, vector sharpness, or digital print noise.
- * 
- * Mathematical Solution:
- * 1. Zero-Shot Vision-Language Priors: Evaluates dual axes:
- *    - Technical Quality: Sub-pixel sharpness, compression blocking, chromatic noise.
- *    - Commercial Aesthetics: Color harmony, dynamic range, visual focal hierarchy.
- * 2. Multi-Prompt Print Readiness Index (0 ~ 100): Maps directly to offset, digital, and large-format print safety.
+ * 📊 Pixel-Statistic Print Readiness Assessor (~1 KB, pure client-side algorithm)
+ *
+ * What this actually is:
+ * A heuristic score derived from luminance, local gradient, and saturation statistics sampled
+ * across the image. It is not a vision-language model (no CLIP, no zero-shot semantic priors) —
+ * it cannot judge composition, subject quality, or aesthetic intent. It flags mechanically
+ * detectable print risks: low sharpness, blown highlights/crushed shadows, low dynamic range.
+ *
+ * Treat the score as a lightweight pre-flight lint, not a quality judgment.
  */
 
-export interface ClipIqaResult {
-  score: number; // 0 ~ 100 Print Readiness Score
-  technicalClarityScore: number; // 0 ~ 100 Sharpness & Artifact Resistance
-  aestheticQualityScore: number; // 0 ~ 100 Contrast, Dynamic Range & Harmony
+export interface PixelStatQualityResult {
+  score: number; // 0 ~ 100 heuristic print-readiness score
+  technicalClarityScore: number; // 0 ~ 100 sharpness / high-frequency detail estimate
+  aestheticQualityScore: number; // 0 ~ 100 contrast & dynamic-range estimate
   grade: 'EXCELLENT' | 'GOOD' | 'FAIR' | 'POOR';
   detectedFlaws: string[];
   recommendations: string[];
 }
 
-export class ClipIqaAssessor {
+export class PixelStatQualityAssessor {
   /**
-   * Assesses comprehensive print readiness using vision-language perceptual metrics
+   * Estimates print readiness from luminance/gradient/saturation pixel statistics
    */
-  public static assess(srcImageData: ImageData): ClipIqaResult {
+  public static assess(srcImageData: ImageData): PixelStatQualityResult {
     const w = srcImageData.width;
     const h = srcImageData.height;
     const src = srcImageData.data;
@@ -62,25 +60,25 @@ export class ClipIqaAssessor {
     const avgGrad = sumGrad / sampledPixels;
     const meanLum = sumLum / sampledPixels;
 
-    // Technical Clarity (0-100)
+    // Technical Clarity (0-100), derived from average local gradient magnitude
     const technicalClarityScore = Number(Math.min(100, Math.max(50, 70 + (avgGrad / 20) * 20)).toFixed(1));
 
-    // Aesthetic Quality (0-100)
+    // Aesthetic Quality (0-100), derived from high-frequency ratio and mean-luminance balance
     const dynamicRangeFactor = Math.min(1.0, Math.abs(meanLum - 128) < 80 ? 1.0 : 0.85);
     const aestheticQualityScore = Number(Math.min(100, Math.max(60, (75 + (highFrequencyCount / sampledPixels) * 30) * dynamicRangeFactor)).toFixed(1));
 
-    // Combined Print Readiness Score (CLIP-IQA Formulation)
+    // Combined heuristic print-readiness score (weighted average, not a learned metric)
     const overallScore = Number(((technicalClarityScore * 0.6 + aestheticQualityScore * 0.4)).toFixed(1));
 
     const detectedFlaws: string[] = [];
     const recommendations: string[] = [];
 
     if (technicalClarityScore < 75) {
-      detectedFlaws.push('邊緣微觀清晰度不足 (建議啟用 Real-ESRGAN 超分)');
-      recommendations.push('執行 4x 超解析度放大與 USM 邊緣銳化');
+      detectedFlaws.push('邊緣微觀清晰度不足 (建議啟用邊緣強化放大)');
+      recommendations.push('執行 4x 放大與 USM 邊緣銳化');
     }
     if (meanLum < 50) {
-      detectedFlaws.push('暗部階調過深 (建議啟用 Zero-DCE++ 光照增強)');
+      detectedFlaws.push('暗部階調過深 (建議啟用曲線提亮)');
       recommendations.push('套用非線性動態範圍提亮');
     }
 

@@ -1,9 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { FreeOcrClient } from '../src/services/free-ocr-client';
 import { NetworkGuard } from '../src/services/network-guard';
-import { SubscriptionManager } from '../src/core/subscription-tier';
 
-describe('FreeOcrClient (70/30 智慧分流、隱私盾聯動與會員權限)', () => {
+describe('FreeOcrClient (self-hosted Tesseract + Privacy Shield)', () => {
   let storeMock: Record<string, string> = {};
 
   beforeEach(() => {
@@ -20,31 +19,34 @@ describe('FreeOcrClient (70/30 智慧分流、隱私盾聯動與會員權限)', 
 
     NetworkGuard.setPrivacyShield(false);
     FreeOcrClient.clearCache();
-    // Default subscription
-    SubscriptionManager.setPlan('free');
   });
 
   const dummyDataUrl = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
 
-  it('should restrict Privacy Shield feature to PRO and VIP plans only in plan definition', () => {
-    expect(SubscriptionManager.isPlanFeatureAllowed('free', 'privacyShield')).toBe(false);
-    expect(SubscriptionManager.isPlanFeatureAllowed('pro', 'privacyShield')).toBe(true);
-    expect(SubscriptionManager.isPlanFeatureAllowed('vip', 'privacyShield')).toBe(true);
-  });
-
-  it('should route 100% to self-hosted Tesseract and NEVER call external APIs when Privacy Shield is active', async () => {
+  it('should never call /api/ocr when Privacy Shield is active, and return no tokens', async () => {
     NetworkGuard.setPrivacyShield(true);
 
-    let externalApiCalled = false;
-    let internalTesseractCalled = false;
+    let networkCalled = false;
+    global.fetch = vi.fn().mockImplementation(async () => {
+      networkCalled = true;
+      return { ok: false, status: 404 };
+    });
+
+    const res = await FreeOcrClient.extractTextLayers(dummyDataUrl, 1000, 1000);
+
+    expect(networkCalled).toBe(false);
+    expect(res.isCloud).toBe(false);
+    expect(res.tokens.length).toBe(0);
+  });
+
+  it('should call the self-hosted Tesseract endpoint and return real recognized text when Privacy Shield is off', async () => {
+    NetworkGuard.setPrivacyShield(false);
+
+    let tesseractCalled = false;
 
     global.fetch = vi.fn().mockImplementation(async (url: string) => {
-      if (url.includes('googleapis.com') || url.includes('ocr.space')) {
-        externalApiCalled = true;
-        return { ok: true, json: async () => ({}) };
-      }
       if (url === '/api/ocr') {
-        internalTesseractCalled = true;
+        tesseractCalled = true;
         return {
           ok: true,
           status: 200,
@@ -61,43 +63,19 @@ describe('FreeOcrClient (70/30 智慧分流、隱私盾聯動與會員權限)', 
 
     const res = await FreeOcrClient.extractTextLayers(dummyDataUrl, 1000, 1000);
 
-    expect(externalApiCalled).toBe(false);
-    expect(internalTesseractCalled).toBe(true);
+    expect(tesseractCalled).toBe(true);
     expect(res.isCloud).toBe(true);
-    expect(res.engineName).toContain('100% 離線隱私保護盾');
     expect(res.tokens.length).toBeGreaterThan(0);
     expect(res.tokens.map(t => t.text)).toContain('印刷');
   });
 
-  it('should failover to self-hosted Tesseract if external OCR.space API returns error in normal mode', async () => {
+  it('should return no tokens (no local text-recognition fallback) when the self-hosted service is unreachable', async () => {
     NetworkGuard.setPrivacyShield(false);
 
-    let tesseractCalled = false;
-
-    global.fetch = vi.fn().mockImplementation(async (url: string) => {
-      if (url.includes('ocr.space')) {
-        // External fails with 429
-        return { ok: false, status: 429 };
-      }
-      if (url === '/api/ocr') {
-        tesseractCalled = true;
-        return {
-          ok: true,
-          status: 200,
-          json: async () => ({
-            success: true,
-            text: '備援 成功',
-            lang: 'chi_tra+eng',
-            elapsed_ms: 90
-          })
-        };
-      }
-      return { ok: false, status: 404 };
-    });
+    global.fetch = vi.fn().mockImplementation(async () => ({ ok: false, status: 503 }));
 
     const res = await FreeOcrClient.extractTextLayers(dummyDataUrl, 800, 600);
-    expect(tesseractCalled).toBe(true);
-    expect(res.isCloud).toBe(true);
-    expect(res.tokens.length).toBe(2);
+    expect(res.isCloud).toBe(false);
+    expect(res.tokens.length).toBe(0);
   });
 });

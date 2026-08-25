@@ -1,34 +1,30 @@
 /**
- * 🎨 Fast-LaMa v2 (Large Mask Inpainting with Fast Fourier Convolutions - Apache 2.0 / ~25 MB)
- * 
- * Commercial Value & Pre-Press Problem Solved:
- * When sending AI artworks or photos to commercial guillotine cutting, artwork lacking a 3mm bleed margin
- * results in white unprinted edges after trimming. Traditional clamping/smearing causes pixel stretching artifacts.
- * 
- * Mathematical Solution:
- * 1. Fast Fourier Convolution (FFC): Captures global context and repeating wallpaper/gradient textures across the entire image.
- * 2. High-Fidelity Bleed Extension: Synthesizes seamless bleed margins up to 100px (3mm ~ 5mm at 300 DPI).
- * 3. 100% Boundary Color Coherence: Guarantees zero step discoloration at the original canvas cut boundary.
+ * 🎨 Mirror-Extend Bleed Generator (pure client-side algorithm, no model weights)
+ *
+ * What this actually is:
+ * Reflects the source image's edge pixels outward to fill the bleed margin. It is not the LaMa
+ * inpainting network (no Fourier-convolution content synthesis, no learned inpainting) — it works
+ * well for images with a fairly uniform or repeating edge texture, and looks obviously mirrored on
+ * images with distinct edge content (faces, text, sharp objects near the border).
  */
 
-export interface FastLamaBleedResult {
+export interface EdgeExtendBleedResult {
   expandedImageData: ImageData;
   bleedWidthPx: number;
   bleedTop: number;
   bleedBottom: number;
   bleedLeft: number;
   bleedRight: number;
-  spectralCoherenceScore: number;
 }
 
-export class FastLamaInpainter {
+export class EdgeExtendInpainter {
   /**
-   * Generates seamless 3mm bleed extension around an artwork using Fast Fourier inpainting
+   * Generates a 3mm bleed extension around an artwork by mirroring edge pixels outward
    */
   public static generateBleedMargin(
     srcImageData: ImageData,
     bleedPx: number = 36 // 3mm @ 300 DPI is approx 35.4 px
-  ): FastLamaBleedResult {
+  ): EdgeExtendBleedResult {
     const srcW = srcImageData.width;
     const srcH = srcImageData.height;
     const src = srcImageData.data;
@@ -50,7 +46,7 @@ export class FastLamaInpainter {
       }
     }
 
-    // 2. FFC Spectral Mirror & Gradient Synthesis for Outer Bleed Margins
+    // 2. Mirror-reflect edge pixels outward into the bleed margin
     for (let y = 0; y < outH; y++) {
       for (let x = 0; x < outW; x++) {
         // Skip inner original content
@@ -75,7 +71,6 @@ export class FastLamaInpainter {
 
         const srcIdx = (srcY * srcW + srcX) * 4;
 
-        // FFC Smooth spectral fade
         outData[outIdx] = src[srcIdx];
         outData[outIdx + 1] = src[srcIdx + 1];
         outData[outIdx + 2] = src[srcIdx + 2];
@@ -96,8 +91,7 @@ export class FastLamaInpainter {
       bleedTop: bleedPx,
       bleedBottom: bleedPx,
       bleedLeft: bleedPx,
-      bleedRight: bleedPx,
-      spectralCoherenceScore: 99.4
+      bleedRight: bleedPx
     };
   }
 }

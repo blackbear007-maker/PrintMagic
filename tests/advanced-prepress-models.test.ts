@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { PantoneMatcher } from '../src/core/pantone-matcher';
 import { AntiBandingFilter } from '../src/core/anti-banding';
 import { PerspectiveRectifier } from '../src/core/perspective-rectifier';
-import { BiRefNetMatting } from '../src/core/birefnet-matting';
+import { EdgeChokeMatting } from '../src/core/edge-choke-matting';
 
 describe('Advanced Pre-Press Commercial Models Suite', () => {
   // Helper to make dummy ImageData in Node test environment
@@ -92,7 +92,7 @@ describe('Advanced Pre-Press Commercial Models Suite', () => {
       }
     }
 
-    const result = BiRefNetMatting.extractMatting(img, 0.5, true);
+    const result = EdgeChokeMatting.extractMatting(img, 0.5, true);
     expect(result.mattedImageData.width).toBe(50);
     expect(result.hairlineFidelityScore).toBeGreaterThan(80);
     expect(result.alphaMask.length).toBe(2500);

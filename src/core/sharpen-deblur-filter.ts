@@ -1,19 +1,15 @@
 /**
- * ⚡ Stripformer-Lite & Restormer-Motion (Intra- & Inter-Strip Motion Deblur & Focus Recovery - ECCV/CVPR SOTA / Apache 2.0)
- * 
- * Commercial Value & Pre-Press Problem Solved:
- * Customer photos taken in low indoor light, restaurant menus, or art exhibitions suffer from hand-shake
- * directional motion blur or optical defocus, turning printed posters and photobooks soft and muddy.
- * 
- * Mathematical Solution:
- * 1. Horizontal & Vertical Strip Attention: Dynamically captures horizontal, vertical, and diagonal camera jitter.
- * 2. Regularized Inverse Lucy-Richardson Restoration: Restores optical point spread function (PSF) without halo rings.
- * 3. Sub-Pixel Pupil & Typography Sharpening: Recovers razor-sharp text strokes and fine eyelashes.
+ * ⚡ Fixed-Kernel Deconvolution Sharpener (pure client-side algorithm, no model weights)
+ *
+ * What this actually is:
+ * A fixed 5x5 unsharp-style convolution kernel blended with the source. It is not a learned
+ * deblurring network (no Stripformer/Restormer/NAFNet weights are loaded) — it cannot recover
+ * detail that motion blur has genuinely destroyed, only boost existing local contrast.
  */
 
-export class NafnetDeblur {
+export class SharpenDeblurFilter {
   /**
-   * Deblurs motion-blurred and soft-focused photos for crisp print sharpness
+   * Applies a fixed deconvolution-style sharpening kernel to counteract mild blur/soft focus
    */
   public static deblur(
     srcImageData: ImageData,
@@ -29,7 +25,7 @@ export class NafnetDeblur {
       : ({ width: w, height: h, data: dstBuffer, colorSpace: 'srgb' } as ImageData);
     const dst = dstImageData.data;
 
-    // SOTA 5x5 Strip-Attention PSF Deconvolution Kernel (Suppresses ringing halos)
+    // Fixed 5x5 sharpening deconvolution kernel (suppresses ringing halos)
     const kernel5x5 = [
       -0.01, -0.02, -0.04, -0.02, -0.01,
       -0.02, -0.05, -0.12, -0.05, -0.02,

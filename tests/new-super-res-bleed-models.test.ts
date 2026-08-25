@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { Anime4kUpscaler } from '../src/core/anime4k-upscaler';
-import { RealEsrganUpscaler } from '../src/core/realesrgan-upscaler';
+import { LineArtUpscaler } from '../src/core/line-art-upscaler';
+import { EdgeAwareUpscaler } from '../src/core/edge-aware-upscaler';
 
 describe('New Open-Source Super-Resolution Suite', () => {
   const createMockImageData = (w: number, h: number): ImageData => {
@@ -14,21 +14,21 @@ describe('New Open-Source Super-Resolution Suite', () => {
     return { width: w, height: h, data, colorSpace: 'srgb' } as ImageData;
   };
 
-  it('Anime4kUpscaler: should upscale 2x and sharpen dark line art boundaries', () => {
+  it('LineArtUpscaler: should upscale 2x and sharpen dark line art boundaries', () => {
     const src = createMockImageData(20, 20);
-    const res = Anime4kUpscaler.upscaleAnime(src, 2);
+    const res = LineArtUpscaler.upscaleAnime(src, 2);
     expect(res.width).toBe(40);
     expect(res.height).toBe(40);
   });
 
-  it('RealEsrganUpscaler: should apply compact RRDB 2x and 4x pre-press super-resolution', () => {
+  it('EdgeAwareUpscaler: should apply compact RRDB 2x and 4x pre-press super-resolution', () => {
     const src = createMockImageData(25, 25);
-    const res2x = RealEsrganUpscaler.upscale(src, 2, 0.5);
+    const res2x = EdgeAwareUpscaler.upscale(src, 2, 0.5);
     expect(res2x.upscaledImageData.width).toBe(50);
     expect(res2x.upscaledImageData.height).toBe(50);
     expect(res2x.scaleFactor).toBe(2);
 
-    const res4x = RealEsrganUpscaler.upscale(src, 4, 0.5);
+    const res4x = EdgeAwareUpscaler.upscale(src, 4, 0.5);
     expect(res4x.upscaledImageData.width).toBe(100);
     expect(res4x.upscaledImageData.height).toBe(100);
     expect(res4x.scaleFactor).toBe(4);

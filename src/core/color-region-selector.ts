@@ -1,24 +1,25 @@
 /**
- * 🪄 SAM 2.1 Tiny (Segment Anything 2.1 - Meta AI SOTA / Apache 2.0 / ~38 MB)
- * 
- * Commercial Value & Pre-Press Problem Solved:
- * Creating multi-layer spot finish plates (such as 3D crystal UV heightmaps, selective spot varnish,
- * and hot foil stamping) requires isolating specific sub-objects (e.g. only the watch dial, only the character's hair,
- * or only the logo typography) with hierarchical boundary precision.
- * 
- * Mathematical Solution:
- * 1. Memory-Conditioned Mask Transformer: Supports multi-point positive/negative prompts.
- * 2. Sub-Object Hierarchical Granularity: Disambiguates whole object vs sub-part contours.
- * 3. 100% K100 Vector Mask Output: Generates print-ready pure black spot channels.
+ * 🖱️ Color-Distance Region Selector (~1 KB, pure client-side algorithm)
+ *
+ * What this actually is:
+ * A click-to-select tool for isolating a region (e.g. a watch dial, a logo, a hair mass) for
+ * spot-finish plates (foil / UV / emboss / white ink). It is a color-distance flood match around
+ * one or more clicked points — not a Segment-Anything model. There is no neural network, no
+ * learned weights, and no image understanding beyond per-pixel RGB distance.
+ *
+ * Good enough for: flat, high-contrast artwork where the target region has a fairly uniform color
+ * (logos, solid-color garments, simple icons).
+ * Not good for: photographic images with gradients, soft shadows, or ambiguous boundaries — a real
+ * segmentation model would be needed for that.
  */
 
-export interface Sam2PromptPoint {
+export interface RegionSelectPromptPoint {
   x: number;
   y: number;
   isPositive: boolean;
 }
 
-export interface Sam2SpotFinishResult {
+export interface ColorRegionSelectResult {
   spotType: 'foil' | 'uv' | 'emboss' | 'white';
   k100MaskData: ImageData;
   contourSvgPath: string;
@@ -27,9 +28,9 @@ export interface Sam2SpotFinishResult {
   granularityLevel: 'whole' | 'part' | 'subpart';
 }
 
-export class Sam2Segmenter {
+export class ColorRegionSelector {
   /**
-   * 1-Click Interactive Object Segmentation at Point
+   * Selects a region by color-distance flood match from a single click point
    */
   public static segmentObjectAtPoint(
     srcImageData: ImageData,
@@ -37,7 +38,7 @@ export class Sam2Segmenter {
     clickY: number,
     spotType: 'foil' | 'uv' | 'emboss' | 'white' = 'foil',
     tolerance: number = 32
-  ): Sam2SpotFinishResult {
+  ): ColorRegionSelectResult {
     return this.segmentWithPrompts(
       srcImageData,
       [{ x: clickX, y: clickY, isPositive: true }],
@@ -47,14 +48,14 @@ export class Sam2Segmenter {
   }
 
   /**
-   * Multi-Prompt Hierarchical Segmentation (Positive & Negative Click Prompts)
+   * Selects a region by color-distance flood match from multiple prompt points
    */
   public static segmentWithPrompts(
     srcImageData: ImageData,
-    prompts: Sam2PromptPoint[],
+    prompts: RegionSelectPromptPoint[],
     spotType: 'foil' | 'uv' | 'emboss' | 'white' = 'foil',
     tolerance: number = 32
-  ): Sam2SpotFinishResult {
+  ): ColorRegionSelectResult {
     const w = srcImageData.width;
     const h = srcImageData.height;
     const src = srcImageData.data;

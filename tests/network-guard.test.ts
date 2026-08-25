@@ -1,8 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { NetworkGuard } from '../src/services/network-guard';
-import { QuotaRouter } from '../src/services/quota-router';
 
-describe('NetworkGuard & Privacy Shield (印前安全與網路容錯防護罩)', () => {
+describe('NetworkGuard & Privacy Shield', () => {
   let storeMock: Record<string, string> = {};
 
   beforeEach(() => {
@@ -18,7 +17,6 @@ describe('NetworkGuard & Privacy Shield (印前安全與網路容錯防護罩)',
     } as any;
 
     NetworkGuard.setPrivacyShield(false);
-    QuotaRouter.resetQuota();
   });
 
   it('should toggle and persist privacy shield state in localStorage', () => {
@@ -29,31 +27,6 @@ describe('NetworkGuard & Privacy Shield (印前安全與網路容錯防護罩)',
 
     NetworkGuard.setPrivacyShield(false);
     expect(NetworkGuard.isPrivacyShieldActive()).toBe(false);
-  });
-
-  it('should force 100% local unlimited engines when Privacy Shield is enabled', () => {
-    // Normal mode -> picks Real-ESRGAN
-    expect(QuotaRouter.getBestProvider('upscale').id).toBe('upscale-real-esrgan');
-
-    // Turn ON Privacy Shield -> must immediately return local unlimited engine
-    NetworkGuard.setPrivacyShield(true);
-    expect(QuotaRouter.getBestProvider('upscale').id).toBe('upscale-local-pyramid');
-    expect(QuotaRouter.getBestProvider('matting').id).toBe('matting-local');
-    expect(QuotaRouter.getBestProvider('inpainting').id).toBe('inpainting-local');
-    expect(QuotaRouter.getBestProvider('vectorize').id).toBe('vectorize-local-potrace');
-    expect(QuotaRouter.getBestProvider('lowlight').id).toBe('lowlight-local-shadowlift');
-    expect(QuotaRouter.getBestProvider('crop').id).toBe('crop-local-saliency');
-    expect(QuotaRouter.getBestProvider('ocr').id).toBe('ocr-local-contrast');
-    expect(QuotaRouter.getBestProvider('geo').id).toBe('geo-local-db');
-  });
-
-  it('should block external safeFetch calls when Privacy Shield is active', async () => {
-    NetworkGuard.setPrivacyShield(true);
-
-    const res = await NetworkGuard.safeFetch('https://api.example.com', { method: 'POST' });
-    expect(res.ok).toBe(false);
-    expect(res.status).toBe(403);
-    expect(res.error).toContain('Privacy Shield Active');
   });
 
   it('should correctly validate binary magic headers for PNG, JPEG, and WebP', async () => {
@@ -68,21 +41,5 @@ describe('NetworkGuard & Privacy Shield (印前安全與網路容錯防護罩)',
     // Corrupted / invalid text file pretending to be image
     const corruptBlob = new Blob(['<html>502 Bad Gateway</html>']);
     expect(await NetworkGuard.validateImageBlob(corruptBlob)).toBe(false);
-  });
-
-  it('should handle cold-start 503 errors gracefully without throwing', async () => {
-    // Mock global fetch to return 503
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: false,
-      status: 503,
-      statusText: 'Service Unavailable (Model is loading)'
-    } as any);
-
-    const provider = QuotaRouter.getProviders('upscale')[0];
-    const res = await NetworkGuard.safeFetch('https://api.example.com', { method: 'POST' }, 5000, provider.id);
-
-    expect(res.ok).toBe(false);
-    expect(res.status).toBe(503);
-    expect(provider.status).toBe('error');
   });
 });

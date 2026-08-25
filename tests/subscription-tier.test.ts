@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { SUBSCRIPTION_PLANS, SubscriptionManager } from '../src/core/subscription-tier';
+import { SubscriptionManager } from '../src/core/subscription-tier';
 
-describe('SubscriptionManager (All Features Unlocked For Free Growth Phase)', () => {
+describe('SubscriptionManager (no tiering — everything unlocked)', () => {
   let store: Record<string, string> = {};
 
   beforeEach(() => {
@@ -21,17 +21,7 @@ describe('SubscriptionManager (All Features Unlocked For Free Growth Phase)', ()
     } as any;
   });
 
-  it('should define 3 base tier definitions in registry', () => {
-    expect(SUBSCRIPTION_PLANS.length).toBe(3);
-    const freePlan = SUBSCRIPTION_PLANS.find((p) => p.id === 'free')!;
-    expect(freePlan.priceMonthly).toBe(0);
-    const proPlan = SUBSCRIPTION_PLANS.find((p) => p.id === 'pro')!;
-    expect(proPlan.priceMonthly).toBe(399);
-    const vipPlan = SUBSCRIPTION_PLANS.find((p) => p.id === 'vip')!;
-    expect(vipPlan.priceMonthly).toBe(699);
-  });
-
-  it('should unlock 100% of Pro and VIP features for free users during growth phase', () => {
+  it('should report all features unlocked', () => {
     expect(SubscriptionManager.ALL_FREE_UNLOCKED).toBe(true);
     expect(SubscriptionManager.canUseFeature('vipAi')).toBe(true);
     expect(SubscriptionManager.canUseFeature('doubleSided')).toBe(true);
@@ -42,10 +32,9 @@ describe('SubscriptionManager (All Features Unlocked For Free Growth Phase)', ()
     expect(SubscriptionManager.canUseFeature('pdfx')).toBe(true);
   });
 
-  it('should provide unlimited quota during free growth phase', () => {
-    expect(SubscriptionManager.consumeQuota(50)).toBe(true);
+  it('should report a subscribed, unlocked access state', () => {
     const state = SubscriptionManager.getSubscriptionState();
     expect(state.isSubscribed).toBe(true);
-    expect(state.monthlyQuotaRemaining).toBeGreaterThan(9000);
+    expect(state.planName).toBeTruthy();
   });
 });
