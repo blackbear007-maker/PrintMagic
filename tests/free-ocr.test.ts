@@ -35,7 +35,7 @@ describe('FreeOcrClient (100% 離線私有 Tesseract 5.3 & PP-OCR Client)', () =
     expect(result.tokens).toBeDefined();
     expect(result.tokens.length).toBeGreaterThan(0);
     expect(result.tokens[0].text).toBe('PRINTMAGIC');
-    expect(result.engineName).toContain('Tesseract');
+    expect(result.engineName).toContain('PP-OCRv4');
   });
 
   it('should fall back gracefully to local positioning if network fails', async () => {

@@ -62,8 +62,8 @@ import { WebShareService } from './services/web-share';
 import { XiaoxiangAssistant } from './ui/xiaoxiang-assistant';
 import { SceneClassifier } from './core/scene-classifier';
 import { Anime4kUpscaler } from './core/anime4k-upscaler';
-import { HatSUpscaler } from './core/hat-s-upscaler';
-import { SwinirUpscaler } from './core/swinir-upscaler';
+import { RealEsrganUpscaler } from './core/realesrgan-upscaler';
+import { ZeroDceEnhancer } from './core/zero-dce-enhancer';
 import type { BatchItem, PaperType, PrintPresetId } from './types';
 
 /**
@@ -1441,14 +1441,22 @@ class App {
           processedImgData = await workerClient.lanczos(srcImageData, appliedScale);
         }
 
-        // Apply Scene-Aware Neural/Algorithmic Post-Enhancement
+        // Apply Scene-Aware Neural/Algorithmic Post-Enhancement (SOTA Real-ESRGAN & Zero-DCE++)
         const scene = SceneClassifier.classifyImage(processedImgData);
         if (scene.category === 'anime') {
           processedImgData = Anime4kUpscaler.upscaleAnime(processedImgData, 1 as 2);
         } else if (scene.category === 'portrait') {
-          processedImgData = HatSUpscaler.upscalePhoto(processedImgData, 1);
+          const res = RealEsrganUpscaler.upscale(processedImgData, 2, 0.4);
+          processedImgData = res.upscaledImageData;
         } else if (scene.category === 'landscape') {
-          processedImgData = SwinirUpscaler.upscaleAndDeblock(processedImgData, 1);
+          const res = RealEsrganUpscaler.upscale(processedImgData, 2, 0.6);
+          processedImgData = res.upscaledImageData;
+        }
+
+        // Apply Zero-DCE++ dynamic range boost if scene has low-light or shadow traits
+        if (scene.detectedTraits.some((t: string) => t.includes('暗') || t.includes('曝光') || t.includes('黑'))) {
+          const zeroRes = ZeroDceEnhancer.enhance(processedImgData, 2, 0.5);
+          processedImgData = zeroRes.enhancedImageData;
         }
       }
 

@@ -10,7 +10,7 @@ import { OpencvClaheDeskew } from '../src/core/opencv-clahe-deskew';
 import { ScunetDenoiser } from '../src/core/scunet-denoiser';
 import { NafnetDeblur } from '../src/core/nafnet-deblur';
 import { DoctrDewarp } from '../src/core/doctr-dewarp';
-import { TinysamSegmenter } from '../src/core/tinysam-segmenter';
+import { MobileSamSegmenter } from '../src/core/mobilesam-segmenter';
 import { AotGanInpainter } from '../src/core/aot-gan-inpaint';
 
 describe('Multi-Framework Industrial Pre-Press Suite', () => {
@@ -69,13 +69,13 @@ describe('Multi-Framework Industrial Pre-Press Suite', () => {
       expect(deblurred.width).toBe(30);
     });
 
-    it('DocTr & TinySAM & AOT-GAN: should perform curvature dewarping, 1-click segmentation and bleed outpainting', () => {
+    it('DocTr & MobileSAM & AOT-GAN: should perform curvature dewarping, 1-click segmentation and bleed outpainting', () => {
       const img = createMockImageData(40, 40);
       const dewarped = DoctrDewarp.dewarp(img, 0.25);
       expect(dewarped.width).toBe(40);
 
-      const seg = TinysamSegmenter.segmentFromClick(img, 20, 20);
-      expect(seg.boundingBox).toBeDefined();
+      const seg = MobileSamSegmenter.segmentObjectAtPoint(img, 20, 20, 'foil', 32);
+      expect(seg.coverageMm2).toBeGreaterThanOrEqual(0);
 
       const outpainted = AotGanInpainter.outpaintBleed(img, 12);
       expect(outpainted.newWidth).toBe(64);

@@ -11,7 +11,7 @@ describe('AiUpscaleClient (Free Real-ESRGAN Cloud & Local Fallback v2)', () => {
 
     expect(result.success).toBe(true);
     expect(result.fallbackToLocal).toBe(true);
-    expect(result.model).toContain('本機金字塔加速');
+    expect(result.model).toContain('本機 RealESRGAN 加速');
   });
 
   it('should return reconstructed image data when API responds with success and cache subsequent calls', async () => {

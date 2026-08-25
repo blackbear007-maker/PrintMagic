@@ -5,14 +5,14 @@ import { AotGanInpainter } from '../src/core/aot-gan-inpaint';          // #19 A
 import { ScunetDenoiser } from '../src/core/scunet-denoiser';          // #05 SCUNet-Lite
 import { NafnetDeblur } from '../src/core/nafnet-deblur';              // #10 NAFNet-Lite
 import { NanodetFocal } from '../src/core/nanodet-focal';              // #07 NanoDet-Plus
-import { TinysamSegmenter } from '../src/core/tinysam-segmenter';      // #16 TinySAM / MobileSAM
-import { SwinirUpscaler } from '../src/core/swinir-upscaler';          // #12 SwinIR SOTA
+import { MobileSamSegmenter } from '../src/core/mobilesam-segmenter';  // #16 MobileSAM / SAM-2
+import { RealEsrganUpscaler } from '../src/core/realesrgan-upscaler';  // #12 RealESRGAN Compact
 import { DexinedEdgeDetector } from '../src/core/dexined-edge';        // #13 DexiNed-Lite
 import { DoctrDewarp } from '../src/core/doctr-dewarp';                // #14 DocTr-Lite
 import { NimaAssessor } from '../src/core/nima-assessor';              // #06 NIMA
 import { DeshadowEngine } from '../src/core/deshadow-engine';          // #11 Deshadow-Net
-import { U2NetLiteMatting } from '../src/core/u2net-lite-matting';      // #03 MODNet / #08 U2Net-P
-import { ShadowLift } from '../src/core/shadow-lift';                  // #04 Zero-DCE++
+import { BiRefNetMatting } from '../src/core/birefnet-matting';        // #03 BiRefNet-Lite
+import { ZeroDceEnhancer } from '../src/core/zero-dce-enhancer';        // #04 Zero-DCE++
 import { AntiBandingFilter } from '../src/core/anti-banding';          // #15 DGF-Net
 import { PantoneMatcher } from '../src/core/pantone-matcher';          // #18 Deep-Palette
 
@@ -66,20 +66,20 @@ describe('Comprehensive PyTorch Commercial Pre-Press Suite', () => {
     expect(focal.height).toBeGreaterThan(0);
   });
 
-  // ─── #16 TinySAM / MobileSAM 1-Click Segmenter ────────────────────────────
-  it('#16 TinySAM: should segment object mask from single click coordinate', () => {
+  // ─── #16 MobileSAM / SAM-2 1-Click Segmenter ─────────────────────────────
+  it('#16 MobileSAM: should segment object mask from single click coordinate into spot finish mask', () => {
     const img = createMockImageData(40, 40, 255, 0, 0); // Red
-    const seg = TinysamSegmenter.segmentFromClick(img, 20, 20, 30);
-    expect(seg.pixelCount).toBeGreaterThan(0);
-    expect(seg.boundingBox.width).toBeGreaterThan(0);
+    const seg = MobileSamSegmenter.segmentObjectAtPoint(img, 20, 20, 'foil', 30);
+    expect(seg.coverageMm2).toBeGreaterThan(0);
+    expect(seg.contourSvgPath).toContain('M ');
   });
 
-  // ─── #12 SwinIR Super-Resolution ─────────────────────────────────────────
-  it('#12 SwinIR: should perform high-fidelity 2x super-resolution', () => {
+  // ─── #12 RealESRGAN Super-Resolution ─────────────────────────────────────
+  it('#12 RealESRGAN: should perform high-fidelity 2x super-resolution', () => {
     const img = createMockImageData(25, 25);
-    const upscaled = SwinirUpscaler.upscaleAndDeblock(img, 2);
-    expect(upscaled.width).toBe(50);
-    expect(upscaled.height).toBe(50);
+    const upscaled = RealEsrganUpscaler.upscale(img, 2, 0.5);
+    expect(upscaled.upscaledImageData.width).toBe(50);
+    expect(upscaled.upscaledImageData.height).toBe(50);
   });
 
   // ─── #13 DexiNed-Lite Hairline Edge Detector ─────────────────────────────
@@ -108,13 +108,13 @@ describe('Comprehensive PyTorch Commercial Pre-Press Suite', () => {
     const deshadow = DeshadowEngine.deshadow(img);
     expect(deshadow.width).toBe(40);
 
-    // #04 Zero-DCE++ / ShadowLift
-    const lifted = ShadowLift.apply(img, 0.1);
-    expect(lifted.width).toBe(40);
+    // #04 Zero-DCE++
+    const zeroDce = ZeroDceEnhancer.enhance(img, 2, 0.5);
+    expect(zeroDce.enhancedImageData.width).toBe(40);
 
-    // #03 / #08 U2Net-P
-    const matting = U2NetLiteMatting.extractMatte(img);
-    expect(matting.hasTransparency).toBeDefined();
+    // #03 BiRefNet-Lite
+    const matting = BiRefNetMatting.extractMatting(img, 0.5, true);
+    expect(matting.hairlineFidelityScore).toBeGreaterThan(80);
 
     // #18 Deep-Palette / Pantone
     const pantone = PantoneMatcher.matchRgb(228, 0, 43);

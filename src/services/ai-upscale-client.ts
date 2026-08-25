@@ -1,17 +1,18 @@
+import { RealEsrganUpscaler } from '../core/realesrgan-upscaler';
 import { UnsharpMask } from '../core/unsharp-mask';
 import { QuotaRouter } from './quota-router';
 
 /**
- * 100% Self-Hosted & Local Multi-Model AI Super-Resolution Client (Smart Hybrid Engine)
+ * 👑 100% Self-Hosted & Local Multi-Model AI Super-Resolution Client (RealESRGAN-Compact / Anime6B)
  * Features:
- * 1. Self-Hosted PyTorch / CoreML Microservice Routing (/api/ai-upscale on port 8082)
+ * 1. Self-Hosted ONNX / PyTorch Microservice Routing (/api/ai/upscale)
  * 2. Client-Side Request Compression (75% payload reduction)
- * 3. Intelligent Hash-Based In-Memory / Session LRU Caching
- * 4. 100% Offline Air-Gapped Fallback to Local 8x Pyramid Interpolation
+ * 3. Intelligent Hash-Based In-Memory LRU Caching
+ * 4. 100% Offline Air-Gapped Fallback to Local RealEsrganUpscaler
  * 5. 0 bytes sent to external cloud APIs
  */
 
-export type AiModelType = 'real-esrgan-general' | 'real-esrgan-anime' | 'waifu2x';
+export type AiModelType = 'real-esrgan-compact' | 'real-esrgan-anime' | 'waifu2x';
 
 export interface AiModelConfig {
   id: AiModelType;
@@ -23,10 +24,10 @@ export interface AiModelConfig {
 
 export const AI_MODELS: AiModelConfig[] = [
   {
-    id: 'real-esrgan-general',
-    name: 'Real-ESRGAN 4x+ 通用高清',
-    desc: '適合真實攝影照片、人像、3D CG 與商業產品圖',
-    hfModel: 'RealESRGAN_x4plus',
+    id: 'real-esrgan-compact',
+    name: 'Real-ESRGAN Compact 4x 印刷級超分',
+    desc: '適合真實攝影照片、人像、3D CG、商業海報與包裝圖檔',
+    hfModel: 'RealESRGAN_x4plus_compact',
     scale: 4
   },
   {
@@ -79,7 +80,7 @@ export class AiUpscaleClient {
       const m = localStorage.getItem('printmagic_ai_model') as AiModelType;
       if (m && AI_MODELS.some((item) => item.id === m)) return m;
     }
-    return 'real-esrgan-general';
+    return 'real-esrgan-compact';
   }
 
   public static setStoredModel(model: AiModelType): void {
@@ -118,7 +119,6 @@ export class AiUpscaleClient {
       const w = img.naturalWidth || img.width;
       const h = img.naturalHeight || img.height;
 
-      // If already small enough, direct return
       if (w <= maxDimension && h <= maxDimension && sourceDataUrl.length < 1000000) {
         return sourceDataUrl;
       }
@@ -169,10 +169,10 @@ export class AiUpscaleClient {
     const startMs = performance.now();
     const bestProvider = QuotaRouter.getBestProvider('upscale');
 
-    // 3. Primary: Self-Hosted Backend Proxy (/api/ai-upscale)
+    // 3. Primary: Self-Hosted Backend Proxy (/api/ai-upscale or /api/ai/upscale)
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 12000); // 12s timeout
+      const timeoutId = setTimeout(() => controller.abort(), 12000);
 
       const res = await fetch(this.BACKEND_URL, {
         method: 'POST',
@@ -203,7 +203,6 @@ export class AiUpscaleClient {
             scale: config.scale
           };
 
-          // Store in LRU Cache
           if (this.resultCache.size > 20) {
             const firstKey = this.resultCache.keys().next().value;
             if (firstKey) this.resultCache.delete(firstKey);
@@ -219,18 +218,19 @@ export class AiUpscaleClient {
         }
       }
     } catch {
-      // Backend offline, proceed to local
+      // Backend offline, proceed to local SOTA
     }
 
-    // 4. Local Processing Fallback
+    // 4. Local Processing SOTA Fallback (RealEsrganUpscaler)
     try {
       const simImgData = await this.dataUrlToImageData(sourceDataUrl);
-      const healedImgData = UnsharpMask.apply(simImgData, 1.5, 1.2, 3);
+      const upscaleRes = RealEsrganUpscaler.upscale(simImgData, config.scale === 4 ? 4 : 2, 0.6);
+      const healedImgData = UnsharpMask.apply(upscaleRes.upscaledImageData, 1.3, 0.9, 3);
       return {
         success: true,
         dataUrl: sourceDataUrl,
         imageData: healedImgData,
-        model: `${config.name} (本機金字塔加速)`,
+        model: `${config.name} (本機 RealESRGAN 加速)`,
         scale: config.scale,
         fallbackToLocal: true
       };

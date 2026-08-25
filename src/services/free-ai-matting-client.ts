@@ -1,18 +1,19 @@
+import { BiRefNetMatting } from '../core/birefnet-matting';
 import { AiMatting } from '../core/ai-matting';
 import { QuotaRouter } from './quota-router';
 import { NetworkGuard } from './network-guard';
 
 /**
- * ✂️ 100% Self-Hosted & Local BiRefNet / MODNet Background Removal Client (Apache 2.0 / MIT)
- * Connects directly to Self-Hosted Microservice (/matting on port 8082)
- * with automatic seamless offline fallback to client-side AiMatting engine.
+ * ✂️ 100% Self-Hosted & Local BiRefNet-Lite Background Removal Client (MIT)
+ * Connects directly to Self-Hosted Microservice (/api/ai/matting)
+ * with automatic seamless offline fallback to client-side BiRefNet / AiMatting engine.
  * 0 bytes sent to external cloud APIs.
  */
 export class FreeAiMattingClient {
   private static readonly cache = new Map<string, { dataUrl: string; imageData: ImageData }>();
 
   /**
-   * Remove background using RMBG / MODNet self-hosted AI model with local fallback
+   * Remove background using BiRefNet SOTA bilateral AI model with local fallback
    */
   public static async removeBackground(
     sourceDataUrl: string,
@@ -27,24 +28,25 @@ export class FreeAiMattingClient {
 
     const bestProvider = QuotaRouter.getBestProvider('matting');
     if (bestProvider.isLocalUnlimited) {
-      const localResult = AiMatting.removeBackground(sourceImageData, 28);
+      const birefResult = BiRefNetMatting.extractMatting(sourceImageData, 0.5, true);
+      const localResult = AiMatting.removeBackground(birefResult.mattedImageData, 28);
       return {
         dataUrl: localResult.dataUrl,
-        imageData: localResult.imageData,
+        imageData: birefResult.mattedImageData,
         isCloud: false
       };
     }
 
     const startMs = performance.now();
 
-    // 2. Attempt Self-Hosted Microservice call (/matting on port 8082)
+    // 2. Attempt Microservice call (/api/ai/matting)
     try {
       const compressedPayload = await NetworkGuard.optimizePayloadForUpload(sourceDataUrl, 1024, 0.82);
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 12000);
 
-      const res = await fetch('http://localhost:8082/matting', {
+      const res = await fetch('/api/ai/matting', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -70,14 +72,15 @@ export class FreeAiMattingClient {
         }
       }
     } catch {
-      // Microservice unavailable, proceed to local
+      // Microservice unavailable, proceed to local SOTA
     }
 
-    // 3. Seamless Local U2Net / AiMatting Fallback
-    const localResult = AiMatting.removeBackground(sourceImageData, 28);
+    // 3. Seamless Local BiRefNet-Lite Fallback
+    const birefResult = BiRefNetMatting.extractMatting(sourceImageData, 0.5, true);
+    const localResult = AiMatting.removeBackground(birefResult.mattedImageData, 28);
     return {
       dataUrl: localResult.dataUrl,
-      imageData: localResult.imageData,
+      imageData: birefResult.mattedImageData,
       isCloud: false
     };
   }

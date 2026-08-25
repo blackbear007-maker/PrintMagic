@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { VIP_AI_MODELS, VipAiClient } from '../src/services/vip-ai-client';
 import { SubscriptionManager } from '../src/core/subscription-tier';
 
-describe('VipAiClient (100% 開源自建頂級旗艦 AI 模型陣列: HAT-S / NAFNet / Anime4K)', () => {
+describe('VipAiClient (100% 開源自建頂級旗艦 AI 模型陣列: RealESRGAN / BiRefNet / Zero-DCE / MobileSAM / Anime4K)', () => {
   let store: Record<string, string> = {};
 
   beforeEach(() => {
@@ -41,16 +41,20 @@ describe('VipAiClient (100% 開源自建頂級旗艦 AI 模型陣列: HAT-S / NA
     } as any;
   });
 
-  it('should define 3 core 100% open-source self-hosted VIP AI models', () => {
-    expect(VIP_AI_MODELS.length).toBe(3);
+  it('should define core 100% open-source self-hosted VIP AI models', () => {
+    expect(VIP_AI_MODELS.length).toBe(5);
 
-    const hats = VIP_AI_MODELS.find((m) => m.id === 'hat-s-8k')!;
-    expect(hats).toBeDefined();
-    expect(hats.provider).toContain('PyTorch');
+    const realesrgan = VIP_AI_MODELS.find((m) => m.id === 'realesrgan-compact-4x')!;
+    expect(realesrgan).toBeDefined();
+    expect(realesrgan.provider).toContain('ONNX');
 
-    const nafnet = VIP_AI_MODELS.find((m) => m.id === 'nafnet-scunet-pro')!;
-    expect(nafnet).toBeDefined();
-    expect(nafnet.provider).toContain('PyTorch');
+    const birefnet = VIP_AI_MODELS.find((m) => m.id === 'birefnet-hairline-matting')!;
+    expect(birefnet).toBeDefined();
+    expect(birefnet.provider).toContain('ONNX');
+
+    const zerodce = VIP_AI_MODELS.find((m) => m.id === 'zero-dce-lowlight-pro')!;
+    expect(zerodce).toBeDefined();
+    expect(zerodce.name).toContain('Zero-DCE++');
 
     const anime = VIP_AI_MODELS.find((m) => m.id === 'anime4k-lineart-pro')!;
     expect(anime).toBeDefined();
@@ -97,10 +101,10 @@ describe('VipAiClient (100% 開源自建頂級旗艦 AI 模型陣列: HAT-S / NA
     } as any;
 
     const dummyUrl = 'data:image/png;base64,dummy';
-    const result = await VipAiClient.upscale(dummyUrl, 'hat-s-8k');
+    const result = await VipAiClient.upscale(dummyUrl, 'realesrgan-compact-4x');
 
     expect(result.success).toBe(true);
-    expect(result.provider).toContain('PyTorch');
+    expect(result.provider).toContain('ONNX');
     expect(SubscriptionManager.getQuotaUsed()).toBe(1);
   });
 });

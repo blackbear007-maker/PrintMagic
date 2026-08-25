@@ -65,7 +65,60 @@ apiRouter.post('/export-pdfx', async (req: Request, res: Response) => {
   }
 });
 
-// Free AI Super-Resolution (Real-ESRGAN)
+// 🚀 SOTA AI Engine Endpoints (BiRefNet, MobileSAM, Zero-DCE++, RealESRGAN, PP-OCR, DocTr)
+apiRouter.post('/ai/matting', async (req: Request, res: Response) => {
+  try {
+    const { image_base64 } = req.body;
+    if (!image_base64) {
+      res.status(400).json({ success: false, error: 'image_base64 is required' });
+      return;
+    }
+    const { AiEngineService } = await import('../services/ai-engine-service.js');
+    const result = await AiEngineService.processMatting(image_base64);
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err?.message || 'Matting failed' });
+  }
+});
+
+apiRouter.post('/ai/lowlight', async (req: Request, res: Response) => {
+  try {
+    const { image_base64 } = req.body;
+    if (!image_base64) {
+      res.status(400).json({ success: false, error: 'image_base64 is required' });
+      return;
+    }
+    const { AiEngineService } = await import('../services/ai-engine-service.js');
+    const result = await AiEngineService.processLowLight(image_base64);
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err?.message || 'Low-light enhancement failed' });
+  }
+});
+
+apiRouter.post('/ai/segment', async (req: Request, res: Response) => {
+  try {
+    const { image_base64, x = 0, y = 0, spotType = 'foil' } = req.body;
+    const { AiEngineService } = await import('../services/ai-engine-service.js');
+    const result = await AiEngineService.processSegment(image_base64, x, y, spotType);
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err?.message || 'Segmentation failed' });
+  }
+});
+
+apiRouter.post('/ai/dewarp', async (req: Request, res: Response) => {
+  try {
+    const { image_base64 } = req.body;
+    const { AiEngineService } = await import('../services/ai-engine-service.js');
+    const result = await AiEngineService.processDewarp(image_base64);
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err?.message || 'Dewarping failed' });
+  }
+});
+
+// Free AI Super-Resolution (Real-ESRGAN Compact 4x)
 apiRouter.post('/ai-upscale', async (req: Request, res: Response) => {
   try {
     const { imageDataUrl, apiKey } = req.body;
