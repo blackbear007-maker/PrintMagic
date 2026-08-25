@@ -7,7 +7,7 @@ import { SoundEffects } from '../core/sound-effects';
  * 解決新手印前最後一哩路恐慌：
  * 1. 複製給印刷廠老闆的一句話
  * 2. 印刷廠問紙材/磅數的標準回答小抄
- * 3. 超商 30 秒立印 3 步驟
+ * 3. 超商列印檔快速入口
  */
 export class PassportModal {
   private modalEl: HTMLElement;
@@ -85,7 +85,7 @@ export class PassportModal {
             <div style="font-size: 0.8rem; color: var(--pm-text-secondary); line-height: 1.45;">
               建議直接回答：<strong style="color: var(--pm-accent-blue);">${paperRecommendation}</strong>
               <div style="font-size: 0.72rem; color: var(--pm-text-muted); margin-top: 2px;">
-                實體尺寸：${sizeText} ${refText ? `(${refText})` : ''} · CMYK 零色偏
+                實體尺寸：${sizeText} ${refText ? `(${refText})` : ''}
               </div>
             </div>
           </div>
@@ -95,8 +95,8 @@ export class PassportModal {
             <div style="display: flex; align-items: center; gap: 8px;">
               <span style="font-size: 1.2rem;">🏪</span>
               <div>
-                <div style="font-size: 0.82rem; font-weight: 700; color: var(--pm-text-primary);">超商 30 秒立印</div>
-                <div style="font-size: 0.72rem; color: var(--pm-text-secondary);">至 7-11 ibon / 全家機台點選「列印」上傳此 PDF 即可</div>
+                <div style="font-size: 0.82rem; font-weight: 700; color: var(--pm-text-primary);">超商列印檔</div>
+                <div style="font-size: 0.72rem; color: var(--pm-text-secondary);">下載排版好的檔案，至 7-11 ibon / 全家官網上傳即可取得取件碼</div>
               </div>
             </div>
             <button id="btnPassportOpenConv" class="pm-btn pm-btn-xs pm-btn-secondary" type="button">

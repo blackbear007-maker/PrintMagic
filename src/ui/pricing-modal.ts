@@ -85,9 +85,9 @@ export class PricingModal {
                   <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--pm-text-primary); margin: 0;">出機規範與立印</h3>
                 </div>
                 <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; font-size: 0.82rem; color: var(--pm-text-secondary);">
-                  <li style="display: flex; gap: 8px;"><span style="color: #34c759; font-weight: 700;">✓</span><span><strong>ISO 15930 PDF/X-1a 工業出機檔</strong></span></li>
+                  <li style="display: flex; gap: 8px;"><span style="color: #34c759; font-weight: 700;">✓</span><span><strong>工業印前 PDF 出機檔（含出血/裁切線）</strong></span></li>
                   <li style="display: flex; gap: 8px;"><span style="color: #34c759; font-weight: 700;">✓</span><span><strong>國際 ICC 描述檔 (Japan Color / FOGRA)</strong></span></li>
-                  <li style="display: flex; gap: 8px;"><span style="color: #34c759; font-weight: 700;">✓</span><span><strong>7-11 ibon / 全家超商 30 秒雲端立印</strong></span></li>
+                  <li style="display: flex; gap: 8px;"><span style="color: #34c759; font-weight: 700;">✓</span><span><strong>7-11 ibon / 全家超商列印檔案產生器</strong></span></li>
                   <li style="display: flex; gap: 8px;"><span style="color: #34c759; font-weight: 700;">✓</span><span><strong>專業 ISO 印刷規範與送印規格表</strong></span></li>
                   <li style="display: flex; gap: 8px;"><span style="color: #34c759; font-weight: 700;">✓</span><span><strong>100% 離線免連網極速模式</strong></span></li>
                 </ul>

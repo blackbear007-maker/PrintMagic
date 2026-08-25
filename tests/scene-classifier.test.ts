@@ -72,7 +72,7 @@ describe('Intelligent Pre-Press Scene & Image Type Auto-Classifier', () => {
     const res = SceneClassifier.classifyImage(img);
     expect(res.category).toBe('anime');
     expect(res.categoryNameZh).toContain('動漫');
-    expect(res.recommendedPipeline.superResolutionModel).toContain('Anime4K');
+    expect(res.recommendedPipeline.superResolutionModel).toContain('LineArtUpscaler');
   });
 
   it('should detect Portrait when skin tones are dominant', () => {
@@ -88,7 +88,7 @@ describe('Intelligent Pre-Press Scene & Image Type Auto-Classifier', () => {
     const res = SceneClassifier.classifyImage(img);
     expect(res.category).toBe('portrait');
     expect(res.categoryNameZh).toContain('人像');
-    expect(res.recommendedPipeline.superResolutionModel).toContain('HAT-S');
+    expect(res.recommendedPipeline.superResolutionModel).toContain('EdgeAwareUpscaler');
   });
 
   it('should default to Landscape / Scenery for broad scenery palettes', () => {

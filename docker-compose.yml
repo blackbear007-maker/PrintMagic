@@ -15,7 +15,7 @@
 #  └──────────────────────┴────────────┴───────────┴────────────┘
 #
 #  ⚠️  LanguageTool is NOT included here (JVM heap = $5-$15/mo risk).
-#      Replaced by 3-endpoint public API rotation in free-spellcheck-client.ts
+#      Spellcheck is instead a local regex typo dictionary — see src/services/free-spellcheck-client.ts
 #
 #  Usage:
 #    Local dev:  docker compose up

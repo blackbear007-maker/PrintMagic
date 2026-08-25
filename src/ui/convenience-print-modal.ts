@@ -4,19 +4,23 @@ import { SoundEffects } from '../core/sound-effects';
 import {
   CONVENIENCE_STORE_SPECS,
   ConvenienceStoreEngine,
-  type ConveniencePrintSpec,
-  type ConvenienceCloudOrder
+  type ConveniencePrintSpec
 } from '../core/convenience-store';
 
 /**
- * 🏪 7-ELEVEN ibon & 全家 FamiPort 雲端立印互動彈窗 (支援一鍵取件碼 & QR 產生)
+ * 🏪 7-ELEVEN ibon & 全家 FamiPort 超商列印檔案產生器
+ *
+ * There is no real pickup-code/QR order feature here — this app has no access to 7-11/FamiPort's
+ * order systems. What it actually does: generates a correctly-sized 300 DPI file for the chosen
+ * paper spec, and links to the store's real official upload website (where you get a real pickup
+ * code from them). An earlier version fabricated an 8-digit PIN and a QR image from Math.random()
+ * — neither was ever submitted anywhere or scannable — that's been removed.
  */
 export class ConveniencePrintModal {
   private modalEl: HTMLElement;
   private selectedStore: '7-11' | 'familymart' = '7-11';
   private selectedSpecId: string = '711-photo-4x6';
   private isGenerating = false;
-  private currentCloudOrder: ConvenienceCloudOrder | null = null;
 
   constructor() {
     this.modalEl = document.createElement('div');
@@ -38,9 +42,6 @@ export class ConveniencePrintModal {
       Toast.error('請先上傳圖片');
       return;
     }
-
-    const currentSpec = CONVENIENCE_STORE_SPECS.find((s) => s.id === this.selectedSpecId) || CONVENIENCE_STORE_SPECS[0];
-    this.currentCloudOrder = ConvenienceStoreEngine.generateCloudOrder(currentSpec);
 
     SoundEffects.sliderTick();
     this.render();
@@ -64,10 +65,6 @@ export class ConveniencePrintModal {
     const currentSpec = CONVENIENCE_STORE_SPECS.find(
       (s) => s.id === this.selectedSpecId
     )!;
-
-    if (!this.currentCloudOrder || this.currentCloudOrder.spec.id !== currentSpec.id) {
-      this.currentCloudOrder = ConvenienceStoreEngine.generateCloudOrder(currentSpec);
-    }
 
     const storeTabsHtml = `
       <div class="pm-conv-store-tabs">
@@ -103,14 +100,12 @@ export class ConveniencePrintModal {
       })
       .join('');
 
-    const order = this.currentCloudOrder;
-
     this.modalEl.innerHTML = `
       <div class="pm-modal-dialog pm-conv-dialog" style="max-width: 680px;">
         <div class="pm-modal-header">
           <div class="pm-modal-title-group">
-            <span class="pm-modal-title">🏪 超商雲端 30 秒立印中心</span>
-            <span class="pm-modal-subtitle">自動符合超商列印規範，支援 8 碼取件碼與專屬 300 DPI 實體出機</span>
+            <span class="pm-modal-title">🏪 超商列印檔案產生器</span>
+            <span class="pm-modal-subtitle">自動符合超商列印規範，產生專屬 300 DPI 實體出機檔</span>
           </div>
           <button class="pm-modal-close" id="btnConvClose">✕</button>
         </div>
@@ -122,41 +117,6 @@ export class ConveniencePrintModal {
             <label class="pm-pricing-label">選擇列印紙材規格：</label>
             <div class="pm-conv-specs-grid">
               ${specCardsHtml}
-            </div>
-          </div>
-
-          <!-- Live Cloud Ticket Box (即時取件小卡) -->
-          <div style="margin-top: 14px; background: linear-gradient(135deg, rgba(0, 113, 227, 0.06) 0%, rgba(52, 199, 89, 0.06) 100%); border: 1.5px solid rgba(0, 113, 227, 0.2); border-radius: 12px; padding: 14px 16px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-              <span style="font-size: 0.85rem; font-weight: 700; color: var(--pm-text-primary); display: flex; align-items: center; gap: 6px;">
-                <span>🎫</span> ${currentSpec.storeName} 即時取件憑證
-              </span>
-              <span style="font-size: 0.72rem; color: #0071e3; font-weight: 600; background: rgba(0,113,227,0.1); padding: 2px 8px; border-radius: 10px;">
-                有效期限：${order?.expireTime || '72小時'}
-              </span>
-            </div>
-
-            <div style="display: flex; gap: 16px; align-items: center; flex-wrap: wrap;">
-              <!-- QR Code Thumbnail -->
-              <div style="background: #ffffff; padding: 6px; border-radius: 10px; border: 1px solid var(--pm-border-subtle); display: flex; flex-direction: column; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
-                <img src="${order?.qrDataUrl || ''}" alt="超商取件 QR Code" style="width: 100px; height: 100px; display: block;" />
-                <span style="font-size: 0.65rem; color: var(--pm-text-muted); margin-top: 4px;">機台直接掃描</span>
-              </div>
-
-              <!-- Pickup Details -->
-              <div style="flex: 1; min-width: 200px; display: flex; flex-direction: column; gap: 6px;">
-                <div style="display: flex; align-items: baseline; gap: 8px;">
-                  <span style="font-size: 0.76rem; color: var(--pm-text-secondary);">8 碼取件碼：</span>
-                  <strong style="font-size: 1.25rem; letter-spacing: 0.08em; color: var(--pm-text-primary); font-family: monospace;">${order?.pickupPin || ''}</strong>
-                  <button id="btnCopyPin" class="pm-btn pm-btn-xs pm-btn-ghost" style="padding: 2px 6px; font-size: 0.7rem;">📋 複製</button>
-                </div>
-                <div style="font-size: 0.75rem; color: var(--pm-text-secondary); line-height: 1.4;">
-                  項目：<strong>${currentSpec.paperType}</strong> · 費用：<strong>NT$ ${currentSpec.priceNTD}</strong>
-                </div>
-                <div style="font-size: 0.72rem; color: var(--pm-text-muted);">
-                  💡 下樓到任何一家 ${currentSpec.storeName} 機台，點「列印」輸入代碼或掃描即可。
-                </div>
-              </div>
             </div>
           </div>
 
@@ -177,24 +137,23 @@ export class ConveniencePrintModal {
             </div>
           </div>
 
-          <!-- Physical Machine 3-Step Guide -->
+          <!-- Honest 2-Step Guide -->
           <div style="background: rgba(0, 0, 0, 0.02); border: 1px dashed var(--pm-border-subtle); border-radius: 12px; padding: 14px; margin-top: 14px;">
             <div style="font-size: 0.82rem; font-weight: 700; color: var(--pm-text-primary); margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
-              <span>💡</span> 到了超商機台前怎麼印？（新手 30 秒 3 步操作圖解）
+              <span>💡</span> 怎麼實際印出來？
             </div>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; font-size: 0.76rem; color: var(--pm-text-secondary); line-height: 1.45;">
               <div style="background: #ffffff; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--pm-border-light); box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
-                <strong style="color: var(--pm-text-primary); display: block; margin-bottom: 3px;">① 點選機台首頁</strong>
-                在機台螢幕首頁點選<strong>「列印 / 掃描」</strong>按鈕
+                <strong style="color: var(--pm-text-primary); display: block; margin-bottom: 3px;">① 下載檔案</strong>
+                點上方按鈕下載已排版好的 300 DPI JPG
               </div>
               <div style="background: #ffffff; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--pm-border-light); box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
-                <strong style="color: var(--pm-text-primary); display: block; margin-bottom: 3px;">② 選擇雲端列印</strong>
-                點選<strong>「${this.selectedStore === '7-11' ? 'ibon 文件列印' : 'FamiPort 雲端列印'}」</strong>
+                <strong style="color: var(--pm-text-primary); display: block; margin-bottom: 3px;">② 用官方管道上傳</strong>
+                前往下方 ${currentSpec.storeName} 官方雲端上傳頁面上傳此檔案，取得真正的取件碼；或存到隨身碟直接插入機台選擇上傳
               </div>
-              <div style="background: #ffffff; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--pm-border-light); box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
-                <strong style="color: var(--pm-text-primary); display: block; margin-bottom: 3px;">③ 掃描或輸入代碼</strong>
-                對準條碼掃描器<strong>掃描上方 QR Code</strong>（或輸入 8 位數取件碼），投幣即印！
-              </div>
+            </div>
+            <div style="font-size: 0.68rem; color: var(--pm-text-muted); margin-top: 8px;">
+              本工具不會、也無法幫你送出訂單或產生取件碼——取件碼一定要透過 ${currentSpec.storeName} 自己的網站/App 才能拿到。
             </div>
           </div>
 
@@ -215,15 +174,6 @@ export class ConveniencePrintModal {
     // Close button
     this.modalEl.querySelector('#btnConvClose')?.addEventListener('click', () => {
       this.close();
-    });
-
-    // Copy PIN button
-    this.modalEl.querySelector('#btnCopyPin')?.addEventListener('click', () => {
-      if (this.currentCloudOrder?.pickupPin && navigator.clipboard) {
-        void navigator.clipboard.writeText(this.currentCloudOrder.pickupPin.replace('-', ''));
-        SoundEffects.sliderTick();
-        Toast.success(`✓ 已複製取件碼 ${this.currentCloudOrder.pickupPin}！`);
-      }
     });
 
     // Store switch tabs

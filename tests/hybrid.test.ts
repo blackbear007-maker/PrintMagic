@@ -50,7 +50,7 @@ describe('PdfxService (Industrial PDF/X-1a & PDF/X-4)', () => {
 
     expect(result.buffer).toBeDefined();
     expect(result.buffer.length).toBeGreaterThan(0);
-    expect(result.checksum).toMatch(/^PMX-[A-F0-9]{16}$/);
+    expect(result.checksum).toMatch(/^[A-F0-9]{64}$/); // real SHA-256 of source artwork bytes
     expect(result.fileName).toContain('PDF_X_1a');
     expect(result.iccName).toBe('Japan Color 2001 Coated');
   });

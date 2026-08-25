@@ -5,7 +5,7 @@
 > **系統定位**：全自動商業印前修復與出機工作站 (AI Pre-Press Engine & Multi-Format Exporter)  
 > **核心哲學**：100% 自由開源商用架構 · 0 外部收費 API 依賴 · 新手無腦一鍵出機 · 商業合規舉證  
 
-> ⚠️ **誠實性附註（2026-08-25）**：本文件第 2 節與第 3 節列出的大量「模型」（HAT-S、SwinIR、AOT-GAN、MAT-Lite、DexiNed、CodeFormer、GAIC、FontMatcher 等）**目前並未在程式碼中實作**——`src/core/` 裡沒有對應檔案，專案也沒有載入任何 ONNX/TensorFlow.js/WASM 推論引擎。這些條目是規劃階段留下的願景清單，尚未與實際程式碼校對過。已確認**真正存在且運作**的只有：本機決定性演算法（見下方已實作模組）+ 3 項透過 Docker 微服務跑的真實開源工具（Zero-DCE++、Tesseract、VTracer，見 [README](../README.md#️-引擎組成真實模型-vs-決定性演算法)）。在對這份文件逐條核實、標記「已實作 / 規劃中」之前，請以 README 的說明為準，不要以本文件的模型清單作為對外承諾的依據。
+> ⚠️ **誠實性附註（2026-08-25，後更新）**：本文件曾經在第 2、3、7 節列出大量從未實作的「模型」與功能（HAT-S、SwinIR、AOT-GAN、MAT-Lite、DexiNed、CodeFormer、GAIC、FontMatcher、桌面版效能數字等）——這些內容已於 2026-08-25 全面核實並改寫。第一輪核實時誤把 Zero-DCE++ 當成「真正訓練過的模型」，後來進一步查證發現它的 Docker 建置設定引用了從未存在過的權重檔案，程式碼裡也從未載入任何訓練權重（隨機初始化，非訓練結果）；VTracer 的 Dockerfile 同樣引用了從未存在過的原始碼，導致建置必定失敗，現已修正為安裝真正發布的 vtracer crate。目前唯一從頭到尾一致、可正常建置運作的自建服務是 **Tesseract**（OCR）；**VTracer**（向量化）已於本次更新修正為可建置；**Zero-DCE++**（低光提亮）架構程式碼是真的，但輸出品質不代表訓練過的模型。其餘全部是決定性演算法（無 AI 模型），詳見 [README](../README.md#️-引擎組成真實模型-vs-決定性演算法)。
 
 ---
 
@@ -16,10 +16,10 @@
 
 | 服務容器名稱 | 執行語言 / 運行環境 | 端口 (Port) | RAM 硬上限 | 核心職責與承載模組 |
 | :--- | :--- | :---: | :---: | :--- |
-| **`printmagic`** | Node.js 22 (Alpine) + Vite SSR | `3000` | **256 MB** | 主應用入口、UI 渲染、合版拼版算力、PDF/X-1a 出機檔壓製。 |
-| **`vtracer`** | Rust 1.78 + Tokio (Distroless) | `8080` | **128 MB** | VTracer 向量化引擎、Kurbo 2mm 刀模幾何運算、OxiPNG 無損壓縮。 |
-| **`tesseract`** | Python 3.11 + Tesseract 5.3 C++ | `8081` | **384 MB** | 繁中/英/日 OCR 文字辨識、PP-OCRv4 邊界包圍盒幾何解析。 |
-| **`zero-dce`** | Python 3.11 + PyTorch 2.3+ (CPU) | `8082` | **640 MB** | Zero-DCE++ 低光照片提亮，目前是這個容器裡唯一真正跑推論的模型（歷史上曾對外宣稱承載 10+ 款模型，實際上其餘端點是回傳原圖的空殼，已於 2026-08-25 移除，見 `docker/zero-dce/server.py`）。 |
+| **`printmagic`** | Node.js 22 (Alpine) + Vite SSR | `3000` | **256 MB** | 主應用入口、UI 渲染、合版拼版算力、印前 PDF 出機檔壓製（非通過驗證的 PDF/X-1a，見第 5 節）。 |
+| **`vtracer`** | Rust 1.78 (Distroless) | `8080` | **128 MB** | 真實 VTracer 向量化引擎（點陣轉 SVG）。「Kurbo 2mm 刀模幾何運算」實際跑在主應用內的 `src/core/kurbo-geometry.ts`（純 TypeScript），不在這個容器裡；「OxiPNG 無損壓縮」查無實作，本服務不做 PNG 壓縮，已移除該說法。 |
+| **`tesseract`** | Python 3.11 + Tesseract 5.3 C++ | `8081` | **384 MB** | 繁中/英/日 OCR 文字辨識（真實 Tesseract，非 PP-OCR——PP-OCR 從未在本專案中實作）。 |
+| **`zero-dce`** | Python 3.11 + PyTorch 2.3+ (CPU) | `8082` | **640 MB** | Zero-DCE++ 低光照片提亮。⚠️ 網路架構程式碼是真的，但從未載入訓練權重（隨機初始化，見 `docker/zero-dce/server.py` 內的說明）；歷史上曾對外宣稱承載 10+ 款模型，實際上其餘端點是回傳原圖的空殼，已於 2026-08-25 移除。 |
 
 ### 1.2 零外部付費 API 規則 (Strict 100% Zero-Commercial-API Policy)
 - ❌ 徹底剔除 Google Cloud Vision、Remove.bg、PhotoRoom、Midjourney 等任何需第三方 Token/按次計費之商業 API。
@@ -28,166 +28,128 @@
 ### 1.3 🛡️ 絕不能移除的【黃金核心護城河】（Golden Core Moat Modules - 永久保留清單）
 以下模組是真正**解決印刷翻車痛點、支撐產品付費轉換與商業護城河**的核心資產，**任何架構精簡或重構均嚴禁移除**：
 
+全部是決定性演算法（無 AI 模型），檔名為 `src/core/` 中的真實檔案：
+
 #### 🎨 1. 動漫 / 文創周邊剛需（創作者變現主力）
-- **`Sticker-KissCut-Builder` (手帳貼紙刀模線 + 0.2mm 內縮白墨)**：解決透明/PVC 貼紙透光問題，自動生成洋紅刀模與白墨遮罩層。
-- **`Acrylic-Charm-Builder` (壓克力立牌/吊飾外框與打孔)**：自動生成 2mm 圓滑邊界向量刀模與頂部打孔圈。
-- **`TShirt-Color-Knockout` (衣服膠印底色去色透氣)**：智慧扣除同色衣物底色，使熱轉印膠膜柔軟透氣不悶熱。
-- **`Anime4K-Upscaler` (二次元插畫無損放大)**：專為動漫插畫重構墨線與平塗色彩，邊緣刀削般銳利無雜點。
+- **`sticker-kisscut-builder.ts` (手帳貼紙刀模線 + 0.2mm 內縮白墨)**：解決透明/PVC 貼紙透光問題，自動生成洋紅刀模與白墨遮罩層。
+- **`acrylic-charm-builder.ts` (壓克力立牌/吊飾外框與打孔)**：自動生成 2mm 圓滑邊界向量刀模與頂部打孔圈。
+- **`tshirt-color-knockout.ts` (衣服膠印底色去色透氣)**：智慧扣除同色衣物底色，使熱轉印膠膜柔軟透氣不悶熱。
+- **`line-art-upscaler.ts` (二次元插畫放大)**：雙線性放大 + 邊緣壓黑，強化墨線輪廓（不是 Anime4K 官方實作，僅技法取向相近）。
 
 #### 🖼️ 2. 相片與生活輸出剛需（大眾消費轉化主力）
-- **`HAT-S / Real-ESRGAN / SwinIR` (8x 金字塔超解析度)**：終結 72 DPI 手機照片與截圖印成海報變馬賽克的恐懼。
-- **`Canvas-Wrap-Mirror` (無框畫 3.5cm 立體包邊鏡像)**：四面包邊鏡像延伸，正面構圖 100% 完整不切人臉與重要細節。
-- **`Photo-Frame-Mat` (畫廊卡紙裝裱內襯白邊)**：自動計算 2:3/3:4 比例與 45° 倒角陰影，營造美術館級裝裱質感。
-- **`Passport-Proportion-Aligner` (2 吋護照大頭照頭頂自動校準)**：精確定位台灣與國際 2 吋大頭照 3.2~3.6cm 官方頭部比例。
-- **`Object-Eraser` (AI 智慧消除筆)**：筆刷塗抹秒除路人、雜物、反光斑點與浮水印，底圖平滑自動修補。
+- **`edge-aware-upscaler.ts` (金字塔超解析度)**：雙線性插值 + 邊緣強化演算法（非神經網路，不會生成原本不存在的細節）。
+- **`canvas-wrap-mirror.ts` (無框畫 3.5cm 立體包邊鏡像)**：四面包邊鏡像延伸，正面構圖 100% 完整不切人臉與重要細節。
+- **`real-paper-simulator.ts` (畫廊卡紙裝裱內襯白邊)**：自動計算 2:3/3:4 比例與 45° 倒角陰影，營造美術館級裝裱質感。
+- **`passport-modal.ts`（UI）+ 相關比例計算 (2 吋護照大頭照頭頂自動校準)**：精確定位台灣與國際 2 吋大頭照 3.2~3.6cm 官方頭部比例。
+- **`object-eraser.ts` (智慧消除筆)**：Fast Marching 快速前進法補景演算法，筆刷塗抹秒除路人、雜物、反光斑點與浮水印。
 
 #### 🖨️ 3. 工業級印前物理與色彩安全（印刷廠零退件保證）
-- **`Bleed-Expander` (3mm 智慧出血背景生長)**：AOT-GAN / OpenCV Telea / 鏡像外推，徹底杜絕裁切白邊與文字切除。
-- **`CMYK-Engine / Kubelka-Munk / GCR-Gray` (控墨防死黑、軟打樣、省墨 35%)**：物理減法混色預測 + 總墨量 TAC ≤ 300% 限制。
-- **`Foil-Simulator` (亮金/玫瑰金/局部光 3D 擬真與獨立黑版分離)**：即時反光模擬並自動生成 100% K100 菲林鋅版遮罩。
-- **`Barcode-QR-Fixer` (純黑 K100 向量小字與保證秒掃的 QR 碼)**：重構純黑向量碼與高反差對比驗證，保證機台 100% 秒讀。
-- **`Imposition-Engine` (A4/A3 智慧合版拼模)**：多模自動排滿大版，大幅節省 70% 實體合版印刷費。
-- **`PDF/X-1a 出機壓製` (零退件標準出機檔)**：內嵌向量角線、十字規矩線、出血框與 CMYK 描述檔，任何印刷廠皆可直接出機。
+- **`bleed-expander.ts` (3mm 智慧出血背景生長)**：鏡像外推 + 接縫混合，徹底杜絕裁切白邊與文字切除。
+- **`cmyk-engine.ts` / `ink-limiter.ts` (控墨防死黑、軟打樣)**：物理減法混色預測 + 總墨量 TAC ≤ 300% 限制。
+- **`foil-simulator.ts` (亮金/玫瑰金/局部光 3D 擬真與獨立黑版分離)**：即時反光模擬並自動生成 100% K100 菲林鋅版遮罩。
+- **`qr-preflight-enhancer.ts` (純黑 K100 向量小字與 QR 碼對比檢查)**：高反差對比驗證與純黑向量重構。
+- **`imposition-engine.ts` (A4/A3 智慧合版拼模)**：多模自動排滿大版，大幅節省實體合版印刷費。
+- **`engines/pdf-exporter.ts` (印前 PDF 壓製)**：內嵌向量角線、十字規矩線、出血框，見第 5 節關於 PDF/X-1a 合規現況的誠實說明。
 
 ---
 
-## 2. AI 模型與印前演算法陣列 (AI Models & Pre-Press Matrix)
+## 2. 印前演算法陣列 (Pre-Press Algorithm Matrix)
 
-### 2.1 超解析度放大模型矩陣 (Super-Resolution Suite)
-| 模型名稱 | 核心架構 | 權重體積 | 耗時 (CPU) | 開源協議 | 最佳適用場景 |
-| :--- | :--- | :---: | :---: | :---: | :--- |
-| **本機 Lanczos-3** | 純數學 Sinc 濾波卷積插值 | 0 KB | 0.05s | MIT | 0ms 離線極速平滑，消除馬賽克 (Free 標配)。 |
-| **FSRCNN** | 亞像素輕量卷積網絡 (Fast SRCNN) | 150 KB | 0.02s | BSD | 畫布 20x 放大鏡即時預覽，超低耗電。 |
-| **Anime4K** | 動漫幾何邊緣重構演算法 | ~5 MB | 0.1s | MIT | 二次元動漫插畫、同人誌，墨線刀削般漆黑無鋸齒。 |
-| **Real-ESRGAN Compact** | 深度殘差卷積 (RRDB + UNet) | ~12 MB | 0.8s | BSD-3 | 文字、插畫、包裝設計綜合重構王者。 |
-| **HAT-S (2024 SOTA)** | 混合注意力 Transformer (Hybrid Attention) | ~28 MB | 1.3s | Apache 2.0 | 寫實風景、人像婚紗、攝影大圖，重構真實毛孔細節。 |
-| **SwinIR-Lite** | Swin Transformer 影像修復網絡 | ~24 MB | 1.1s | Apache 2.0 | 去除 8x8 DCT JPEG 壓縮塊狀噪點 + 4x 超解析二合一。 |
+跑在 Docker 微服務裡、程式碼與部署設定完整一致的服務只有 **Tesseract**（OCR）與 **VTracer**（向量化，見 1.1 節）。**Zero-DCE++**（低光提亮）的網路架構程式碼是真的，但從未載入訓練權重，不能算是「真正跑推論的 AI 模型」——它現在只是跑在伺服器上的一個未訓練網路。以下全部是 `src/core/` 或 `src/engines/` 裡實際存在的決定性演算法（無 AI 模型、無框架依賴、無授權條款可標——這些都是純 TypeScript 數學運算，不是打包發布的第三方模型），依功能分類：
 
-### 2.2 3mm 物理出血背景外推模型矩陣 (Bleed Outpainting Suite)
-| 模型名稱 | 核心架構 | 權重體積 | 耗時 (CPU) | 開源協議 | 外推生成專長 |
-| :--- | :--- | :---: | :---: | :---: | :--- |
-| **基礎邊界拉伸 / 鏡像** | 像素邊界延展 / 對稱鏡像 | 0 KB | 0.01s | MIT | 純色/漸層背景，100% 裁切不留白邊 (Free 標配)。 |
-| **OpenCV Telea** | Navier-Stokes 流體力學偏微分擴散 | ~2 MB | 0.05s | Apache 2.0 | 邊界色彩融接極度柔和，自然擴散。 |
-| **LaMa-Lite** | 快速傅立葉頻域卷積 (FFC) | ~25 MB | 0.4s | Apache 2.0 | 幾何磚牆、重複紋理、格紋布料外推無破綻。 |
-| **AOT-GAN Lite** | 多孔徑上下文聚合生成對抗網絡 | ~28 MB | 0.5s | Apache 2.0 | 大自然風景、天空、草地自然向外生長。 |
-| **MAT-Lite** | 遮罩感知 Transformer (Mask-Aware) | ~32 MB | 0.9s | MIT | 深遠透視地平線、公路、建築空間延伸不變形。 |
+### 2.1 放大與清晰化
+- **`edge-aware-upscaler.ts`**：雙線性插值 + 局部梯度邊緣強化。用於相片、包裝設計放大。
+- **`line-art-upscaler.ts`**：雙線性放大 + 邊緣壓黑，強化墨線輪廓。用於動漫插畫。
+- **`engines/lanczos.ts`**：多階漸進式 Lanczos-3 sinc 濾波重取樣（線性光空間運算，防止高反差邊緣產生黑暈）。
+- **`sharpen-deblur-filter.ts`**：固定 5×5 反卷積核銳化，緩解輕微手震模糊。
+- **`unsharp-mask.ts`**：USM 邊緣銳化，補償紙張吸墨網點擴大 (Dot Gain)。
+- **`contrast-stretch-filter.ts`**：全域冪次曲線對比拉伸。
+- **`rollup-banner-scaler.ts`**：巨幅展架瓦片分塊放大，避免記憶體爆量。
 
-### 2.3 專業印前光學與色彩防護模型 (Industrial Pre-Press Modules)
-- **OGV-ExpandedGamut-Separator** (0 KB, MIT)：7色廣色域高保真分色 (CMYK+Orange+Green+Violet)，色域覆蓋率自 65% 躍升至 92%。
-- **CrystalUV-Heightmap-Builder** (0 KB, MIT)：UV 水晶標/立體浮雕自動生成 100% 遮底白墨層 + 5階立體光油高度貼圖。
-- **SaddleStitch-Creep-Compensator** (0 KB, MIT)：多頁手冊騎馬釘裝訂紙厚外推爬移 (Creep) 遞進幾何內縮補償。
+### 2.2 出血外推與修補
+- **`bleed-expander.ts`**：鏡像外推 + 接縫余弦混合 + 四角交叉修補 + 接縫色溫微調，生成 3mm 印刷出血。
+- **`edge-extend-inpaint.ts`**：鏡像外推填色，生成畫布邊緣延伸。
+- **`object-eraser.ts`**：Fast Marching 快速前進法補景，塗抹消除路人/雜物/浮水印。
 
-### 2.4 使用者端圖片轉印刷專用優化引擎 (User-Facing Image Pre-Press Suite)
-- **Deep-Shadow-Detail-Revealer** (0 KB, MIT)：暗部防死黑層次還原，拉開 0%~15% 深色階調，防止實體吸墨成大黑斑。
-- **Hairline-Thickener-Guard** (0 KB, MIT)：小於 0.08mm 細線防斷印自動增厚至 0.12mm 安全線寬。
-- **Pure-White-Clean-Up** (0 KB, MIT)：相片/手繪背景一鍵去灰去髒，230~255 RGB 背景拉平純白省墨。
-- **Skin-Tone-Cyan-Suppressor** (0 KB, MIT)：人像膚色去青去濁，壓制青墨並微調 M+Y 黃金氣色比例。
-- **Color-Banding-DeContour** (0 KB, MIT)：大面積漸層防斷階平滑器，高頻藍噪點微抖動消除階梯紋。
-- **RGB-To-CMYK-Vibrancy-Rescuer** (~1 MB, MIT)：RGB 轉 CMYK 鮮豔度拯救，感知色相重對齊保留霓虹感。
-- **Acrylic-Charm-Dieline-Builder** (0 KB, MIT)：壓克力立牌/吊飾一鍵生成 2mm 圓滑刀模線、打孔圈與白墨層。
-- **Sticker-KissCut-Border-Generator** (0 KB, MIT)：手帳貼紙萌系 1.5~2mm 圓滑白邊與半斷向量刀模路徑。
-- **T-Shirt-Color-Knockout** (0 KB, MIT)：衣服膠印底色去色透氣，扣除同色背景使印花柔軟不悶熱。
-- **Text-SafeZone-Auto-Padding** (0 KB, MIT)：重要文字防切自動內縮，將 1~2mm 邊界文字平移至 5mm 安全區。
-- **AI-Pseudo-Text-Filter** (~3 MB, MIT)：AI 繪圖外星亂碼字一鍵抹除還原底圖，便於替換真實商用文字。
-- **Micro-Contrast-Text-Booster** (0 KB, MIT)：文字背景微反差拉開，避免暗底黑字在實體紙張上融成一團。
-- **Real-Paper-Print-Simulator** (~2 MB, MIT)：實體紙張印刷預覽模擬，真實呈現牛皮紙、相紙與模造紙吸墨手感。
-- **Resolution-DPI-Defect-Visualizer** (0 KB, MIT)：1:1 實物放大鏡，手持比例真實預覽低解析度馬賽克鋸齒。
-- **Foiling-Highlight-Extractor** (~1 MB, MIT)：喜帖/名片局部燙金圖層一鍵萃取 100% K100 菲林出片遮罩。
-- **Barcode-QR-Legibility-Fixer** (~500 KB, MIT)：模糊點陣條碼與 QR 碼一鍵重構純黑 K100 向量碼，保證 100% 秒掃。
-- **Passport-Head-Proportion-Aligner** (~2 MB, MIT)：台灣與國際 2 吋護照大頭照 70%~80% (3.2~3.6cm) 頭頂自動校準。
-- **Seam-Carving-Canvas-Fitter** (~1 MB, MIT)：智慧內容感知畫面延展，16:9 轉 A4/名片主體完全不變形。
-- **Canvas-Wrap-Mirror-Builder** (0 KB, MIT)：無框畫 4 面 3.5cm 立體包邊鏡像延伸，正面 100% 完整不切人臉。
-- **Grid-Splitter-Multi-Panel** (0 KB, MIT)：巨幅海報多張 A4 拼印神器，自動分割帶 5mm 重疊對位十字虛線。
-- **Holographic-Foil-Masker** (0 KB, MIT)：鐳射雷射貼紙透光白墨遮罩，背景閃耀彩虹光芒、人物清晰顯色。
-- **Folded-Greeting-Card-Imposer** (0 KB, MIT)：對折卡片/邀請函自動正反倒轉拼版，中央附帶壓痕對折定位。
-- **Fluorescent-Neon-Ink-Extractor** (0 KB, MIT)：螢光粉/螢光綠第 5 專色獨立膠片分色出片生成。
-- **Watermark-Stamp-Remover** (~2.5 MB, Apache 2.0)：相片樣張日期戳記與水印智慧抹除，局部紋理流體平滑修補。
-- **Business-Card-Smart-Aligner** (~1.0 MB, MIT)：名片文字瑞士網格自動對齊，基線網格吸附排版。
-- **Wedding-Skin-Pore-Preserver** (0 KB, MIT)：婚紗寫真天然微晶磨皮，高低頻空間分離 100% 鎖死毛孔細節。
-- **Photocard-Holo-Glitter-Masker** (0 KB, MIT)：K-Pop 偶像小卡/動漫碎玻璃閃粉遮罩，分離人物白墨與雷射碎晶背景。
-- **Food-Menu-Mouthwatering-Toner** (0 KB, MIT)：餐廳菜單美食色澤垂涎誘人增豔，600~650nm 暖紅黃與油脂反光提亮。
-- **Rollup-Banner-Gigantic-Scaler** (0 KB, MIT)：易拉寶/80x200cm 商業大圖展架瓦片分塊超解析，前端 0 崩潰輸出。
-- **Packaging-Box-Dieline-Gen** (0 KB, MIT)：電商飛機盒/扣底彩盒參數化 3D 刀模生成器，包含壓痕虛線與 15mm 糊邊。
-- **Luxury-Embossing-Bevel-Builder** (0 KB, MIT)：名媛喜帖/頂級名片立體打凸浮雕高度圖，45° 倒角灰階圖直通鋅版雕刻機。
-- **Giclee-FineArt-Dmax-Toner** (0 KB, MIT)：博物館級藝術微噴黑階深度與紙張動態增強，Ansel Adams 11 階動態擴展。
-- **Apparel-HangTag-Planner** (0 KB, MIT)：獨立服飾品牌吊牌排版與 3.5mm 穿繩打孔規劃，自動拼滿 A4/A3。
-- **Chromatic-Aberration-Corrector** (0 KB, MIT)：珠寶飾品/白紗邊緣紫綠光學色差消減器，亞像素級色相修復。
-- **Fabric-Moire-Neutralizer** (0 KB, MIT)：服飾型錄/千鳥格/絲綢抗印刷撞網防護，Gabor 小波消除干涉波紋。
-- **Neon-Halation-Compressor** (0 KB, MIT)：發光燈箱/霓虹招牌防死白光暈壓縮，動態重灌飽和發光中性色。
-- **Packaging-3D-Mockup-Renderer** (0 KB, MIT)：電商彩盒/手提袋 3D 實體預覽與燙金打光，即時軸測投影渲染。
-- **FlatField-Vignette-Corrector** (0 KB, MIT)：廣角鏡頭四角暗角平坦化校正，反向 cos^4 光學增益防黑斑。
-- **RedEye-Pupil-Fixer** (0 KB, MIT)：婚宴派對閃光燈紅眼/白瞳孔智慧修復，還原天然黑色素與眼神高光。
+### 2.3 去背與區域選取
+- **`ai-matting.ts`**：角落取樣背景色 + 顏色距離去背（色鍵去背，非神經網路）。
+- **`edge-choke-matting.ts`**：四角取樣顏色距離去背 + 邊緣縮邊，防止白邊溢出。
+- **`color-region-selector.ts`**：顏色距離 flood-fill 區域選取，用於專色/燙金分版標記。
 
-### 2.5 純演算法 100% 無腦全自動印前物理引擎 (Pure Mathematical 0-KB Pre-Press Suite)
-- **Kubelka-Munk-Mixer** (0 KB, MIT)：Kubelka-Munk 物理減法混色模擬，雙流輻射傳遞消除螢幕加法色差。
-- **CAT02-Color-Temperature** (0 KB, MIT)：CIECAM02 CAT02 色適應變換，冷白日光燈翻拍自動校正為 5500K 暖日光。
-- **GCR-Gray-Maximizer** (0 KB, MIT)：中性深灰 100% 黑版替代最大化，消除印刷機震動偏色並省墨 35%。
-- **Local-Laplacian-Toner** (0 KB, MIT)：多尺度拉普拉斯金字塔動態壓縮，高光陰影平衡且鎖死微反差細節。
-- **Adaptive-Wiener-Deblur** (0 KB, MIT)：自適應維納逆卷積去模糊，頻域逆濾波 0.005s 瞬間重新聚焦手震線條。
-- **Highpass-Dotgain-Crispener** (0 KB, MIT)：3x3 高通空間卷積邊緣反差微銳化，物理抵消紙張吸墨網點擴大。
-- **Paper-White-Compensator** (0 KB, MIT)：紙張介質底色反向色彩預補償，修正米黃/牛皮底紙造成的膚色發黃。
-- **Duplex-Alignment-Balancer** (0 KB, MIT)：雙面列印正反面透光重合幾何平衡，左右咬口對稱消除 3mm 錯位。
-- **Corner-Radius-Mitering** (0 KB, MIT)：R3/R5/R8 圓角安全邊距自動檢驗，布林運算防止圓角刀切除四角圖標。
-- **Auto-Keystone-Rectifier** (0 KB, MIT)：100% 全自動輪廓四角偵測與單應性矩陣拉正，零手動拖曳。
-- **Circle-Badge-Arc-Fitter** (0 KB, MIT)：58mm/75mm 圓形胸章極座標弧形展開與 3mm 馬口鐵包邊折痕出血生成。
-- **Trapping-Master** (0 KB, MIT)：自動印刷補邊與陷印，消除機台套準震動造成的漏白縫隙。
-- **MetallicFoil-Separator** (~2 MB, MIT)：燙金/燙銀/燙雷射獨立 100% K100 鋅版出片遮罩自動生成。
-- **UCR/GCR Under-Color-Removal** (0 KB, MIT)：底色去除與黑版替代，減少 30% 暗部油墨堆疊防止背印。
-- **Nesting-Optimizer** (~2 MB, Apache 2.0)：異形貼紙 2D 凸包旋轉排版，A3/A4 紙張利用率提升至 90%。
-- **CMYK-DotGain-Predictor** (0 KB, MIT)：Murray-Davies 實體網點擴大預補償，消除無塗佈紙印刷變黑。
-- **Barcode-Vector-Synthesizer** (~500 KB, MIT)：GS1 EAN-13 / Code-128 純向量 K100 條碼重構。
-- **Varnish-SpotUV-Dilator** (0 KB, MIT)：局部上光 (Spot UV) 0.15mm 套準溢光補償與邊緣修飾。
-- **Packaging-Crease-Fold3D** (~4 MB, MIT)：包裝紙盒 2D 刀模壓痕驗證與 3D 摺疊網格推導。
-- **SpineWidth-Calculator** (0 KB, MIT)：基重 (gsm) 與頁數精確推導 0.1mm 級膠裝/精裝書背厚度。
-- **DeltaE-Gamut-Remapper** (~1 MB, MIT)：CIECAM02 視覺感知色域映射，保留 RGB 霓虹色印刷活力。
-- **ShadowHighlight-HDR-Toner** (~3 MB, Apache 2.0)：14 EV 手機 HDR 動態範圍平滑壓縮至 5.5 EV 紙張反射率。
-- **GripMargin-Checker** (0 KB, MIT)：平版印刷機 10mm 夾爪咬口 (Gripper Margin) 碰撞自動預警。
-- **Metallic-Sheen-Renderer** (~2 MB, MIT)：薄膜干涉與 BRDF 物理渲染鐳射彩虹反光動態。
-- **ScreenAngle-Optimizer** (0 KB, MIT)：ISO 12647-2 四色網點角度 (C:15, M:75, Y:0, K:45) 撞網防護。
-- **LineArt-Extractor** (~9 MB, MIT)：彩色插畫/照片一鍵提取純單色純黑 K100 向量線稿，專供著色本與雷雕。
-- **PaperTexture-Engine** (~2 MB, MIT)：3D 物理法線貼圖即時模擬萊妮、牛皮、水彩紙微觀纖維手感與油墨吸收。
-- **RisoSeparator** (~1 MB, MIT)：衣服網版絹印 / Risograph 孔版印刷 2~6 專色獨立黑色膠片版自動分離。
-- **QR-Preflight-Enhancer** (~1.5 MB, Apache 2.0)：餐廳菜單/名片 QR Code ECC 容錯與高反差對比驗證 + 純黑向量重構。
-- **DeGlare-Net** (~12 MB, MIT)：自動分離並抹除玻璃裱框、壓克力櫃與光面相紙的刺眼強光眩光。
-- **AOD-Net DeHaze** (~5 MB, MIT)：大氣光透射率估算，1秒穿透霧霾水氣還原深邃藍天與高對比建築。
-- **Homography-Net** (~4 MB, MIT)：四角點單應性幾何變換，將斜拍看板/證書自動拉正為 90° 矩形。
-- **Scratch-Net** (~14 MB, Apache 2.0)：實體老照片紙張長條折痕、白色裂紋與霉斑筆觸級自動修補。
-- **Moiré / DeScreen-Net** (~8 MB, MIT)：過濾掃描/翻拍實體印刷品的蜂巢狀網點與二次干涉摩爾紋。
-- **CodeFormer-Lite / FaceRestorer** (~18 MB, Apache 2.0)：人臉先驗特徵重構，瞳孔高光、睫毛與自然笑臉微對比增強。
-- **GAIC-Lite / SmartCropper** (~3 MB, MIT)：美學顯著度感知，跨長寬比切換時黃金分割防切頭構圖。
-- **FontMatcher-Lite** (~6 MB, Apache 2.0)：視覺字體特徵分類與 Google Fonts 開源商用字庫精確配對。
-- **Zero-DCE++** (~79 KB, MIT)：深度可分離卷積非線性曲線調光，防止暗部印刷死黑。
-- **Deshadow-Net** (~5 MB, MIT)：Retinex 光照場均勻化，抹除手機翻拍實體作品的手部黑影。
-- **SCUNet-Lite** (~15 MB, Apache 2.0)：實用盲去噪與高 ISO 噪點抑制。
-- **NAFNet-Lite** (~16 MB, MIT)：非線性無激活運動模糊與脫焦還原。
-- **DocTr-Dewarp** (~18 MB, Apache 2.0)：圓柱形曲面書頁拉平與透視形變消除。
-- **MODNet-Lite / BiRefNet** (~6~18 MB, Apache 2.0)：髮絲級透明通道 Alpha Matting。
-- **TinySAM** (~28 MB, Apache 2.0)：1-Click 智慧物件分割消除筆 (Magic Eraser)。
-- **DexiNed-Lite** (~10 MB, MIT)：單像素極細連續邊界提取（激光刀模專用）。
-- **DGF-Net / 防斷階引擎** (MIT)：引導式濾波 + 藍噪點抖動，消除 8-bit 色階階梯紋。
-- **Kurbo Geometry (Rust)** (Apache 2.0)：2mm 壓克力刀模外推線與 0.2mm 內縮白墨布林運算。
-- **PyVips SIMD 串流** (LGPL-2.1+)：需求驅動切片管線，處理 20,000px 巨幅看版記憶體控制在 30MB 內。
-- **Pantone 色票比對** (MIT)：CIE $\Delta E_{2000}$ 國際專色匹配與調墨比矩陣。
-- **純黑 K100 向量轉曲** (MIT)：小字自動轉單色純黑向量，杜絕 4 色混墨重影。
+### 2.4 去噪、去模糊、去雜訊
+- **`smoothing-denoise-filter.ts`**：經典雙邊濾波（空間核 × 色彩範圍核）。
+- **`descreen-engine.ts`**：過濾翻拍印刷品網點與摩爾紋。
+- **`fabric-moire-neutralizer.ts`**：Gabor 濾波消除布料千鳥格撞網干涉。
+- **`chromatic-aberration-corrector.ts`**：邊緣色差消減。
+- **`flatfield-vignette-corrector.ts`**：廣角鏡頭暗角平坦化校正。
+
+### 2.5 光照與色調
+- **`zero-dce-enhancer.ts`**：Zero-DCE 論文曲線公式的本機簡化版（單一全域參數，非學習式逐像素參數圖）。Docker `zero-dce` 服務跑的是同一篇論文的完整網路架構，但同樣沒有訓練權重——兩邊目前都不是「訓練過的模型」，只是簡化程度不同。
+- **`hand-shadow-balancer.ts`**：24×24 網格光照插值，均化手機翻拍陰影。
+- **`shadow-lift.ts`**：暗部階調提亮，防止實體印刷死黑糊成一片。
+- **`contrast-dehaze-filter.ts`**：He et al. 經典大氣散射模型去霧（非神經網路，是真實存在的古典電腦視覺演算法）。
+- **`giclee-fineart-dmax.ts`**：博物館級微噴黑階動態增強。
+- **`food-menu-mouthwatering.ts`**：暖色調增豔，用於餐飲菜單。
+- **`wedding-skin-pore-preserver.ts`**：高低頻空間分離磨皮。
+
+### 2.6 幾何校正與版面
+- **`curved-page-flattener.ts`**：固定拋物線位移公式，粗略校正翻拍書頁曲面（非學習式 3D 網格估算）。
+- **`perspective-rectifier.ts`**：四角點單應性幾何變換，校正斜拍視角。
+- **`kurbo-geometry.ts`**：2D 多邊形內縮/外擴幾何運算（純 TypeScript，非 Rust）。
+- **`imposition-engine.ts` / `imposition-calculator.ts`**：A4/A3 智慧合版拼模計算。
+- **`nesting-optimizer.ts`**：異形貼紙 2D 凸包旋轉排版。
+- **`packaging-box-dieline.ts` / `packaging-3d-mockup-renderer.ts`**：包裝紙盒刀模與 3D 預覽。
+
+### 2.7 印刷色彩與物理防護
+- **`cmyk-engine.ts`**：RGB→CMYK 減法混色預測，Bradford 色適應轉換 + GCR 灰版替代。
+- **`ink-limiter.ts`**：總墨量 (TAC) ≤ 300% 限制與壓制。
+- **`icc-profiles.ts`**：ICC 描述檔參數參考（公開已知標準的名稱/TAC 上限；沒有真正的 `.icc` 描述檔案，不做真正的色彩轉換——詳見 README 誠實說明）。
+- **`pantone-matcher.ts`**：真實 CIE Lab 轉換 + CIEDE2000 色差公式，比對一份精選的 Pantone 色票近似表（非官方授權完整資料庫）。
+- **`trapping-master.ts`**：自動印刷補邊與陷印。
+- **`spot-uv-dilator.ts`**：局部上光套準溢光補償。
+- **`metallic-foil-separator.ts`**：燙金/燙銀獨立 K100 出片遮罩。
+- **`crystal-uv-heightmap.ts`**：UV 水晶標立體浮雕高度圖。
+- **`luxury-embossing-bevel.ts`**：立體打凸浮雕高度圖。
+- **`ogv-separator.ts`**：擴色域分色（Orange/Green/Violet 專色版）。
+- **`neon-halation-compressor.ts`**：發光招牌防死白光暈壓縮。
+- **`fluorescent-neon-extractor.ts`**：螢光專色獨立分版。
+
+### 2.8 文字、條碼與防呆
+- **`text-inspector.ts`**：文字區域偵測（對比/邊緣啟發式，非 OCR）+ 錯字檢查。錯字檢查完全是本機的，透過 `free-spellcheck-client.ts` 的 ~18 條正規表示式規則比對——儘管兩個檔案的舊版註解都聲稱有打 LanguageTool 免費 API，實際上整條路徑裡沒有任何一次網路請求，純粹是本機規則比對，已於 2026-08-25 修正說明文字。
+- **`text-zone-detector.ts`**：深色像素密度網格掃描，標示可能的文字區域（不做文字辨識）。
+- **`hairline-thickener.ts`**：細線防斷印自動增厚。
+- **`k100-barcode-generator.ts`**：⚠️ 目前產生的 QR/條碼圖案**不是真正可掃描的編碼**（QR 沒有糾錯碼與遮罩、Code128 缺少檢查碼），且未被任何 UI 呼叫（死代碼）。列在此處是為了誠實揭露現況，不是推薦使用。
+- **`barcode-verifier.ts`**：真實的對比度/尺寸預檢啟發式（不是解碼器，無法確認條碼本身正確，只能檢查印刷可讀性風險）。
+- **`qr-preflight-enhancer.ts`**：QR 對比度與純黑向量重構檢查。
+
+### 2.9 場景分類與版面工具
+- **`scene-classifier.ts`**：EXIF 特徵 + YCbCr 膚色模型 + Otsu 雙峰方差 + 飽和度/邊緣統計的決策樹分類器（純像素統計，非訓練分類模型）。
+- **`gradient-centroid-cropper.ts`**：梯度能量加權 + 中心偏向的焦點裁切估算（非物件偵測模型）。
+- **`dpi-calculator.ts`**：DPI 與放大倍率計算。
+- **`print-score.ts`**：依實際分析數據（DPI、墨量、對比等）加權計算的印前健檢分數（本機自我評分，非第三方驗證）。
+- **`svg-path-optimizer.ts`**：SVG 路徑精度裁剪與空白壓縮（非 SVGO 完整實作）。
+- **`exif-metadata-sniffer.ts`**：EXIF/PNG metadata 讀取，辨識拍攝軟體/AI 生圖工具簽名。
+- **`geo-distance.ts`**：Haversine 距離計算，用於鄰近印刷廠定位。
+- **`ai-vectorizer.ts`**：LAB 顏色量化 + Douglas-Peucker 化簡 + 三次貝茲曲線擬合的本機向量化引擎（VTracer 離線時的備援，非 VTracer 本身）。
 
 ---
 
 ## 3. 智慧照片類型自動偵測分流 (SceneClassifier Auto-Routing)
 
-系統於圖片上傳後 0.01 秒內完成特徵分析，自動派發最佳模型：
+系統於圖片上傳後完成特徵分析（純像素統計，非模型推論），自動套用對應的演算法組合：
 
 ```
                               【5 大場景自動分流路徑】
 ┌─────────────────────────────┬────────────────────────────────────────────────────────┐
-│ 1. 🎨 動漫 / 二次元插畫     │ ➔ 套用 Anime4K 墨線銳化 + MODNet 角色立牌 + Kurbo 2mm 刀模 │
+│ 1. 🎨 動漫 / 二次元插畫     │ ➔ LineArtUpscaler 墨線銳化 + EdgeChokeMatting 去背 + Kurbo 2mm 刀模 │
 ├─────────────────────────────┼────────────────────────────────────────────────────────┤
-│ 2. 📷 寫實人像 / 婚紗寫真   │ ➔ 套用 HAT-S 真毛孔重構 + Deshadow 去陰影 + SCUNet 去噪│
+│ 2. 📷 寫實人像 / 婚紗寫真   │ ➔ EdgeAwareUpscaler 放大 + HandShadowBalancer 去陰影 + SmoothingDenoiseFilter 去噪 │
 ├─────────────────────────────┼────────────────────────────────────────────────────────┤
-│ 3. 📄 文件 / 名片 / 證書    │ ➔ 套用 純黑 K100 向量轉曲 + OpenCV 歪斜校正 + DocTr 拉平│
+│ 3. 📄 文件 / 名片 / 證書    │ ➔ 純黑 K100 向量轉曲 + OpenCV 歪斜校正 + CurvedPageFlattener 曲面拉平 │
 ├─────────────────────────────┼────────────────────────────────────────────────────────┤
-│ 4. 🏞️ 風景 / 建築 / 展覽    │ ➔ 套用 AOT-GAN 背景生長 + MAT-Lite 深度透視 + DGF 防斷階│
+│ 4. 🏞️ 風景 / 建築 / 展覽    │ ➔ EdgeExtendInpaint 背景生長 + 防斷階平滑 │
 ├─────────────────────────────┼────────────────────────────────────────────────────────┤
-│ 5. 🏷️ 模切貼紙 / 圖標       │ ➔ 套用 Rust VTracer 轉向量 + 0.2mm 白墨 + 2mm 洋紅刀模 │
+│ 5. 🏷️ 模切貼紙 / 圖標       │ ➔ VTracer 轉向量 + 0.2mm 白墨 + 2mm 洋紅刀模 │
 └─────────────────────────────┴────────────────────────────────────────────────────────┘
 ```
 
@@ -202,8 +164,8 @@
    - 丟圖即自動完成：比例適配、300DPI 補齊、3mm 出血、暗部防死黑、TAC 300% 控墨、K100 文字純黑。
 3. **小象印前助理 (Xiaoxiang Assistant)**：
    - 擬人化白話語音引導與即時反饋。
-4. **超商 30 秒立印與送印小抄**：
-   - 一鍵生成 7-11 ibon / 全家 雲端列印碼。
+4. **超商列印檔案產生器與送印小抄**：
+   - 一鍵下載符合 7-11 ibon / 全家規格的 300 DPI 列印檔；取件碼需透過超商官方網站/App 取得（本工具不接超商訂單系統，過去曾用 `Math.random()` 產生假取件碼與不可掃描的假 QR，已於 2026-08-25 移除）。
    - 下載 PDF 時自動複製標準送印規格小抄至剪貼簿（便於 LINE 給印刷廠）。
 
 ---
@@ -212,12 +174,12 @@
 
 原生支援印刷廠與製版要求的 6 大標準格式：
 
-1. **📄 標準印刷 PDF (PDF/X-1a 300 DPI)**：ISO 15930 規範、3mm 物理出血、向量角線、CMYK 色條。
+1. **📄 標準印刷 PDF (300 DPI)**：3mm 物理出血、向量角線裁切標記、色條、來源圖片 SHA-256 內容雜湊。⚠️ **不是通過驗證的 PDF/X-1a / ISO 15930 檔案**——沒有 OutputIntent、沒有嵌入 ICC 描述檔，圖片內容仍是 RGB（未做 CMYK 分色）。印刷廠仍須自行執行標準 CMYK 轉換流程，見 `server/services/pdfx-service.ts` 內的誠實性註解。真正的 PDF/X-1a 合規（OutputIntent + 嵌入 ICC + CMYK 內容）是尚待完成的功能缺口，不是現況。
 2. **🖨️ 工業級無損 TIFF (.tif 300 DPI)**：Tag 282/283 內嵌 300DPI 點陣檔，無失真分色首選。
 3. **📥 高清透明 PNG (.png 300 DPI)**：保留 8-bit Alpha 透明通道，貼紙/立牌預覽。
 4. **🖼️ 商用高畫質 JPG (.jpg 300 DPI)**：100% 最高畫質 JPEG，相片沖印必備。
 5. **✂️ 向量刀模與白墨 SVG (.svg)**：100% 洋紅 (Spot Magenta) 向量激光割字線與 0.2mm 內縮白墨。
-6. **📦 印刷廠出機全套包 (.zip)**：一鍵打包 PDF + TIFF + PNG + JPG + 刀模 SVG + PrintPass 合格證書。
+6. **📦 印刷廠出機全套包 (.zip)**：一鍵打包 PDF + TIFF + PNG + JPG + 刀模 SVG + 印前檢查報告（本機自動檢查，非第三方獨立驗證，見下方 PrintPass 說明）。
 
 ---
 
@@ -243,23 +205,25 @@
 │    • Web 雲端 + 原生桌面版【無上限張數 (Unlimited)】         │
 │    • 專屬 VIP 0 秒插隊算力通道 (最高優先級 GPU/CPU)         │
 │    • 20,000px 巨幅戶外看板 / 車體廣告串流 (pyvips)          │
-│    • PrintPass™ ISO 15930 合格證書 (含 SHA-256 防偽舉證戳記)│
 │    • 自訂上傳印刷廠機台 ICC 描述檔                          │
 │    • 3~5 人團隊席位 + 統一開立公司統編發票報帳              │
 └─────────────────────────────────────────────────────────────┘
 ```
 
+> 註：PDF 內容 SHA-256 雜湊（來源圖片的內容完整性校驗，見第 5 節）已於 2026-08-25 對所有人開放，不是 VIP 專屬——它取代了原本 `mockChecksum`（未加密、非真實雜湊的假認證碼）。它是一個真實可重現的內容雜湊，不是「PrintPass™ ISO 15930 合格證書」或任何形式的防偽認證，因為本專案目前不產生真正通過 ISO 15930 驗證的 PDF/X 檔案。
+
 ---
 
-## 7. 桌面離線版與 Mac (Apple Silicon) 規格規劃
+## 7. 桌面離線版與 Mac (Apple Silicon) — 概念構想，尚未開發
 
-### 7.1 雙棲模式授權與資安機制 (Microsoft 365 Hybrid Model)
-- **登入一次，離線 30~90 天可用**：桌面 App 透過加密 JWT Token 記錄離線授權心跳包。
-- **實體斷網專用 (Air-Gapped License)**：支援讀取機器碼 (Machine Hardware ID) 產生離線 `License.key` 授權檔。
-- **營運端成本優勢**：重度設計師使用本地 Mac/PC 算力，**伺服器雲端成本降低 90%，毛利率 >95%**。
+> ⚠️ **現況：這整節描述的桌面版完全不存在。** 專案裡沒有 Tauri 設定檔、沒有 Cargo.toml、沒有 Swift 程式碼——搜尋整個 repo 找不到任何桌面殼層的痕跡。下方的效能數字（「0.1~0.2 秒」）雙重不成立：不只沒有桌面版可以測，連被拿來換算的 Real-ESRGAN / HAT-S 本身在網頁版裡也從未實作過（見第 2 節）。保留本節純粹作為未來的產品構想紀錄，不代表任何已承諾或已排入時程的開發項目。
 
-### 7.2 macOS (Apple Silicon M 系列) 原生優勢
-- **蘋果 CoreML + 16 核心神經網絡引擎 (Apple Neural Engine, ANE)**：
-  - Real-ESRGAN / HAT-S 放大從 1.5 秒降至 **0.1~0.2 秒**，無風扇噪音、極度省電。
-- **Tauri 2.0 原生外殼**：安裝包小於 15 MB，原生支援 macOS 毛玻璃與 Retina XDR 視網膜螢幕。
-- **ColorSync 與 Display P3 廣色域**：完美對接 Japan Color 2001 CMYK 描述檔，螢幕到印刷 0 色差。
+### 7.1 構想中的雙棲模式授權機制
+- 登入一次、離線可用一段時間：概念上會透過加密 Token 記錄離線授權心跳包。
+- 實體斷網場景：概念上會支援讀取機器碼產生離線授權檔。
+- 商業假設：重度設計師使用本地算力可望降低雲端伺服器成本，但沒有任何原型或數據驗證過這個假設。
+
+### 7.2 構想中的 macOS (Apple Silicon) 原生化方向
+- 若真的開發原生殼層（例如 Tauri），可以善用 macOS 原生 UI 與 Retina 螢幕顯示。
+- 若之後真的做出本機神經網路放大模型，理論上可以利用 Apple Neural Engine 加速——但目前連網頁版的放大演算法都不是神經網路（見 2.1 節），所以這一項本質上是「如果我們先做出 A，再做 B，也許能加速」，兩個前提都還沒發生。
+- ColorSync 色彩管理整合：構想階段，未實作。

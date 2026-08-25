@@ -1,7 +1,7 @@
 import type { PrintPreset } from '../types';
 
 /**
- * 🖼️ AI 智慧 3mm 印刷出血外擴延伸引擎 v3 (Generative Bleed Expander)
+ * 🖼️ 3mm 印刷出血外擴延伸引擎 v3（鏡像外推 + 接縫混合，非生成式模型）
  *
  * v3 升級重點 vs v2：
  * 1. 自適應接縫寬度 (Adaptive Seam Radius)

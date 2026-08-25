@@ -1,6 +1,9 @@
 # ─── Zero-DCE++ Low-Light Enhancement Microservice ────────────────────────
 # RAM ceiling: 600MB  (CPU-only PyTorch; no CUDA, no GPU billing)
-# Model size: ~1MB (lightweight DCE-Net, not full-size diffusion model)
+# ⚠️ No trained weights exist for this model (see server.py's honesty note) — this Dockerfile
+#    used to `COPY model/ ./model/`, referencing a directory that has never existed in this repo,
+#    which meant the build always failed at that step. Removed so the container can at least
+#    build and run (as an honestly-labeled untrained network) until real weights are sourced.
 # Multi-stage: builder installs deps, runtime copies only what's needed
 
 FROM python:3.12-slim AS base
@@ -20,8 +23,7 @@ WORKDIR /app
 COPY requirements.txt ./
 RUN pip install --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cpu -r requirements.txt
 
-# Copy model weights and server
-COPY model/ ./model/
+# Copy server (no weight checkpoint to copy — see honesty note above)
 COPY server.py ./
 
 # Non-root user

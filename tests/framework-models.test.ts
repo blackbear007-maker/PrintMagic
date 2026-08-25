@@ -1,19 +1,16 @@
 import { describe, it, expect } from 'vitest';
 
-// 1. Rust 1.78 Framework Geometry Engines
+// All of the below are deterministic TypeScript algorithms — none require Rust, Python/OpenCV, or
+// PyTorch at runtime, regardless of what earlier comments in this file used to claim.
 import { KurboGeometry } from '../src/core/kurbo-geometry';
-
-// 2. Python + C++ Industrial Computer Vision
-import { OpencvClaheDeskew } from '../src/core/opencv-clahe-deskew';
-
-// 3. PyTorch 2.3+ Neural Vision Models
+import { ContrastStretchFilter } from '../src/core/contrast-stretch-filter';
 import { SmoothingDenoiseFilter } from '../src/core/smoothing-denoise-filter';
 import { SharpenDeblurFilter } from '../src/core/sharpen-deblur-filter';
 import { CurvedPageFlattener } from '../src/core/curved-page-flattener';
 import { ColorRegionSelector } from '../src/core/color-region-selector';
 import { EdgeExtendInpainter } from '../src/core/edge-extend-inpaint';
 
-describe('Multi-Framework Industrial Pre-Press Suite', () => {
+describe('Deterministic Pre-Press Algorithm Suite', () => {
   const createMockImageData = (w: number, h: number, r = 180, g = 180, b = 180, a = 255): ImageData => {
     const data = new Uint8ClampedArray(w * h * 4);
     for (let i = 0; i < data.length; i += 4) {
@@ -25,8 +22,7 @@ describe('Multi-Framework Industrial Pre-Press Suite', () => {
     return { width: w, height: h, data, colorSpace: 'srgb' } as ImageData;
   };
 
-  // ─── 🦀 1. Rust 1.78 Geometry Engine Tests ───────────────────────────────────
-  describe('Rust 1.78 Geometry & Offset Engine', () => {
+  describe('Polygon Offset Geometry', () => {
     it('KurboGeometry: should compute 2mm outer cutline and 0.2mm white ink choke polygon', () => {
       const square = [
         { x: 0, y: 0 },
@@ -45,22 +41,16 @@ describe('Multi-Framework Industrial Pre-Press Suite', () => {
     });
   });
 
-  // ─── 🐍 2. Python + C++ Industrial Computer Vision Tests ─────────────────────
-  describe('OpenCV & Industrial Vision Pipelines', () => {
-    it('OpencvClaheDeskew: should equalize local contrast with CLAHE and check skew', () => {
+  describe('Contrast Stretch', () => {
+    it('ContrastStretchFilter: should apply a global power-curve contrast stretch', () => {
       const img = createMockImageData(40, 40, 120, 120, 120);
-      const equalized = OpencvClaheDeskew.applyClahe(img, 2.5);
+      const equalized = ContrastStretchFilter.apply(img, 2.5);
       expect(equalized.width).toBe(40);
-
-      const deskew = OpencvClaheDeskew.detectAndDeskew(img);
-      expect(typeof deskew.detectedAngleDeg).toBe('number');
-      expect(typeof deskew.isSkewed).toBe('boolean');
     });
   });
 
-  // ─── 🔥 3. PyTorch 2.3+ Neural Vision Models Tests ──────────────────────────
-  describe('Neural Vision Pre-Press Models', () => {
-    it('SCUNet & NAFNet: should denoise and deblur without losing image dimensions', () => {
+  describe('Denoise, Deblur, Dewarp, Select, Extend', () => {
+    it('SmoothingDenoiseFilter & SharpenDeblurFilter: should denoise and deblur without losing image dimensions', () => {
       const img = createMockImageData(30, 30);
       const denoised = SmoothingDenoiseFilter.denoise(img);
       expect(denoised.width).toBe(30);
@@ -69,7 +59,7 @@ describe('Multi-Framework Industrial Pre-Press Suite', () => {
       expect(deblurred.width).toBe(30);
     });
 
-    it('DocTr & MobileSAM & Fast-LaMa: should perform curvature dewarping, 1-click segmentation and bleed outpainting', () => {
+    it('CurvedPageFlattener & ColorRegionSelector & EdgeExtendInpainter: should dewarp, select a region, and extend bleed', () => {
       const img = createMockImageData(40, 40);
       const dewarped = CurvedPageFlattener.dewarp(img, 0.25);
       expect(dewarped.width).toBe(40);

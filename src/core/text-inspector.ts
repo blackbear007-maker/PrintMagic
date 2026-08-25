@@ -2,15 +2,18 @@ import type { DetectedTextRegion, TextInspectionResult } from '../types';
 import { FreeSpellCheckClient } from '../services/free-spellcheck-client';
 
 /**
- * Intelligent Text & Typo Inspector Engine
- * Hybrid Architecture: 100% Client-Side Fast Detection + Free LanguageTool Proofreading
- * 
+ * Text & Typo Inspector Engine
+ * Client-side only: contrast/edge region-detection heuristic + a local regex typo dictionary.
+ *
  * Capabilities:
- * - High-contrast text region localization
- * - OCR glyph extraction & tokenization
+ * - High-contrast text region localization (contrast/edge heuristic — this detects *where* text
+ *   probably is, it does not read/recognize characters; it is not OCR)
  * - Dictionary Spellcheck (Levenshtein distance)
- * - LanguageTool Free Multi-language Spell & Grammar API
- * - AI Hallucination & Pseudo-gibberish detection (consonant clustering, repeating chars, casing entropy)
+ * - Local regex-based typo matching, via FreeSpellCheckClient (~18 hardcoded rules — despite the
+ *   name and its own header comment, this does NOT call the real LanguageTool API; see
+ *   src/services/free-spellcheck-client.ts, fixed separately)
+ * - Pseudo-gibberish detection heuristic (consonant clustering, repeating chars, casing entropy) —
+ *   a pattern-matching filter, not a trained "AI hallucination detector"
  * - Pre-press text sharpness & edge definition check
  */
 export interface AutoDetectedTextItem {
@@ -82,37 +85,42 @@ export class TextInspector {
   };
 
   /**
-   * 🤖 AI Auto OCR & Text Layer Extractor
-   * Automatically segments and extracts all text layers from the image with exact coordinates,
-   * font sizes, and text content for zero-effort one-click vector text overlay.
+   * Auto Text-Region Detector for the Vector Overlay Tool
+   *
+   * Finds where text probably is (via contrast/edge heuristics) and returns one editable overlay
+   * item per detected region, positioned and sized to match. It does NOT read what the text says —
+   * this is not OCR. `text` starts as a placeholder the user is expected to type over; a previous
+   * version tried to auto-fill it via `heuristicExtractSampleText()`, which returned '' for every
+   * region, and a filter silently dropped every region with empty text — meaning this feature
+   * always reported "no text found," regardless of the image. Fixed by no longer requiring
+   * generated text and using an honest, obviously-a-placeholder string instead.
    */
   public static autoDetectTextLayers(imageData: ImageData): AutoDetectedTextItem[] {
     const { width, height } = imageData;
 
-    // Optical Text Line Clustering - only extract real bounding regions, never invent fake demo text
     const regions = this.detectTextRegions(imageData);
     if (regions.length === 0) {
       return [];
     }
 
-    return regions
-      .filter((r) => r.text && r.text.trim().length > 0)
-      .map((r) => {
-        const relX = Math.round((r.x / width) * 100);
-        const relY = Math.round(((r.y + r.height * 0.5) / height) * 100);
-        const fontSize = Math.max(18, Math.min(64, Math.round(r.height * 0.75)));
-        return {
-          text: r.text.trim(),
-          xPercent: Math.max(5, Math.min(90, relX)),
-          yPercent: Math.max(5, Math.min(95, relY)),
-          fontSizePx: fontSize,
-          fontFamily: 'sans-serif',
-          isK100: true,
-          color: '#000000',
-          isOverprint: true,
-          confidence: 0.88
-        };
-      });
+    return regions.map((r) => {
+      const relX = Math.round((r.x / width) * 100);
+      const relY = Math.round(((r.y + r.height * 0.5) / height) * 100);
+      const fontSize = Math.max(18, Math.min(64, Math.round(r.height * 0.75)));
+      const detectedText = r.text.trim();
+      return {
+        text: detectedText.length > 0 ? detectedText : '（點此輸入文字）',
+        xPercent: Math.max(5, Math.min(90, relX)),
+        yPercent: Math.max(5, Math.min(95, relY)),
+        fontSizePx: fontSize,
+        fontFamily: 'sans-serif',
+        isK100: true,
+        color: '#000000',
+        isOverprint: true,
+        // Region-detection strength, not OCR confidence — this tool doesn't read text content
+        confidence: Math.min(0.95, Math.max(0.6, 0.6 + r.edgeScore * 0.1))
+      };
+    });
   }
 
   /**
@@ -136,7 +144,7 @@ export class TextInspector {
       const reg = rawRegions[i];
       const verified = this.verifyTextRegion(reg, i + 1);
 
-      // Async LanguageTool Free Check enhancement if not already flagged
+      // Local regex typo-dictionary check if not already flagged (not a LanguageTool API call)
       if (!verified.isTypo && verified.text.length >= 3) {
         try {
           const spellCheck = await FreeSpellCheckClient.checkText(verified.text);

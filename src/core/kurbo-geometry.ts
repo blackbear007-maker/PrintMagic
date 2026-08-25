@@ -1,6 +1,11 @@
 /**
- * 🦀 #Rust-1.78 Kurbo & Geo-Clipper 2D Computational Geometry Engine
- * 
+ * 📐 2D Polygon Offset Geometry Engine (100% TypeScript, no Rust)
+ *
+ * The name references the algorithm family (the kind of polygon-offset math the Rust `kurbo` and
+ * `geo-clipper` crates implement), not the implementation language — this file is plain
+ * TypeScript, not a Rust/WASM binding. The one real Rust component in this codebase is the
+ * separate, actual VTracer service in docker/vtracer/.
+ *
  * Pre-Press Functionality:
  * 1. 2mm Acrylic Standee Die-Cut Offset: Computes smooth outer contour buffer for laser cutters.
  * 2. 0.2mm White Ink Choke (White Ink Inset): Computes inward offset to prevent white fringe from peeking out.

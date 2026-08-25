@@ -94,7 +94,7 @@ export class CloudClient {
 
     if (isOnline) {
       try {
-        Toast.info('⚡ 正在連線雲端工業引擎生成 PDF/X-1a (含 OutputIntent 與 Checksum)...');
+        Toast.info('⚡ 正在連線自建引擎生成印前工業 PDF (含出血、裁切線與內容雜湊)...');
 
         const res = await fetch(`${this.baseUrl}/export-pdfx`, {
           method: 'POST',
@@ -123,7 +123,7 @@ export class CloudClient {
         a.remove();
         URL.revokeObjectURL(url);
 
-        Toast.success(`✓ 雲端 PDF/X-1a 工業標準印刷檔已輸出！(認證碼: ${checksum})`);
+        Toast.success(`✓ 印前工業 PDF 已輸出！(內容 SHA-256: ${checksum.slice(0, 12)}…)`);
         return;
       } catch (err) {
         console.warn('Cloud export failed, automatically falling back to client-side engine:', err);

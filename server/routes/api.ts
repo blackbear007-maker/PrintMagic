@@ -65,9 +65,9 @@ apiRouter.post('/export-pdfx', async (req: Request, res: Response) => {
   }
 });
 
-// 🌙 Zero-DCE++ Low-Light Enhancement (the one real model in the self-hosted AI stack — see
-// server/services/ai-engine-service.ts for why /ai/matting, /ai/segment, /ai/dewarp, and
-// /ai-upscale were removed rather than kept as no-op stubs)
+// 🌙 Zero-DCE++ Low-Light Enhancement (real network architecture, untrained weights — see
+// server/services/ai-engine-service.ts for the full honesty note, and for why /ai/matting,
+// /ai/segment, /ai/dewarp, and /ai-upscale were removed rather than kept as no-op stubs)
 apiRouter.post('/ai/lowlight', async (req: Request, res: Response) => {
   try {
     const { image_base64 } = req.body;

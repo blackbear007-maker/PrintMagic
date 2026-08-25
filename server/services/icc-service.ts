@@ -1,6 +1,13 @@
 /**
- * Industrial ICC Profile & Color Management Service
- * Supports ISO 12647, Japan Color, and FOGRA commercial printing standards
+ * ICC Profile Reference Data
+ *
+ * These are publicly documented parameters (name, TAC limit) of real, named industry printing
+ * standards, used for TAC limit-checking — that part is real. But there are no actual `.icc`/
+ * `.icm` profile files anywhere in this repo, and no color-management library dependency, so this
+ * service cannot and does not perform real ICC-based color conversion or gamut mapping. A
+ * previous version of this file also had a `cmykMatrix` field per profile with fabricated,
+ * suspiciously-similar near-identity numbers that were never read anywhere else in the codebase —
+ * decorative fake precision. Removed rather than kept as unused decoration.
  */
 
 export interface IccProfileMetadata {
@@ -10,12 +17,6 @@ export interface IccProfileMetadata {
   standard: string;
   maxTac: number; // Maximum Total Area Coverage (%)
   description: string;
-  cmykMatrix: {
-    c: number[];
-    m: number[];
-    y: number[];
-    k: number[];
-  };
 }
 
 export const SUPPORTED_ICC_PROFILES: IccProfileMetadata[] = [
@@ -25,13 +26,7 @@ export const SUPPORTED_ICC_PROFILES: IccProfileMetadata[] = [
     region: '亞洲 / 台灣 / 日本',
     standard: 'ISO 12647-2:2001',
     maxTac: 350,
-    description: '亞洲平版印刷最廣泛採用之商業銅版紙標準',
-    cmykMatrix: {
-      c: [0.98, 0.02, 0.01, 0.0],
-      m: [0.01, 0.96, 0.03, 0.0],
-      y: [0.00, 0.02, 0.97, 0.0],
-      k: [0.02, 0.03, 0.02, 0.98]
-    }
+    description: '亞洲平版印刷最廣泛採用之商業銅版紙標準'
   },
   {
     id: 'fogra-39',
@@ -39,13 +34,7 @@ export const SUPPORTED_ICC_PROFILES: IccProfileMetadata[] = [
     region: '歐洲 / 國際標準',
     standard: 'ISO 12647-2:2004',
     maxTac: 330,
-    description: '歐洲高階商業印刷與展覽畫冊通用標準',
-    cmykMatrix: {
-      c: [0.97, 0.03, 0.01, 0.0],
-      m: [0.02, 0.95, 0.04, 0.0],
-      y: [0.01, 0.03, 0.96, 0.0],
-      k: [0.03, 0.03, 0.02, 0.97]
-    }
+    description: '歐洲高階商業印刷與展覽畫冊通用標準'
   },
   {
     id: 'us-swop-v2',
@@ -53,13 +42,7 @@ export const SUPPORTED_ICC_PROFILES: IccProfileMetadata[] = [
     region: '美洲 / 出版印刷',
     standard: 'SWOP 2006',
     maxTac: 300,
-    description: '北美雜誌、商業出版物輪轉印刷標準',
-    cmykMatrix: {
-      c: [0.96, 0.04, 0.02, 0.0],
-      m: [0.03, 0.94, 0.05, 0.0],
-      y: [0.01, 0.04, 0.95, 0.0],
-      k: [0.04, 0.04, 0.03, 0.96]
-    }
+    description: '北美雜誌、商業出版物輪轉印刷標準'
   },
   {
     id: 'pso-coated-v3',
@@ -67,13 +50,7 @@ export const SUPPORTED_ICC_PROFILES: IccProfileMetadata[] = [
     region: '新一代高白紙規範',
     standard: 'ISO 12647-2:2013',
     maxTac: 300,
-    description: '含螢光增白劑 (OBA) 頂級特銅紙現代色彩規範',
-    cmykMatrix: {
-      c: [0.99, 0.02, 0.01, 0.0],
-      m: [0.01, 0.97, 0.03, 0.0],
-      y: [0.00, 0.01, 0.98, 0.0],
-      k: [0.02, 0.02, 0.01, 0.99]
-    }
+    description: '含螢光增白劑 (OBA) 頂級特銅紙現代色彩規範'
   }
 ];
 

@@ -5,7 +5,7 @@ import { VectorOverlayEngine } from '../core/vector-overlay';
 import { TextInspector } from '../core/text-inspector';
 
 /**
- * ✒️ K100 純黑字與向量 Logo 浮層編輯器 (支援 AI 一鍵全圖自動辨識)
+ * ✒️ K100 純黑字與向量 Logo 浮層編輯器 (支援一鍵全圖自動偵測文字區域)
  */
 export class VectorOverlayModal {
   private modalEl: HTMLElement;
@@ -81,7 +81,7 @@ export class VectorOverlayModal {
       Toast.success(`✓ 已自動辨識全部 ${detected.length} 處文字，並以 K100 向量層清晰渲染！`);
     } else {
       SoundEffects.sliderTick();
-      Toast.success(`🤖 AI 已自動辨識並載入 ${detected.length} 處文字！`);
+      Toast.success(`✨ 已自動偵測並載入 ${detected.length} 處文字區域！`);
       this.render();
     }
     return true;
@@ -91,7 +91,7 @@ export class VectorOverlayModal {
     const items = this.engine.getTextItems();
 
     const itemsListHtml = items.length === 0
-      ? `<div class="pm-conv-desc-text" style="text-align:center; padding:20px;">尚無浮層文字，請點擊上方「🤖 AI 一鍵全圖自動辨識」或於下方手動添加</div>`
+      ? `<div class="pm-conv-desc-text" style="text-align:center; padding:20px;">尚無浮層文字，請點擊上方「一鍵自動偵測文字區域」或於下方手動添加</div>`
       : items
           .map((item) => `
             <div class="pm-conv-spec-card" style="flex-direction:row; align-items:center; justify-content:space-between; padding:10px 14px; background:rgba(255,255,255,0.7); border-radius:10px; margin-bottom:6px; border:1px solid rgba(0,0,0,0.06);">
@@ -117,15 +117,15 @@ export class VectorOverlayModal {
         </div>
 
         <div class="pm-conv-body" style="padding: 16px 20px; display: flex; flex-direction: column; gap: 14px;">
-          <!-- Plain Language Explanation & AI One-Click Auto-Detect Hero Banner -->
+          <!-- Plain Language Explanation & One-Click Auto-Detect Hero Banner -->
           <div style="background: linear-gradient(135deg, rgba(0, 113, 227, 0.08) 0%, rgba(52, 199, 89, 0.08) 100%); border: 1px solid rgba(0, 113, 227, 0.2); border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px;">
             <div style="display: flex; align-items: center; justify-content: space-between;">
               <div style="display: flex; align-items: center; gap: 8px;">
                 <span style="font-size: 1.25rem;">✨</span>
-                <strong style="font-size: 0.95rem; color: var(--pm-text-primary);">AI 自動辨識文字（免手動輸入）</strong>
+                <strong style="font-size: 0.95rem; color: var(--pm-text-primary);">自動偵測文字區域（免手動輸入）</strong>
               </div>
               <span style="font-size: 0.75rem; color: var(--pm-status-success); font-weight: 600; background: rgba(52,199,89,0.12); padding: 2px 8px; border-radius: 12px;">
-                ⚡ 0 毫秒極速辨識
+                ⚡ 即時偵測
               </span>
             </div>
 

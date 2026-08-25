@@ -1,14 +1,14 @@
 /**
- * 🎯 #07 NanoDet-Plus (Ultra-Fast Saliency & Visual Focal Anchor Detector)
- * 
- * Pre-Press Problem Solved:
- * Cropping artwork for fixed-aspect print presets (e.g. 1:1 square stickers, 90x54mm business cards, A4)
- * often accidentally cuts off character faces, logos, or primary subject focal points.
- * 
- * Solution:
- * 1. Computes spatial gradient centroid & visual energy heat distribution.
- * 2. Predicts bounding box of the principal subject / character.
- * 3. Automatically anchors smart focal crops to guarantee subject protection inside safe zones.
+ * 🎯 Gradient-Centroid Focal Cropper (pure client-side algorithm, no model weights)
+ *
+ * What this actually is:
+ * Computes a center-biased, gradient-energy-weighted pixel centroid — pixels with more local
+ * contrast near the image center pull the "focal point" toward them. It is not NanoDet-Plus (a
+ * real anchor-free object detection network) — there is no anchor prediction, no object
+ * classification, no learned model of any kind. It has no idea what a face or logo *is*; it only
+ * knows "high local contrast, roughly central" tends to correlate with the subject in typical
+ * photos. Works reasonably for a single clear subject against a simpler background; will not
+ * reliably find small or off-center subjects, or choose between multiple subjects.
  */
 
 export interface FocalSubjectBox {
@@ -18,12 +18,12 @@ export interface FocalSubjectBox {
   height: number;
   centerXPercent: number; // 0 ~ 100
   centerYPercent: number; // 0 ~ 100
-  confidence: number;
+  confidence: number; // heuristic strength of the gradient-energy signal, not a calibrated probability
 }
 
-export class NanodetFocal {
+export class GradientCentroidCropper {
   /**
-   * Detects the primary focal subject bounding box
+   * Estimates the focal subject bounding box via a gradient-energy-weighted, center-biased centroid
    */
   public static detectSubject(imageData: ImageData): FocalSubjectBox {
     const w = imageData.width;
@@ -85,7 +85,7 @@ export class NanodetFocal {
       height: Math.min(h, Math.round(boxH)),
       centerXPercent: Math.round((cX / w) * 100),
       centerYPercent: Math.round((cY / h) * 100),
-      confidence: totalWeight > 1000 ? 0.92 : 0.75
+      confidence: totalWeight > 1000 ? 0.92 : 0.75 // coarse heuristic strength, not a measured probability
     };
   }
 }

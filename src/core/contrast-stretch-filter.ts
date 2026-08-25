@@ -1,26 +1,24 @@
 /**
- * 🐍⚙️ #Python-C++ OpenCV CLAHE & Radon Auto-Deskew Angle Corrector
- * 
- * Pre-Press Problem Solved:
- * Scanned artwork or photographed documents are often tilted by 0.1° ~ 3.5°,
- * causing misaligned paper trimming. Muddy images also lack micro-contrast.
- * 
- * Solution:
- * 1. Radon / Hough transform: Detects document baseline angle with 0.01° sub-pixel precision.
- * 2. CLAHE: Contrast Limited Adaptive Histogram Equalization to pop details without blowing out highlights.
+ * ⚙️ Power-Curve Contrast Stretch (pure client-side algorithm, no model weights)
+ *
+ * What this actually is:
+ * A per-pixel power-curve (gamma-style) contrast stretch. It is not CLAHE (Contrast Limited
+ * Adaptive Histogram Equalization) — real CLAHE operates on local tiles with per-tile histogram
+ * clipping; this applies one global curve to the whole image, so it can't locally boost contrast
+ * in one region without affecting the rest the same way.
+ *
+ * This file used to also export `detectAndDeskew()`, claiming Radon/Hough-transform skew
+ * detection with "0.01° sub-pixel precision." It didn't detect anything — it always returned
+ * `angle: 0`, `isSkewed: false`, and the untouched input image. It was also unreachable from any
+ * UI or pipeline code (dead code, confirmed via repo-wide search). Removed rather than kept as a
+ * convincing-looking no-op; a real deskew implementation is future work, not something to fake in
+ * the meantime.
  */
-
-export interface DeskewResult {
-  detectedAngleDeg: number;
-  isSkewed: boolean;
-  correctedImageData: ImageData;
-}
-
-export class OpencvClaheDeskew {
+export class ContrastStretchFilter {
   /**
-   * Applies CLAHE (Contrast Limited Adaptive Histogram Equalization)
+   * Applies a global power-curve contrast stretch
    */
-  public static applyClahe(
+  public static apply(
     srcImageData: ImageData,
     clipLimit: number = 2.5
   ): ImageData {
@@ -34,7 +32,6 @@ export class OpencvClaheDeskew {
       : ({ width: w, height: h, data: dstBuffer, colorSpace: 'srgb' } as ImageData);
     const dst = dstImageData.data;
 
-    // Fast local adaptive equalization
     for (let i = 0; i < src.length; i += 4) {
       const r = src[i];
       const g = src[i + 1];
@@ -54,19 +51,5 @@ export class OpencvClaheDeskew {
     }
 
     return dstImageData;
-  }
-
-  /**
-   * Detects skew angle using Radon / horizontal gradient variance projection
-   */
-  public static detectAndDeskew(srcImageData: ImageData): DeskewResult {
-    // Detect principal text line angle
-    const angle = 0.0; // 0 degree baseline
-
-    return {
-      detectedAngleDeg: angle,
-      isSkewed: Math.abs(angle) > 0.1,
-      correctedImageData: srcImageData
-    };
   }
 }

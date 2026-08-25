@@ -122,7 +122,7 @@ describe('10 Sample AI Artworks Pre-press Pipeline & Weighted Scoring Test', () 
       });
 
       expect(pdfx.buffer.length).toBeGreaterThan(1000);
-      expect(pdfx.checksum).toMatch(/^PMX-[A-F0-9]{16}$/);
+      expect(pdfx.checksum).toMatch(/^[A-F0-9]{64}$/); // real SHA-256 of source artwork bytes
       expect(pdfx.fileName).toContain(sample.filename);
       expect(pdfx.fileName.endsWith('.pdf')).toBe(true);
     });

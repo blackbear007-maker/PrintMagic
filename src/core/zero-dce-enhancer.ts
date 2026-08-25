@@ -1,16 +1,16 @@
 /**
- * ☀️ Zero-DCE++ (Zero-Reference Deep Curve Estimation for Low-Light Enhancement - MIT / 79 KB)
- * 
- * Commercial Value & Pre-Press Problem Solved:
- * Smartphone photos, food menus taken in dim ambient restaurant lighting, and wedding banquet photos
- * look murky and dark. If a designer applies naive gamma/brightness boost in Photoshop, it severely
- * amplifies sensor noise into speckled CMYK ink artifacts.
- * 
- * Mathematical Solution:
- * 1. Zero-Reference Iterative Non-linear Curve: LE_n(x) = LE_{n-1}(x) + A_n(x) * LE_{n-1}(x) * (1 - LE_{n-1}(x)).
- * 2. Pixel-Wise Dynamic Dynamic Range Adjustment: Preserves natural high-contrast highlights while
- *    gently pulling out deep shadow details without blowing out skin tones or creating halo artifacts.
- * 3. 0ms Ultra-Fast Client/CPU execution (0.08 MB weight, < 15MB RAM).
+ * ☀️ Zero-DCE-style Iterative Curve Enhancer (local fallback — no trained weights)
+ *
+ * Correction (2026-08-25): an earlier version of this comment claimed the server-side model at
+ * docker/zero-dce/server.py (POST /enhance) has "genuine learned weights" — that was wrong. That
+ * service runs the real Zero-DCE++ network architecture, but with PyTorch's random default
+ * initialization; it has never loaded a trained checkpoint (none exists anywhere in this repo).
+ * So neither this local file NOR the server-side one currently represents trained-model output —
+ * they're both untrained/heuristic in different ways. This file applies the same family of
+ * iterative curve formula the Zero-DCE paper uses
+ * (LE_n(x) = LE_{n-1}(x) + A(x)·LE_{n-1}(x)·(1-LE_{n-1}(x))), with one single image-average
+ * darkness value as the curve parameter A (a hand-picked heuristic, not a learned parameter map).
+ * At least this version is deterministic and doesn't misrepresent itself as a trained model.
  */
 
 export interface ZeroDceResult {

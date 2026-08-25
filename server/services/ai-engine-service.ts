@@ -1,25 +1,28 @@
 /**
- * Zero-DCE++ Microservice Proxy (the one real model in the self-hosted AI stack)
+ * Zero-DCE++ Microservice Proxy
  *
  * This file previously dispatched to 6 "SOTA" endpoints (BiRefNet matting, MobileSAM segment,
- * Zero-DCE++ lowlight, RealESRGAN upscale, PP-OCR, DocTr dewarp). Only Zero-DCE++ is backed by an
- * actual model (docker/zero-dce/server.py). The other five were either pure lies (processSegment
- * and processDewarp returned success:true with the untouched input and never made a network call
- * at all) or broken on both ends (processMatting/processUpscale/processOcr called endpoints that
- * either didn't exist or spoke an incompatible request format, and on any failure still returned
- * success:true with the original image and a fabricated "本機 XXX 加速" label — never actually
- * running a local model either). Those five methods have been removed; matting, upscale, and OCR
- * are each handled directly by their own client, either against a real backend (Tesseract OCR,
- * VTracer vectorize) or a local deterministic algorithm (see src/services and src/core).
+ * Zero-DCE++ lowlight, RealESRGAN upscale, PP-OCR, DocTr dewarp). Those five other methods were
+ * either pure lies (processSegment/processDewarp returned success:true with the untouched input
+ * and never made a network call) or broken on both ends (processMatting/processUpscale/processOcr
+ * called endpoints that either didn't exist or spoke an incompatible request format). They've been
+ * removed; matting, upscale, and OCR are each handled directly by their own client now, either
+ * against a real backend (Tesseract OCR, VTracer vectorize) or a local deterministic algorithm.
  *
- * The endpoint path bug (this used to call `/lowlight`, which docker/zero-dce/server.py never
- * exposed — only `/enhance` — meaning this path silently never worked either) has been fixed.
+ * ⚠️ Zero-DCE++ itself is NOT a working trained model (corrected 2026-08-25, after this file
+ * previously and incorrectly called it "the one real model in the stack"): docker/zero-dce/
+ * server.py's network architecture is genuine Zero-DCE++ code, but it never loads trained weights
+ * — no `.pth` checkpoint has ever existed in this repo. It runs on PyTorch's random initial
+ * weights. This proxy still calls it (the endpoint path bug — this used to call `/lowlight`,
+ * which the service never exposed — has been fixed, so the call itself now succeeds), but "succeeds"
+ * only means "the untrained network ran without crashing," not "produced a meaningful result."
  */
 export class AiEngineService {
   private static readonly BASE_URL = process.env.ZERO_DCE_URL || process.env.AI_ENGINE_URL || 'http://127.0.0.1:8082';
 
   /**
-   * Zero-DCE++ Low-Light Enhancement (real model inference)
+   * Zero-DCE++ Low-Light Enhancement — runs the real network architecture, but with untrained
+   * (randomly initialized) weights. See the honesty note at the top of this file.
    */
   public static async processLowLight(imageDataUrl: string): Promise<{ success: boolean; dataUrl?: string; engine?: string; error?: string }> {
     try {
@@ -43,7 +46,7 @@ export class AiEngineService {
       if (res.ok) {
         const data = await res.json();
         if (data.success && data.image_base64) {
-          return { success: true, dataUrl: data.image_base64, engine: 'Zero-DCE++ (自建微服務，真實推論)' };
+          return { success: true, dataUrl: data.image_base64, engine: 'Zero-DCE++ (自建微服務，⚠️ 未訓練權重)' };
         }
       }
       return { success: false, error: `Zero-DCE++ service returned HTTP ${res.status}` };

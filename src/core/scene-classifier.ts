@@ -1,9 +1,13 @@
 import { ExifMetadataSniffer } from './exif-metadata-sniffer';
 
 /**
- * 🧠 Intelligent Pre-Press Scene & Image Type Auto-Classifier (v3.2 SOTA)
- * 
- * Multi-Spectral Hybrid Architecture:
+ * 🧠 Pre-Press Scene & Image Type Auto-Classifier
+ *
+ * Pure pixel-statistics heuristics — no trained classifier model. `recommendedPipeline` below
+ * names the actual local algorithms this app runs (all in src/core/, all deterministic, no
+ * neural network); it used to name unrelated published SOTA papers instead, which was fixed.
+ *
+ * Techniques used:
  * 1. 📷 EXIF / PNG / Metadata Sniffer: 100% identifies Camera, Procreate, Clip Studio, AI generators.
  * 2. 🧬 YCbCr Biometric Skin Ellipse Model: Eliminates false skin detections from wood/sunset.
  * 3. 📊 Otsu Bimodal Variance Analysis: 100% separates documents/certificates from white-background art.
@@ -54,10 +58,10 @@ export class SceneClassifier {
           confidence: 0.995,
           detectedTraits: traits,
           recommendedPipeline: {
-            superResolutionModel: 'Anime4K + Real-ESRGAN (墨線銳化)',
-            outpaintingModel: 'AOT-GAN (自然背景外推)',
-            specialCraft: 'MODNet-Lite 人物立牌分離 + Kurbo 2mm 刀模',
-            reasonZh: `檢測到繪圖軟體簽名（${exif.softwareName}），已自動啟用 Anime4K 墨線銳化與立牌刀模。`
+            superResolutionModel: 'LineArtUpscaler 墨線銳化放大',
+            outpaintingModel: 'EdgeExtendInpaint 背景外推',
+            specialCraft: 'Kurbo 2mm 刀模',
+            reasonZh: `檢測到繪圖軟體簽名（${exif.softwareName}），已自動套用線稿銳化放大與刀模生成。`
           }
         };
       }
@@ -186,10 +190,10 @@ export class SceneClassifier {
         confidence: 0.99,
         detectedTraits: traits,
         recommendedPipeline: {
-          superResolutionModel: 'Rust VTracer (向量化)',
+          superResolutionModel: 'VTracer 向量化',
           outpaintingModel: '0.2mm 內縮白墨打底',
           specialCraft: '2mm 洋紅外擴激光刀模線',
-          reasonZh: '偵測到高比例透明通道，已自動啟用白墨打底與 2mm 刀模生成管線。'
+          reasonZh: '偵測到高比例透明通道，已自動套用白墨打底與 2mm 刀模生成管線。'
         }
       };
     }
@@ -205,10 +209,10 @@ export class SceneClassifier {
         confidence: 0.985,
         detectedTraits: traits,
         recommendedPipeline: {
-          superResolutionModel: '純黑 K100 向量轉曲 (TextInspector)',
-          outpaintingModel: 'OpenCV Radon 0.01° 歪斜校正',
-          specialCraft: 'DocTr-Dewarp 曲面拉平 + PP-OCRv4',
-          reasonZh: '偵測到 Otsu 極端雙峰文字分佈，已自動套用純黑 K100 向量銳化與歪斜校正。'
+          superResolutionModel: '純黑 K100 向量轉曲',
+          outpaintingModel: 'CurvedPageFlattener 曲面拉平',
+          specialCraft: '如需文字辨識，請使用文字檢查工具（自建 Tesseract OCR）',
+          reasonZh: '偵測到 Otsu 極端雙峰文字分佈，已自動套用純黑 K100 向量銳化與曲面拉平。'
         }
       };
     }
@@ -224,10 +228,10 @@ export class SceneClassifier {
         confidence: 0.98,
         detectedTraits: traits,
         recommendedPipeline: {
-          superResolutionModel: 'Anime4K + Real-ESRGAN (墨線銳化)',
-          outpaintingModel: 'AOT-GAN (自然背景外推)',
-          specialCraft: 'MODNet-Lite 人物立牌分離 + PhotocardHoloGlitter (碎玻璃閃底)',
-          reasonZh: '偵測到動漫飽和色塊與墨線，已全自動套用 Anime4K 墨線銳化與鐳射刀模。'
+          superResolutionModel: 'LineArtUpscaler 墨線銳化放大',
+          outpaintingModel: 'EdgeExtendInpaint 背景外推',
+          specialCraft: 'EdgeChokeMatting 人物立牌去背 + PhotocardHoloGlitter (碎玻璃閃底)',
+          reasonZh: '偵測到動漫飽和色塊與墨線，已自動套用線稿銳化放大與鐳射刀模。'
         }
       };
     }
@@ -245,10 +249,10 @@ export class SceneClassifier {
         confidence: 0.98,
         detectedTraits: traits,
         recommendedPipeline: {
-          superResolutionModel: 'HAT-S + WeddingSkinPorePreserver (高低頻毛孔保留磨皮)',
-          outpaintingModel: 'Deshadow-Net (手機光照均勻化)',
+          superResolutionModel: 'EdgeAwareUpscaler 放大 + WeddingSkinPorePreserver (高低頻毛孔保留磨皮)',
+          outpaintingModel: 'HandShadowBalancer (手機光照均勻化)',
           specialCraft: 'PhotocardHoloGlitter (碎玻璃閃底) / 畫廊卡紙裝裱',
-          reasonZh: '偵測到精確 YCbCr 人類生物膚色，已全自動啟動高低頻毛孔保留磨皮與 HAT-S 超解析度。'
+          reasonZh: '偵測到精確 YCbCr 人類生物膚色，已自動套用高低頻毛孔保留磨皮與邊緣強化放大。'
         }
       };
     }
@@ -263,10 +267,10 @@ export class SceneClassifier {
         confidence: 0.96,
         detectedTraits: traits,
         recommendedPipeline: {
-          superResolutionModel: 'FoodMenuMouthwatering (垂涎增豔) + HAT-S',
-          outpaintingModel: 'OpenCV Telea (柔和邊緣擴散)',
-          specialCraft: 'MicroContrastTextBooster (菜單文字微反差強化)',
-          reasonZh: '偵測到美食暖色熱量光譜，已自動啟用垂涎增豔與菜單文字反差強化。'
+          superResolutionModel: 'FoodMenuMouthwatering (垂涎增豔) + EdgeAwareUpscaler',
+          outpaintingModel: 'EdgeExtendInpaint (柔和邊緣擴散)',
+          specialCraft: '菜單文字微反差強化',
+          reasonZh: '偵測到美食暖色熱量光譜，已自動套用垂涎增豔與菜單文字反差強化。'
         }
       };
     }
@@ -283,10 +287,10 @@ export class SceneClassifier {
       confidence: 0.95,
       detectedTraits: traits,
       recommendedPipeline: {
-        superResolutionModel: 'SwinIR + RollupBannerScaler (展架巨幅瓦片超解析)',
-        outpaintingModel: 'AOT-GAN + MAT-Lite (深度透視外推)',
+        superResolutionModel: 'RollupBannerScaler (展架巨幅瓦片放大)',
+        outpaintingModel: 'EdgeExtendInpaint (深度透視外推)',
         specialCraft: 'GicleeFineArtDmax (博物館級微噴 Dmax 增強)',
-        reasonZh: '偵測到廣色域大圖與藝術攝影，已全自動套用 AOT-GAN 背景生長與藝術微噴 Dmax 增強。'
+        reasonZh: '偵測到廣色域大圖與藝術攝影，已自動套用背景生長與藝術微噴 Dmax 增強。'
       }
     };
   }

@@ -53,7 +53,7 @@ export class ExportModal {
               </div>
               <div style="font-weight: 700; font-size: 0.92rem; color: var(--pm-text-primary);">標準印刷 PDF (.pdf)</div>
               <div style="font-size: 0.72rem; color: var(--pm-text-muted); line-height: 1.3;">
-                ISO 15930-1 PDF/X-1a 規範，內嵌 3mm 出血、裁切標記與 CMYK 色彩。
+                內嵌 3mm 出血、裁切標記與對位規矩線（RGB 內容，印刷廠仍需自行做 CMYK 分色）。
               </div>
             </button>
 

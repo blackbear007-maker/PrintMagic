@@ -122,9 +122,9 @@ export class CompareSlider {
               </div>
             </div>
 
-            <!-- Bottom Quality Assurance Note -->
+            <!-- Bottom Note -->
             <div class="pm-cmp-card-footer">
-              <span>🛡️ 已通過台灣四大合版印刷廠製版相容性檢測</span>
+              <span>🛡️ 檔案已符合本機印前檢查標準（尺寸/出血/DPI/墨量）</span>
             </div>
           </div>
         </div>

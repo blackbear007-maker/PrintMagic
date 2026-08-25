@@ -1,4 +1,5 @@
 import { jsPDF } from 'jspdf';
+import { createHash } from 'crypto';
 import { IccService } from './icc-service.js';
 
 export interface PdfxExportOptions {
@@ -51,6 +52,13 @@ export class PdfxService {
     const contentY = outerMarginMm;
     const contentWidth = trimWidthMm + bleedMm * 2;
     const contentHeight = trimHeightMm + bleedMm * 2;
+
+    // Real SHA-256 of the source artwork bytes — a genuine, reproducible content fingerprint.
+    // (Not a "防偽舉證"/anti-counterfeit certificate and not a hash of the final PDF — computed
+    // from the source image before this function draws anything, since jsPDF doesn't let us hash
+    // the finished buffer and then also print that hash onto the page.)
+    const base64Payload = imageDataUrl.replace(/^data:image\/\w+;base64,/, '');
+    const sha256 = createHash('sha256').update(Buffer.from(base64Payload, 'base64')).digest('hex').toUpperCase();
 
     // 1. Draw raster artwork
     pdf.addImage(
@@ -124,16 +132,21 @@ export class PdfxService {
       pdf.rect(startX + idx * (barSize + 0.5), barY, barSize, barSize, 'F');
     });
 
-    // 5. Pre-Press Verification Metadata Slug & ISO 15930 Compliance
+    // 5. Pre-Press Metadata Slug
+    //
+    // Honesty note: this is NOT a validated PDF/X-1a / ISO 15930 file. Real PDF/X-1a requires an
+    // OutputIntent dictionary with an embedded ICC profile, CMYK-only content, and zero
+    // transparency — none of which this function does (the artwork above is embedded as-is,
+    // still RGB, no OutputIntent, no embedded ICC). The `pdfStandard` label below is descriptive
+    // metadata only, not a compliance claim. The color-bar swatches and crop/registration marks
+    // ARE real vector content, correctly positioned.
     const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 19);
-    const checksumSeed = `${artworkName}-${preset.id}-${timestamp}-${Math.random()}`;
-    const mockChecksum = `PMX-${Buffer.from(checksumSeed).toString('hex').substring(0, 16).toUpperCase()}`;
 
     pdf.setFontSize(6);
     pdf.setTextColor(80, 80, 80);
 
-    const slugLine1 = `[${pdfStandard}] ${preset.nameZh} (${trimWidthMm}×${trimHeightMm}mm) | Bleed: ${bleedMm}mm | Profile: ${icc.name} (${icc.standard})`;
-    const slugLine2 = `PrintMagic Industrial Pre-Press Engine v3.1 | Checksum: ${mockChecksum} | Time: ${timestamp} UTC`;
+    const slugLine1 = `PrintMagic Pre-Press PDF (RGB content, not a validated PDF/X file) | ${preset.nameZh} (${trimWidthMm}×${trimHeightMm}mm) | Bleed: ${bleedMm}mm | Reference profile: ${icc.name} (${icc.standard})`;
+    const slugLine2 = `Source artwork SHA-256: ${sha256} | Generated: ${timestamp} UTC`;
 
     pdf.text(slugLine1, trimX, pageTotalHeightMm - outerMarginMm / 2 + 1);
     pdf.text(slugLine2, trimX, pageTotalHeightMm - outerMarginMm / 2 + 4.5);
@@ -144,7 +157,7 @@ export class PdfxService {
 
     return {
       buffer,
-      checksum: mockChecksum,
+      checksum: sha256,
       fileName,
       standard: pdfStandard,
       iccName: icc.name

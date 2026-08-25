@@ -4,7 +4,7 @@ import { Toast } from './toast';
 import { SoundEffects } from '../core/sound-effects';
 
 /**
- * 🪄 AI 智慧消除筆 / 物件移除互動視窗 (Object Eraser Modal)
+ * 🪄 智慧消除筆 / 物件移除互動視窗 (Object Eraser Modal)
  * Apple HIG 極簡雙層 Canvas 塗抹介面，支援行動觸控與前後對比
  */
 export class ObjectEraserModal {
@@ -61,9 +61,9 @@ export class ObjectEraserModal {
           <div style="display: flex; align-items: center; gap: 10px;">
             <div class="pm-modal-icon-badge" style="background: rgba(255, 45, 85, 0.1); color: #ff2d55; font-size: 1.4rem;">🪄</div>
             <div>
-              <h2 class="pm-modal-title">AI 智慧消除筆 / 物件移除</h2>
+              <h2 class="pm-modal-title">智慧消除筆 / 物件移除</h2>
               <p class="pm-modal-desc">
-                以手指或滑鼠塗抹想去除的路人、雜物或瑕疵，本機 AI 自動重構背景
+                以手指或滑鼠塗抹想去除的路人、雜物或瑕疵，本機演算法自動重構背景
               </p>
             </div>
           </div>
@@ -110,7 +110,7 @@ export class ObjectEraserModal {
           <div class="pm-eraser-loading" id="eraserLoading" style="display: none;">
             <div class="pm-spinner" style="border-top-color: #ff2d55;"></div>
             <span style="font-weight: 600; font-size: 0.9rem; color: var(--pm-text-primary); margin-top: 8px;">
-              正在分析周圍紋理並進行 AI 無痕補景...
+              正在分析周圍紋理並進行無痕補景...
             </span>
           </div>
         </div>

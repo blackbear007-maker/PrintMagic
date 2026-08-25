@@ -8,7 +8,10 @@ import { NetworkGuard } from '../services/network-guard';
  *
  * 這裡曾經是一個模擬 24+ 個雲端 AI 供應商配額/品質路由的儀表板（進度條、額度百分比、自動切換徽章），
  * 但沒有一行程式碼真的呼叫過那些供應商 —— 全部是本機模擬的假帳本。已整個移除，改成如實呈現：
- * 3 項真的存在的自建服務（Zero-DCE++、Tesseract OCR、VTracer）+ 一律會用到的本機決定性演算法。
+ * 3 項自建服務（Zero-DCE++、Tesseract OCR、VTracer）+ 一律會用到的本機決定性演算法。
+ * 誠實現況（2026-08-25）：Tesseract 與 VTracer 是真正能建置、運作的服務；Zero-DCE++ 的網路架構
+ * 程式碼是真的，但從未載入訓練權重（無 .pth 檔案、無 torch.load 呼叫），目前是用隨機初始化權重
+ * 推論，輸出品質不代表真正訓練過的模型，詳見 docker/zero-dce/server.py 內的說明。
  */
 export class AiSettingsModal {
   private modalEl: HTMLElement;
@@ -33,7 +36,7 @@ export class AiSettingsModal {
       {
         icon: '☀️',
         name: 'Zero-DCE++ 低光照片提亮',
-        desc: '真實訓練過的 PyTorch 網路（~79KB 權重），非線性曲線估算。'
+        desc: '⚠️ 網路架構是真的 Zero-DCE++，但從未載入訓練權重（隨機初始化），輸出品質不穩定。'
       },
       {
         icon: '🔤',
@@ -85,7 +88,7 @@ export class AiSettingsModal {
 
           <!-- Real self-hosted services -->
           <div style="background: rgba(0, 0, 0, 0.02); border: 1.5px solid var(--pm-border-subtle); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 10px;">
-            <div style="font-size: 0.86rem; font-weight: 700; color: var(--pm-text-primary);">真實自建服務（3 項）</div>
+            <div style="font-size: 0.86rem; font-weight: 700; color: var(--pm-text-primary);">自建服務（3 項，詳見各項說明）</div>
             ${realServices.map((s) => `
               <div style="display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; ${s !== realServices[realServices.length - 1] ? 'border-bottom: 1px solid var(--pm-border-subtle);' : ''}">
                 <span style="font-size: 1.1rem;">${s.icon}</span>

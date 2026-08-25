@@ -243,8 +243,8 @@ export class DiagnosticCard {
               <button class="pm-btn pm-btn-secondary pm-btn-md btn-diag-open-export" title="選擇輸出 TIFF / JPG / 向量刀模 SVG 或一鍵全打包出機 ZIP">
                 <span>🖨️</span> 更多格式 (TIFF/ZIP)
               </button>
-              <button class="pm-btn pm-btn-secondary pm-btn-md" id="btnSimpleOpenConvPrint" title="7-11 / 全家超商雲端 30 秒下樓立印">
-                <span>🏪</span> 超商 30 秒立印
+              <button class="pm-btn pm-btn-secondary pm-btn-md" id="btnSimpleOpenConvPrint" title="7-11 / 全家超商列印檔案產生器">
+                <span>🏪</span> 超商列印檔
               </button>
             </div>
           </div>

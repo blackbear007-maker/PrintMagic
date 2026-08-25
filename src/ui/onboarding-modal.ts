@@ -62,7 +62,7 @@ export class OnboardingModal {
                   🔍 自動 8x 放大與 100 分印前健檢
                 </h4>
                 <p style="font-size: 0.8rem; color: var(--pm-text-secondary); margin: 0; line-height: 1.45;">
-                  系統在<strong>本機端 0.1 秒自動執行 8x 金字塔超解析度</strong>、USM 銳化與 CMYK 墨量安全防護。看到懸浮膠囊亮起 <strong style="color: var(--pm-status-success);">100分 ✨ 完美就緒</strong> 即可安心輸出！
+                  系統在<strong>本機端自動執行 8x 金字塔超解析度</strong>、USM 銳化與 CMYK 墨量安全防護。看到懸浮膠囊亮起 <strong style="color: var(--pm-status-success);">100分 ✨ 完美就緒</strong> 即可安心輸出！
                 </p>
               </div>
             </div>
@@ -74,10 +74,10 @@ export class OnboardingModal {
               </div>
               <div>
                 <h4 style="font-size: 0.96rem; font-weight: 700; color: var(--pm-text-primary); margin: 0 0 4px 0;">
-                  📦 一鍵下載標準 PDF 或超商立印
+                  📦 一鍵下載標準 PDF 或超商列印檔
                 </h4>
                 <p style="font-size: 0.8rem; color: var(--pm-text-secondary); margin: 0; line-height: 1.45;">
-                  點擊<strong>「🌟 一鍵下載標準印刷檔 (PDF)」</strong>直接送交印刷廠出機，或點擊<strong>「🏪 超商 30 秒立印」</strong>產生 7-11 / 全家雲端碼下樓取件。
+                  點擊<strong>「🌟 一鍵下載標準印刷檔 (PDF)」</strong>直接送交印刷廠出機，或點擊<strong>「🏪 超商列印檔案產生器」</strong>下載排版好的檔案，再透過超商官網上傳取得取件碼。
                 </p>
               </div>
             </div>

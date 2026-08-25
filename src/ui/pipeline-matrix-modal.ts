@@ -37,8 +37,8 @@ export class PipelineMatrixModal {
       {
         key: 'enableUpscale',
         icon: '🔍',
-        title: 'AI 深度學習與 8x 金字塔超解析度',
-        desc: '將低解析原圖透過 Lanczos-3 或神經網路無失真放大至 300+ DPI 印刷標準。',
+        title: '8x 金字塔超解析度放大',
+        desc: '將低解析原圖透過 Lanczos-3 或邊緣強化演算法放大至 300+ DPI 印刷標準（本機決定性演算法，非神經網路）。',
         defaultHint: '開：自動補足解析度',
         offHint: '關：維持原始像素尺寸'
       },
@@ -97,7 +97,7 @@ export class PipelineMatrixModal {
                 </span>
               </div>
               <p style="font-size: 0.78rem; color: var(--pm-text-muted); margin: 2px 0 0 0;">
-                非破壞性逐項開關：自由掌控 AI 超解析、控墨、銳化與色彩映射流程
+                非破壞性逐項開關：自由掌控超解析放大、控墨、銳化與色彩映射流程
               </p>
             </div>
           </div>

@@ -315,7 +315,7 @@ class App {
         const isOnline = await CloudClient.checkHealth();
         if (isOnline) {
           store.setEngineMode('cloud');
-          Toast.success('⚡ 已切換至【雲端工業引擎模式】：在線運行 (支援 ISO 15930 PDF/X-1a 與 雲端 AI 深度學習)');
+          Toast.success('⚡ 已切換至【自建服務引擎模式】：在線運行 (可使用自建 OCR / 向量化 / 低光提亮服務)');
         } else {
           store.setEngineMode('cloud');
           Toast.info('⚡ 已切換至【雲端工業引擎模式】(伺服器未連線，可點擊齒輪設定 API 或維持本機極速)');
@@ -338,14 +338,14 @@ class App {
         store.setEngineMode('cloud');
         store.setState({ aiUpscaleMode: 'cloud-ai' });
         if (isOnline) {
-          Toast.success('🧠 已為您連線啟動【雲端 AI 深度學習細節重建 (Real-ESRGAN 4x)】模式！');
+          Toast.success('⚡ 已切換至【邊緣強化放大引擎】模式！');
         } else {
-          Toast.info('🧠 已切換至【雲端 AI 深度學習重建】模式！(若需本機後端請啟動 port 3001 或於齒輪設定 API Token)');
+          Toast.info('⚡ 已切換至【邊緣強化放大引擎】模式！(本機演算法，若需啟動自建服務請啟動 port 3001)');
         }
       } else {
         const next = store.toggleAiUpscaleMode();
         if (next === 'cloud-ai') {
-          Toast.info('🧠 已啟動【雲端 AI 深度學習細節重建 (Real-ESRGAN 4x)】模式！');
+          Toast.info('⚡ 已啟動【邊緣強化放大引擎】模式！');
         } else {
           Toast.info('⚡ 已切換回【本機 8x 金字塔超解析度】模式！');
         }
@@ -1337,8 +1337,8 @@ class App {
     const fileBytes = firstItem.file ? await firstItem.file.arrayBuffer() : undefined;
     const scene = SceneClassifier.classifyImage(firstItem.originalImageData, fileBytes);
     const traitInfo = scene.detectedTraits.length > 0 ? ` (${scene.detectedTraits[0]})` : '';
-    this.xiangAssistant?.say(`🎯 偵測到為【${scene.categoryIcon} ${scene.categoryNameZh}${traitInfo}】！已為您自動匹配【${autoPreset.nameZh}】並套用最佳專屬模型（${scene.recommendedPipeline.superResolutionModel}）！`, 7500);
-    Toast.success(`✨ 智慧辨識：【${scene.categoryIcon} ${scene.categoryNameZh}】· 已自動適配最佳專屬模型！`);
+    this.xiangAssistant?.say(`🎯 偵測到為【${scene.categoryIcon} ${scene.categoryNameZh}${traitInfo}】！已為您自動匹配【${autoPreset.nameZh}】並套用專屬處理流程（${scene.recommendedPipeline.superResolutionModel}）！`, 7500);
+    Toast.success(`✨ 智慧辨識：【${scene.categoryIcon} ${scene.categoryNameZh}】· 已自動適配專屬處理流程！`);
 
     // Show/hide backside quick prompt based on preset and batch count
     const promptAddBack = document.getElementById('btnPromptAddBack');
@@ -1411,14 +1411,14 @@ class App {
           const srcDataUrl = state.originalDataUrl || this.imageDataToDataUrl(srcImageData);
 
           store.setState({
-            processingStep: '2/4 正在呼叫開源 AI 深度學習神經網路進行 4x 細節重建 (Real-ESRGAN)...'
+            processingStep: '2/4 正在執行邊緣強化 4x 放大演算法...'
           });
           const aiResult = await AiUpscaleClient.upscale(srcDataUrl);
 
           if (aiResult.success && aiResult.imageData) {
             processedImgData = aiResult.imageData;
             appliedScale = aiResult.scale || 4;
-            Toast.success('🧠 開源 AI 深度學習細節重建完成 (Real-ESRGAN 4x)！');
+            Toast.success('⚡ 邊緣強化 4x 放大完成！');
           } else {
             // Graceful automatic fallback to local Lanczos-3 8x pyramid engine
             store.setState({
@@ -1518,7 +1518,7 @@ class App {
         scoreResult.recommendations.push(...barcodeReport.recommendations);
       }
       if (iqaReport.score >= 80) {
-        scoreResult.recommendations.push(`📊 CLIP-IQA+ 印刷質量分：${iqaReport.score}/100 (${iqaReport.grade} 級商業標準)`);
+        scoreResult.recommendations.push(`📊 印刷品質評分：${iqaReport.score}/100 (${iqaReport.grade} 級商業標準)`);
       }
 
       const processedDataUrl = this.imageDataToDataUrl(processedImgData);

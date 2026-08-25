@@ -1,21 +1,29 @@
 """
 Zero-DCE++ Low-Light Enhancement Microservice
 
-This service hosts exactly one real trained model: Zero-DCE++ (Zero-Reference Deep Curve
-Estimation), a genuine PyTorch network with learned weights, used for low-light image enhancement.
+⚠️ HONESTY NOTE (2026-08-25): the network architecture below (CSDN_Tem / ZeroDCE_Plus) is a
+genuine, correctly-structured implementation of the real Zero-DCE++ paper's model — that part is
+real code, not fabricated. But it is instantiated with PyTorch's random default initialization and
+NEVER loads trained weights: there is no `torch.load()` / `load_state_dict()` call anywhere in
+this file, and no `.pth`/`.pt` weight file has ever existed anywhere in this repo's git history
+(the Dockerfile's `COPY model/ ./model/` line references a directory that has never existed
+either — this container has never actually been buildable as a result). Running inference through
+an untrained network does NOT reproduce the paper's learned curve estimation; output quality is
+undefined, not "real AI enhancement." A previous version of this file's docstring claimed
+"~79KB weights" and called this "a genuine PyTorch network with learned weights" — that
+characterization was wrong and has been corrected here. Until real trained weights are sourced or
+trained and actually loaded, treat this exactly like the deterministic local fallback in
+src/core/zero-dce-enhancer.ts: architecturally-motivated code, not a working trained model.
 
 Endpoints:
   GET  /health
-  POST /enhance   -> Zero-DCE++ non-linear tone curve estimation (real inference, ~79KB weights)
+  POST /enhance   -> runs the untrained ZeroDCE_Plus network (see honesty note above)
 
 An earlier version of this file also advertised /deshadow, /matting, /assess, /denoise, /deblur,
 /dewarp, /segment, /upscale, and ~80 other endpoints under this same handler. None of those ran a
 model: every one of them executed `out_img = img` (returned the input unchanged) or, for /assess,
 returned a hardcoded constant score (92/88/95, always, regardless of input) while reporting
-success=true. That was actively misleading — callers had no way to tell "processed" from
-"echoed back untouched" from the response alone. Those routes have been removed rather than kept
-as decorative dead code. If a real model is added for one of those tasks later, add its endpoint
-back deliberately, with a real inference path behind it.
+success=true. Those routes have been removed rather than kept as decorative dead code.
 
 Memory Management:
   - PyTorch CPU Runtime (~150-200 MB RSS for this single model)
@@ -82,10 +90,10 @@ class ZeroDCE_Plus(nn.Module):
         return self.enhance_curve(x, r)
 
 
-print("[Zero-DCE++] Loading model...")
+print("[Zero-DCE++] Initializing network with random weights (no trained checkpoint available — see honesty note above)")
 zero_dce_model = ZeroDCE_Plus()
 zero_dce_model.eval()
-print("[Zero-DCE++] Ready on port", PORT)
+print("[Zero-DCE++] Ready on port", PORT, "— UNTRAINED, output quality is not representative of the real model")
 
 
 class ZeroDceHandler(BaseHTTPRequestHandler):
@@ -113,7 +121,7 @@ class ZeroDceHandler(BaseHTTPRequestHandler):
             self._send_json(200, {
                 'status': 'healthy',
                 'service': 'Zero-DCE++ Low-Light Enhancement',
-                'models': ['Zero-DCE++']
+                'models': ['Zero-DCE++ (untrained — random weights, no checkpoint loaded)']
             })
             return
         self._send_json(404, {'error': 'Not found'})

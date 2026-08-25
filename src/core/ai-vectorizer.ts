@@ -4,17 +4,14 @@ export interface Point {
 }
 
 /**
- * ✒️ VTracer-Pro & LIVE (Layer-wise Image Vectorization with G1/G2 Curvature Continuity - MIT)
- * 
- * Commercial Value & Pre-Press Problem Solved:
- * Standard raster-to-vector tracing (e.g. basic Potrace or naive polygon chains) produces thousands
- * of jagged, dense anchor points that overload CNC laser cutters, vinyl plotters, and Adobe Illustrator.
- * 
- * Mathematical Solution:
- * 1. Adaptive Color Quantization: Dynamic LAB color distance clustering.
- * 2. Douglas-Peucker + Radial Angle Filtering: Reduces redundant collinear anchor points by up to 45%.
- * 3. G1/G2 Curvature Continuous Cubic Bézier Splines: Smooths organic curves with exact tangent matching.
- * 4. Production-Ready SVG Output: Clean hierarchical SVG layers ready for laser cutting & spot printing.
+ * ✒️ Local Raster-to-Vector Tracer (independent implementation, no relation to VTracer)
+ *
+ * This is a from-scratch client-side vectorizer: LAB color-distance quantization, Douglas-Peucker
+ * point reduction, and Cubic Bézier curve fitting — genuine, working classical algorithms. It used
+ * to brand itself "VTracer-Pro & LIVE", reusing the name of the actual, separate Rust VTracer tool
+ * that runs server-side at docker/vtracer/ (real, reachable via /api/vectorize) and Adobe
+ * Illustrator's "Live Trace" feature — this file is neither of those; it's this app's own local
+ * fallback used when the real VTracer service is offline (see src/services/free-vectorize-client.ts).
  */
 export class AiVectorizer {
   /**
@@ -82,7 +79,7 @@ export class AiVectorizer {
 
     return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">
-  <g id="PrintMagic_VTracerPro_Layer" shape-rendering="geometricPrecision">
+  <g id="PrintMagic_LocalVectorTrace_Layer" shape-rendering="geometricPrecision">
     ${svgPaths.join('\n    ')}
   </g>
 </svg>`;

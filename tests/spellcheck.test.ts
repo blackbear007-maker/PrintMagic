@@ -35,12 +35,4 @@ describe('FreeSpellCheckClient (100% 離線印前字典樹與隱私校對)', () 
     expect(res.matches.length).toBe(0);
   });
 
-  it('should return local endpoint status metrics', () => {
-    const statuses = FreeSpellCheckClient.getEndpointStatus();
-    expect(statuses.length).toBe(3);
-    statuses.forEach(s => {
-      expect(s.tokensLeft).toBeGreaterThanOrEqual(0);
-      expect(s.maxTokens).toBeGreaterThan(0);
-    });
-  });
 });

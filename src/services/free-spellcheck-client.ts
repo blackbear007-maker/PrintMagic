@@ -1,13 +1,13 @@
 /**
- * 🔤 100% Private Local Print-Industry Spellcheck & Proofreading Engine (MIT)
+ * 🔤 Local Print-Industry Typo Dictionary
  *
- * Architecture: 100% Client-Side Local Trie Dictionary + Rule Matrix (Zero External Network Calls)
- * 
- * Features:
- *   - 100% Offline Air-Gapped & NDA Privacy Shield Compliant (Zero Bytes Outbound)
- *   - Comprehensive Traditional Chinese, Pre-Press Terminology, English, and Japanese Typo Matrix
- *   - Sub-millisecond (0.1ms) instant execution
- *   - Levenshtein distance fuzzy matcher for close print-term misspellings
+ * A hardcoded list of ~18 regex find/replace rules for common print-industry and Traditional
+ * Chinese typos (CMYK misspellings, DPI misspellings, a handful of common Chinese typos). Genuinely
+ * 100% local and offline — that part is real, verified: no fetch/network call anywhere in this
+ * file. But "NDA Privacy Shield Compliant" / "certified" below is not a real third-party
+ * certification, just this file's own description of itself; and the "0.1ms" timing claim was
+ * never measured. There is no Levenshtein fuzzy matching here either — every rule is an exact
+ * regex match. (The actual Levenshtein fuzzy dictionary lookup lives in text-inspector.ts.)
  */
 
 export interface SpellCheckMatch {
@@ -83,8 +83,7 @@ const resultCache = new LruCache<string, SpellCheckResult>(200);
 export class FreeSpellCheckClient {
 
   /**
-   * Check text for spelling and grammar errors 100% locally and offline.
-   * Zero external API calls, 0ms latency, 100% NDA Privacy Shield certified.
+   * Checks text against the local regex typo dictionary. 100% local, no network call — genuinely.
    */
   public static async checkText(
     text: string,
@@ -123,18 +122,10 @@ export class FreeSpellCheckClient {
       matches,
       language,
       source: 'local',
-      endpoint: '100% Local Trie Dictionary (NDA Privacy Shield)'
+      endpoint: '本機正規表示式字典'
     };
 
     resultCache.set(cacheKey, result);
     return result;
-  }
-
-  public static getEndpointStatus(): Array<{ endpoint: string; tokensLeft: number; maxTokens: number }> {
-    return [
-      { endpoint: '100% Local Trie Dictionary', tokensLeft: 9999, maxTokens: 9999 },
-      { endpoint: 'Pre-Press Typo Matrix (Offline)', tokensLeft: 9999, maxTokens: 9999 },
-      { endpoint: 'NDA Privacy Shield (0 Outbound Bytes)', tokensLeft: 9999, maxTokens: 9999 }
-    ];
   }
 }

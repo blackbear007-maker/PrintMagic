@@ -1,5 +1,19 @@
 /**
- * Taiwan Convenience Store Cloud Printing Engine (7-ELEVEN ibon & 全家 FamiPort)
+ * Taiwan Convenience Store Print-Ready File Generator (7-ELEVEN ibon & 全家 FamiPort)
+ *
+ * What this does: generates a correctly-sized, correctly-margined 300 DPI JPEG for each store's
+ * paper spec, and links to the store's real official upload website (ibon.com.tw /
+ * famiport.family.com.tw). Both of those are real.
+ *
+ * What this does NOT do: submit an order to 7-11/FamiPort, or generate a real pickup code. An
+ * earlier version of this file also had `generateCloudOrder()` / `generateSimulatedQrCode()`,
+ * which fabricated an 8-digit pickup PIN and drew a QR-code-shaped image from `Math.random()` —
+ * neither was ever submitted to any 7-11/FamiPort system, and the QR was not a real, decodable QR
+ * code (no error correction, no valid encoding) even if scanned. A user acting on that fake PIN/QR
+ * at a real store would have gotten nothing. Removed rather than kept as a convincing-looking
+ * placeholder — this app has no access to 7-11/FamiPort's order APIs, so it can't offer that
+ * feature honestly. Getting a real pickup code requires using the store's own website/app, which
+ * the "official upload page" link below does.
  */
 
 export interface ConveniencePrintSpec {
@@ -16,18 +30,6 @@ export interface ConveniencePrintSpec {
   description: string;
   recommendedFor: string;
   uploadUrl: string;
-}
-
-export interface ConvenienceCloudOrder {
-  orderId: string;
-  pickupPin: string; // 8-digit PIN e.g. "8492-3819"
-  store: '7-11' | 'familymart';
-  storeName: string;
-  paperType: string;
-  priceNTD: number;
-  expireTime: string; // e.g. 72 hours from now formatted
-  qrDataUrl: string;
-  spec: ConveniencePrintSpec;
 }
 
 export const CONVENIENCE_STORE_SPECS: ConveniencePrintSpec[] = [
@@ -202,88 +204,4 @@ export class ConvenienceStoreEngine {
     });
   }
 
-  /**
-   * Generates instant simulated/live cloud print order with 8-digit PIN and QR Code
-   */
-  public static generateCloudOrder(spec: ConveniencePrintSpec): ConvenienceCloudOrder {
-    const random1 = Math.floor(1000 + Math.random() * 9000);
-    const random2 = Math.floor(1000 + Math.random() * 9000);
-    const pickupPin = `${random1}-${random2}`;
-    const orderId = `PM${Date.now().toString().slice(-8)}`;
-
-    const now = new Date();
-    now.setHours(now.getHours() + 72); // 72 hours validity
-    const expireTime = `${now.getMonth() + 1}/${now.getDate()} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')} 前`;
-
-    const qrDataUrl = this.generateSimulatedQrCode(pickupPin, spec.store);
-
-    return {
-      orderId,
-      pickupPin,
-      store: spec.store,
-      storeName: spec.storeName,
-      paperType: spec.paperType,
-      priceNTD: spec.priceNTD,
-      expireTime,
-      qrDataUrl,
-      spec
-    };
-  }
-
-  /**
-   * Render high-density visual QR pattern on Canvas
-   */
-  private static generateSimulatedQrCode(code: string, store: '7-11' | 'familymart'): string {
-    if (typeof document === 'undefined') {
-      return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
-    }
-    const size = 180;
-    const canvas = document.createElement('canvas');
-    canvas.width = size;
-    canvas.height = size;
-    const ctx = canvas.getContext('2d')!;
-
-    // Background
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, size, size);
-
-    const color = store === '7-11' ? '#007a3d' : '#009045';
-    ctx.fillStyle = '#1c1c1e';
-
-    // Outer Position Markers (Top-left, Top-right, Bottom-left)
-    const drawMarker = (x: number, y: number) => {
-      ctx.fillStyle = color;
-      ctx.fillRect(x, y, 42, 42);
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(x + 6, y + 6, 30, 30);
-      ctx.fillStyle = color;
-      ctx.fillRect(x + 12, y + 12, 18, 18);
-    };
-
-    drawMarker(12, 12);
-    drawMarker(size - 54, 12);
-    drawMarker(12, size - 54);
-
-    // Matrix Dots based on pseudo-random hash of code
-    ctx.fillStyle = '#1c1c1e';
-    const grid = 21;
-    const cell = size / grid;
-
-    let seed = 0;
-    for (let i = 0; i < code.length; i++) seed = (seed * 31 + code.charCodeAt(i)) & 0xffffffff;
-
-    for (let r = 0; r < grid; r++) {
-      for (let c = 0; c < grid; c++) {
-        // Skip marker areas
-        if ((r < 7 && c < 7) || (r < 7 && c >= grid - 7) || (r >= grid - 7 && c < 7)) continue;
-
-        seed = (seed * 16807) % 2147483647;
-        if ((seed % 100) < 48) {
-          ctx.fillRect(Math.round(c * cell), Math.round(r * cell), Math.ceil(cell - 0.5), Math.ceil(cell - 0.5));
-        }
-      }
-    }
-
-    return canvas.toDataURL('image/png');
-  }
 }

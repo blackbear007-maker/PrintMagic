@@ -1,5 +1,8 @@
 /**
- * State-of-the-Art Multi-Stage Progressive Lanczos-3 Super-Resolution Engine (v3 Linear-Light)
+ * Multi-Stage Progressive Lanczos-3 Resampling Engine (v3 Linear-Light)
+ * Classical sinc-based resampling filter — real, well-established DSP, not a learned
+ * super-resolution model. It sharpens/interpolates existing pixels; it cannot hallucinate detail
+ * that isn't in the source.
  * Features:
  * 1. Physical Linear-Radiance Color Space Convolution (Zero dark halos on high-contrast edges)
  * 2. Multi-Stage Pyramid Scaling for 2x, 4x, 8x with minimal distortion

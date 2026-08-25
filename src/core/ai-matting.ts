@@ -1,5 +1,6 @@
 /**
- * ✂️ 髮絲級 AI 模切貼紙去背與 Alpha 遮罩引擎 (Hair-Level Alpha Matting)
+ * ✂️ 顏色距離去背與 Alpha 遮罩引擎
+ * 決定性演算法（角落取樣背景色 + 顏色距離），非神經網路去背模型。
  * 特色：
  * 1. 自動偵測畫面主要實體輪廓與透明通道提取
  * 2. 邊緣色溢消除 (Color Decontamination)

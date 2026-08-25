@@ -57,15 +57,13 @@ export class Paper3DController {
       ? '250 gsm Double-side Matte (雙面啞粉卡)'
       : '250 gsm Super Gloss Art (超光銅版紙)';
 
-    const fingerprint = Math.random().toString(36).substring(2, 10).toUpperCase();
-
     backside.innerHTML = `
       <div class="pm-back-inner">
-        <div class="pm-back-watermark">ARCHIVAL PROOF</div>
+        <div class="pm-back-watermark">PREVIEW</div>
 
         <div class="pm-back-header">
           <span class="pm-back-logo">✨ PrintMagic Studio</span>
-          <span class="pm-back-tag">PRE-PRESS VERIFIED</span>
+          <span class="pm-back-tag">紙材預覽</span>
         </div>
 
         <div class="pm-back-meta-grid">
@@ -76,14 +74,6 @@ export class Paper3DController {
           <div class="pm-back-item">
             <span class="pm-back-label">RECOMMENDED STOCK / 建議紙材</span>
             <span class="pm-back-val">${paperGsm}</span>
-          </div>
-          <div class="pm-back-item">
-            <span class="pm-back-label">COLOR PROFILE / 色彩標準</span>
-            <span class="pm-back-val">Japan Color 2001 Coated (TAC 300%)</span>
-          </div>
-          <div class="pm-back-item">
-            <span class="pm-back-label">DIGITAL FINGERPRINT / 防偽編號</span>
-            <span class="pm-back-val pm-font-mono">PM-2026-${fingerprint}</span>
           </div>
         </div>
 
@@ -96,7 +86,7 @@ export class Paper3DController {
         </div>
 
         <div class="pm-back-footer">
-          <span>CERTIFIED CLIENT-SIDE LOCAL PROOF</span>
+          <span>紙材與尺寸預覽，非印前檢驗證書</span>
           <span>FLIP TO FRONT ↻</span>
         </div>
       </div>
