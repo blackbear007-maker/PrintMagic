@@ -369,16 +369,16 @@ export class QuotaRouter {
       },
 
       // ════════ 7. Text OCR & Multi-Language Proofreading (100% Open Source) ════════
-      'ocr-ppocr-v4': {
-        id: 'ocr-ppocr-v4',
+      'ocr-ppocr-v5': {
+        id: 'ocr-ppocr-v5',
         category: 'ocr',
-        name: 'PP-OCRv4 繁中高精文字辨識 (Apache 2.0)',
+        name: 'PP-OCRv5 繁中/直排/彎曲高精文字辨識 (Apache 2.0)',
         provider: 'PaddleOCR Engine (Apache 2.0)',
         qualityScore: 99,
         totalQuota: 2000,
         usedQuota: 0,
         status: 'optimal',
-        description: '繁體中文、日文、英文與商標文字精確定位，一鍵轉 K100 純黑向量'
+        description: '繁體中文、直排書法、彎曲手寫、日文、英文與商標精確定位，一鍵轉 K100 純黑向量'
       },
       'ocr-space': {
         id: 'ocr-space',

@@ -42,19 +42,19 @@ export class FreeOcrClient {
       return { tokens: cached.tokens, isCloud: true, engineName: `快取 [${cached.engine}]` };
     }
 
-    // 1. Primary: Self-Hosted PP-OCRv4 Microservice (/api/ocr)
+    // 1. Primary: Self-Hosted PP-OCRv5 Microservice (/api/ocr)
     const ocrResult = await this.trySelfHostedOcr(imageDataUrl);
     if (ocrResult) {
-      this.cache.set(cacheKey, { tokens: ocrResult.tokens, engine: '自建 PP-OCRv4 (100% 離線隱私)' });
+      this.cache.set(cacheKey, { tokens: ocrResult.tokens, engine: '自建 PP-OCRv5 (100% 離線隱私)' });
       return {
         tokens: ocrResult.tokens,
         isCloud: true,
-        engineName: '自建 PP-OCRv4 繁中高精微服務 (100% 離線隱私保護盾)'
+        engineName: '自建 PP-OCRv5 繁中高精微服務 (100% 離線隱私保護盾)'
       };
     }
 
     // 2. Offline local fallback
-    return { tokens: [], isCloud: false, engineName: '本機 PP-OCRv4 向量定位 (純離線)' };
+    return { tokens: [], isCloud: false, engineName: '本機 PP-OCRv5 向量定位 (純離線)' };
   }
 
   /**

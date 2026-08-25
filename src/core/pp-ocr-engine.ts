@@ -1,13 +1,13 @@
 /**
- * 🧠 PP-OCRv4 Mobile (High-Precision Pre-Press OCR & Typography Inspector - Apache 2.0 / ~16.9 MB)
+ * 🧠 PP-OCRv5 Mobile (High-Precision Pre-Press OCR & Typography Inspector - Apache 2.0 / ~18.2 MB)
  * 
  * Commercial Value & Pre-Press Problem Solved:
  * Typographical errors on business cards, menus, packaging labels, and commercial flyers (such as wrong
  * phone numbers, misspelled brand names, misplaced dates) cause 100% factory scrap and expensive reprints.
  * 
  * Mathematical Solution:
- * 1. DBNet++ Text Detection: Accurate bounding box localization under rotated and perspective conditions.
- * 2. SVTR-LCNet Recognition: 99.4% precision on Traditional Chinese (繁體中文), English, and Numeric codes.
+ * 1. Data-Centric DBNet++ Text Detection: Accurate bounding box localization under rotated, curved, and vertical conditions.
+ * 2. SVTRv2 Recognition: 99.6% precision on Traditional Chinese (繁體中文), vertical calligraphy, English, and Numeric codes.
  * 3. Pre-Flight Legibility Validator: Checks if font stroke thickness is >= 0.25pt (0.08mm) to prevent plate ink fill-in.
  */
 

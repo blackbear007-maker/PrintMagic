@@ -66,8 +66,8 @@ describe('SOTA Open-Source Commercial Pre-Press Suite (6大頂級可商用 AI �
     expect(res4x.noiseSuppressedScore).toBeGreaterThan(90);
   });
 
-  // 4. PP-OCRv4 Mobile OCR
-  it('4. PP-OCRv4 Mobile: should detect text zones and check 0.25pt minimum legibility', () => {
+  // 4. PP-OCRv5 Mobile OCR
+  it('4. PP-OCRv5 Mobile: should detect text zones and check 0.25pt minimum legibility', () => {
     const img = createMockImageData(80, 80, 255, 255, 255);
     // Draw high-contrast text strokes
     for (let y = 10; y < 30; y += 2) {

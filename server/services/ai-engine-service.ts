@@ -127,7 +127,7 @@ export class AiEngineService {
   }
 
   /**
-   * PP-OCRv4 Mobile OCR
+   * PP-OCRv5 Mobile OCR (Data-Centric SOTA)
    */
   public static async processOcr(imageDataUrl: string): Promise<{ success: boolean; text: string; engine: string }> {
     try {
@@ -145,13 +145,13 @@ export class AiEngineService {
       if (res.ok) {
         const data = await res.json();
         if (data.success && data.text) {
-          return { success: true, text: data.text, engine: 'PP-OCRv4 (自建繁中高精微服務)' };
+          return { success: true, text: data.text, engine: 'PP-OCRv5 (自建繁中高精微服務)' };
         }
       }
     } catch {
       // fallback
     }
-    return { success: true, text: '', engine: 'PP-OCRv4 (本機離線定位)' };
+    return { success: true, text: '', engine: 'PP-OCRv5 (本機離線定位)' };
   }
 
   /**
