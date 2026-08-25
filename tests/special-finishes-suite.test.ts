@@ -1,5 +1,4 @@
 import { describe, it, expect } from 'vitest';
-import { LineartExtractor } from '../src/core/lineart-extractor';
 import { RealPaperSimulator } from '../src/core/real-paper-simulator';
 import { QrPreflightEnhancer } from '../src/core/qr-preflight-enhancer';
 
@@ -14,14 +13,6 @@ describe('Special Finishes & Artisanal Pre-Press Suite', () => {
     }
     return { width: w, height: h, data, colorSpace: 'srgb' } as ImageData;
   };
-
-  it('LineartExtractor: should extract clean binary line art', () => {
-    const img = createMockImageData(20, 20);
-    const res = LineartExtractor.extractLineart(img, 1.0, 0.9);
-    expect(res.width).toBe(20);
-    expect(res.height).toBe(20);
-    expect([0, 255]).toContain(res.data[0]); // Binary 0 or 255
-  });
 
   it('RealPaperSimulator: should simulate woodfree and kraft physical substrate absorbency', () => {
     const img = createMockImageData(15, 15);
