@@ -6,7 +6,6 @@ import { store, type AppState } from './ui/state';
 import { DropZone, type LoadedImageResult } from './ui/dropzone';
 import { DiagnosticCard } from './ui/diagnostic-card';
 import { CompareSlider } from './ui/compare-slider';
-import { PaperSimulator } from './ui/paper-simulator';
 import { Paper3DController } from './ui/paper-3d';
 import { LoupeController } from './ui/loupe';
 import { LaserScanController } from './ui/laser-scan';
@@ -73,7 +72,6 @@ import type { BatchItem, PaperType, PrintPresetId } from './types';
 class App {
   public diagnosticCard!: DiagnosticCard;
   public compareSlider!: CompareSlider;
-  public paperSimulator!: PaperSimulator;
   public paper3D!: Paper3DController;
   public canvasZoom!: CanvasZoomController;
   public xiangAssistant!: XiaoxiangAssistant;
@@ -216,10 +214,7 @@ class App {
     // 3. Compare Slider
     this.compareSlider = new CompareSlider('compareSliderRoot');
 
-    // 4. Paper Simulator
-    this.paperSimulator = new PaperSimulator('stageContainer');
-
-    // 5. 3D Paper Physics Controller
+    // 4. 3D Paper Physics Controller
     this.paper3D = new Paper3DController('stageContainer', 'canvasSheet', store.getState().currentPreset);
 
     // 6. 🤌 Touch Pinch-to-Zoom & Long-Press Peek Controller
@@ -502,7 +497,11 @@ class App {
         if (paper) {
           store.setPaper(paper);
           this.updatePaperButtonsUI(paper);
-          this.paperSimulator.setPaper(paper);
+          const stage = document.getElementById('stageContainer');
+          if (stage) {
+            stage.classList.remove('pm-paper-glossy', 'pm-paper-matte', 'pm-paper-linen', 'pm-paper-cotton');
+            stage.classList.add(`pm-paper-${paper}`);
+          }
           SoundEffects.sliderTick();
           Toast.info(`已切換實體紙材模擬：${btn.textContent}`);
         }
