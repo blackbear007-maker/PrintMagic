@@ -6,10 +6,10 @@ export default defineConfig({
     hookTimeout: 120000,
     teardownTimeout: 120000,
     setupFiles: ['./tests/setup.ts'],
-    pool: 'forks',
+    pool: 'threads',
     poolOptions: {
-      forks: {
-        singleFork: true
+      threads: {
+        singleThread: false
       }
     }
   }
