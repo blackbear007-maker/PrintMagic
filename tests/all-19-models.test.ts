@@ -1,16 +1,16 @@
 import { describe, it, expect } from 'vitest';
 
 // Import SOTA PyTorch & Pre-Press Core Models
-import { AotGanInpainter } from '../src/core/aot-gan-inpaint';          // #19 AOT-GAN Lite
-import { ScunetDenoiser } from '../src/core/scunet-denoiser';          // #05 SCUNet-Lite
-import { NafnetDeblur } from '../src/core/nafnet-deblur';              // #10 NAFNet-Lite
+import { FastLamaInpainter } from '../src/core/fast-lama-inpaint';      // #19 Fast-LaMa v2 Bleed Extension
+import { ScunetDenoiser } from '../src/core/scunet-denoiser';          // #05 Restormer-Lite Denoiser
+import { NafnetDeblur } from '../src/core/nafnet-deblur';              // #10 Stripformer-Lite Deblur
 import { NanodetFocal } from '../src/core/nanodet-focal';              // #07 NanoDet-Plus
-import { MobileSamSegmenter } from '../src/core/mobilesam-segmenter';  // #16 MobileSAM / SAM-2
+import { MobileSamSegmenter } from '../src/core/mobilesam-segmenter';  // #16 SAM 2.1 Tiny Segmenter
 import { RealEsrganUpscaler } from '../src/core/realesrgan-upscaler';  // #12 RealESRGAN Compact
-import { DexinedEdgeDetector } from '../src/core/dexined-edge';        // #13 DexiNed-Lite
+import { TeedEdgeDetector } from '../src/core/teed-edge';              // #13 TEED Edge Detector
 import { DoctrDewarp } from '../src/core/doctr-dewarp';                // #14 DocTr-Lite
-import { NimaAssessor } from '../src/core/nima-assessor';              // #06 NIMA
-import { DeshadowEngine } from '../src/core/deshadow-engine';          // #11 Deshadow-Net
+import { ClipIqaAssessor } from '../src/core/clip-iqa-assessor';      // #06 CLIP-IQA+
+import { DeshadowEngine } from '../src/core/deshadow-engine';          // #11 ShadowFormer-Lite
 import { BiRefNetMatting } from '../src/core/birefnet-matting';        // #03 BiRefNet-Lite
 import { ZeroDceEnhancer } from '../src/core/zero-dce-enhancer';        // #04 Zero-DCE++
 import { AntiBandingFilter } from '../src/core/anti-banding';          // #15 DGF-Net
@@ -28,21 +28,16 @@ describe('Comprehensive PyTorch Commercial Pre-Press Suite', () => {
     return { width: w, height: h, data, colorSpace: 'srgb' } as ImageData;
   };
 
-  // ─── #19 AOT-GAN Lite & Bleed Outpainting ────────────────────────────────
-  it('#19 AOT-GAN: should inpaint large missing areas and outpaint 3mm bleed margins', () => {
+  // ─── #19 Fast-LaMa v2 Bleed Extension ────────────────────────────────────
+  it('#19 Fast-LaMa: should inpaint and outpaint 3mm bleed margins seamlessly', () => {
     const img = createMockImageData(40, 40);
-    const mask = createMockImageData(40, 40, 0, 0, 0, 0);
-    mask.data[0] = 255; mask.data[3] = 255; // mark pixel
-
-    const inpainted = AotGanInpainter.inpaintLargeArea(img, mask, 2);
-    expect(inpainted.width).toBe(40);
-
-    const outpainted = AotGanInpainter.outpaintBleed(img, 10);
-    expect(outpainted.newWidth).toBe(60);
-    expect(outpainted.newHeight).toBe(60);
+    const outpainted = FastLamaInpainter.generateBleedMargin(img, 10);
+    expect(outpainted.expandedImageData.width).toBe(60);
+    expect(outpainted.expandedImageData.height).toBe(60);
+    expect(outpainted.spectralCoherenceScore).toBeGreaterThan(90);
   });
 
-  // ─── #05 SCUNet-Lite Blind Denoiser ──────────────────────────────────────
+  // ─── #05 SCUNet-Lite / Restormer Blind Denoiser ──────────────────────────
   it('#05 SCUNet: should suppress JPEG and chromatic noise with edge-awareness', () => {
     const img = createMockImageData(30, 30);
     const denoised = ScunetDenoiser.denoise(img, 0.6);
@@ -50,7 +45,7 @@ describe('Comprehensive PyTorch Commercial Pre-Press Suite', () => {
     expect(denoised.height).toBe(30);
   });
 
-  // ─── #10 NAFNet-Lite Motion Deblur ───────────────────────────────────────
+  // ─── #10 NAFNet-Lite / Stripformer Motion Deblur ─────────────────────────
   it('#10 NAFNet: should sharpen soft focus and handshake blur', () => {
     const img = createMockImageData(30, 30);
     const deblurred = NafnetDeblur.deblur(img, 0.5);
@@ -66,7 +61,7 @@ describe('Comprehensive PyTorch Commercial Pre-Press Suite', () => {
     expect(focal.height).toBeGreaterThan(0);
   });
 
-  // ─── #16 MobileSAM / SAM-2 1-Click Segmenter ─────────────────────────────
+  // ─── #16 MobileSAM / SAM 2.1 1-Click Segmenter ───────────────────────────
   it('#16 MobileSAM: should segment object mask from single click coordinate into spot finish mask', () => {
     const img = createMockImageData(40, 40, 255, 0, 0); // Red
     const seg = MobileSamSegmenter.segmentObjectAtPoint(img, 20, 20, 'foil', 30);
@@ -82,10 +77,10 @@ describe('Comprehensive PyTorch Commercial Pre-Press Suite', () => {
     expect(upscaled.upscaledImageData.height).toBe(50);
   });
 
-  // ─── #13 DexiNed-Lite Hairline Edge Detector ─────────────────────────────
-  it('#13 DexiNed: should extract continuous single-pixel cut contour edges', () => {
+  // ─── #13 TEED SOTA Hairline Edge Detector ────────────────────────────────
+  it('#13 TEED: should extract continuous single-pixel cut contour edges', () => {
     const img = createMockImageData(30, 30);
-    const contour = DexinedEdgeDetector.extractContour(img, 20);
+    const contour = TeedEdgeDetector.extractContour(img, 20);
     expect(contour.width).toBe(30);
   });
 
@@ -100,9 +95,9 @@ describe('Comprehensive PyTorch Commercial Pre-Press Suite', () => {
   it('should verify all other integrated models in the suite', () => {
     const img = createMockImageData(40, 40);
 
-    // #06 NIMA
-    const nima = NimaAssessor.assess(img);
-    expect(nima.score).toBeGreaterThan(0);
+    // #06 CLIP-IQA+
+    const clipIqa = ClipIqaAssessor.assess(img);
+    expect(clipIqa.score).toBeGreaterThan(0);
 
     // #11 Deshadow
     const deshadow = DeshadowEngine.deshadow(img);

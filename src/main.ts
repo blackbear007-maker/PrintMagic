@@ -53,7 +53,7 @@ import { workerClient } from './workers/worker-client';
 import { ShadowLift } from './core/shadow-lift';
 import { DeshadowEngine } from './core/deshadow-engine';
 import { AntiBandingFilter } from './core/anti-banding';
-import { NimaAssessor } from './core/nima-assessor';
+import { ClipIqaAssessor } from './core/clip-iqa-assessor';
 import { PantoneMatcher } from './core/pantone-matcher';
 import { BarcodeVerifier } from './core/barcode-verifier';
 import { PassportModal } from './ui/passport-modal';
@@ -1511,7 +1511,7 @@ class App {
         preset
       );
       const scoreResult = PrintScoreCalculator.calculate(stats, preset, inkAnalysis);
-      const nimaReport = NimaAssessor.assess(processedImgData);
+      const iqaReport = ClipIqaAssessor.assess(processedImgData);
       const dominantPantones = PantoneMatcher.extractDominantSpotColors(processedImgData, 3);
       const barcodeReport = BarcodeVerifier.verifyImage(processedImgData, 300);
 
@@ -1523,8 +1523,8 @@ class App {
         scoreResult.issues.push(...barcodeReport.issues);
         scoreResult.recommendations.push(...barcodeReport.recommendations);
       }
-      if (nimaReport.score >= 80) {
-        scoreResult.recommendations.push(`📊 NIMA 科學質量分：${nimaReport.score}/100 (${nimaReport.grade} 級印刷標準)`);
+      if (iqaReport.score >= 80) {
+        scoreResult.recommendations.push(`📊 CLIP-IQA+ 印刷質量分：${iqaReport.score}/100 (${iqaReport.grade} 級商業標準)`);
       }
 
       const processedDataUrl = this.imageDataToDataUrl(processedImgData);

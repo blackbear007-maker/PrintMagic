@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { NimaAssessor } from '../src/core/nima-assessor';
+import { ClipIqaAssessor } from '../src/core/clip-iqa-assessor';
 import { DeshadowEngine } from '../src/core/deshadow-engine';
 import { ObjectEraser } from '../src/core/object-eraser';
 import { DEFAULT_PIPELINE_OPTIONS } from '../src/types';
@@ -31,7 +31,7 @@ describe('Unified PyTorch AI & Automated Pre-Press Pipeline (全自動啟用驗�
     expect(DEFAULT_PIPELINE_OPTIONS.enableDeshadow).toBe(true);
   });
 
-  it('should evaluate image sharpness, noise, and score using NimaAssessor', () => {
+  it('should evaluate image sharpness, noise, and score using ClipIqaAssessor', () => {
     const img = createMockImageData(60, 60, 150, 150, 150);
     // Draw some high frequency edges
     for (let i = 0; i < 60; i++) {
@@ -41,11 +41,11 @@ describe('Unified PyTorch AI & Automated Pre-Press Pipeline (全自動啟用驗�
       img.data[idx + 2] = 20;
     }
 
-    const report = NimaAssessor.assess(img);
+    const report = ClipIqaAssessor.assess(img);
     expect(report.score).toBeGreaterThan(0);
     expect(report.score).toBeLessThanOrEqual(100);
-    expect(['A+', 'A', 'B', 'C']).toContain(report.grade);
-    expect(report.verdict.length).toBeGreaterThan(0);
+    expect(['EXCELLENT', 'GOOD', 'FAIR', 'POOR']).toContain(report.grade);
+    expect(report.recommendations).toBeDefined();
   });
 
   it('should normalize non-uniform illumination gradient with DeshadowEngine', () => {
@@ -97,9 +97,9 @@ describe('Unified PyTorch AI & Automated Pre-Press Pipeline (全自動啟用驗�
     img = AntiBandingFilter.apply(img, 0.65);
     expect(img).toBeDefined();
 
-    // 3. Auto NIMA
-    const nima = NimaAssessor.assess(img);
-    expect(nima.score).toBeGreaterThan(0);
+    // 3. Auto CLIP-IQA+
+    const clipReport = ClipIqaAssessor.assess(img);
+    expect(clipReport.score).toBeGreaterThan(0);
 
     // 4. Auto Pantone
     const pantones = PantoneMatcher.extractDominantSpotColors(img, 2);

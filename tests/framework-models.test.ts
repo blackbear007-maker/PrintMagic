@@ -11,7 +11,7 @@ import { ScunetDenoiser } from '../src/core/scunet-denoiser';
 import { NafnetDeblur } from '../src/core/nafnet-deblur';
 import { DoctrDewarp } from '../src/core/doctr-dewarp';
 import { MobileSamSegmenter } from '../src/core/mobilesam-segmenter';
-import { AotGanInpainter } from '../src/core/aot-gan-inpaint';
+import { FastLamaInpainter } from '../src/core/fast-lama-inpaint';
 
 describe('Multi-Framework Industrial Pre-Press Suite', () => {
   const createMockImageData = (w: number, h: number, r = 180, g = 180, b = 180, a = 255): ImageData => {
@@ -45,8 +45,8 @@ describe('Multi-Framework Industrial Pre-Press Suite', () => {
     });
   });
 
-  // ─── 🐍⚙️ 2. Industrial Computer Vision Tests ─────────────────────────────────
-  describe('Industrial Computer Vision Engines', () => {
+  // ─── 🐍 2. Python + C++ Industrial Computer Vision Tests ─────────────────────
+  describe('OpenCV & Industrial Vision Pipelines', () => {
     it('OpencvClaheDeskew: should equalize local contrast with CLAHE and check skew', () => {
       const img = createMockImageData(40, 40, 120, 120, 120);
       const equalized = OpencvClaheDeskew.applyClahe(img, 2.5);
@@ -69,7 +69,7 @@ describe('Multi-Framework Industrial Pre-Press Suite', () => {
       expect(deblurred.width).toBe(30);
     });
 
-    it('DocTr & MobileSAM & AOT-GAN: should perform curvature dewarping, 1-click segmentation and bleed outpainting', () => {
+    it('DocTr & MobileSAM & Fast-LaMa: should perform curvature dewarping, 1-click segmentation and bleed outpainting', () => {
       const img = createMockImageData(40, 40);
       const dewarped = DoctrDewarp.dewarp(img, 0.25);
       expect(dewarped.width).toBe(40);
@@ -77,8 +77,8 @@ describe('Multi-Framework Industrial Pre-Press Suite', () => {
       const seg = MobileSamSegmenter.segmentObjectAtPoint(img, 20, 20, 'foil', 32);
       expect(seg.coverageMm2).toBeGreaterThanOrEqual(0);
 
-      const outpainted = AotGanInpainter.outpaintBleed(img, 12);
-      expect(outpainted.newWidth).toBe(64);
+      const outpainted = FastLamaInpainter.generateBleedMargin(img, 12);
+      expect(outpainted.expandedImageData.width).toBe(64);
     });
   });
 });
