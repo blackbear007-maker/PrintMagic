@@ -2,3 +2,27 @@ torch==2.3.1
 torchvision==0.18.1
 Pillow==10.3.0
 numpy==1.26.4
+
+# Retinexformer (enhance/low-light) — only needs its own model file (retinexformer_arch.py,
+# vendored into this image) plus einops for its attention reshape ops; does not need basicsr or
+# the rest of the Retinexformer repo's training/eval harness.
+einops==0.8.2
+
+# Real-ESRGAN (upscale) — realesrgan's own PyPI release still hard-depends on basicsr, which is
+# unmaintained (last PyPI release 2022-08-30) and imports a torchvision module removed in 0.17+.
+# The Dockerfile patches that one broken import after install — see the RUN sed step there.
+realesrgan==0.3.0
+basicsr==1.4.2
+opencv-python-headless==4.10.0.84
+
+# DehazeFormer-T (dehaze) — only needs its own model file (dehazeformer_model/dehazeformer.py,
+# vendored into this image, deliberately NOT named `models/` — see server.py's honesty note on
+# why that collides with ARNIQA's torch.hub-loaded code) plus timm for its layer helpers; does
+# not need the rest of the DehazeFormer repo.
+timm==1.0.9
+
+# ARNIQA (quality assessment) — loaded via torch.hub, no extra pip package needed beyond torch/
+# torchvision above.
+
+# LaMa (inpaint) — the checkpoint is a TorchScript-traced export (torch.jit.load), so it needs
+# no architecture class or extra package at all beyond torch/numpy/Pillow already above.

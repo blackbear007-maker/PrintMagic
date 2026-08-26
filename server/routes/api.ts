@@ -65,9 +65,9 @@ apiRouter.post('/export-pdfx', async (req: Request, res: Response) => {
   }
 });
 
-// 🌙 Zero-DCE++ Low-Light Enhancement (real network architecture, untrained weights — see
+// 🌙 Retinexformer Low-Light Enhancement (real trained weights if manually sourced, see
 // server/services/ai-engine-service.ts for the full honesty note, and for why /ai/matting,
-// /ai/segment, /ai/dewarp, and /ai-upscale were removed rather than kept as no-op stubs)
+// /ai/segment, and /ai/dewarp were removed rather than kept as no-op stubs)
 apiRouter.post('/ai/lowlight', async (req: Request, res: Response) => {
   try {
     const { image_base64 } = req.body;
@@ -80,6 +80,70 @@ apiRouter.post('/ai/lowlight', async (req: Request, res: Response) => {
     res.json(result);
   } catch (err: any) {
     res.status(500).json({ success: false, error: err?.message || 'Low-light enhancement failed' });
+  }
+});
+
+// 🔍 Real-ESRGAN compact (x4v3) Upscale — real trained weights, see ai-engine-service.ts
+apiRouter.post('/ai/upscale', async (req: Request, res: Response) => {
+  try {
+    const { image_base64 } = req.body;
+    if (!image_base64) {
+      res.status(400).json({ success: false, error: 'image_base64 is required' });
+      return;
+    }
+    const { AiEngineService } = await import('../services/ai-engine-service.js');
+    const result = await AiEngineService.processUpscale(image_base64);
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err?.message || 'Upscale failed' });
+  }
+});
+
+// 🌫️ DehazeFormer-T Dehaze — real trained weights if manually sourced, see ai-engine-service.ts
+apiRouter.post('/ai/dehaze', async (req: Request, res: Response) => {
+  try {
+    const { image_base64 } = req.body;
+    if (!image_base64) {
+      res.status(400).json({ success: false, error: 'image_base64 is required' });
+      return;
+    }
+    const { AiEngineService } = await import('../services/ai-engine-service.js');
+    const result = await AiEngineService.processDehaze(image_base64);
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err?.message || 'Dehaze failed' });
+  }
+});
+
+// 📊 ARNIQA No-Reference Quality Score — real trained weights, see ai-engine-service.ts
+apiRouter.post('/ai/quality', async (req: Request, res: Response) => {
+  try {
+    const { image_base64 } = req.body;
+    if (!image_base64) {
+      res.status(400).json({ success: false, error: 'image_base64 is required' });
+      return;
+    }
+    const { AiEngineService } = await import('../services/ai-engine-service.js');
+    const result = await AiEngineService.processQuality(image_base64);
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err?.message || 'Quality assessment failed' });
+  }
+});
+
+// 🪄 LaMa Object/Watermark Removal — real trained weights, auto-downloaded, see ai-engine-service.ts
+apiRouter.post('/ai/inpaint', async (req: Request, res: Response) => {
+  try {
+    const { image_base64, mask_base64 } = req.body;
+    if (!image_base64 || !mask_base64) {
+      res.status(400).json({ success: false, error: 'image_base64 and mask_base64 are required' });
+      return;
+    }
+    const { AiEngineService } = await import('../services/ai-engine-service.js');
+    const result = await AiEngineService.processInpaint(image_base64, mask_base64);
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err?.message || 'Inpaint failed' });
   }
 });
 
@@ -132,58 +196,6 @@ apiRouter.post('/vectorize', async (req: Request, res: Response) => {
     res.status(503).json({
       success: false,
       error: err?.message || 'VTracer service offline / unavailable'
-    });
-  }
-});
-
-// 🧠 Self-Hosted Tesseract OCR Microservice Proxy (100% Private / 0 External API)
-apiRouter.post('/ocr', async (req: Request, res: Response) => {
-  try {
-    const { imageDataUrl, lang = 'chi_tra+eng' } = req.body;
-    if (!imageDataUrl) {
-      res.status(400).json({ success: false, error: 'imageDataUrl is required' });
-      return;
-    }
-
-    const tesseractUrl = process.env.TESSERACT_URL || 'http://localhost:8081';
-    const base64Data = imageDataUrl.replace(/^data:image\/\w+;base64,/, '');
-    const buffer = Buffer.from(base64Data, 'base64');
-
-    const formData = new FormData();
-    const blob = new Blob([buffer], { type: 'image/png' });
-    formData.append('image', blob, 'input.png');
-    formData.append('lang', lang);
-
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 15000);
-
-    const tesseractRes = await fetch(`${tesseractUrl}/ocr`, {
-      method: 'POST',
-      body: formData,
-      signal: controller.signal
-    });
-    clearTimeout(timer);
-
-    if (tesseractRes.ok) {
-      const data = await tesseractRes.json();
-      res.json({
-        success: true,
-        text: data.text,
-        lang: data.lang,
-        elapsed_ms: data.elapsed_ms,
-        engine: 'Tesseract OCR 私有微服務 (100% 離線隱私)'
-      });
-      return;
-    }
-
-    res.status(tesseractRes.status).json({
-      success: false,
-      error: `Tesseract returned HTTP ${tesseractRes.status}`
-    });
-  } catch (err: any) {
-    res.status(503).json({
-      success: false,
-      error: err?.message || 'Tesseract OCR service offline / unavailable'
     });
   }
 });

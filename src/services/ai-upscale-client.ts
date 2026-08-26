@@ -1,13 +1,22 @@
 import { EdgeAwareUpscaler } from '../core/edge-aware-upscaler';
 import { UnsharpMask } from '../core/unsharp-mask';
+import { NetworkGuard } from './network-guard';
 
 /**
- * Local Upscale Client
+ * Upscale Client (self-hosted Real-ESRGAN / local edge-aware fallback)
  *
- * There is no super-resolution model deployed anywhere in this stack (no RealESRGAN/HAT-S/SwinIR/
- * Waifu2x weights exist, self-hosted or otherwise). This always runs the local deterministic
- * EdgeAwareUpscaler (bilinear interpolation + edge boost — see src/core/edge-aware-upscaler.ts).
- * The three presets below only change the scale factor and sharpening amount, not the algorithm.
+ * Flow, added 2026-08-26 (previously 100% local — no super-resolution model existed anywhere in
+ * this stack):
+ * 1. Privacy Shield active -> skip the network entirely, run the local deterministic
+ *    EdgeAwareUpscaler (bilinear interpolation + edge boost — see src/core/edge-aware-upscaler.ts).
+ * 2. Otherwise, attempt the self-hosted Real-ESRGAN compact (x4v3) microservice (/api/ai/upscale
+ *    -> docker/zero-dce/, real trained BSD-3-Clause weights). The service caps input at ~1.44MP
+ *    (measured: larger inputs cost too much container RAM even with tiling — see
+ *    docker/zero-dce/server.py), so the payload is downscaled to fit before sending.
+ * 3. Fallback -> local EdgeAwareUpscaler if the service is unreachable, unavailable, or the
+ *    result doesn't come back successfully. The three presets below only change the local
+ *    fallback's scale factor and sharpening amount, not which algorithm runs — they're not
+ *    different models.
  */
 
 export type AiModelType = 'general-4x' | 'lineart-4x' | 'fast-2x';
@@ -124,7 +133,8 @@ export class AiUpscaleClient {
   }
 
   /**
-   * Upscales using the local edge-aware algorithm (with in-memory result caching)
+   * Upscales via self-hosted Real-ESRGAN (with local edge-aware fallback and in-memory result
+   * caching). See the class-level honesty note for the full flow.
    */
   public static async upscale(
     sourceDataUrl: string,
@@ -145,6 +155,14 @@ export class AiUpscaleClient {
       };
     }
 
+    if (!NetworkGuard.isPrivacyShieldActive()) {
+      const cloudResult = await this.tryRealEsrgan(sourceDataUrl);
+      if (cloudResult) {
+        this.cacheResult(cacheKey, cloudResult);
+        return cloudResult;
+      }
+    }
+
     try {
       const simImgData = await this.dataUrlToImageData(sourceDataUrl);
       const upscaleRes = EdgeAwareUpscaler.upscale(simImgData, config.scale, config.denoiseStrength);
@@ -158,17 +176,7 @@ export class AiUpscaleClient {
         scale: config.scale
       };
 
-      if (this.resultCache.size > 20) {
-        const firstKey = this.resultCache.keys().next().value;
-        if (firstKey) this.resultCache.delete(firstKey);
-      }
-      this.resultCache.set(cacheKey, {
-        dataUrl: sourceDataUrl,
-        imageData: healedImgData,
-        model: config.name,
-        scale: config.scale
-      });
-
+      this.cacheResult(cacheKey, result);
       return result;
     } catch (err: any) {
       return {
@@ -178,6 +186,62 @@ export class AiUpscaleClient {
         error: err?.message || 'Local upscale failed'
       };
     }
+  }
+
+  /**
+   * Attempts the self-hosted Real-ESRGAN microservice. Returns null (not a failed AiUpscaleResult)
+   * on any failure so callers fall through to the local path — that distinction matters here
+   * because "the service said no" and "the service is unreachable" should both just mean
+   * "use the local fallback," not "report failure to the user."
+   */
+  private static async tryRealEsrgan(sourceDataUrl: string): Promise<AiUpscaleResult | null> {
+    try {
+      // Server caps input at ~1.44MP (measured RAM cost, see docker/zero-dce/server.py) — shrink
+      // to fit before sending rather than let the request get rejected.
+      const payload = await this.compressPayloadForUpload(sourceDataUrl, 1200);
+
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 20000);
+      const res = await fetch('/api/ai/upscale', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image_base64: payload }),
+        signal: controller.signal
+      });
+      clearTimeout(timer);
+
+      if (!res.ok) return null;
+      const data = await res.json();
+      if (!data.success || !data.dataUrl) return null;
+
+      const imageData = await this.dataUrlToImageData(data.dataUrl);
+      return {
+        success: true,
+        dataUrl: data.dataUrl,
+        imageData,
+        model: 'Real-ESRGAN compact x4v3 (自建服務)',
+        scale: 4
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  private static cacheResult(
+    cacheKey: string,
+    result: AiUpscaleResult
+  ): void {
+    if (!result.imageData || !result.dataUrl || !result.model || !result.scale) return;
+    if (this.resultCache.size > 20) {
+      const firstKey = this.resultCache.keys().next().value;
+      if (firstKey) this.resultCache.delete(firstKey);
+    }
+    this.resultCache.set(cacheKey, {
+      dataUrl: result.dataUrl,
+      imageData: result.imageData,
+      model: result.model,
+      scale: result.scale
+    });
   }
 
   private static async dataUrlToImageData(dataUrl: string): Promise<ImageData> {

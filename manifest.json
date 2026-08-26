@@ -1,7 +1,7 @@
 {
   "name": "印象魔法 PrintMagic",
   "short_name": "印象魔法",
-  "description": "專為創作者打造的 100% 離線印前出圖與專業色彩解析度優化系統，守護您的輸出品質。",
+  "description": "專為創作者打造的印前出圖與專業色彩解析度優化系統，核心處理本機優先，可一鍵切換 100% 離線模式，守護您的輸出品質。",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#f5f5f7",

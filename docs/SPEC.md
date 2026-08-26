@@ -5,21 +5,22 @@
 > **系統定位**：全自動商業印前修復與出機工作站 (AI Pre-Press Engine & Multi-Format Exporter)  
 > **核心哲學**：100% 自由開源商用架構 · 0 外部收費 API 依賴 · 新手無腦一鍵出機 · 商業合規舉證  
 
-> ⚠️ **誠實性附註（2026-08-25，後更新）**：本文件曾經在第 2、3、7 節列出大量從未實作的「模型」與功能（HAT-S、SwinIR、AOT-GAN、MAT-Lite、DexiNed、CodeFormer、GAIC、FontMatcher、桌面版效能數字等）——這些內容已於 2026-08-25 全面核實並改寫。第一輪核實時誤把 Zero-DCE++ 當成「真正訓練過的模型」，後來進一步查證發現它的 Docker 建置設定引用了從未存在過的權重檔案，程式碼裡也從未載入任何訓練權重（隨機初始化，非訓練結果）；VTracer 的 Dockerfile 同樣引用了從未存在過的原始碼，導致建置必定失敗，現已修正為安裝真正發布的 vtracer crate。目前唯一從頭到尾一致、可正常建置運作的自建服務是 **Tesseract**（OCR）；**VTracer**（向量化）已於本次更新修正為可建置；**Zero-DCE++**（低光提亮）架構程式碼是真的，但輸出品質不代表訓練過的模型。其餘全部是決定性演算法（無 AI 模型），詳見 [README](../README.md#️-引擎組成真實模型-vs-決定性演算法)。
+> ⚠️ **誠實性附註（2026-08-26，後更新）**：本文件曾經在第 2、3、7 節列出大量從未實作的「模型」與功能（HAT-S、SwinIR、AOT-GAN、MAT-Lite、DexiNed、CodeFormer、GAIC、FontMatcher、桌面版效能數字等）——這些內容已於 2026-08-25 全面核實並改寫。第一輪核實時誤把 Zero-DCE++ 當成「真正訓練過的模型」，後來進一步查證發現它的 Docker 建置設定引用了從未存在過的權重檔案，程式碼裡也從未載入任何訓練權重（隨機初始化，非訓練結果）；VTracer 的 Dockerfile 同樣引用了從未存在過的原始碼，導致建置必定失敗，現已修正為安裝真正發布的 vtracer crate。**Tesseract（OCR）已於 2026-08-26 移除**——查證後發現它從未被任何 UI 功能實際呼叫（純死碼），且它原本想解決的問題（讀取 AI 繪圖產生的亂碼假文字）本來就不是 OCR 能解的，因為那些筆畫通常不是真實字元。同日新增 **Real-ESRGAN**（4x 放大）與 **ARNIQA**（品質評分）——兩者都是真實開源模型的官方發布訓練權重，開箱即用；也新增了 **DehazeFormer-T**（去霧）的真實架構程式碼；其權重需自行手動下載才能啟用，已用真實下載的權重檔驗證：`strict=True` 完整載入 258 個張量、零缺漏零多餘，真實推論在模擬霧霾測試圖上讓對比度提升逾 3 倍（0.0245 → 0.0763）。**Retinexformer**（低光提亮）已於同日取代原本從未載入訓練權重的 Zero-DCE++——真實下載了官方發布的 `LOL_v2_real.pth` 權重並驗證：`strict=True` 完整載入 122 個張量、零缺漏零多餘，真實推論成功讓測試圖片變亮（平均亮度 0.082 → 0.399）。同日再新增 **LaMa**（物件／浮水印移除）——TorchScript 匯出的 `big-lama.pt`，有可自動下載的 GitHub Release 網址，開箱即用；已用真實下載的權重檔驗證：`torch.jit.load()` 成功，真實推論在模擬「浮水印」色塊測試圖上完全移除目標色塊（移除區域內 0% 殘留原色）。目前可正常建置運作、且已接上真實訓練權重的自建服務是 **VTracer**（向量化）、**Real-ESRGAN**（放大）、**ARNIQA**（品質評分）、**Retinexformer**（低光提亮）、**DehazeFormer-T**（去霧，兩者的權重都需手動下載，且都已用真實下載的權重檔驗證過推論成功）、**LaMa**（物件／浮水印移除，權重自動下載，已驗證推論成功）。其餘全部是決定性演算法（無 AI 模型），詳見 [README](../README.md#️-引擎組成真實模型-vs-決定性演算法)。
 
 ---
 
 ## 1. 系統全景與技術架構 (System Architecture)
 
 ### 1.1 雲端微服務矩陣 (Railway Docker Multi-Container Architecture)
-系統在雲端採用 4 大獨立輕量化容器，記憶體硬體上限嚴格鎖定在 1.4 GB 內，確保每月主機總開銷控制在 **$6.5 美元 (約 NT$ 210)** 內：
+系統在雲端採用 2 大獨立容器，記憶體硬體上限（OOM 防線，非計費依據）鎖定在約 3.4 GB 內。⚠️ **費用估算已於 2026-08-26 修正**：Railway 是按實際用量按秒計費（RAM $10/GB-月、CPU $20/vCPU-月，來源 railway.com/pricing），不是按上面的硬上限計費——之前這裡用「硬上限 × 舊費率（僅約現在一半）」推算，方法論本身就有誤差。用 `zero-dce` 這次真實量到的記憶體數據（閒置 722.6 MB、穩態 ~1.25 GB）重算，每月主機總開銷實際落在**約 $9-16 美元（約 NT$ 290-520）**，其中 `printmagic`／`vtracer` 兩個容器這次沒有實測、只用硬上限粗估為次要項目，`zero-dce` 才是主要開銷。用戶量大時 CPU 費用增加得很少（按實測延遲估算，月處理 5 萬次請求也只多 +$1.8 左右）——真正的瓶頸是 `server.py` 目前用單執行緒 HTTP server，並發請求會互相卡隊，不是帳單會爆增；細節見 `docker-compose.yml` 內附的完整測量與推算過程：
 
 | 服務容器名稱 | 執行語言 / 運行環境 | 端口 (Port) | RAM 硬上限 | 核心職責與承載模組 |
 | :--- | :--- | :---: | :---: | :--- |
 | **`printmagic`** | Node.js 22 (Alpine) + Vite SSR | `3000` | **256 MB** | 主應用入口、UI 渲染、合版拼版算力、印前 PDF 出機檔壓製（非通過驗證的 PDF/X-1a，見第 5 節）。 |
 | **`vtracer`** | Rust 1.78 (Distroless) | `8080` | **128 MB** | 真實 VTracer 向量化引擎（點陣轉 SVG）。「Kurbo 2mm 刀模幾何運算」實際跑在主應用內的 `src/core/kurbo-geometry.ts`（純 TypeScript），不在這個容器裡；「OxiPNG 無損壓縮」查無實作，本服務不做 PNG 壓縮，已移除該說法。 |
-| **`tesseract`** | Python 3.11 + Tesseract 5.3 C++ | `8081` | **384 MB** | 繁中/英/日 OCR 文字辨識（真實 Tesseract，非 PP-OCR——PP-OCR 從未在本專案中實作）。 |
-| **`zero-dce`** | Python 3.11 + PyTorch 2.3+ (CPU) | `8082` | **640 MB** | Zero-DCE++ 低光照片提亮。⚠️ 網路架構程式碼是真的，但從未載入訓練權重（隨機初始化，見 `docker/zero-dce/server.py` 內的說明）；歷史上曾對外宣稱承載 10+ 款模型，實際上其餘端點是回傳原圖的空殼，已於 2026-08-25 移除。 |
+| **`zero-dce`** | Python 3.12 + PyTorch 2.3+ (CPU) | `8082` | **3072 MB** | 承載 5 個模型（2026-08-26 起）：**Real-ESRGAN**（4x 放大，真實 BSD-3-Clause 訓練權重）、**ARNIQA**（品質評分，真實 Apache-2.0 訓練權重）、**Retinexformer**（低光提亮，真實 MIT 訓練權重，已用真實下載的 `LOL_v2_real.pth` 驗證推論成功，取代原本從未訓練過的 Zero-DCE++）、**DehazeFormer-T**（去霧，真實 MIT 訓練權重，已用真實下載的 `dehazeformer-t.pth` 驗證推論成功；兩者的權重都需手動下載，見 `docker/zero-dce/weights/README.md`）、**LaMa**（物件／浮水印移除，真實 Apache-2.0 TorchScript 權重，建置時自動下載，已驗證推論成功）。記憶體上限是實測數據，非估算——見 `docker-compose.yml` 內附的完整測量說明。 |
+
+⚠️ **`tesseract`（OCR）容器已於 2026-08-26 移除**：查證後發現從未被任何 UI 功能實際呼叫（純死碼），且它原本想解決的問題——讀取 AI 繪圖產生的亂碼假文字——OCR 本來就解不了，那些筆畫通常不是任何文字系統的真實字元。
 
 ### 1.2 零外部付費 API 規則 (Strict 100% Zero-Commercial-API Policy)
 - ❌ 徹底剔除 Google Cloud Vision、Remove.bg、PhotoRoom、Midjourney 等任何需第三方 Token/按次計費之商業 API。
@@ -41,7 +42,7 @@
 - **`canvas-wrap-mirror.ts` (無框畫 3.5cm 立體包邊鏡像)**：四面包邊鏡像延伸，正面構圖 100% 完整不切人臉與重要細節。
 - **`real-paper-simulator.ts` (畫廊卡紙裝裱內襯白邊)**：自動計算 2:3/3:4 比例與 45° 倒角陰影，營造美術館級裝裱質感。
 - **`passport-modal.ts`（UI）+ 相關比例計算 (2 吋護照大頭照頭頂自動校準)**：精確定位台灣與國際 2 吋大頭照 3.2~3.6cm 官方頭部比例。
-- **`object-eraser.ts` (智慧消除筆)**：Fast Marching 快速前進法補景演算法，筆刷塗抹秒除路人、雜物、反光斑點與浮水印。
+- **`object-eraser.ts` (智慧消除筆)**：Fast Marching 快速前進法補景演算法，筆刷塗抹秒除路人、雜物、反光斑點與浮水印。2026-08-26 起，`free-inpainting-client.ts` 會優先嘗試自建 **LaMa** 微服務（真實訓練權重，見 1.1 節），這裡的本機演算法是離線時的備援。
 
 #### 🖨️ 3. 工業級印前物理與色彩安全（印刷廠零退件保證）
 - **`bleed-expander.ts` (3mm 智慧出血背景生長)**：鏡像外推 + 接縫混合，徹底杜絕裁切白邊與文字切除。
@@ -55,7 +56,7 @@
 
 ## 2. 印前演算法陣列 (Pre-Press Algorithm Matrix)
 
-跑在 Docker 微服務裡、程式碼與部署設定完整一致的服務只有 **Tesseract**（OCR）與 **VTracer**（向量化，見 1.1 節）。**Zero-DCE++**（低光提亮）的網路架構程式碼是真的，但從未載入訓練權重，不能算是「真正跑推論的 AI 模型」——它現在只是跑在伺服器上的一個未訓練網路。以下全部是 `src/core/` 或 `src/engines/` 裡實際存在的決定性演算法（無 AI 模型、無框架依賴、無授權條款可標——這些都是純 TypeScript 數學運算，不是打包發布的第三方模型），依功能分類：
+跑在 Docker 微服務裡、真正接上訓練權重推論的模型是 **VTracer**（向量化）、**Real-ESRGAN**（放大）、**ARNIQA**（品質評分）、**Retinexformer**（低光提亮，取代原本從未訓練過的 Zero-DCE++）、**LaMa**（物件／浮水印移除，權重自動下載）（見 1.1 節）。**DehazeFormer-T**（去霧）架構真實，權重需手動下載（已用真實下載的權重檔驗證推論成功），未放權重檔時誠實回報服務不可用。以下全部是 `src/core/` 或 `src/engines/` 裡實際存在的決定性演算法（無 AI 模型、無框架依賴、無授權條款可標——這些都是純 TypeScript 數學運算，不是打包發布的第三方模型），依功能分類：
 
 ### 2.1 放大與清晰化
 - **`edge-aware-upscaler.ts`**：雙線性插值 + 局部梯度邊緣強化。用於相片、包裝設計放大。
@@ -84,7 +85,7 @@
 - **`flatfield-vignette-corrector.ts`**：廣角鏡頭暗角平坦化校正。
 
 ### 2.5 光照與色調
-- **`zero-dce-enhancer.ts`**：Zero-DCE 論文曲線公式的本機簡化版（單一全域參數，非學習式逐像素參數圖）。Docker `zero-dce` 服務跑的是同一篇論文的完整網路架構，但同樣沒有訓練權重——兩邊目前都不是「訓練過的模型」，只是簡化程度不同。
+- **`zero-dce-enhancer.ts`**：Zero-DCE 論文曲線公式的本機簡化版（單一全域參數，非學習式逐像素參數圖）。Docker `zero-dce` 服務的低光提亮功能已於 2026-08-26 改跑 Retinexformer（真實訓練權重，MIT），此檔案現在是它離線時的本機備援，不再對應同一篇論文的架構。
 - **`hand-shadow-balancer.ts`**：24×24 網格光照插值，均化手機翻拍陰影。
 - **`shadow-lift.ts`**：暗部階調提亮，防止實體印刷死黑糊成一片。
 - **`contrast-dehaze-filter.ts`**：He et al. 經典大氣散射模型去霧（非神經網路，是真實存在的古典電腦視覺演算法）。

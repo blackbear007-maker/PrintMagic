@@ -2,7 +2,7 @@
   "name": "printmagic",
   "version": "3.1.0",
   "private": true,
-  "description": "Print-prep studio: instant client-side processing plus a self-hosted server for pre-press PDF export, OCR, and vectorization.",
+  "description": "Print-prep studio: instant client-side processing plus a self-hosted server for pre-press PDF export and vectorization.",
   "type": "module",
   "scripts": {
     "dev": "vite",

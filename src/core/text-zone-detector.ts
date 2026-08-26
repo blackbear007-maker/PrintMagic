@@ -7,9 +7,12 @@
  * text says. `zoneLabel` is a placeholder like "[Text Zone R1C3]", not read text. There is no
  * PP-OCR/DBNet/SVTR model here, no license, no accuracy number backing "99.6% precision."
  *
- * For actual text recognition, use FreeOcrClient, which calls the real self-hosted Tesseract
- * service (see src/services/free-ocr-client.ts and docker/tesseract/). This detector only exists
- * as a fast, offline "does this artwork have small/illegible text zones" pre-flight check.
+ * There is no OCR in this app (removed 2026-08-26 — it was never wired into any UI feature, and
+ * the problem it was meant to solve — reading AI-hallucinated garbled "text" in generated artwork
+ * — turns out to be unsolvable by OCR: that "text" is usually not composed of real characters at
+ * all, so no OCR engine can meaningfully read it). This detector only exists as a fast, offline
+ * "does this artwork have small/illegible text zones" pre-flight check; the actual fix flow is
+ * region localization + the human typing the correct text (see src/ui/vector-overlay-modal.ts).
  */
 
 export interface TextZoneBox {

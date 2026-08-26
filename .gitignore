@@ -23,6 +23,14 @@ lerna-debug.log*
 .env.test.local
 .env.production.local
 
+# Manually-sourced ML weights (no automatable download URL — see docker/zero-dce/weights/README.md;
+# too large/binary to belong in git either way)
+docker/zero-dce/weights/*.pth
+
+# Python bytecode cache (produced by local py_compile/server runs while testing docker/zero-dce)
+__pycache__/
+*.pyc
+
 # Editor / OS
 .vscode/*
 !.vscode/extensions.json

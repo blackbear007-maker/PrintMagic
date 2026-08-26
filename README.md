@@ -1,13 +1,13 @@
 # PrintMagic Studio 3.1 Pro 🖨️✨
 
 > **「把任何圖片，變成印刷廠能直接出機的工業級合格檔」**
-> 全自動 10 大印前防護流水線 ｜ 決定性影像演算法引擎 ｜ 2 項真實開源工具整合（OCR / 向量化）｜ 智慧場景自動分流 ｜ 多格式出機中心 (PDF / TIFF / SVG / ZIP)
+> 全自動 10 大印前防護流水線 ｜ 決定性影像演算法引擎 ｜ 真實開源向量化工具整合 ｜ 智慧場景自動分流 ｜ 多格式出機中心 (PDF / TIFF / SVG / ZIP)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.5-blue)](https://www.typescriptlang.org/)
 [![Vite](https://img.shields.io/badge/Vite-6.4-purple)](https://vitejs.dev/)
-[![Docker Microservices](https://img.shields.io/badge/Docker-3%20Containers-blue)](./docker-compose.yml)
-[![Tests](https://img.shields.io/badge/Tests-222%2F222%20Passed-brightgreen)](./tests)
+[![Docker Microservices](https://img.shields.io/badge/Docker-2%20Containers-blue)](./docker-compose.yml)
+[![Tests](https://img.shields.io/badge/Tests-230%2F230%20Passed-brightgreen)](./tests)
 [![SPEC](https://img.shields.io/badge/System%20SPEC-v3.1.0-orange)](./docs/SPEC.md)
 
 ---
@@ -82,14 +82,19 @@
 
 早期版本的說明文件把每一個影像處理函式都貼上一個知名 SOTA 論文名字（SAM 2.1、CLIP-IQA+、RealESRGAN、BiRefNet、DehazeFormer……），並宣稱整合「19 款開源商用 AI 模型」。這不準確——本專案沒有內嵌任何 ONNX / TensorFlow.js / WASM 推論引擎，前端從未載入過模型權重檔。以下是誠實的拆分：
 
-### ✅ 自建服務（3 項，透過 Docker 微服務運行）
+### ✅ 自建服務（2 個 Docker 容器，共 6 項功能）
 | 服務 | 是什麼 | 用途 |
 | :--- | :--- | :--- |
-| **Tesseract 5**（`docker/tesseract/`） | 真實開源 OCR 引擎，Dockerfile 與程式碼一致，可正常建置運作 | 文字辨識（`/api/ocr`），支援繁中/英/日 |
 | **VTracer**（`docker/vtracer/`） | 真實開源 Rust 向量化工具。⚠️ 2026-08-25 前 Dockerfile 引用了從未存在過的 `Cargo.toml`/`src/`，建置必定失敗；已修正為安裝真正發布的 `vtracer` crate + Python 包裝層 | 點陣轉 SVG 向量（`/api/vectorize`） |
-| **Zero-DCE++**（`docker/zero-dce/`） | ⚠️ **不是訓練過的模型。** 網路架構程式碼是真的 Zero-DCE++，但從未載入訓練權重——整個 repo 歷史裡沒有出現過 `.pth`/`.pt` 檔案，程式碼裡也沒有 `torch.load()`。目前用隨機初始化權重推論，輸出品質不代表真正訓練過的模型 | 低光照片提亮（`/api/ai/lowlight`），現況僅供參考 |
+| **Real-ESRGAN**（`docker/zero-dce/`） | 真實開源模型，官方發布的 `realesr-general-x4v3` 訓練權重（BSD-3-Clause），開箱即用 | 4x 超解析度放大（`/api/ai/upscale`） |
+| **ARNIQA**（`docker/zero-dce/`） | 真實開源模型，官方發布的訓練權重（Apache-2.0，WACV 2024），開箱即用 | 無參考影像品質評分（`/api/ai/quality`） |
+| **DehazeFormer-T**（`docker/zero-dce/`） | 真實開源模型（MIT）。作者只透過 Google Drive 資料夾／百度網盤發布權重，沒有可自動下載的網址，需自行手動下載放到 `docker/zero-dce/weights/dehazeformer-t.pth` 才能啟用（見該目錄 README）。**已用真實下載的權重檔驗證**：`strict=True` 完整載入 258 個張量、零缺漏零多餘，真實推論在模擬霧霾測試圖上讓對比度從 0.0245 提升到 0.0763 | 去霧（`/api/ai/dehaze`），未放權重檔時誠實回報 503 而非假裝可用 |
+| **Retinexformer**（`docker/zero-dce/`） | 真實開源模型（MIT，ICCV 2023）。2026-08-26 取代原本從未載入訓練權重的 Zero-DCE++——權重同樣只能從 Google Drive/百度網盤手動下載，放到 `docker/zero-dce/weights/LOL_v2_real.pth` 才能啟用。**已用真實下載的權重檔驗證**：`strict=True` 完整載入 122 個張量、零缺漏零多餘，真實推論成功讓測試圖片從平均亮度 0.082 提升到 0.399 | 低光照片提亮（`/api/ai/lowlight`），未放權重檔時誠實回報 503 |
+| **LaMa**（`docker/zero-dce/`） | 真實開源模型（Apache-2.0，Samsung Research）。TorchScript 匯出的 `big-lama.pt`，有可自動下載的 GitHub Release 網址，建置時自動下載，開箱即用。**已用真實下載的權重檔驗證**：`torch.jit.load()` 成功，真實推論在模擬「浮水印」色塊測試圖上完全移除目標色塊（移除區域內 0% 殘留原色），並修正了上游 `simple-lama-inpainting` 套件遺漏「輸出裁切回原始尺寸」的錯誤 | 物件／浮水印移除（`/api/ai/inpaint`），需同時提供來源圖與遮罩圖 |
 
-Tesseract/VTracer 離線時，系統會自動退回下方的本機決定性演算法，並在結果標籤上誠實標示「本機」而非假冒雲端模型名稱。Zero-DCE++ 目前沒有「真的模型」可退回比較，本機版與伺服器版都是未訓練/簡化版本，見下方對照表。
+⚠️ **OCR（Tesseract）已於 2026-08-26 移除**：查證後發現它從未被任何 UI 功能實際呼叫過（純死碼），而它原本想解決的問題——讀取 AI 繪圖產生的亂碼假文字——OCR 本來就解不了，因為那些筆畫通常根本不是任何文字系統的真實字元，就算讀出結果也毫無參考價值。實際可行的做法是定位文字區域＋由使用者自己輸入正確文字，見下方「文字防糊」工具。
+
+VTracer/Real-ESRGAN/ARNIQA/DehazeFormer-T/Retinexformer/LaMa 離線或未就緒時，系統會自動退回下方的本機決定性演算法，並在結果標籤上誠實標示「本機」而非假冒雲端模型名稱。
 
 ### 🧮 決定性演算法（前端 TypeScript，非神經網路）
 以下模組過去用 SOTA 論文名稱命名，現已改用描述實際技術的名稱，程式邏輯本身沒有變動：
@@ -185,7 +190,7 @@ npm run build
 
 ## 📄 開源授權條款 (License)
 
-本專案基於 **MIT License** 授權開源。真實整合的開源工具各自遵循其原作者授權：Tesseract（Apache 2.0）、VTracer（MIT）。Zero-DCE++ 的網路架構程式碼參考自 Zero-DCE 論文（原專案 MIT），但本專案未附上訓練權重，現況見上方引擎組成說明。
+本專案基於 **MIT License** 授權開源。真實整合的開源工具遵循其原作者授權：VTracer（MIT）、Real-ESRGAN（BSD-3-Clause）、ARNIQA（Apache-2.0）、DehazeFormer-T（MIT）、Retinexformer（MIT）、LaMa（Apache-2.0）。DehazeFormer-T 與 Retinexformer 的權重檔案需自行從作者發布的連結手動下載，現況見上方引擎組成說明。
 
 ---
 

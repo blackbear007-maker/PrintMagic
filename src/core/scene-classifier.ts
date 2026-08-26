@@ -211,7 +211,7 @@ export class SceneClassifier {
         recommendedPipeline: {
           superResolutionModel: '純黑 K100 向量轉曲',
           outpaintingModel: 'CurvedPageFlattener 曲面拉平',
-          specialCraft: '如需文字辨識，請使用文字檢查工具（自建 Tesseract OCR）',
+          specialCraft: '如需標示文字位置以利人工校對，請使用文字檢查工具（僅偵測位置，不讀取內容）',
           reasonZh: '偵測到 Otsu 極端雙峰文字分佈，已自動套用純黑 K100 向量銳化與曲面拉平。'
         }
       };

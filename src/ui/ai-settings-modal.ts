@@ -8,10 +8,19 @@ import { NetworkGuard } from '../services/network-guard';
  *
  * 這裡曾經是一個模擬 24+ 個雲端 AI 供應商配額/品質路由的儀表板（進度條、額度百分比、自動切換徽章），
  * 但沒有一行程式碼真的呼叫過那些供應商 —— 全部是本機模擬的假帳本。已整個移除，改成如實呈現：
- * 3 項自建服務（Zero-DCE++、Tesseract OCR、VTracer）+ 一律會用到的本機決定性演算法。
- * 誠實現況（2026-08-25）：Tesseract 與 VTracer 是真正能建置、運作的服務；Zero-DCE++ 的網路架構
- * 程式碼是真的，但從未載入訓練權重（無 .pth 檔案、無 torch.load 呼叫），目前是用隨機初始化權重
- * 推論，輸出品質不代表真正訓練過的模型，詳見 docker/zero-dce/server.py 內的說明。
+ * 2 個自建服務容器（VTracer、PyTorch 視覺服務）+ 一律會用到的本機決定性演算法。
+ * 誠實現況（2026-08-26）：VTracer 是真正能建置、運作的服務。PyTorch 視覺服務容器裡實際跑
+ * 5 個模型：Real-ESRGAN、ARNIQA、LaMa（真實訓練權重，開箱即用）、Retinexformer 與 DehazeFormer-T
+ * （真實架構，權重檔需自行手動下載才能啟用，見 docker/zero-dce/weights/README.md）。
+ * Retinexformer 已於 2026-08-26 取代原本從未載入訓練權重的 Zero-DCE++，成為低光提亮功能的
+ * 真實模型（權重檔案已驗證：strict=True 完整載入 122 個張量無缺漏，真實推論成功讓測試圖片變亮）。
+ * DehazeFormer-T 的權重檔案同樣已驗證：strict=True 完整載入 258 個張量無缺漏，真實推論在模擬
+ * 霧霾測試圖上讓對比度提升逾 3 倍。
+ * LaMa（物件／浮水印移除）於 2026-08-26 加入，TorchScript 權重可自動下載，已驗證：torch.jit.load()
+ * 成功、真實推論乾淨移除模擬「浮水印」色塊測試區域（移除區域內 0% 殘留原色，且修正了上游
+ * simple-lama-inpainting 套件遺漏的「輸出裁切回原始尺寸」錯誤）。
+ * OCR（Tesseract）已於 2026-08-26 移除——查證後發現它從未被任何 UI 功能實際呼叫，而它原本
+ * 想解決的問題（讀取 AI 繪圖產生的亂碼假文字）OCR 本來就解不了，因為那些筆畫通常根本不是真實字元。
  */
 export class AiSettingsModal {
   private modalEl: HTMLElement;
@@ -34,19 +43,34 @@ export class AiSettingsModal {
 
     const realServices = [
       {
-        icon: '☀️',
-        name: 'Zero-DCE++ 低光照片提亮',
-        desc: '⚠️ 網路架構是真的 Zero-DCE++，但從未載入訓練權重（隨機初始化），輸出品質不穩定。'
-      },
-      {
-        icon: '🔤',
-        name: 'Tesseract OCR 文字辨識',
-        desc: '真實開源 OCR 引擎，支援繁中/英/日文字辨識。'
-      },
-      {
         icon: '📐',
         name: 'VTracer 點陣轉向量',
         desc: '真實開源 Rust 向量化工具，貝茲曲線擬合。'
+      },
+      {
+        icon: '🔍',
+        name: 'Real-ESRGAN 4x 超解析度放大',
+        desc: '真實訓練權重（BSD-3-Clause），開箱即用。離線時自動退回本機邊緣強化演算法。'
+      },
+      {
+        icon: '📊',
+        name: 'ARNIQA 影像品質評估',
+        desc: '真實訓練權重（Apache-2.0，WACV 2024），開箱即用。離線時自動退回本機像素統計評估。'
+      },
+      {
+        icon: '🌫️',
+        name: 'DehazeFormer-T 去霧',
+        desc: '真實訓練權重（MIT），權重檔需自行手動下載才能啟用（見 docker/zero-dce/weights/README.md），否則此功能離線時自動退回本機大氣散射模型演算法。'
+      },
+      {
+        icon: '☀️',
+        name: 'Retinexformer 低光照片提亮',
+        desc: '真實訓練權重（MIT，ICCV 2023），權重檔需自行手動下載才能啟用（見 docker/zero-dce/weights/README.md），否則此功能離線時自動退回本機曲線估計演算法。'
+      },
+      {
+        icon: '🪄',
+        name: 'LaMa 物件／浮水印移除',
+        desc: '真實訓練權重（Apache-2.0），TorchScript 格式，開箱即用（建置時自動下載）。離線時自動退回本機 Navier-Stokes 畫布修復演算法。'
       }
     ];
 
@@ -74,8 +98,8 @@ export class AiSettingsModal {
                 <div style="font-size: 0.86rem; font-weight: 700; color: var(--pm-text-primary);">100% 本機模式</div>
                 <div style="font-size: 0.72rem; color: var(--pm-text-muted); margin-top: 1px; max-width: 380px;">
                   ${isPrivacyShieldActive
-                    ? '已開啟：圖片絕不離開你的裝置，完全跳過下方三項自建服務，只用本機演算法。'
-                    : '關閉時，會優先嘗試下方三項自建服務以取得更好結果（品質較高，但圖片會傳到你部署的伺服器），離線時自動退回本機演算法。開啟後強制只用本機演算法。'}
+                    ? '已開啟：圖片絕不離開你的裝置，完全跳過下方自建服務，只用本機演算法。'
+                    : '關閉時，會優先嘗試下方自建服務以取得更好結果（品質較高，但圖片會傳到你部署的伺服器），離線時自動退回本機演算法。開啟後強制只用本機演算法。'}
                 </div>
               </div>
             </div>
@@ -88,7 +112,7 @@ export class AiSettingsModal {
 
           <!-- Real self-hosted services -->
           <div style="background: rgba(0, 0, 0, 0.02); border: 1.5px solid var(--pm-border-subtle); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 10px;">
-            <div style="font-size: 0.86rem; font-weight: 700; color: var(--pm-text-primary);">自建服務（3 項，詳見各項說明）</div>
+            <div style="font-size: 0.86rem; font-weight: 700; color: var(--pm-text-primary);">自建服務（2 個容器 · 6 項功能，詳見各項說明）</div>
             ${realServices.map((s) => `
               <div style="display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; ${s !== realServices[realServices.length - 1] ? 'border-bottom: 1px solid var(--pm-border-subtle);' : ''}">
                 <span style="font-size: 1.1rem;">${s.icon}</span>

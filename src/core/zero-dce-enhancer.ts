@@ -1,16 +1,20 @@
 /**
  * ☀️ Zero-DCE-style Iterative Curve Enhancer (local fallback — no trained weights)
  *
- * Correction (2026-08-25): an earlier version of this comment claimed the server-side model at
- * docker/zero-dce/server.py (POST /enhance) has "genuine learned weights" — that was wrong. That
- * service runs the real Zero-DCE++ network architecture, but with PyTorch's random default
- * initialization; it has never loaded a trained checkpoint (none exists anywhere in this repo).
- * So neither this local file NOR the server-side one currently represents trained-model output —
- * they're both untrained/heuristic in different ways. This file applies the same family of
- * iterative curve formula the Zero-DCE paper uses
+ * History: an earlier version of this comment claimed the server-side model at
+ * docker/zero-dce/server.py (POST /enhance) has "genuine learned weights" — that was wrong at the
+ * time. That endpoint ran the real Zero-DCE++ network architecture, but with PyTorch's random
+ * default initialization and no trained checkpoint. As of 2026-08-26, that endpoint's model was
+ * replaced entirely — it now runs **Retinexformer** (ICCV 2023, MIT) with a real trained
+ * checkpoint if one is manually sourced (see docker/zero-dce/weights/README.md), verified by
+ * actually loading a real downloaded copy of the weights. This local file is unrelated to that
+ * change: it's the self-hosted-unreachable fallback for FreeLowlightClient
+ * (src/services/free-lowlight-client.ts), applying the same family of iterative curve formula the
+ * original Zero-DCE paper uses
  * (LE_n(x) = LE_{n-1}(x) + A(x)·LE_{n-1}(x)·(1-LE_{n-1}(x))), with one single image-average
- * darkness value as the curve parameter A (a hand-picked heuristic, not a learned parameter map).
- * At least this version is deterministic and doesn't misrepresent itself as a trained model.
+ * darkness value as the curve parameter A (a hand-picked heuristic, not a learned parameter map,
+ * and not Retinexformer's Retinex-decomposition approach). It's deterministic and doesn't
+ * misrepresent itself as a trained model.
  */
 
 export interface ZeroDceResult {

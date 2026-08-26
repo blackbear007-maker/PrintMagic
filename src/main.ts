@@ -52,7 +52,8 @@ import { workerClient } from './workers/worker-client';
 import { ShadowLift } from './core/shadow-lift';
 import { HandShadowBalancer } from './core/hand-shadow-balancer';
 import { AntiBandingFilter } from './core/anti-banding';
-import { PixelStatQualityAssessor } from './core/pixel-stat-quality-assessor';
+import { FreeQualityClient } from './services/free-quality-client';
+import { FreeDehazeClient } from './services/free-dehaze-client';
 import { PantoneMatcher } from './core/pantone-matcher';
 import { BarcodeVerifier } from './core/barcode-verifier';
 import { PassportModal } from './ui/passport-modal';
@@ -62,7 +63,7 @@ import { XiaoxiangAssistant } from './ui/xiaoxiang-assistant';
 import { SceneClassifier } from './core/scene-classifier';
 import { LineArtUpscaler } from './core/line-art-upscaler';
 import { EdgeAwareUpscaler } from './core/edge-aware-upscaler';
-import { ZeroDceEnhancer } from './core/zero-dce-enhancer';
+import { FreeLowlightClient } from './services/free-lowlight-client';
 import type { BatchItem, PaperType, PrintPresetId } from './types';
 
 /**
@@ -315,7 +316,7 @@ class App {
         const isOnline = await CloudClient.checkHealth();
         if (isOnline) {
           store.setEngineMode('cloud');
-          Toast.success('⚡ 已切換至【自建服務引擎模式】：在線運行 (可使用自建 OCR / 向量化 / 低光提亮服務)');
+          Toast.success('⚡ 已切換至【自建服務引擎模式】：在線運行 (可使用自建向量化 / 低光提亮服務)');
         } else {
           store.setEngineMode('cloud');
           Toast.info('⚡ 已切換至【自建服務引擎模式】(伺服器未連線，會自動退回本機演算法)');
@@ -1447,10 +1448,11 @@ class App {
           processedImgData = res.upscaledImageData;
         }
 
-        // Apply Zero-DCE++ dynamic range boost if scene has low-light or shadow traits
+        // Apply low-light dynamic range boost if scene has low-light or shadow traits
+        // (自建 Retinexformer 服務優先，離線時自動退回本機曲線估計演算法)
         if (scene.detectedTraits.some((t: string) => t.includes('暗') || t.includes('曝光') || t.includes('黑'))) {
-          const zeroRes = ZeroDceEnhancer.enhance(processedImgData, 2, 0.5);
-          processedImgData = zeroRes.enhancedImageData;
+          const lowlightResult = await FreeLowlightClient.enhance(processedImgData);
+          processedImgData = lowlightResult.imageData;
         }
       }
 
@@ -1462,6 +1464,16 @@ class App {
       // Step 1.8: Auto Anti-Banding & Gradient Smoothing (漸層防斷階去噪)
       if (opts.enableAntiBanding !== false) {
         processedImgData = AntiBandingFilter.apply(processedImgData, 0.65);
+      }
+
+      // Step 1.9: Dehaze (自建 DehazeFormer-T 服務或本機大氣散射模型，預設關閉，僅霧霾照片建議開啟)
+      if (opts.enableDehaze) {
+        store.setState({
+          processingStep: '正在執行去霧處理...'
+        });
+        const dehazeResult = await FreeDehazeClient.dehaze(processedImgData, 0.75);
+        processedImgData = dehazeResult.imageData;
+        Toast.info(`🌫️ 去霧完成 (${dehazeResult.engine})`);
       }
 
       // Step 2: Pre-press Unsharp Mask Sharpening
@@ -1505,7 +1517,7 @@ class App {
         preset
       );
       const scoreResult = PrintScoreCalculator.calculate(stats, preset, inkAnalysis);
-      const iqaReport = PixelStatQualityAssessor.assess(processedImgData);
+      const iqaReport = await FreeQualityClient.assess(processedImgData);
       const dominantPantones = PantoneMatcher.extractDominantSpotColors(processedImgData, 3);
       const barcodeReport = BarcodeVerifier.verifyImage(processedImgData, 300);
 
