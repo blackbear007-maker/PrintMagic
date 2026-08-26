@@ -11,19 +11,21 @@
  *
  * ⚠️ HISTORY: processLowLight used to run Zero-DCE++ with random (never-trained) weights —
  * corrected 2026-08-26 by replacing the model behind /enhance with **Retinexformer** (ICCV 2023,
- * MIT), which does have a real trained checkpoint when manually sourced. Verified 2026-08-26 by
- * actually loading a real downloaded copy of `LOL_v2_real.pth`: `strict=True` state_dict load
- * succeeded with 0 missing/0 unexpected keys across 122 tensors, and real inference on a test
- * image correctly brightened it. See docker/zero-dce/server.py's header comment for full details.
+ * MIT), which does have a real trained checkpoint. Verified 2026-08-26 by actually loading a real
+ * downloaded copy of `LOL_v2_real.pth`: `strict=True` state_dict load succeeded with 0 missing/0
+ * unexpected keys across 122 tensors, and real inference on a test image correctly brightened it.
+ * See docker/zero-dce/server.py's header comment for full details.
  *
  * All five methods below (processLowLight, processUpscale, processDehaze, processQuality,
  * processInpaint) now proxy to genuinely trained real models when their weight files are present
- * on the server side. Retinexformer and DehazeFormer-T both require a human to have manually
- * sourced their weight file at Docker build time (no automatable download URL exists for either)
- * — if that wasn't done, the service itself reports 503 honestly rather than running
- * untrained/random weights. LaMa (processInpaint), added 2026-08-26, is auto-downloaded at build
- * time like Real-ESRGAN/ARNIQA — verified with a real downloaded checkpoint that it cleanly
- * removes a solid-color test region (i.e. object/watermark removal).
+ * on the server side. Retinexformer and DehazeFormer-T have no automatable download URL, so a
+ * human sourced their weight file manually once (2026-08-26) and it was committed directly to git
+ * (see docker/zero-dce/weights/README.md) — Railway builds this service from the git repo, not
+ * local disk, so a gitignored weight file would never have actually reached the deployed
+ * container. If either file is ever removed without a replacement, the service reports 503
+ * honestly rather than running untrained/random weights. LaMa (processInpaint), added 2026-08-26,
+ * is auto-downloaded at build time like Real-ESRGAN/ARNIQA — verified with a real downloaded
+ * checkpoint that it cleanly removes a solid-color test region (i.e. object/watermark removal).
  */
 export class AiEngineService {
   private static readonly BASE_URL = process.env.ZERO_DCE_URL || process.env.AI_ENGINE_URL || 'http://127.0.0.1:8082';
@@ -56,8 +58,8 @@ export class AiEngineService {
   }
 
   /**
-   * Retinexformer low-light enhancement — real trained weights if manually sourced (MIT). Returns
-   * success:false with a clear reason (not a crash) if weights weren't sourced at build time —
+   * Retinexformer low-light enhancement — real trained weights, committed to git (MIT). Returns
+   * success:false with a clear reason (not a crash) if the weight file were ever missing —
    * see docker/zero-dce/weights/README.md.
    */
   public static async processLowLight(imageDataUrl: string): Promise<{ success: boolean; dataUrl?: string; engine?: string; error?: string }> {
@@ -95,8 +97,8 @@ export class AiEngineService {
   }
 
   /**
-   * DehazeFormer-T dehaze — real trained weights if manually sourced (MIT). Returns
-   * success:false with a clear reason (not a crash) if weights weren't sourced at build time —
+   * DehazeFormer-T dehaze — real trained weights, committed to git (MIT). Returns
+   * success:false with a clear reason (not a crash) if the weight file were ever missing —
    * see docker/zero-dce/weights/README.md.
    */
   public static async processDehaze(imageDataUrl: string): Promise<{ success: boolean; dataUrl?: string; engine?: string; error?: string }> {

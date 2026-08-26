@@ -10,8 +10,9 @@ import { NetworkGuard } from '../services/network-guard';
  * 但沒有一行程式碼真的呼叫過那些供應商 —— 全部是本機模擬的假帳本。已整個移除，改成如實呈現：
  * 2 個自建服務容器（VTracer、PyTorch 視覺服務）+ 一律會用到的本機決定性演算法。
  * 誠實現況（2026-08-26）：VTracer 是真正能建置、運作的服務。PyTorch 視覺服務容器裡實際跑
- * 5 個模型：Real-ESRGAN、ARNIQA、LaMa（真實訓練權重，開箱即用）、Retinexformer 與 DehazeFormer-T
- * （真實架構，權重檔需自行手動下載才能啟用，見 docker/zero-dce/weights/README.md）。
+ * 5 個模型：Real-ESRGAN、ARNIQA、LaMa（真實訓練權重，建置時自動下載）、Retinexformer 與 DehazeFormer-T
+ * （真實訓練權重，作者無自動下載網址，2026-08-26 已手動下載並直接提交進 git——因為 Railway 是
+ * 從 git 建置這個服務，只存在本機的權重檔案永遠不會真正部署上去，見 docker/zero-dce/weights/README.md）。
  * Retinexformer 已於 2026-08-26 取代原本從未載入訓練權重的 Zero-DCE++，成為低光提亮功能的
  * 真實模型（權重檔案已驗證：strict=True 完整載入 122 個張量無缺漏，真實推論成功讓測試圖片變亮）。
  * DehazeFormer-T 的權重檔案同樣已驗證：strict=True 完整載入 258 個張量無缺漏，真實推論在模擬
@@ -60,12 +61,12 @@ export class AiSettingsModal {
       {
         icon: '🌫️',
         name: 'DehazeFormer-T 去霧',
-        desc: '真實訓練權重（MIT），權重檔需自行手動下載才能啟用（見 docker/zero-dce/weights/README.md），否則此功能離線時自動退回本機大氣散射模型演算法。'
+        desc: '真實訓練權重（MIT），開箱即用（作者無自動下載網址，權重已手動下載並提交進 git）。離線時自動退回本機大氣散射模型演算法。'
       },
       {
         icon: '☀️',
         name: 'Retinexformer 低光照片提亮',
-        desc: '真實訓練權重（MIT，ICCV 2023），權重檔需自行手動下載才能啟用（見 docker/zero-dce/weights/README.md），否則此功能離線時自動退回本機曲線估計演算法。'
+        desc: '真實訓練權重（MIT，ICCV 2023），開箱即用（作者無自動下載網址，權重已手動下載並提交進 git）。離線時自動退回本機曲線估計演算法。'
       },
       {
         icon: '🪄',

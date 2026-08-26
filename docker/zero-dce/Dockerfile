@@ -38,11 +38,13 @@ RUN pip install --no-cache-dir --extra-index-url https://download.pytorch.org/wh
 RUN curl -fsSL -o retinexformer_arch.py \
     https://raw.githubusercontent.com/caiyuanhao1998/Retinexformer/master/basicsr/models/archs/RetinexFormer_arch.py
 
-# ─── Retinexformer weights — CANNOT be automated here, see docker/zero-dce/weights/README.md ──
+# ─── Retinexformer weights — CANNOT be auto-downloaded, see docker/zero-dce/weights/README.md ─
 # Same situation as DehazeFormer-T: the author only publishes trained checkpoints via a Google
-# Drive folder / Baidu Disk share (no stable direct-download URL) — verified 2026-08-26. Staged
-# via the same `COPY weights/ ./weights/` step below (that directory covers all manually-sourced
-# weight files, not just DehazeFormer-T's).
+# Drive folder / Baidu Disk share (no stable direct-download URL) — verified 2026-08-26. Unlike a
+# typical "manually-sourced weight", this file (and dehazeformer-t.pth) is committed directly to
+# git as of 2026-08-26 rather than left gitignored: Railway builds this service from the git repo,
+# not local disk, so a gitignored weight downloaded only locally would never reach the deployed
+# container. Staged via the same `COPY weights/ ./weights/` step below.
 
 # ─── Real-ESRGAN's `basicsr` dependency is broken on current torchvision ──────────────────────
 # basicsr 1.4.2 (its last PyPI release, 2022-08-30, unmaintained) imports
@@ -81,14 +83,17 @@ RUN curl -fsSL -o weights/big-lama.pt \
 RUN mkdir -p dehazeformer_model && curl -fsSL -o dehazeformer_model/dehazeformer.py \
     https://raw.githubusercontent.com/IDKiro/DehazeFormer/main/models/dehazeformer.py
 
-# ─── DehazeFormer-T weights — CANNOT be automated here, see docker/zero-dce/weights/README.md ─
+# ─── DehazeFormer-T weights — CANNOT be auto-downloaded, see docker/zero-dce/weights/README.md ─
 # The author only publishes trained checkpoints via a Google Drive folder (no stable direct-
-# download URL that works from an unauthenticated `curl`/CI context — verified 2026-08-26). The
-# `weights/` directory is always present in git (a tracked `.gitkeep`), so this COPY never fails
-# the build regardless of whether the human has sourced dehazeformer-t.pth yet — Docker's COPY
-# only fails on a missing SOURCE PATH, not on a directory that exists but is otherwise empty.
-# server.py checks for weights/dehazeformer-t.pth at startup and honestly reports /dehaze as
-# unavailable (503) rather than crashing or running unverified weights if it isn't there.
+# download URL that works from an unauthenticated `curl`/CI context — verified 2026-08-26).
+# `dehazeformer-t.pth` (like `LOL_v2_real.pth` above) is committed directly to git as of
+# 2026-08-26 — small enough (2.9MB) that this was simpler than any local-disk-only deploy path,
+# and necessary since Railway builds from git, not local disk. The `weights/` directory is always
+# present in git regardless (a tracked `.gitkeep`), so this COPY never fails the build even if a
+# weight file were ever missing — Docker's COPY only fails on a missing SOURCE PATH, not on a
+# directory that exists but is otherwise empty. server.py checks for each weight file at startup
+# and honestly reports the corresponding endpoint unavailable (503) rather than crashing or running
+# unverified weights if one isn't there.
 COPY weights/ ./weights/
 
 # ─── ARNIQA weights + code cache, pre-warmed at build time (real GitHub Releases, no auth) ────

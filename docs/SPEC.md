@@ -5,7 +5,7 @@
 > **系統定位**：全自動商業印前修復與出機工作站 (AI Pre-Press Engine & Multi-Format Exporter)  
 > **核心哲學**：100% 自由開源商用架構 · 0 外部收費 API 依賴 · 新手無腦一鍵出機 · 商業合規舉證  
 
-> ⚠️ **誠實性附註（2026-08-26，後更新）**：本文件曾經在第 2、3、7 節列出大量從未實作的「模型」與功能（HAT-S、SwinIR、AOT-GAN、MAT-Lite、DexiNed、CodeFormer、GAIC、FontMatcher、桌面版效能數字等）——這些內容已於 2026-08-25 全面核實並改寫。第一輪核實時誤把 Zero-DCE++ 當成「真正訓練過的模型」，後來進一步查證發現它的 Docker 建置設定引用了從未存在過的權重檔案，程式碼裡也從未載入任何訓練權重（隨機初始化，非訓練結果）；VTracer 的 Dockerfile 同樣引用了從未存在過的原始碼，導致建置必定失敗，現已修正為安裝真正發布的 vtracer crate。**Tesseract（OCR）已於 2026-08-26 移除**——查證後發現它從未被任何 UI 功能實際呼叫（純死碼），且它原本想解決的問題（讀取 AI 繪圖產生的亂碼假文字）本來就不是 OCR 能解的，因為那些筆畫通常不是真實字元。同日新增 **Real-ESRGAN**（4x 放大）與 **ARNIQA**（品質評分）——兩者都是真實開源模型的官方發布訓練權重，開箱即用；也新增了 **DehazeFormer-T**（去霧）的真實架構程式碼；其權重需自行手動下載才能啟用，已用真實下載的權重檔驗證：`strict=True` 完整載入 258 個張量、零缺漏零多餘，真實推論在模擬霧霾測試圖上讓對比度提升逾 3 倍（0.0245 → 0.0763）。**Retinexformer**（低光提亮）已於同日取代原本從未載入訓練權重的 Zero-DCE++——真實下載了官方發布的 `LOL_v2_real.pth` 權重並驗證：`strict=True` 完整載入 122 個張量、零缺漏零多餘，真實推論成功讓測試圖片變亮（平均亮度 0.082 → 0.399）。同日再新增 **LaMa**（物件／浮水印移除）——TorchScript 匯出的 `big-lama.pt`，有可自動下載的 GitHub Release 網址，開箱即用；已用真實下載的權重檔驗證：`torch.jit.load()` 成功，真實推論在模擬「浮水印」色塊測試圖上完全移除目標色塊（移除區域內 0% 殘留原色）。目前可正常建置運作、且已接上真實訓練權重的自建服務是 **VTracer**（向量化）、**Real-ESRGAN**（放大）、**ARNIQA**（品質評分）、**Retinexformer**（低光提亮）、**DehazeFormer-T**（去霧，兩者的權重都需手動下載，且都已用真實下載的權重檔驗證過推論成功）、**LaMa**（物件／浮水印移除，權重自動下載，已驗證推論成功）。其餘全部是決定性演算法（無 AI 模型），詳見 [README](../README.md#️-引擎組成真實模型-vs-決定性演算法)。
+> ⚠️ **誠實性附註（2026-08-26，後更新）**：本文件曾經在第 2、3、7 節列出大量從未實作的「模型」與功能（HAT-S、SwinIR、AOT-GAN、MAT-Lite、DexiNed、CodeFormer、GAIC、FontMatcher、桌面版效能數字等）——這些內容已於 2026-08-25 全面核實並改寫。第一輪核實時誤把 Zero-DCE++ 當成「真正訓練過的模型」，後來進一步查證發現它的 Docker 建置設定引用了從未存在過的權重檔案，程式碼裡也從未載入任何訓練權重（隨機初始化，非訓練結果）；VTracer 的 Dockerfile 同樣引用了從未存在過的原始碼，導致建置必定失敗，現已修正為安裝真正發布的 vtracer crate。**Tesseract（OCR）已於 2026-08-26 移除**——查證後發現它從未被任何 UI 功能實際呼叫（純死碼），且它原本想解決的問題（讀取 AI 繪圖產生的亂碼假文字）本來就不是 OCR 能解的，因為那些筆畫通常不是真實字元。同日新增 **Real-ESRGAN**（4x 放大）與 **ARNIQA**（品質評分）——兩者都是真實開源模型的官方發布訓練權重，開箱即用；也新增了 **DehazeFormer-T**（去霧）的真實架構程式碼；作者只透過 Google Drive 發布權重、無法自動下載，已於 2026-08-26 手動下載並**直接提交進 git**（原因見下段），已用真實下載的權重檔驗證：`strict=True` 完整載入 258 個張量、零缺漏零多餘，真實推論在模擬霧霾測試圖上讓對比度提升逾 3 倍（0.0245 → 0.0763）。**Retinexformer**（低光提亮）已於同日取代原本從未載入訓練權重的 Zero-DCE++——真實下載了官方發布的 `LOL_v2_real.pth` 權重（同樣提交進 git）並驗證：`strict=True` 完整載入 122 個張量、零缺漏零多餘，真實推論成功讓測試圖片變亮（平均亮度 0.082 → 0.399）。⚠️ 這兩個權重檔（合計 ~9MB）原本被 gitignore，但因為 Railway 是從 git 儲存庫建置 `zero-dce` 服務（`railway.toml` 用 `builder=DOCKERFILE`），不是從本機硬碟建置，只存在本機的權重檔案永遠不會真正部署上去——即使本機驗證推論成功，Railway 上仍會誠實回報 503。因此改為直接提交進 git（見 `.gitignore` 裡的例外規則）。同日再新增 **LaMa**（物件／浮水印移除）——TorchScript 匯出的 `big-lama.pt`，有可自動下載的 GitHub Release 網址，開箱即用（不受上述問題影響，因為建置時直接從網路下載，不依賴本機檔案）；已用真實下載的權重檔驗證：`torch.jit.load()` 成功，真實推論在模擬「浮水印」色塊測試圖上完全移除目標色塊（移除區域內 0% 殘留原色）。目前可正常建置運作、且已接上真實訓練權重的自建服務是 **VTracer**（向量化）、**Real-ESRGAN**（放大）、**ARNIQA**（品質評分）、**Retinexformer**（低光提亮）、**DehazeFormer-T**（去霧，兩者的權重都已下載並提交進 git，且都已用真實下載的權重檔驗證過推論成功）、**LaMa**（物件／浮水印移除，權重自動下載，已驗證推論成功）。其餘全部是決定性演算法（無 AI 模型），詳見 [README](../README.md#️-引擎組成真實模型-vs-決定性演算法)。
 
 ---
 
@@ -18,7 +18,7 @@
 | :--- | :--- | :---: | :---: | :--- |
 | **`printmagic`** | Node.js 22 (Alpine) + Vite SSR | `3000` | **256 MB** | 主應用入口、UI 渲染、合版拼版算力、印前 PDF 出機檔壓製（非通過驗證的 PDF/X-1a，見第 5 節）。 |
 | **`vtracer`** | Rust 1.78 (Distroless) | `8080` | **128 MB** | 真實 VTracer 向量化引擎（點陣轉 SVG）。「Kurbo 2mm 刀模幾何運算」實際跑在主應用內的 `src/core/kurbo-geometry.ts`（純 TypeScript），不在這個容器裡；「OxiPNG 無損壓縮」查無實作，本服務不做 PNG 壓縮，已移除該說法。 |
-| **`zero-dce`** | Python 3.12 + PyTorch 2.3+ (CPU) | `8082` | **3072 MB** | 承載 5 個模型（2026-08-26 起）：**Real-ESRGAN**（4x 放大，真實 BSD-3-Clause 訓練權重）、**ARNIQA**（品質評分，真實 Apache-2.0 訓練權重）、**Retinexformer**（低光提亮，真實 MIT 訓練權重，已用真實下載的 `LOL_v2_real.pth` 驗證推論成功，取代原本從未訓練過的 Zero-DCE++）、**DehazeFormer-T**（去霧，真實 MIT 訓練權重，已用真實下載的 `dehazeformer-t.pth` 驗證推論成功；兩者的權重都需手動下載，見 `docker/zero-dce/weights/README.md`）、**LaMa**（物件／浮水印移除，真實 Apache-2.0 TorchScript 權重，建置時自動下載，已驗證推論成功）。記憶體上限是實測數據，非估算——見 `docker-compose.yml` 內附的完整測量說明。 |
+| **`zero-dce`** | Python 3.12 + PyTorch 2.3+ (CPU) | `8082` | **3072 MB** | 承載 5 個模型（2026-08-26 起）：**Real-ESRGAN**（4x 放大，真實 BSD-3-Clause 訓練權重）、**ARNIQA**（品質評分，真實 Apache-2.0 訓練權重）、**Retinexformer**（低光提亮，真實 MIT 訓練權重，已用真實下載的 `LOL_v2_real.pth` 驗證推論成功，取代原本從未訓練過的 Zero-DCE++）、**DehazeFormer-T**（去霧，真實 MIT 訓練權重，已用真實下載的 `dehazeformer-t.pth` 驗證推論成功；兩者的權重因無自動下載網址已直接提交進 git，見 `docker/zero-dce/weights/README.md`）、**LaMa**（物件／浮水印移除，真實 Apache-2.0 TorchScript 權重，建置時自動下載，已驗證推論成功）。記憶體上限是實測數據，非估算——見 `docker-compose.yml` 內附的完整測量說明。 |
 
 ⚠️ **`tesseract`（OCR）容器已於 2026-08-26 移除**：查證後發現從未被任何 UI 功能實際呼叫（純死碼），且它原本想解決的問題——讀取 AI 繪圖產生的亂碼假文字——OCR 本來就解不了，那些筆畫通常不是任何文字系統的真實字元。
 
@@ -56,7 +56,7 @@
 
 ## 2. 印前演算法陣列 (Pre-Press Algorithm Matrix)
 
-跑在 Docker 微服務裡、真正接上訓練權重推論的模型是 **VTracer**（向量化）、**Real-ESRGAN**（放大）、**ARNIQA**（品質評分）、**Retinexformer**（低光提亮，取代原本從未訓練過的 Zero-DCE++）、**LaMa**（物件／浮水印移除，權重自動下載）（見 1.1 節）。**DehazeFormer-T**（去霧）架構真實，權重需手動下載（已用真實下載的權重檔驗證推論成功），未放權重檔時誠實回報服務不可用。以下全部是 `src/core/` 或 `src/engines/` 裡實際存在的決定性演算法（無 AI 模型、無框架依賴、無授權條款可標——這些都是純 TypeScript 數學運算，不是打包發布的第三方模型），依功能分類：
+跑在 Docker 微服務裡、真正接上訓練權重推論的模型是 **VTracer**（向量化）、**Real-ESRGAN**（放大）、**ARNIQA**（品質評分）、**Retinexformer**（低光提亮，取代原本從未訓練過的 Zero-DCE++）、**LaMa**（物件／浮水印移除，權重自動下載）（見 1.1 節）。**DehazeFormer-T**（去霧）架構真實，權重無自動下載網址、已直接提交進 git（已用真實下載的權重檔驗證推論成功）。以下全部是 `src/core/` 或 `src/engines/` 裡實際存在的決定性演算法（無 AI 模型、無框架依賴、無授權條款可標——這些都是純 TypeScript 數學運算，不是打包發布的第三方模型），依功能分類：
 
 ### 2.1 放大與清晰化
 - **`edge-aware-upscaler.ts`**：雙線性插值 + 局部梯度邊緣強化。用於相片、包裝設計放大。

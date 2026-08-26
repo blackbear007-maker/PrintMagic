@@ -4,13 +4,22 @@ This directory exists in git (via `.gitkeep`) so `docker build` always has somet
 even when the files below haven't been sourced yet — the build must succeed either way, and each
 endpoint honestly reports itself unavailable at runtime if its weight file is missing, rather than
 the whole image failing to build or silently running an untrained network. `.pth` files placed
-here are gitignored (see root `.gitignore`) — they're binaries, not source, and don't belong in git.
+here are gitignored by default (see root `.gitignore`) — EXCEPT `LOL_v2_real.pth` and
+`dehazeformer-t.pth`, which are explicitly committed (2026-08-26): Railway's `docker/zero-dce`
+service builds from this git repo, not from local disk (`railway.toml` uses `builder=DOCKERFILE`),
+so a gitignored weight file downloaded only locally would never reach the deployed service — it'd
+pass local verification and then still 503 on Railway. At ~9MB combined the two files are small
+enough that committing them was simpler than switching to CLI-based local-disk deploys.
 
-## LOL_v2_real.pth (required for the `/enhance` endpoint — Retinexformer)
+## LOL_v2_real.pth (`/enhance` endpoint — Retinexformer) — already committed, present after a fresh clone
+
+Already present in this directory as of 2026-08-26 (see the `.gitignore` exception above) — a
+fresh `git clone` already has it, no manual step needed. Documented below only in case it ever
+needs to be re-sourced or swapped for a different checkpoint.
 
 There is no automatable, unauthenticated direct-download URL for this file — the author only
 publishes trained checkpoints via a Google Drive folder or Baidu Disk share (verified 2026-08-26).
-To enable `/enhance`:
+To re-source it:
 
 1. Open https://github.com/caiyuanhao1998/Retinexformer and follow the README's download links:
    - Google Drive (folder): https://drive.google.com/drive/folders/1ynK5hfQachzc8y96ZumhkPPDXzHJwaQV
@@ -21,26 +30,30 @@ To enable `/enhance`:
    dataset's own license terms restrict it to research/educational use — whether a model trained
    on it inherits that restriction despite the repo's blanket MIT claim is an unresolved ambiguity
    the author's repo doesn't address. `LOL_v2_real.pth` has no such concern.)
-3. Save it as `LOL_v2_real.pth` in this directory
+3. Replace `LOL_v2_real.pth` in this directory and commit it
 4. Rebuild the `zero-dce` image
 
-Without this file present at build time, `/enhance` starts up and immediately returns
+If this file is ever removed without a replacement, `/enhance` starts up and immediately returns
 `503 { available: false }` on every request instead of crashing or running unverified weights.
 
-## dehazeformer-t.pth (required for the `/dehaze` endpoint)
+## dehazeformer-t.pth (`/dehaze` endpoint) — already committed, present after a fresh clone
+
+Already present in this directory as of 2026-08-26 (see the `.gitignore` exception above) — a
+fresh `git clone` already has it, no manual step needed. Documented below only in case it ever
+needs to be re-sourced or swapped for a different checkpoint.
 
 There is no automatable, unauthenticated direct-download URL for this file — DehazeFormer's
 author only publishes trained checkpoints via a Google Drive folder (verified 2026-08-26), which
-`curl`/`wget` in a Docker build can't reliably pull from. To enable `/dehaze`:
+`curl`/`wget` in a Docker build can't reliably pull from. To re-source it:
 
 1. Open https://github.com/IDKiro/DehazeFormer and follow the README's Google Drive link
 2. Download `saved_models/indoor/dehazeformer-t.pth` (or `outdoor/`, depending on which domain
    you want to prioritize for typical print-prep photos — indoor was assumed for the RAM sizing
    in `docker-compose.yml`)
-3. Save it as `dehazeformer-t.pth` in this directory
+3. Replace `dehazeformer-t.pth` in this directory and commit it
 4. Rebuild the `zero-dce` image
 
-Without this file present at build time, `/dehaze` starts up and immediately returns
+If this file is ever removed without a replacement, `/dehaze` starts up and immediately returns
 `503 { available: false }` on every request instead of crashing or running unverified weights.
 
 ## big-lama.pt (`/inpaint` endpoint — LaMa) — no manual step needed

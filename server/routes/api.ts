@@ -65,7 +65,7 @@ apiRouter.post('/export-pdfx', async (req: Request, res: Response) => {
   }
 });
 
-// 🌙 Retinexformer Low-Light Enhancement (real trained weights if manually sourced, see
+// 🌙 Retinexformer Low-Light Enhancement (real trained weights, committed to git, see
 // server/services/ai-engine-service.ts for the full honesty note, and for why /ai/matting,
 // /ai/segment, and /ai/dewarp were removed rather than kept as no-op stubs)
 apiRouter.post('/ai/lowlight', async (req: Request, res: Response) => {
@@ -99,7 +99,7 @@ apiRouter.post('/ai/upscale', async (req: Request, res: Response) => {
   }
 });
 
-// 🌫️ DehazeFormer-T Dehaze — real trained weights if manually sourced, see ai-engine-service.ts
+// 🌫️ DehazeFormer-T Dehaze — real trained weights, committed to git, see ai-engine-service.ts
 apiRouter.post('/ai/dehaze', async (req: Request, res: Response) => {
   try {
     const { image_base64 } = req.body;

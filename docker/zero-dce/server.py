@@ -10,18 +10,22 @@ ZERO_DCE_URL wiring in a single pass).
 with PyTorch's random default initialization — no trained checkpoint for it ever existed anywhere
 in this repo's git history, so its output was undefined, not "real AI enhancement." It has been
 replaced with **Retinexformer** (ICCV 2023, MIT), loaded from a real trained checkpoint
-(`LOL_v2_real.pth`) if manually sourced — verified 2026-08-26 by actually loading a real
-downloaded copy of that checkpoint: `strict=True` state_dict load succeeded with 0 missing/0
-unexpected keys across all 122 tensors, and real inference on a test image correctly brightened
-it (0.082 -> 0.399 mean luminance). Same graceful-missing pattern as DehazeFormer-T below: no
-weight file at build time -> /enhance honestly reports 503, not a crash or fake success.
+(`LOL_v2_real.pth`) — verified 2026-08-26 by actually loading a real downloaded copy of that
+checkpoint: `strict=True` state_dict load succeeded with 0 missing/0 unexpected keys across all
+122 tensors, and real inference on a test image correctly brightened it (0.082 -> 0.399 mean
+luminance). Same graceful-missing pattern as DehazeFormer-T below applies if this file is ever
+removed without a replacement: no weight file at build time -> /enhance honestly reports 503, not
+a crash or fake success.
 
 All 5 models here (Retinexformer, Real-ESRGAN, DehazeFormer-T, ARNIQA, LaMa) are genuinely
 trained, real pretrained-weight models when their weight files are present. Provenance for each
 is documented at its loading site below. Real-ESRGAN, ARNIQA, and LaMa's weights are fetched
 automatically at Docker build time (stable direct-download URLs); Retinexformer and DehazeFormer-T
-both require a human to manually source the weight file first (no automatable download URL exists
-for either — see weights/README.md). All 5 have now been verified in an isolated local venv (not
+have no automatable download URL, so a human sourced them manually once (2026-08-26) and the
+resulting files were committed directly to git (see weights/README.md and the `.gitignore`
+exception for these two) — Railway builds this service from the git repo, not local disk, so a
+gitignored weight downloaded only locally would never actually reach the deployed container. All 5
+have now been verified in an isolated local venv (not
 the actual Docker image itself, which this repo has no way to build in the environment these
 changes were authored in) with a real downloaded checkpoint each — `strict=True` state_dict loads
 with 0 missing/0 unexpected keys (or, for LaMa, a successful `torch.jit.load()` of the real
@@ -78,7 +82,7 @@ MAX_UPSCALE_INPUT_PIXELS = 1200 * 1200  # ~1.44MP, applies to /upscale only
 torch.set_num_threads(2)
 
 
-# ─── Retinexformer — real trained weights if manually sourced, MIT ────────────────────────────
+# ─── Retinexformer — real trained weights, manually sourced once and committed to git, MIT ────
 # github.com/caiyuanhao1998/Retinexformer (ICCV 2023). Replaces the previous untrained Zero-DCE++
 # network 2026-08-26 — Zero-DCE++ never had trained weights available anywhere; Retinexformer does
 # (LOL_v2_real.pth, verified 2026-08-26 by actually loading a real downloaded copy: strict=True
@@ -155,7 +159,7 @@ except Exception as e:
     print(f"[Real-ESRGAN] Failed to load — /upscale will report unavailable. Error: {e}")
 
 
-# ─── DehazeFormer-T — real trained weights if manually sourced, MIT ───────────────────────────
+# ─── DehazeFormer-T — real trained weights, manually sourced once and committed to git, MIT ───
 # github.com/IDKiro/DehazeFormer. dehazeformer_model/dehazeformer.py is vendored verbatim at
 # Docker build time (not reconstructed from memory). Checkpoint has no automatable download URL
 # (Google Drive folder only) — see docker/zero-dce/weights/README.md. If it wasn't manually
