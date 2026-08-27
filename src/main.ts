@@ -43,7 +43,7 @@ import { TextInspectionModal } from './ui/text-inspection-modal';
 import { TextInspector } from './core/text-inspector';
 import { ObjectEraserModal } from './ui/object-eraser-modal';
 import { BleedExpander } from './core/bleed-expander';
-import { AiMatting } from './core/ai-matting';
+import { FreeMattingClient } from './services/free-matting-client';
 import { AiVectorizer } from './core/ai-vectorizer';
 import { FreeVectorizeClient } from './services/free-vectorize-client';
 import { PdfExporter } from './engines/pdf-exporter';
@@ -727,8 +727,8 @@ class App {
       Toast.success('✓ AI 3mm 出血已自動補齊！核心主體 100% 完整保留在安全區內！');
     });
 
-    // ✂️ 髮絲級 AI 模切貼紙去背
-    document.getElementById('btnAiRemoveBg')?.addEventListener('click', () => {
+    // ✂️ 髮絲級 AI 模切貼紙去背（自建 rembg/u2netp 優先，離線時自動退回本機顏色距離去背）
+    document.getElementById('btnAiRemoveBg')?.addEventListener('click', async () => {
       const state = store.getState();
       const imgData = state.processedImageData || state.originalImageData;
       if (!imgData) {
@@ -737,16 +737,20 @@ class App {
       }
 
       SoundEffects.laserScan();
-      Toast.info('✂️ 正在進行髮絲級邊緣 Alpha 遮罩提取與色溢消除...');
+      Toast.info('✂️ 正在進行去背處理...');
 
-      const result = AiMatting.removeBackground(imgData);
+      const result = await FreeMattingClient.removeBackground(imgData);
       store.setState({
         processedImageData: result.imageData,
         processedDataUrl: result.dataUrl
       });
       this.mainPreviewImg.src = result.dataUrl;
       SoundEffects.purityChime();
-      Toast.success('✓ 髮絲級去背完成！可直接點擊【🏷️ 造型刀模 & 白墨】一鍵生成透明貼紙製版檔！');
+      Toast.success(
+        result.isCloud
+          ? '✓ 髮絲級去背完成！可直接點擊【🏷️ 造型刀模 & 白墨】一鍵生成透明貼紙製版檔！'
+          : '✓ 去背完成（本機演算法，背景須為單一色塊效果較佳）'
+      );
     });
 
     // ✒️ AI 點陣轉真向量 SVG 貝茲曲線檔 (VTracer Rust / 本機三次貝茲曲線雙通道)

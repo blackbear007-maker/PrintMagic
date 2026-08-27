@@ -9,10 +9,11 @@ import { NetworkGuard } from '../services/network-guard';
  * 這裡曾經是一個模擬 24+ 個雲端 AI 供應商配額/品質路由的儀表板（進度條、額度百分比、自動切換徽章），
  * 但沒有一行程式碼真的呼叫過那些供應商 —— 全部是本機模擬的假帳本。已整個移除，改成如實呈現：
  * 2 個自建服務容器（VTracer、PyTorch 視覺服務）+ 一律會用到的本機決定性演算法。
- * 誠實現況（2026-08-26）：VTracer 是真正能建置、運作的服務。PyTorch 視覺服務容器裡實際跑
- * 5 個模型：Real-ESRGAN、ARNIQA、LaMa（真實訓練權重，建置時自動下載）、Retinexformer 與 DehazeFormer-T
- * （真實訓練權重，作者無自動下載網址，2026-08-26 已手動下載並直接提交進 git——因為 Railway 是
- * 從 git 建置這個服務，只存在本機的權重檔案永遠不會真正部署上去，見 docker/zero-dce/weights/README.md）。
+ * 誠實現況（2026-08-27）：VTracer 是真正能建置、運作的服務。PyTorch/ONNX 視覺服務容器裡實際跑
+ * 7 個模型：Real-ESRGAN、ARNIQA、LaMa、rembg、YuNet（真實訓練權重，建置時自動下載）、Retinexformer 與
+ * DehazeFormer-T（真實訓練權重，作者無自動下載網址，2026-08-26 已手動下載並直接提交進 git——因為
+ * Railway 是從 git 建置這個服務，只存在本機的權重檔案永遠不會真正部署上去，見
+ * docker/zero-dce/weights/README.md）。
  * Retinexformer 已於 2026-08-26 取代原本從未載入訓練權重的 Zero-DCE++，成為低光提亮功能的
  * 真實模型（權重檔案已驗證：strict=True 完整載入 122 個張量無缺漏，真實推論成功讓測試圖片變亮）。
  * DehazeFormer-T 的權重檔案同樣已驗證：strict=True 完整載入 258 個張量無缺漏，真實推論在模擬
@@ -20,6 +21,11 @@ import { NetworkGuard } from '../services/network-guard';
  * LaMa（物件／浮水印移除）於 2026-08-26 加入，TorchScript 權重可自動下載，已驗證：torch.jit.load()
  * 成功、真實推論乾淨移除模擬「浮水印」色塊測試區域（移除區域內 0% 殘留原色，且修正了上游
  * simple-lama-inpainting 套件遺漏的「輸出裁切回原始尺寸」錯誤）。
+ * rembg（去背，固定 u2netp session）與 YuNet（人臉偵測）於 2026-08-27 加入，兩者跑在 ONNX
+ * Runtime/OpenCV DNN 後端而非 PyTorch。已驗證：rembg 在有紋理漸層背景的合成測試圖上正確分離主體
+ * 與背景（取代原本只能處理單一色背景的色鍵去背）；YuNet 對合成測試圖成功偵測人臉，信心分數 84.2%。
+ * 曾評估過的 GFPGAN（人像修復）、DDColor（老照片上色）、Florence-2（浮水印自動定位）皆決定不採用
+ * ——技術可行，但與印前處理定位不符或成本過高，詳見 docs/SPEC.md 的評估紀錄。
  * OCR（Tesseract）已於 2026-08-26 移除——查證後發現它從未被任何 UI 功能實際呼叫，而它原本
  * 想解決的問題（讀取 AI 繪圖產生的亂碼假文字）OCR 本來就解不了，因為那些筆畫通常根本不是真實字元。
  */
@@ -72,6 +78,16 @@ export class AiSettingsModal {
         icon: '🪄',
         name: 'LaMa 物件／浮水印移除',
         desc: '真實訓練權重（Apache-2.0），TorchScript 格式，開箱即用（建置時自動下載）。離線時自動退回本機 Navier-Stokes 畫布修復演算法。'
+      },
+      {
+        icon: '✂️',
+        name: 'rembg 髮絲級去背',
+        desc: '真實訓練權重（MIT，固定使用 u2netp session），開箱即用（建置時自動下載）。離線時自動退回本機顏色距離去背演算法（僅適合單一色背景）。'
+      },
+      {
+        icon: '🧑',
+        name: 'YuNet 人臉偵測',
+        desc: '真實訓練權重（Apache-2.0/MIT），開箱即用（建置時自動下載）。沒有本機備援——離線時誠實回報不可用，本專案沒有現成的本機人臉偵測演算法可退回。'
       }
     ];
 
@@ -113,7 +129,7 @@ export class AiSettingsModal {
 
           <!-- Real self-hosted services -->
           <div style="background: rgba(0, 0, 0, 0.02); border: 1.5px solid var(--pm-border-subtle); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 10px;">
-            <div style="font-size: 0.86rem; font-weight: 700; color: var(--pm-text-primary);">自建服務（2 個容器 · 6 項功能，詳見各項說明）</div>
+            <div style="font-size: 0.86rem; font-weight: 700; color: var(--pm-text-primary);">自建服務（2 個容器 · 8 項功能，詳見各項說明）</div>
             ${realServices.map((s) => `
               <div style="display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; ${s !== realServices[realServices.length - 1] ? 'border-bottom: 1px solid var(--pm-border-subtle);' : ''}">
                 <span style="font-size: 1.1rem;">${s.icon}</span>
@@ -124,7 +140,7 @@ export class AiSettingsModal {
               </div>
             `).join('')}
             <div style="font-size: 0.7rem; color: var(--pm-text-muted); padding-top: 4px;">
-              以上任一服務離線時，系統會自動退回本機決定性演算法（結果標籤會誠實標示「本機」，不會冒充雲端服務）。
+              以上服務離線時，系統會自動退回本機決定性演算法（結果標籤會誠實標示「本機」，不會冒充雲端服務）——唯獨 YuNet 人臉偵測沒有本機備援，離線時該功能直接不可用，不會假造一個「本機演算法」來冒充。
             </div>
           </div>
 

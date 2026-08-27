@@ -147,6 +147,38 @@ apiRouter.post('/ai/inpaint', async (req: Request, res: Response) => {
   }
 });
 
+// ✂️ rembg (u2netp) Background Removal — real trained weights, auto-downloaded, see ai-engine-service.ts
+apiRouter.post('/ai/matting', async (req: Request, res: Response) => {
+  try {
+    const { image_base64 } = req.body;
+    if (!image_base64) {
+      res.status(400).json({ success: false, error: 'image_base64 is required' });
+      return;
+    }
+    const { AiEngineService } = await import('../services/ai-engine-service.js');
+    const result = await AiEngineService.processMatting(image_base64);
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err?.message || 'Matting failed' });
+  }
+});
+
+// 🧑 YuNet Face Detection — real trained weights, auto-downloaded, see ai-engine-service.ts
+apiRouter.post('/ai/detect-face', async (req: Request, res: Response) => {
+  try {
+    const { image_base64 } = req.body;
+    if (!image_base64) {
+      res.status(400).json({ success: false, error: 'image_base64 is required' });
+      return;
+    }
+    const { AiEngineService } = await import('../services/ai-engine-service.js');
+    const result = await AiEngineService.processDetectFace(image_base64);
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err?.message || 'Face detection failed' });
+  }
+});
+
 // 📐 VTracer Rust Vectorizer Microservice Proxy
 apiRouter.post('/vectorize', async (req: Request, res: Response) => {
   try {

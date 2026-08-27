@@ -16,16 +16,21 @@
  * unexpected keys across 122 tensors, and real inference on a test image correctly brightened it.
  * See docker/zero-dce/server.py's header comment for full details.
  *
- * All five methods below (processLowLight, processUpscale, processDehaze, processQuality,
- * processInpaint) now proxy to genuinely trained real models when their weight files are present
- * on the server side. Retinexformer and DehazeFormer-T have no automatable download URL, so a
- * human sourced their weight file manually once (2026-08-26) and it was committed directly to git
- * (see docker/zero-dce/weights/README.md) — Railway builds this service from the git repo, not
- * local disk, so a gitignored weight file would never have actually reached the deployed
- * container. If either file is ever removed without a replacement, the service reports 503
- * honestly rather than running untrained/random weights. LaMa (processInpaint), added 2026-08-26,
- * is auto-downloaded at build time like Real-ESRGAN/ARNIQA — verified with a real downloaded
- * checkpoint that it cleanly removes a solid-color test region (i.e. object/watermark removal).
+ * All seven methods below (processLowLight, processUpscale, processDehaze, processQuality,
+ * processInpaint, processMatting, processDetectFace) now proxy to genuinely trained real models
+ * when their weight files are present on the server side. Retinexformer and DehazeFormer-T have
+ * no automatable download URL, so a human sourced their weight file manually once (2026-08-26)
+ * and it was committed directly to git (see docker/zero-dce/weights/README.md) — Railway builds
+ * this service from the git repo, not local disk, so a gitignored weight file would never have
+ * actually reached the deployed container. If either file is ever removed without a replacement,
+ * the service reports 503 honestly rather than running untrained/random weights. LaMa
+ * (processInpaint), added 2026-08-26, is auto-downloaded at build time like Real-ESRGAN/ARNIQA —
+ * verified with a real downloaded checkpoint that it cleanly removes a solid-color test region
+ * (i.e. object/watermark removal). rembg/u2netp (processMatting) and YuNet (processDetectFace),
+ * both added 2026-08-27, run on ONNX Runtime/OpenCV's DNN backend rather than PyTorch — verified
+ * with real downloaded weights: rembg correctly separated a solid test subject from a textured,
+ * non-uniform background (something the local color-key fallback, AiMatting, cannot do), and
+ * YuNet correctly detected a face on a synthetic shaded test image at 84.2% confidence.
  */
 export class AiEngineService {
   private static readonly BASE_URL = process.env.ZERO_DCE_URL || process.env.AI_ENGINE_URL || 'http://127.0.0.1:8082';
@@ -171,6 +176,66 @@ export class AiEngineService {
       return { success: false, error: `LaMa service returned HTTP ${res.status}` };
     } catch (err: any) {
       return { success: false, error: err?.message || 'LaMa service unavailable' };
+    }
+  }
+
+  /**
+   * rembg (u2netp session) background removal — real trained weights (MIT), auto-downloaded at
+   * build time. Deliberately pinned server-side to the u2netp model, never rembg's own default
+   * session (which can resolve to a non-commercial model) — see server.py's honesty note.
+   */
+  public static async processMatting(imageDataUrl: string): Promise<{ success: boolean; dataUrl?: string; engine?: string; error?: string }> {
+    try {
+      const { ok, status, data } = await this.postImage('/matting', imageDataUrl, 15000);
+      if (ok && data?.success && data.image_base64) {
+        return { success: true, dataUrl: data.image_base64, engine: 'rembg u2netp (自建微服務)' };
+      }
+      if (status === 503) {
+        return { success: false, error: data?.error || 'rembg service unavailable' };
+      }
+      return { success: false, error: `rembg service returned HTTP ${status}` };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'rembg service unavailable' };
+    }
+  }
+
+  /**
+   * YuNet face detection — real trained weights (Apache-2.0/MIT), auto-downloaded at build time.
+   * Returns face bounding boxes + 5-point landmarks as JSON, not a processed image, so this
+   * doesn't go through the shared postImage() helper's image-response assumption.
+   */
+  public static async processDetectFace(imageDataUrl: string): Promise<{ success: boolean; faces?: any[]; imageWidth?: number; imageHeight?: number; engine?: string; error?: string }> {
+    try {
+      const base64Data = imageDataUrl.replace(/^data:image\/\w+;base64,/, '');
+      const buffer = Buffer.from(base64Data, 'base64');
+      const formData = new FormData();
+      formData.append('image', new Blob([buffer], { type: 'image/png' }), 'input.png');
+
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 10000);
+      let res: Response;
+      try {
+        res = await fetch(`${this.BASE_URL}/detect-face`, { method: 'POST', body: formData, signal: controller.signal });
+      } finally {
+        clearTimeout(timer);
+      }
+      const data = res.ok || res.status === 503 ? await res.json().catch(() => undefined) : undefined;
+
+      if (res.ok && data?.success) {
+        return {
+          success: true,
+          faces: data.faces || [],
+          imageWidth: data.imageWidth,
+          imageHeight: data.imageHeight,
+          engine: 'YuNet (自建微服務)'
+        };
+      }
+      if (res.status === 503) {
+        return { success: false, error: data?.error || 'YuNet weights not present' };
+      }
+      return { success: false, error: `YuNet service returned HTTP ${res.status}` };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'YuNet service unavailable' };
     }
   }
 }

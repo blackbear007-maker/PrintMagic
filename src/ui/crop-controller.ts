@@ -2,6 +2,7 @@ import { store } from './state';
 import { SoundEffects } from '../core/sound-effects';
 import { Toast } from './toast';
 import type { CropAnchor } from '../types';
+import { SmartCropClient } from '../services/smart-crop-client';
 
 /**
  * Smart Focal Crop & Visual Alignment Controller
@@ -39,6 +40,7 @@ export class CropController {
           <button class="pm-align-cell" data-anchor="bottom" title="靠下對齊（保留底部細節）">↓</button>
           <button class="pm-align-cell" data-anchor="bottom" title="靠下對齊">↘</button>
         </div>
+        <button class="pm-btn pm-btn-xs pm-btn-secondary" id="btnSmartCropSuggest" title="用 smartcrop.js 分析構圖，自動建議最佳焦點方向">✨ AI 建議</button>
       </div>
     `;
   }
@@ -65,6 +67,71 @@ export class CropController {
         }
       });
     });
+
+    this.container.querySelector<HTMLButtonElement>('#btnSmartCropSuggest')?.addEventListener('click', async () => {
+      await this.suggestCropAnchor();
+    });
+  }
+
+  /**
+   * Runs smartcrop.js (best-effort face-boosted via YuNet, see SmartCropClient's own note)
+   * against the current image and the current print preset's aspect ratio, then maps its
+   * pixel-precise crop rect onto the nearest of this app's 5 discrete anchor positions —
+   * this UI only ever supported top/bottom/left/right/center, not an arbitrary crop rect, so a
+   * lossy mapping is the honest choice here rather than silently ignoring smartcrop's precision.
+   */
+  private async suggestCropAnchor(): Promise<void> {
+    const state = store.getState();
+    const imgData = state.processedImageData || state.originalImageData;
+    if (!imgData) {
+      Toast.error('請先上傳圖片');
+      return;
+    }
+
+    const preset = state.currentPreset;
+    const presetRatio = preset.widthMm / preset.heightMm;
+    let targetWidth = imgData.width;
+    let targetHeight = Math.round(targetWidth / presetRatio);
+    if (targetHeight > imgData.height) {
+      targetHeight = imgData.height;
+      targetWidth = Math.round(targetHeight * presetRatio);
+    }
+
+    Toast.info('✨ 正在分析構圖...');
+    try {
+      const result = await SmartCropClient.suggestCrop(imgData, targetWidth, targetHeight);
+      const cropCenterX = result.crop.x + result.crop.width / 2;
+      const cropCenterY = result.crop.y + result.crop.height / 2;
+      const imgCenterX = imgData.width / 2;
+      const imgCenterY = imgData.height / 2;
+      const dx = cropCenterX - imgCenterX;
+      const dy = cropCenterY - imgCenterY;
+      const threshold = Math.min(imgData.width, imgData.height) * 0.08;
+
+      let anchor: CropAnchor = 'center';
+      if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > threshold) {
+        anchor = dx > 0 ? 'right' : 'left';
+      } else if (Math.abs(dy) > threshold) {
+        anchor = dy > 0 ? 'bottom' : 'top';
+      }
+
+      store.setCropAnchor(anchor);
+      SoundEffects.sliderTick();
+      Toast.success(`✓ ${result.engine} 建議焦點：${this.anchorLabel(anchor)}`);
+    } catch (err: any) {
+      Toast.error(`構圖分析失敗：${err?.message || '未知錯誤'}`);
+    }
+  }
+
+  private anchorLabel(anchor: CropAnchor): string {
+    const labels: Record<CropAnchor, string> = {
+      top: '靠上',
+      bottom: '靠下',
+      left: '靠左',
+      right: '靠右',
+      center: '置中'
+    };
+    return labels[anchor];
   }
 
   private subscribeState(): void {

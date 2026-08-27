@@ -9,16 +9,12 @@
 #     actually constrain the Railway deployment the comment was about.
 #
 
-#  Monthly cost estimate (Railway, ACTUAL usage-based billing — corrected 2026-08-26):
+#  Monthly cost estimate (Railway, ACTUAL usage-based billing — corrected 2026-08-26, updated for
+#  the 7-model container 2026-08-27):
 #  ⚠️ Railway does NOT bill the `memory`/`cpus` numbers below — those are just OOM-kill / throttle
 #     ceilings this compose file enforces for local dev. Railway meters and bills REAL consumption
 #     per second: $10/GB-month for RAM ($0.00000386/GB-sec) and $20/vCPU-month for CPU
-#     ($0.00000772/vCPU-sec), confirmed against railway.com/pricing on 2026-08-26. The table this
-#     replaced multiplied the LIMIT column by a stale ~$5/GB rate — both mistakes (treating the
-#     limit as if it were billed usage, and using half the real RAM rate) meant it overstated
-#     zero-dce's true cost while never even asking whether printmagic/vtracer's CPU limits reflect
-#     real usage (they don't — an idle Node/Rust process draws near-0% CPU, and usage-based billing
-#     only charges for CPU actually consumed).
+#     ($0.00000772/vCPU-sec), confirmed against railway.com/pricing on 2026-08-26.
 #
 #  ┌──────────────────────┬────────────┬───────────┬───────────────────────────┐
 #  │ Service               │ RAM Limit  │ CPU Limit │ $/mo est.                  │
@@ -27,10 +23,10 @@
 #  │                        │            │           │ this session; likely < $2 │
 #  │ vtracer (Rust)         │ 128 MB     │ 0.3 vCPU  │ unverified — not measured  │
 #  │                        │            │           │ this session; likely < $1 │
-#  │ zero-dce (PyTorch)     │ 3,072 MB   │ 0.5 vCPU  │ ~$7-13 (MEASURED, see      │
-#  │                        │            │           │ below)                     │
+#  │ zero-dce (PyTorch +    │ 4,096 MB   │ 0.5 vCPU  │ ~$8-17 (MEASURED, see      │
+#  │   ONNX Runtime)        │            │           │ below)                     │
 #  ├──────────────────────┼────────────┼───────────┼───────────────────────────┤
-#  │ TOTAL                 │ 3,456 MB   │ 1.3 vCPU  │ ~$9-16/mo — zero-dce       │
+#  │ TOTAL                 │ 4,480 MB   │ 1.3 vCPU  │ ~$10-20/mo — zero-dce      │
 #  │                        │            │           │ dominates; the other two   │
 #  │                        │            │           │ were never independently   │
 #  │                        │            │           │ measured, so treat their   │
@@ -38,48 +34,56 @@
 #  │                        │            │           │ bounds, not real data      │
 #  └──────────────────────┴────────────┴───────────┴───────────────────────────┘
 #
-#  ⚠️ `zero-dce`'s RAM limit is 3072M as of 2026-08-26 (raised from 2048M once LaMa was added as
-#     the 5th model — see docker/zero-dce/server.py's header comment: Retinexformer, Real-ESRGAN,
-#     DehazeFormer-T, ARNIQA, and now LaMa). This limit is just the OOM ceiling, not the billed
-#     amount — the real cost estimate above comes from ACTUALLY building the full dependency set
-#     (including LaMa's 196MB big-lama.pt) in an isolated venv, running the real server.py as an
-#     HTTP server, and hitting all 5 endpoints with real images while measuring RSS with psutil
-#     (not a Docker container specifically — this repo has no way to build/run Docker images in the
-#     environment these changes were authored in — but real PyTorch/basicsr/realesrgan/torch.hub/
-#     torch.jit code, not simulated):
-#       - All 5 models loaded, idle: 722.6 MB (vs. ~580 MB for the previous 4 — the +143MB delta is
-#         LaMa's TorchScript graph resident in memory). 722.6MB × $10/GB-month ≈ $7.06/mo is the
+#  ⚠️ `zero-dce`'s RAM limit is 4096M as of 2026-08-27 (raised from 3072M once rembg/u2netp and
+#     YuNet were added as the 6th/7th models — see docker/zero-dce/server.py's header comment:
+#     Retinexformer, Real-ESRGAN, DehazeFormer-T, ARNIQA, LaMa, rembg, YuNet — the last two run on
+#     ONNX Runtime/OpenCV's DNN backend rather than PyTorch, a second inference runtime sharing
+#     this same process). This limit is just the OOM ceiling, not the billed amount — the real cost
+#     estimate above comes from ACTUALLY building the full dependency set (including rembg's ~4.6MB
+#     u2netp.onnx and YuNet's ~0.23MB ONNX weight) in an isolated venv, running the real server.py
+#     as an HTTP server, and hitting all 7 endpoints with real images while measuring RSS with
+#     psutil (not a Docker container specifically — this repo has no way to build/run Docker images
+#     in the environment these changes were authored in — but real PyTorch/basicsr/realesrgan/
+#     torch.hub/torch.jit/onnxruntime code, not simulated):
+#       - All 7 models loaded, idle: 837.2 MB (vs. 722.6 MB for the previous 5 — the +114.6MB delta
+#         is rembg's u2netp ONNX session + YuNet's tiny ONNX session together, close to the 791.6MB
+#         standalone figure measured for just those two in isolation, confirming they don't share
+#         much baseline overhead with the PyTorch runtime). 837.2MB × $10/GB-month ≈ $8.18/mo is the
 #         cost FLOOR — what you pay even with zero traffic, just to keep the models warm.
-#       - Steady-state after exercising all 5 endpoints once each (900x900 test images): ~1,330-
-#         1,375 MB. Python/PyTorch's allocator doesn't release freed memory back to the OS, so a
-#         lightly-used service realistically sits nearer this steady-state figure than the idle
-#         floor — ~1.25GB × $10/GB-month ≈ $12.50/mo is the more realistic "actually gets some
-#         traffic" estimate, hence the $7-13/mo range above.
-#       - Peak observed across two full passes (10 total calls): 1,843.2 MB (hit during a /dehaze
+#       - Steady-state after exercising all 7 endpoints once each (900x900 test images, 640x640 for
+#         /detect-face): 1,739.7 MB. Python/PyTorch/ONNX's allocators don't release freed memory
+#         back to the OS, so a lightly-used service realistically sits nearer this steady-state
+#         figure than the idle floor — ~1.70GB × $10/GB-month ≈ $17/mo is the more realistic
+#         "actually gets some traffic" estimate, hence the $8-17/mo range above.
+#       - Peak observed across two full passes (14 total calls): 2,258.5 MB (hit during an /enhance
 #         call in the second pass) — this is a multi-SECOND spike, not sustained, so its billing
-#         impact is small; it matters for the OOM ceiling (see 3072M reasoning below), not the
+#         impact is small; it matters for the OOM ceiling (see 4096M reasoning below), not the
 #         monthly estimate.
 #       - CPU cost stays small even under real load, because it's billed per vCPU-second actually
 #         consumed (capped at the 0.5 vCPU limit) rather than per request: at real measured per-call
-#         latencies (/quality 1.1-1.3s, /dehaze 3.7-3.9s, /enhance 7.3-8.2s, /inpaint 8.6-9.8s,
-#         /upscale 17-31s), even 5,000 requests/month spread across all 5 endpoints costs roughly
-#         +$0.18/mo in CPU, and 50,000 requests/month roughly +$1.8/mo — the RAM floor above
-#         dominates the bill far more than request volume does.
+#         latencies (/detect-face 0.03-0.05s, /matting 0.48-0.50s, /quality 1.0-1.1s, /dehaze
+#         3.5-3.8s, /enhance 6.8-7.1s, /inpaint 7.9-8.0s, /upscale 15.8-16.1s), even 5,000
+#         requests/month spread across all 7 endpoints costs roughly +$0.15/mo in CPU, and 50,000
+#         requests/month roughly +$1.5/mo — the RAM floor above dominates the bill far more than
+#         request volume does.
 #       - The real risk under heavy CONCURRENT load isn't the bill — server.py uses a single-
 #         threaded `http.server.HTTPServer` (not ThreadingHTTPServer), so requests to ANY endpoint
-#         queue behind whichever one is currently running (e.g. a 30s /upscale call blocks /quality
-#         too). If that queueing gets fixed by adding replicas, cost then scales roughly linearly
-#         per replica — each one adds another ~$7-13/mo RAM floor, CPU stays cheap regardless.
+#         queue behind whichever one is currently running (e.g. a 16s /upscale call blocks the
+#         50ms /detect-face call right behind it). If that queueing gets fixed by adding replicas,
+#         cost then scales roughly linearly per replica — each one adds another ~$8-17/mo RAM
+#         floor, CPU stays cheap regardless.
 #       - The previous note about a 2000x2000 input to Real-ESRGAN at tile=0 spiking to 2.2GB (why
 #         /upscale caps input at ~1.44MP and uses tile=400) still applies unchanged; /inpaint (LaMa)
-#         also has no equivalent large-input guard yet beyond the shared MAX_INPUT_PIXELS check —
-#         worth revisiting if very large watermark-removal jobs become common.
-#     3072M (1.5x the previous 2048M) leaves ~1.2GB of margin above the newly-observed 1.84GB peak
-#     — deliberately larger headroom than before, since the 4-model measurement already showed
-#     ±600MB of run-to-run variance between otherwise-identical runs on the SAME model count; a
-#     smaller bump (e.g. 2560M) would leave only ~700MB margin, uncomfortably close to that already-
-#     observed variance. Validate against production RSS on first real deploy regardless, since a
-#     Linux container's allocator behavior can differ from this native Windows venv test.
+#         and /matting (rembg) have no equivalent large-input guard beyond the shared
+#         MAX_INPUT_PIXELS check — worth revisiting if very large images become common on either.
+#     4096M leaves ~1.84GB of margin above the newly-observed 2.26GB peak — larger absolute
+#     headroom than the previous 3072M ceiling's ~1.2GB margin over its own peak, since the safety
+#     margin had shrunk to ~814MB right after adding the two new models (before this bump) — close
+#     enough to the ±600MB run-to-run variance already observed between otherwise-identical runs on
+#     the same model count that it was worth restoring real headroom rather than letting margin
+#     erode with every model addition. Validate against production RSS on first real deploy
+#     regardless, since a Linux container's allocator behavior can differ from this native Windows
+#     venv test.
 #
 #  ⚠️ OCR (Tesseract) was removed 2026-08-26 — it was never wired into any UI feature, and the
 #     product need it was meant for (reading AI-hallucinated garbled "text" in generated artwork)
@@ -173,7 +177,7 @@ services:
     networks:
       - printmagic-net
 
-  # ── PyTorch CPU Vision Microservice (Retinexformer / Real-ESRGAN / DehazeFormer-T / ARNIQA / LaMa) ──
+  # ── PyTorch/ONNX CPU Vision Microservice (Retinexformer / Real-ESRGAN / DehazeFormer-T / ARNIQA / LaMa / rembg / YuNet) ──
   zero-dce:
     build:
       context: ./docker/zero-dce
@@ -190,11 +194,11 @@ services:
     deploy:
       resources:
         limits:
-          memory: 3072M       # Measured, not guessed — see header comment above (raised from 2048M
-                               # when LaMa was added as the 5th model, 2026-08-26)
+          memory: 4096M       # Measured, not guessed — see header comment above (raised from 3072M
+                               # when rembg and YuNet were added as the 6th/7th models, 2026-08-27)
           cpus: '0.5'
         reservations:
-          memory: 768M         # >= the measured 722.6MB idle baseline with all 5 models loaded
+          memory: 896M          # >= the measured 837.2MB idle baseline with all 7 models loaded
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8082/health"]
       interval: 30s

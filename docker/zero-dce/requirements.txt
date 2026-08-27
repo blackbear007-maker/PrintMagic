@@ -26,3 +26,14 @@ timm==1.0.9
 
 # LaMa (inpaint) — the checkpoint is a TorchScript-traced export (torch.jit.load), so it needs
 # no architecture class or extra package at all beyond torch/numpy/Pillow already above.
+
+# rembg (matting) — pulls in its own dependency chain (pymatting, scikit-image, numba, pooch,
+# jsonschema) noticeably heavier than any other model added to this image so far. Does NOT
+# declare onnxruntime as a hard dependency in its own metadata — verified 2026-08-27 by installing
+# rembg alone and hitting `ModuleNotFoundError: No module named 'onnxruntime'` at import time —
+# so it's pinned explicitly here rather than relying on it being pulled in transitively.
+rembg==2.0.69
+onnxruntime==1.29.0
+
+# YuNet (detect-face) — loaded via cv2.FaceDetectorYN, part of opencv-python-headless's DNN
+# module (already listed above for the Real-ESRGAN/basicsr patch) — no new package needed.

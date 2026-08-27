@@ -1,10 +1,13 @@
 # ─── PyTorch CPU Vision Microservice ──────────────────────────────────────
-# Hosts 5 independent models sharing one PyTorch runtime: Retinexformer (low-light, real trained
-# weights if sourced — replaced the old untrained Zero-DCE++ 2026-08-26, see server.py's honesty
-# note), Real-ESRGAN compact (upscale), DehazeFormer-T (dehaze), ARNIQA (quality assessment), and
-# LaMa (object/watermark removal). Kept under the `zero-dce` service/container name since that's
-# already wired through docker-compose.yml, railway.toml, and ZERO_DCE_URL in the main app —
-# renaming is a separate, larger change than adding routes to the existing container.
+# Hosts 7 independent models: Retinexformer (low-light, real trained weights if sourced —
+# replaced the old untrained Zero-DCE++ 2026-08-26, see server.py's honesty note), Real-ESRGAN
+# compact (upscale), DehazeFormer-T (dehaze), ARNIQA (quality assessment), LaMa (object/watermark
+# removal) — all five on PyTorch — plus rembg/u2netp (background matting) and YuNet (face
+# detection), both added 2026-08-27 and both running on ONNX Runtime/OpenCV's DNN backend instead
+# of PyTorch, since neither had a good small PyTorch-native option. Kept under the `zero-dce`
+# service/container name since that's already wired through docker-compose.yml, railway.toml, and
+# ZERO_DCE_URL in the main app — renaming is a separate, larger change than adding routes to the
+# existing container.
 #
 # RAM ceiling: see docker-compose.yml for the current number and the reasoning behind it — grown
 # from the original 640MB single-model container as more models joined this one process; the
@@ -70,6 +73,25 @@ RUN mkdir -p weights && curl -fsSL -o weights/realesr-general-x4v3.pth \
 # single weight file this container carries, see docker-compose.yml for the resulting RAM ceiling.
 RUN curl -fsSL -o weights/big-lama.pt \
     https://github.com/enesmsahin/simple-lama-inpainting/releases/download/v0.1.0/big-lama.pt
+
+# ─── YuNet weights (real, direct-downloadable Git-LFS-backed release asset) ────────────────────
+# github.com/opencv/opencv_zoo, models/face_detection_yunet (Apache-2.0 repo / MIT for this
+# specific model directory). ~0.23MB ONNX file, loaded via cv2.FaceDetectorYN — no architecture
+# class or extra Python package needed beyond opencv-python-headless already in requirements.txt.
+# Verified 2026-08-27 by actually downloading this exact URL and running inference: correctly
+# detected a face on a synthetic test image at 84.2% confidence.
+RUN curl -fsSL -o weights/face_detection_yunet_2023mar.onnx \
+    https://media.githubusercontent.com/media/opencv/opencv_zoo/main/models/face_detection_yunet/face_detection_yunet_2023mar.onnx
+
+# ─── rembg (u2netp) weights, pre-warmed at build time (real GitHub Release, no auth) ───────────
+# github.com/danielgatis/rembg (MIT). Deliberately creates a session for the `u2netp` model by
+# name — never rembg's own DEFAULT session (`bria-rmbg`), which carries a separate non-commercial
+# license — verified 2026-08-27 against rembg's own session registry. U2NET_HOME is pinned to a
+# path under /app (matching the ARNIQA TORCH_HOME pattern below) so the downloaded weight lands
+# somewhere the non-root `zerodce` user (created further down) can actually read, and so it's
+# baked into this image layer rather than re-downloaded on first request in production.
+ENV U2NET_HOME=/app/.u2net
+RUN python -c "from rembg import new_session; new_session('u2netp')"
 
 # ─── DehazeFormer-T model definition (vendoring the real source file, not reconstructing it) ──
 # Only this one file is needed: verified to import nothing from the rest of the DehazeFormer

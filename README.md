@@ -82,7 +82,7 @@
 
 早期版本的說明文件把每一個影像處理函式都貼上一個知名 SOTA 論文名字（SAM 2.1、CLIP-IQA+、RealESRGAN、BiRefNet、DehazeFormer……），並宣稱整合「19 款開源商用 AI 模型」。這不準確——本專案沒有內嵌任何 ONNX / TensorFlow.js / WASM 推論引擎，前端從未載入過模型權重檔。以下是誠實的拆分：
 
-### ✅ 自建服務（2 個 Docker 容器，共 6 項功能）
+### ✅ 自建服務（2 個 Docker 容器，共 8 項功能）
 | 服務 | 是什麼 | 用途 |
 | :--- | :--- | :--- |
 | **VTracer**（`docker/vtracer/`） | 真實開源 Rust 向量化工具。⚠️ 2026-08-25 前 Dockerfile 引用了從未存在過的 `Cargo.toml`/`src/`，建置必定失敗；已修正為安裝真正發布的 `vtracer` crate + Python 包裝層 | 點陣轉 SVG 向量（`/api/vectorize`） |
@@ -91,10 +91,12 @@
 | **DehazeFormer-T**（`docker/zero-dce/`） | 真實開源模型（MIT）。作者只透過 Google Drive 資料夾發布權重，沒有可自動下載的網址，但權重檔（2.9MB）已於 2026-08-26 直接下載並提交進 git（`docker/zero-dce/weights/dehazeformer-t.pth`，見該目錄 README）——因為 Railway 是從 git 儲存庫建置，不是本機硬碟，只存在本機的權重檔永遠不會真正部署上去。**已用真實下載的權重檔驗證**：`strict=True` 完整載入 258 個張量、零缺漏零多餘，真實推論在模擬霧霾測試圖上讓對比度從 0.0245 提升到 0.0763 | 去霧（`/api/ai/dehaze`），開箱即用 |
 | **Retinexformer**（`docker/zero-dce/`） | 真實開源模型（MIT，ICCV 2023）。2026-08-26 取代原本從未載入訓練權重的 Zero-DCE++——權重同樣只能從 Google Drive/百度網盤手動下載，但已下載並提交進 git（`docker/zero-dce/weights/LOL_v2_real.pth`，原因同上：Railway 從 git 建置）。**已用真實下載的權重檔驗證**：`strict=True` 完整載入 122 個張量、零缺漏零多餘，真實推論成功讓測試圖片從平均亮度 0.082 提升到 0.399 | 低光照片提亮（`/api/ai/lowlight`），開箱即用 |
 | **LaMa**（`docker/zero-dce/`） | 真實開源模型（Apache-2.0，Samsung Research）。TorchScript 匯出的 `big-lama.pt`，有可自動下載的 GitHub Release 網址，建置時自動下載，開箱即用。**已用真實下載的權重檔驗證**：`torch.jit.load()` 成功，真實推論在模擬「浮水印」色塊測試圖上完全移除目標色塊（移除區域內 0% 殘留原色），並修正了上游 `simple-lama-inpainting` 套件遺漏「輸出裁切回原始尺寸」的錯誤 | 物件／浮水印移除（`/api/ai/inpaint`），需同時提供來源圖與遮罩圖 |
+| **rembg**（`docker/zero-dce/`） | 真實開源模型（MIT），固定使用 `u2netp` session（刻意不用 rembg 預設 session，因為那可能解析到非商用授權的模型）。權重（~4.6MB）由 rembg 自行於建置時自動下載。**已用真實下載的權重檔驗證**：在有紋理漸層背景的合成測試圖上，主體中心 alpha 254/255（近乎完全不透明）、四角 alpha 0/255（完全透明），確認能處理現有色鍵去背無法處理的非單一色背景 | 髮絲級去背（`/api/ai/matting`），開箱即用 |
+| **YuNet**（`docker/zero-dce/`） | 真實開源模型（Apache-2.0/MIT），透過 OpenCV 內建的 `cv2.FaceDetectorYN` 載入，不需額外套件（沿用既有的 opencv-python-headless）。權重（~0.23MB）為可自動下載的 Git-LFS Release 資產。**已用真實下載的權重檔驗證**：對合成人臉測試圖成功偵測 1 張臉，信心分數 84.2% | 人臉偵測（`/api/ai/detect-face`），回傳座標 JSON（非圖片），開箱即用 |
 
 ⚠️ **OCR（Tesseract）已於 2026-08-26 移除**：查證後發現它從未被任何 UI 功能實際呼叫過（純死碼），而它原本想解決的問題——讀取 AI 繪圖產生的亂碼假文字——OCR 本來就解不了，因為那些筆畫通常根本不是任何文字系統的真實字元，就算讀出結果也毫無參考價值。實際可行的做法是定位文字區域＋由使用者自己輸入正確文字，見下方「文字防糊」工具。
 
-VTracer/Real-ESRGAN/ARNIQA/DehazeFormer-T/Retinexformer/LaMa 離線或未就緒時，系統會自動退回下方的本機決定性演算法，並在結果標籤上誠實標示「本機」而非假冒雲端模型名稱。
+VTracer/Real-ESRGAN/ARNIQA/DehazeFormer-T/Retinexformer/LaMa/rembg 離線或未就緒時，系統會自動退回下方的本機決定性演算法，並在結果標籤上誠實標示「本機」而非假冒雲端模型名稱。YuNet（人臉偵測）是唯一沒有本機備援的功能——本專案沒有現成的本機人臉偵測演算法，離線時就是誠實回報不可用，而不是假造一個「本機演算法」來冒充。
 
 ### 🧮 決定性演算法（前端 TypeScript，非神經網路）
 以下模組過去用 SOTA 論文名稱命名，現已改用描述實際技術的名稱，程式邏輯本身沒有變動：
@@ -114,6 +116,9 @@ VTracer/Real-ESRGAN/ARNIQA/DehazeFormer-T/Retinexformer/LaMa 離線或未就緒�
 | `EdgeChokeMatting` | 四角取樣顏色距離去背 | BiRefNet |
 | `HandShadowBalancer` | 24×24 網格光照插值 | ShadowFormer |
 | `TextZoneDetector` | 深色像素密度網格掃描（**不做文字辨識**，只標示可能的文字區域） | PP-OCR |
+
+### 🎯 智慧裁切構圖建議（前端 TypeScript，真實第三方演算法函式庫）
+`SmartCropClient` 直接使用真實開源的 [`smartcrop`](https://github.com/jwagner/smartcrop.js)（MIT，13k+ star）套件，而非改寫或借用它的名字——這是唯一一個既非自建 AI 服務、也非「借用 SOTA 論文名稱的本機演算法」的第三類：真實第三方演算法，誠實掛自己的原名。純瀏覽器端執行（邊緣/膚色/飽和度顯著性分析 + 滑動窗口排名），不佔用 `zero-dce` 容器一分記憶體。2026-08-27 起，若 YuNet 人臉偵測服務可用，會把偵測到的人臉位置餵給 smartcrop 的 `boost` 參數，讓建議的裁切不容易把臉裁掉；YuNet 離線時 smartcrop 仍正常運作，只是少了人臉加權。
 
 這些演算法在乾淨、平坦色塊的素材上（貼紙、logo、簡單向量圖）表現穩定；在複雜漸層、雜訊照片或需要真正語意理解的場景上，效果會明顯不如對應的真實神經網路模型。需要真正的文字辨識、去背、或超解析度時，請走上方「真實模型」路徑。
 

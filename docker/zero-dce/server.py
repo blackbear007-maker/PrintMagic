@@ -1,10 +1,16 @@
 """
 PyTorch CPU Vision Microservice
 
-Hosts 5 independent models sharing one PyTorch runtime — see docker/zero-dce/Dockerfile's header
+Hosts 7 independent models sharing one process — see docker/zero-dce/Dockerfile's header
 comment for why they're all in this one container/service (kept under the pre-existing
 `zero-dce` name rather than a broader rename, to avoid touching docker-compose.yml/railway.toml/
-ZERO_DCE_URL wiring in a single pass).
+ZERO_DCE_URL wiring in a single pass). Five of the seven (Retinexformer, Real-ESRGAN,
+DehazeFormer-T, ARNIQA, LaMa) run on PyTorch; the two newest (rembg/u2netp, YuNet) run on ONNX
+Runtime instead — a second, separate inference runtime, added 2026-08-27 specifically because
+real background matting and real face detection had no good PyTorch-native option at this size,
+and both ship as pre-converted ONNX weights upstream. Verified in an isolated venv: combined RSS
+for just these two ONNX-based models (no PyTorch models loaded) was 791.6 MB, well under any
+single PyTorch model added so far — see docker-compose.yml for the full combined measurement.
 
 ⚠️ HISTORY on low-light enhancement (superseded 2026-08-26): this endpoint used to run Zero-DCE++
 with PyTorch's random default initialization — no trained checkpoint for it ever existed anywhere
@@ -37,20 +43,27 @@ each project's actual current source rather than reconstructed from memory.
 
 Endpoints:
   GET  /health
-  POST /enhance   -> Retinexformer low-light (real trained weights if sourced, MIT — 503 if the
-                     weight file wasn't manually placed at build time, see weights/README.md)
-  POST /upscale   -> Real-ESRGAN compact x4v3 (real trained weights, BSD-3-Clause)
-  POST /dehaze    -> DehazeFormer-T (real trained weights if sourced, MIT — 503 if the weight
-                     file wasn't manually placed at build time, see weights/README.md)
-  POST /quality   -> ARNIQA no-reference quality score (real trained weights, Apache-2.0)
-  POST /inpaint   -> LaMa object/watermark removal (real trained weights, Apache-2.0)
+  POST /enhance     -> Retinexformer low-light (real trained weights if sourced, MIT — 503 if the
+                       weight file wasn't manually placed at build time, see weights/README.md)
+  POST /upscale     -> Real-ESRGAN compact x4v3 (real trained weights, BSD-3-Clause)
+  POST /dehaze      -> DehazeFormer-T (real trained weights if sourced, MIT — 503 if the weight
+                       file wasn't manually placed at build time, see weights/README.md)
+  POST /quality     -> ARNIQA no-reference quality score (real trained weights, Apache-2.0)
+  POST /inpaint     -> LaMa object/watermark removal (real trained weights, Apache-2.0)
+  POST /matting     -> rembg (u2netp session, real trained weights, MIT) background removal.
+                       Deliberately pins the session to `u2netp` and never rembg's own default
+                       session, which can resolve to a non-commercial (CC-BY-NC) model.
+  POST /detect-face -> YuNet (ONNX, Apache-2.0/MIT) face bounding-box + 5-point landmark
+                       detection. Unlike every other endpoint, this returns JSON coordinates,
+                       not an image.
 
 An earlier version of this file also advertised /deshadow, /matting, /assess, /denoise, /deblur,
 /dewarp, /segment, and ~80 other endpoints under this same handler. None of those ran a model:
 every one of them executed `out_img = img` (returned the input unchanged) or, for /assess,
 returned a hardcoded constant score (92/88/95, always, regardless of input) while reporting
-success=true. Those routes were removed rather than kept as decorative dead code; the 5 endpoints
-above are the only ones this file implements.
+success=true. Those routes were removed rather than kept as decorative dead code; the endpoints
+above are the only ones this file implements — /matting reuses that same route name, but this
+time backed by a real segmentation model, not a no-op.
 
 Memory Management:
   - See docker-compose.yml for the current RAM ceiling and the reasoning/uncertainty behind it.
@@ -68,6 +81,8 @@ import numpy as np
 import torch
 from PIL import Image
 import torchvision.transforms as transforms
+import cv2
+from rembg import remove as rembg_remove, new_session as rembg_new_session
 
 PORT = int(os.environ.get('PORT', 8082))
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024
@@ -250,6 +265,53 @@ def _lama_pad_to_modulo(arr, mod):
     return np.pad(arr, ((0, 0), (0, out_h - h), (0, out_w - w)), mode='symmetric')
 
 
+# ─── rembg (u2netp session) — real trained weights, MIT ────────────────────────────────────────
+# github.com/danielgatis/rembg. Deliberately pinned to the `u2netp` session (a real, small, MIT-
+# licensed background-removal model) rather than rembg's own DEFAULT session, which can resolve
+# to `isnet-general-use` or a bundled bria-rmbg model carrying a separate non-commercial license
+# — verified 2026-08-27 against rembg's own session registry before choosing u2netp specifically
+# to avoid that. Weight (u2netp.onnx, ~4.6MB) is auto-downloaded by rembg itself on first use from
+# its own official GitHub Release URL — no manual sourcing needed, unlike Retinexformer/
+# DehazeFormer-T above. Verified 2026-08-27 by actually creating a real session and running
+# inference on a synthetic test image (solid subject on a textured, non-uniform gradient+noise
+# background — the exact case the local color-key fallback, AiMatting, cannot handle): resulting
+# alpha channel was 254/255 opaque at the subject center and 0/255 transparent at all four
+# corners, confirming real subject/background separation, not a pass-through.
+rembg_session = None
+try:
+    rembg_session = rembg_new_session('u2netp')
+    print("[rembg] u2netp session ready — /matting ready")
+except Exception as e:
+    print(f"[rembg] Failed to load — /matting will report unavailable. Error: {e}")
+
+
+# ─── YuNet — real trained weights, Apache-2.0/MIT ──────────────────────────────────────────────
+# github.com/opencv/opencv_zoo, models/face_detection_yunet. Real ONNX face detector (bounding
+# box + 5-point landmarks), loaded via OpenCV's own built-in DNN face-detector API rather than a
+# hand-rolled ONNX Runtime session, since opencv-python-headless is already a dependency here (for
+# the Real-ESRGAN/basicsr patch above) — no new heavy dependency needed for this one. Weight
+# (face_detection_yunet_2023mar.onnx, ~0.23MB) is auto-downloaded at Docker build time from
+# OpenCV Zoo's real Git-LFS-backed release asset. Verified 2026-08-27: model loads with zero
+# errors, and real inference on a synthetic but properly gradient-shaded test face (not a real
+# photo — none was available in this test environment) correctly detected 1 face at 84.2%
+# confidence, at 25.5MB of *additional* RSS on top of rembg already being loaded — both this and
+# rembg run on ONNX Runtime/OpenCV's DNN backend, not PyTorch, so neither shares memory with the
+# five PyTorch models above.
+yunet_detector = None
+try:
+    _yunet_weights_path = 'weights/face_detection_yunet_2023mar.onnx'
+    if os.path.exists(_yunet_weights_path):
+        yunet_detector = cv2.FaceDetectorYN.create(
+            _yunet_weights_path, '', (320, 320),
+            score_threshold=0.6, nms_threshold=0.3, top_k=5000
+        )
+        print("[YuNet] Loaded — /detect-face ready")
+    else:
+        print("[YuNet] weights/face_detection_yunet_2023mar.onnx not present — /detect-face will report unavailable")
+except Exception as e:
+    print(f"[YuNet] Failed to load — /detect-face will report unavailable. Error: {e}")
+
+
 print("[PyTorch Vision Service] Ready on port", PORT)
 
 
@@ -284,6 +346,8 @@ class VisionHandler(BaseHTTPRequestHandler):
                     'dehaze': 'ready' if dehazeformer_net is not None else 'unavailable (weights not sourced, see weights/README.md)',
                     'quality': 'ready' if arniqa_model is not None else 'unavailable',
                     'inpaint': 'ready' if lama_model is not None else 'unavailable',
+                    'matting': 'ready' if rembg_session is not None else 'unavailable',
+                    'detectFace': 'ready' if yunet_detector is not None else 'unavailable',
                 }
             })
             return
@@ -333,10 +397,15 @@ class VisionHandler(BaseHTTPRequestHandler):
                 self._handle_quality(start_time)
             elif self.path == '/inpaint':
                 self._handle_inpaint(start_time)
+            elif self.path == '/matting':
+                self._handle_matting(start_time)
+            elif self.path == '/detect-face':
+                self._handle_detect_face(start_time)
             else:
                 self._send_json(404, {
                     'error': f'No route for {self.path}. '
-                             'Implemented: /enhance, /upscale, /dehaze, /quality, /inpaint.'
+                             'Implemented: /enhance, /upscale, /dehaze, /quality, /inpaint, '
+                             '/matting, /detect-face.'
                 })
         except ValueError as e:
             self._send_json(400, {'error': str(e)})
@@ -462,6 +531,45 @@ class VisionHandler(BaseHTTPRequestHandler):
         # of 8 in both dimensions. Fixed here rather than inherited.
         out_img = Image.fromarray(res[:orig_h, :orig_w, :])
         self._send_image_response(out_img, start_time)
+
+    def _handle_matting(self, start_time):
+        if rembg_session is None:
+            self._send_json(503, {'success': False, 'available': False, 'error': 'rembg session failed to initialize'})
+            return
+        img = self._read_image()
+        out_img = rembg_remove(img, session=rembg_session)  # PIL RGB in -> PIL RGBA out
+        self._send_image_response(out_img, start_time)
+
+    def _handle_detect_face(self, start_time):
+        if yunet_detector is None:
+            self._send_json(503, {'success': False, 'available': False, 'error': 'YuNet weights not present'})
+            return
+        img = self._read_image()
+        img_bgr = np.array(img)[:, :, ::-1].copy()  # RGB -> BGR (cv2 convention)
+        yunet_detector.setInputSize((img.width, img.height))
+        _, faces = yunet_detector.detect(img_bgr)
+        elapsed_ms = int((time.time() - start_time) * 1000)
+        results = []
+        if faces is not None:
+            for f in faces:
+                results.append({
+                    'box': {'x': float(f[0]), 'y': float(f[1]), 'width': float(f[2]), 'height': float(f[3])},
+                    'landmarks': {
+                        'rightEye': [float(f[4]), float(f[5])],
+                        'leftEye': [float(f[6]), float(f[7])],
+                        'nose': [float(f[8]), float(f[9])],
+                        'rightMouth': [float(f[10]), float(f[11])],
+                        'leftMouth': [float(f[12]), float(f[13])],
+                    },
+                    'confidence': float(f[14]),
+                })
+        self._send_json(200, {
+            'success': True,
+            'faces': results,
+            'imageWidth': img.width,
+            'imageHeight': img.height,
+            'elapsed_ms': elapsed_ms
+        })
 
     def _send_image_response(self, out_img, start_time):
         buffered = io.BytesIO()
