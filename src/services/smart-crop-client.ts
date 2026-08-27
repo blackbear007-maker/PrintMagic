@@ -1,5 +1,5 @@
 import smartcrop from 'smartcrop';
-import { FreeFaceDetectClient } from './free-face-detect-client';
+import { FreeFaceDetectClient, type DetectedFace } from './free-face-detect-client';
 
 /**
  * Smart Crop / Composition Suggestion Client
@@ -20,6 +20,10 @@ export interface SmartCropResult {
   crop: { x: number; y: number; width: number; height: number };
   usedFaceBoost: boolean;
   engine: string;
+  // Raw detected faces (same coordinate space as the input imageData), exposed so callers can run
+  // their own downstream checks (e.g. face-vs-safe-margin) without triggering a second detection
+  // network round-trip.
+  faces: DetectedFace[];
 }
 
 export class SmartCropClient {
@@ -39,9 +43,11 @@ export class SmartCropClient {
 
     let boost: { x: number; y: number; width: number; height: number; weight: number }[] = [];
     let usedFaceBoost = false;
+    let faces: DetectedFace[] = [];
     try {
       const faceResult = await FreeFaceDetectClient.detect(imageData);
       if (faceResult.available && faceResult.faces.length > 0) {
+        faces = faceResult.faces;
         boost = faceResult.faces.map((f) => ({
           x: f.box.x,
           y: f.box.y,
@@ -64,6 +70,7 @@ export class SmartCropClient {
     return {
       crop: result.topCrop,
       usedFaceBoost,
+      faces,
       engine: usedFaceBoost ? 'smartcrop.js + YuNet 人臉加權' : 'smartcrop.js'
     };
   }

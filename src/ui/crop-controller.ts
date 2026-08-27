@@ -3,6 +3,9 @@ import { SoundEffects } from '../core/sound-effects';
 import { Toast } from './toast';
 import type { CropAnchor } from '../types';
 import { SmartCropClient } from '../services/smart-crop-client';
+import type { DetectedFace } from '../services/free-face-detect-client';
+import { FaceSafetyChecker } from '../core/face-safety-checker';
+import { DpiCalculator } from '../core/dpi-calculator';
 
 /**
  * Smart Focal Crop & Visual Alignment Controller
@@ -118,8 +121,35 @@ export class CropController {
       store.setCropAnchor(anchor);
       SoundEffects.sliderTick();
       Toast.success(`✓ ${result.engine} 建議焦點：${this.anchorLabel(anchor)}`);
+
+      this.warnIfFaceNearEdge(result.faces, imgData.width, imgData.height);
     } catch (err: any) {
       Toast.error(`構圖分析失敗：${err?.message || '未知錯誤'}`);
+    }
+  }
+
+  /**
+   * ⚠️ Face vs. bleed/safe-zone proximity warning (added 2026-08-27, see face-safety-checker.ts).
+   * PdfExporter currently stretches whatever ImageData it's given to fill the target box rather
+   * than applying cropAnchor (a known, already-documented gap — see docs/SPEC.md) — so the image
+   * edges checked here (imgData's own bounds) are, today, also the actual export edges regardless
+   * of which anchor gets picked. Reports at most the single closest-to-edge face, not every face.
+   */
+  private warnIfFaceNearEdge(faces: DetectedFace[], imageWidth: number, imageHeight: number): void {
+    if (faces.length === 0) return;
+
+    const preset = store.getState().currentPreset;
+    const safeMarginPx = DpiCalculator.mmToPx(preset.safeMarginMm || 5, preset.targetDpi);
+
+    let worst: ReturnType<typeof FaceSafetyChecker.checkFaceMargin> | null = null;
+    for (const face of faces) {
+      const check = FaceSafetyChecker.checkFaceMargin(face, imageWidth, imageHeight, safeMarginPx);
+      if (check.atRisk && (!worst || check.marginPx < worst.marginPx)) {
+        worst = check;
+      }
+    }
+    if (worst?.warning) {
+      Toast.info(worst.warning);
     }
   }
 

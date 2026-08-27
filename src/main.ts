@@ -44,7 +44,8 @@ import { TextInspector } from './core/text-inspector';
 import { ObjectEraserModal } from './ui/object-eraser-modal';
 import { BleedExpander } from './core/bleed-expander';
 import { FreeMattingClient } from './services/free-matting-client';
-import { FreeFaceDetectClient } from './services/free-face-detect-client';
+import { FreeFaceDetectClient, type DetectedFace } from './services/free-face-detect-client';
+import { FaceSafetyChecker } from './core/face-safety-checker';
 import { FreeIccClient } from './services/free-icc-client';
 import { IdPhotoCropper } from './core/id-photo-cropper';
 import { AiVectorizer } from './core/ai-vectorizer';
@@ -1751,7 +1752,8 @@ class App {
    * 🪪 2 吋證件照自動裁切：優先用自建 YuNet 抓臉位置，估算置中裁切（見
    * src/core/id-photo-cropper.ts 的誠實附註——這是估算起點，不是官方合規保證，使用者仍須
    * 自行對照官方範例圖）。YuNet 離線或沒偵測到臉時，退回單純置中裁切（一樣是真實像素裁切，
-   * 不是拉伸變形）。
+   * 不是拉伸變形）。有偵測到臉時，會先用雙眼連線角度自動水平校正（頭歪一點也能拉正），裁切完
+   * 再對成品四角取樣做背景合規啟發式檢查（不是官方驗證，只是抓明顯的偏色/不均勻/太暗）。
    */
   private async applyIdPhotoCrop(): Promise<void> {
     const state = store.getState();
@@ -1762,28 +1764,74 @@ class App {
     try {
       const faceResult = await FreeFaceDetectClient.detect(imgData);
       let crop: { x: number; y: number; width: number; height: number } | undefined;
+      let sourceForCrop = imgData;
+      let leveledFace: DetectedFace | undefined;
       let message: string;
 
       if (faceResult.available && faceResult.faces.length > 0) {
-        const bestFace = faceResult.faces.reduce((a, b) => (a.confidence >= b.confidence ? a : b));
-        const suggestion = IdPhotoCropper.computeCrop(bestFace, imgData.width, imgData.height);
+        let bestFace = faceResult.faces.reduce((a, b) => (a.confidence >= b.confidence ? a : b));
+
+        const leveled = IdPhotoCropper.levelFace(imgData, bestFace);
+        sourceForCrop = leveled.imageData;
+        bestFace = leveled.face;
+        leveledFace = bestFace;
+
+        const suggestion = IdPhotoCropper.computeCrop(bestFace, sourceForCrop.width, sourceForCrop.height);
         if (suggestion) {
           crop = suggestion.crop;
-          message = `✓ 已用 YuNet 自動抓臉置中裁切（估算頭部佔比 ${suggestion.estimatedHeadRatioPercent}%）。${suggestion.note}`;
+          const rotateNote = leveled.angleDegrees !== 0
+            ? `已自動水平校正 ${Math.abs(leveled.angleDegrees).toFixed(1)}°。`
+            : '';
+          message = `✓ 已用 YuNet 自動抓臉置中裁切（估算頭部佔比 ${suggestion.estimatedHeadRatioPercent}%）。${rotateNote}${suggestion.note}`;
         }
       }
 
       if (!crop) {
+        sourceForCrop = imgData;
         crop = IdPhotoCropper.computeCenterCrop(imgData.width, imgData.height);
         message = '⚠️ 未偵測到人臉，已改用置中裁切（35×45mm 比例）。建議用九宮格「✨ AI 建議」再微調焦點，送印前務必對照官方範例圖確認。';
       }
 
-      const cropped = IdPhotoCropper.applyCrop(imgData, crop);
+      const cropped = IdPhotoCropper.applyCrop(sourceForCrop, crop);
       const dataUrl = this.imageDataToDataUrl(cropped);
 
       store.setState({ processedImageData: cropped, processedDataUrl: dataUrl });
       this.mainPreviewImg.src = dataUrl;
       Toast.success(message!);
+      // 📇 Batch-print discoverability hint: the existing A4/A3 imposition modal (btnOpenImposition)
+      // already handles this correctly today — it reads the active preset's real widthMm/heightMm
+      // (35×45mm here) and repeat-tiles it with real crop marks, so no new engine work was needed,
+      // just pointing users at it (verified: 28 copies fit on A4, 56 on A3 — see
+      // imposition-engine.test.ts).
+      this.xiangAssistant?.say(XiaoxiangAssistant.LINES.idPhotoBatchHint, 6000);
+
+      const bgCheck = IdPhotoCropper.checkBackgroundCompliance(cropped);
+      if (!bgCheck.compliant && bgCheck.warning) {
+        Toast.info(bgCheck.warning);
+      }
+
+      // ⚠️ Sanity check: computeCrop() aims to keep the head well clear of the frame edges, but a
+      // face very near the source image's own border can still force the crop to clamp tighter
+      // than intended (see face-safety-checker.ts). Reuses the same leveled face box computed
+      // above rather than re-running levelFace() a second time.
+      if (leveledFace && crop) {
+        const preset = state.currentPreset;
+        const safeMarginPx = DpiCalculator.mmToPx(preset.safeMarginMm || 5, preset.targetDpi);
+        const faceInCropSpace: DetectedFace = {
+          box: {
+            x: leveledFace.box.x - crop.x,
+            y: leveledFace.box.y - crop.y,
+            width: leveledFace.box.width,
+            height: leveledFace.box.height
+          },
+          landmarks: leveledFace.landmarks,
+          confidence: leveledFace.confidence
+        };
+        const marginCheck = FaceSafetyChecker.checkFaceMargin(faceInCropSpace, cropped.width, cropped.height, safeMarginPx);
+        if (marginCheck.atRisk && marginCheck.warning) {
+          Toast.info(marginCheck.warning);
+        }
+      }
     } catch (err: any) {
       Toast.error(`證件照自動裁切失敗：${err?.message || '未知錯誤'}`);
     }

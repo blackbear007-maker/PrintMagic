@@ -47,6 +47,7 @@ describe('SmartCropClient (smartcrop.js 包裝，best-effort YuNet 人臉加權)
     expect(res.usedFaceBoost).toBe(false);
     expect(res.engine).toBe('smartcrop.js');
     expect(res.crop).toEqual({ x: 10, y: 5, width: 200, height: 150 });
+    expect(res.faces).toEqual([]);
     expect(mockSmartcropCrop).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({ width: 200, height: 150, boost: [] })
@@ -54,11 +55,8 @@ describe('SmartCropClient (smartcrop.js 包裝，best-effort YuNet 人臉加權)
   });
 
   it('feeds detected faces into smartcrop as boost regions', async () => {
-    mockDetect.mockResolvedValue({
-      available: true,
-      faces: [{ box: { x: 50, y: 40, width: 60, height: 70 }, landmarks: {} as any, confidence: 0.9 }],
-      engine: 'YuNet (自建服務)'
-    });
+    const face = { box: { x: 50, y: 40, width: 60, height: 70 }, landmarks: {} as any, confidence: 0.9 };
+    mockDetect.mockResolvedValue({ available: true, faces: [face], engine: 'YuNet (自建服務)' });
     mockSmartcropCrop.mockResolvedValue({ topCrop: { x: 0, y: 0, width: 200, height: 150 } });
 
     const res = await SmartCropClient.suggestCrop(dummyImageData, 200, 150);
@@ -71,6 +69,9 @@ describe('SmartCropClient (smartcrop.js 包裝，best-effort YuNet 人臉加權)
         boost: [{ x: 50, y: 40, width: 60, height: 70, weight: 1.0 }]
       })
     );
+    // Raw faces are exposed on the result too, so callers (e.g. the face-vs-safe-margin check)
+    // don't need to re-run detection themselves.
+    expect(res.faces).toEqual([face]);
   });
 
   it('still works when face detection is unavailable', async () => {

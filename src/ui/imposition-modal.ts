@@ -85,7 +85,7 @@ export class ImpositionModal {
         <div class="pm-modal-header">
           <div class="pm-modal-title-group">
             <span class="pm-modal-title">🧩 智慧自動拼模引擎 (A4 / A3 拼版)</span>
-            <span class="pm-modal-subtitle">將名片、貼紙或明信片自動排列鋪滿一張紙，印一張抵多張，現省高達 ${this.layout.costSavingsPercent}% 印刷費！</span>
+            <span class="pm-modal-subtitle">將名片、貼紙、明信片或證件照自動排列鋪滿一張紙，印一張抵多張，現省高達 ${this.layout.costSavingsPercent}% 印刷費！</span>
           </div>
           <button class="pm-modal-close" id="btnImpositionClose">✕</button>
         </div>
