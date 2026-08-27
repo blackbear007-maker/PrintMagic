@@ -9,7 +9,8 @@ export type PrintPresetId =
   | 'postcard'
   | 'business-card'
   | 'sticker'
-  | 'social';
+  | 'social'
+  | 'id-photo';
 
 export type ColorMode = 'cmyk' | 'rgb' | 'grayscale';
 

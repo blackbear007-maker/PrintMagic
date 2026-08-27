@@ -202,7 +202,7 @@
 
 原生支援印刷廠與製版要求的 6 大標準格式：
 
-1. **📄 標準印刷 PDF (300 DPI)**：3mm 物理出血、向量角線裁切標記、色條、來源圖片 SHA-256 內容雜湊。⚠️ **不是通過驗證的 PDF/X-1a / ISO 15930 檔案**——沒有 OutputIntent、沒有嵌入 ICC 描述檔，圖片內容仍是 RGB（未做 CMYK 分色）。印刷廠仍須自行執行標準 CMYK 轉換流程，見 `server/services/pdfx-service.ts` 內的誠實性註解。真正的 PDF/X-1a 合規（OutputIntent + 嵌入 ICC + CMYK 內容）是尚待完成的功能缺口，不是現況。
+1. **📄 標準印刷 PDF (300 DPI)**：3mm 物理出血、向量角線裁切標記、色條、來源圖片 SHA-256 內容雜湊。⚠️ **不是通過驗證的 PDF/X-1a / ISO 15930 檔案**——沒有 OutputIntent、沒有嵌入 ICC 描述檔，圖片內容仍是 RGB（未做 CMYK 分色）。印刷廠仍須自行執行標準 CMYK 轉換流程，見 `server/services/pdfx-service.ts` 內的誠實性註解。真正的 PDF/X-1a 合規（OutputIntent + 嵌入 ICC + CMYK 內容）是尚待完成的功能缺口，不是現況。⚠️ **另一個真實限制（2026-08-27 查證發現）**：`PdfExporter.export()` 目前是把整張來源圖直接拉伸（`pdf.addImage`）填滿目標版面尺寸，`cropAnchor` 參數雖然存在但完全沒被使用（`_cropAnchor` 加底線前綴）——也就是說 `CropController` 的九宮格焦點目前**只會改變預覽畫面的 CSS `object-position`，不會影響真正匯出的 PDF**，來源圖跟目標長寬比不同時，匯出結果其實是被拉伸變形，不是裁切。這是既有缺口，本次（2026-08-27）新增的「2 吋證件照」功能因為需要精準裁切，改用真正對 `ImageData` 做像素裁切（`IdPhotoCropper.applyCrop`）來繞開這個問題，但這只解決了證件照這一個預設，其餘預設（A4海報、名片、貼紙等）目前仍然是拉伸行為，尚未修復。
 2. **🖨️ 工業級無損 TIFF (.tif 300 DPI)**：Tag 282/283 內嵌 300DPI 點陣檔，無失真分色首選。
 3. **📥 高清透明 PNG (.png 300 DPI)**：保留 8-bit Alpha 透明通道，貼紙/立牌預覽。
 4. **🖼️ 商用高畫質 JPG (.jpg 300 DPI)**：100% 最高畫質 JPEG，相片沖印必備。

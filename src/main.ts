@@ -44,6 +44,8 @@ import { TextInspector } from './core/text-inspector';
 import { ObjectEraserModal } from './ui/object-eraser-modal';
 import { BleedExpander } from './core/bleed-expander';
 import { FreeMattingClient } from './services/free-matting-client';
+import { FreeFaceDetectClient } from './services/free-face-detect-client';
+import { IdPhotoCropper } from './core/id-photo-cropper';
 import { AiVectorizer } from './core/ai-vectorizer';
 import { FreeVectorizeClient } from './services/free-vectorize-client';
 import { PdfExporter } from './engines/pdf-exporter';
@@ -465,7 +467,7 @@ class App {
 
     // Preset Selection (handles both Simple dropdown and Advanced tab bar)
     this.presetButtons.forEach((btn) => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', async () => {
         const presetId = btn.dataset.preset as PrintPresetId;
         if (presetId) {
           if (simplePresetDropdown) {
@@ -479,7 +481,13 @@ class App {
           // Re-run pipeline for new physical dimensions
           const state = store.getState();
           if (state.originalImageData) {
-            this.runOptimizationPipeline(state.originalImageData);
+            await this.runOptimizationPipeline(state.originalImageData);
+
+            // 🪪 2 吋證件照：自動用 YuNet 抓臉置中裁切成 35×45mm 比例（真實像素裁切，
+            // 不是只改 CSS 預覽的九宮格錨點——輸出的 PDF 才會真的反映這個裁切）
+            if (presetId === 'id-photo') {
+              await this.applyIdPhotoCrop();
+            }
           }
         }
       });
@@ -1701,6 +1709,48 @@ class App {
 
     SoundEffects.shutterClick();
     Toast.success(`✓ 已成功匯出 ${count} 份印刷標準 PDF！`);
+  }
+
+  /**
+   * 🪪 2 吋證件照自動裁切：優先用自建 YuNet 抓臉位置，估算置中裁切（見
+   * src/core/id-photo-cropper.ts 的誠實附註——這是估算起點，不是官方合規保證，使用者仍須
+   * 自行對照官方範例圖）。YuNet 離線或沒偵測到臉時，退回單純置中裁切（一樣是真實像素裁切，
+   * 不是拉伸變形）。
+   */
+  private async applyIdPhotoCrop(): Promise<void> {
+    const state = store.getState();
+    const imgData = state.processedImageData || state.originalImageData;
+    if (!imgData) return;
+
+    Toast.info('🪪 正在偵測人臉並自動置中裁切為證件照比例...');
+    try {
+      const faceResult = await FreeFaceDetectClient.detect(imgData);
+      let crop: { x: number; y: number; width: number; height: number } | undefined;
+      let message: string;
+
+      if (faceResult.available && faceResult.faces.length > 0) {
+        const bestFace = faceResult.faces.reduce((a, b) => (a.confidence >= b.confidence ? a : b));
+        const suggestion = IdPhotoCropper.computeCrop(bestFace, imgData.width, imgData.height);
+        if (suggestion) {
+          crop = suggestion.crop;
+          message = `✓ 已用 YuNet 自動抓臉置中裁切（估算頭部佔比 ${suggestion.estimatedHeadRatioPercent}%）。${suggestion.note}`;
+        }
+      }
+
+      if (!crop) {
+        crop = IdPhotoCropper.computeCenterCrop(imgData.width, imgData.height);
+        message = '⚠️ 未偵測到人臉，已改用置中裁切（35×45mm 比例）。建議用九宮格「✨ AI 建議」再微調焦點，送印前務必對照官方範例圖確認。';
+      }
+
+      const cropped = IdPhotoCropper.applyCrop(imgData, crop);
+      const dataUrl = this.imageDataToDataUrl(cropped);
+
+      store.setState({ processedImageData: cropped, processedDataUrl: dataUrl });
+      this.mainPreviewImg.src = dataUrl;
+      Toast.success(message!);
+    } catch (err: any) {
+      Toast.error(`證件照自動裁切失敗：${err?.message || '未知錯誤'}`);
+    }
   }
 
   private imageDataToDataUrl(imageData: ImageData): string {

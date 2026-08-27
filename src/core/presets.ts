@@ -100,6 +100,25 @@ export const PRINT_PRESETS: Record<PrintPresetId, PrintPreset> = {
     colorBars: false,
     registrationMarks: false
   },
+  'id-photo': {
+    id: 'id-photo',
+    name: '2-inch ID Photo',
+    nameZh: '2 吋證件照',
+    desc: '護照/證件專用規格 (35 × 45 mm)。尺寸與頭部佔比 32-36mm 依外交部領事事務局公告規格，來源 boca.gov.tw/np-16-1.html（2026-08-27 核實）。',
+    category: 'commercial',
+    icon: '🪪',
+    widthMm: 35,
+    heightMm: 45,
+    targetDpi: 300,
+    bleedMm: 0,
+    safeMarginMm: 2,
+    realWorldRef: '≈ 信用卡的一半大小',
+    colorMode: 'cmyk',
+    recommendedPaper: 'glossy',
+    cropMarks: true,
+    colorBars: false,
+    registrationMarks: false
+  },
   'social': {
     id: 'social',
     name: 'HD Digital Social Share',
