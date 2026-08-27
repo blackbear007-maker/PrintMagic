@@ -173,7 +173,7 @@ export interface PipelineOptions {
   enableVectorOverlay: boolean; // 🔤 自動文字清晰防糊重構
   enableAntiBanding: boolean;   // 🌊 漸層防斷階與抗色階條紋平滑 (Auto)
   enableDeshadow: boolean;      // ☀️ 手機拍畫手機倒影與光照均勻化 (Auto)
-  enableDehaze: boolean;        // 🌫️ 去霧 (自建 DehazeFormer-T 服務或本機大氣散射模型)
+  enableDehaze: boolean;        // 🌫️ 去霧 (本機大氣散射模型，DehazeFormer-T 已評估後不採用)
 }
 
 export const DEFAULT_PIPELINE_OPTIONS: PipelineOptions = {

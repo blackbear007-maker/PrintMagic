@@ -5,20 +5,20 @@
 > **系統定位**：全自動商業印前修復與出機工作站 (AI Pre-Press Engine & Multi-Format Exporter)  
 > **核心哲學**：100% 自由開源商用架構 · 0 外部收費 API 依賴 · 新手無腦一鍵出機 · 商業合規舉證  
 
-> ⚠️ **誠實性附註（2026-08-26，後更新）**：本文件曾經在第 2、3、7 節列出大量從未實作的「模型」與功能（HAT-S、SwinIR、AOT-GAN、MAT-Lite、DexiNed、CodeFormer、GAIC、FontMatcher、桌面版效能數字等）——這些內容已於 2026-08-25 全面核實並改寫。第一輪核實時誤把 Zero-DCE++ 當成「真正訓練過的模型」，後來進一步查證發現它的 Docker 建置設定引用了從未存在過的權重檔案，程式碼裡也從未載入任何訓練權重（隨機初始化，非訓練結果）；VTracer 的 Dockerfile 同樣引用了從未存在過的原始碼，導致建置必定失敗，現已修正為安裝真正發布的 vtracer crate。**Tesseract（OCR）已於 2026-08-26 移除**——查證後發現它從未被任何 UI 功能實際呼叫（純死碼），且它原本想解決的問題（讀取 AI 繪圖產生的亂碼假文字）本來就不是 OCR 能解的，因為那些筆畫通常不是真實字元。同日新增 **Real-ESRGAN**（4x 放大）與 **ARNIQA**（品質評分）——兩者都是真實開源模型的官方發布訓練權重，開箱即用；也新增了 **DehazeFormer-T**（去霧）的真實架構程式碼；作者只透過 Google Drive 發布權重、無法自動下載，已於 2026-08-26 手動下載並**直接提交進 git**（原因見下段），已用真實下載的權重檔驗證：`strict=True` 完整載入 258 個張量、零缺漏零多餘，真實推論在模擬霧霾測試圖上讓對比度提升逾 3 倍（0.0245 → 0.0763）。**Retinexformer**（低光提亮）已於同日取代原本從未載入訓練權重的 Zero-DCE++——真實下載了官方發布的 `LOL_v2_real.pth` 權重（同樣提交進 git）並驗證：`strict=True` 完整載入 122 個張量、零缺漏零多餘，真實推論成功讓測試圖片變亮（平均亮度 0.082 → 0.399）。⚠️ 這兩個權重檔（合計 ~9MB）原本被 gitignore，但因為 Railway 是從 git 儲存庫建置 `zero-dce` 服務（`railway.toml` 用 `builder=DOCKERFILE`），不是從本機硬碟建置，只存在本機的權重檔案永遠不會真正部署上去——即使本機驗證推論成功，Railway 上仍會誠實回報 503。因此改為直接提交進 git（見 `.gitignore` 裡的例外規則）。同日再新增 **LaMa**（物件／浮水印移除）——TorchScript 匯出的 `big-lama.pt`，有可自動下載的 GitHub Release 網址，開箱即用（不受上述問題影響，因為建置時直接從網路下載，不依賴本機檔案）；已用真實下載的權重檔驗證：`torch.jit.load()` 成功，真實推論在模擬「浮水印」色塊測試圖上完全移除目標色塊（移除區域內 0% 殘留原色）。目前可正常建置運作、且已接上真實訓練權重的自建服務是 **VTracer**（向量化）、**Real-ESRGAN**（放大）、**ARNIQA**（品質評分）、**Retinexformer**（低光提亮）、**DehazeFormer-T**（去霧，兩者的權重都已下載並提交進 git，且都已用真實下載的權重檔驗證過推論成功）、**LaMa**（物件／浮水印移除，權重自動下載，已驗證推論成功）。其餘全部是決定性演算法（無 AI 模型），詳見 [README](../README.md#️-引擎組成真實模型-vs-決定性演算法)。**2026-08-27 再新增兩個模型**：**rembg**（去背，`u2netp` session，MIT，權重自動下載，已用真實下載的權重檔驗證——在有紋理漸層背景的合成測試圖上正確分離主體與背景，取代原本只能處理單一色背景的色鍵去背演算法）、**YuNet**（人臉偵測，Apache-2.0/MIT，權重自動下載，已驗證對合成測試圖成功偵測人臉，信心分數 84.2%）。這兩者跑在 ONNX Runtime／OpenCV DNN 後端，不是 PyTorch，是這個服務第一次同時承載兩套推論引擎。曾評估過的 **GFPGAN**（人像修復）與 **DDColor**（老照片上色）**決定不採用**——技術上驗證可行，但與「印前處理」核心定位不符（解決的是「照片好不好看」而非「印刷會不會出錯」），詳見下方 1.1 節後的評估紀錄。另外評估過的 **Florence-2**（浮水印自動定位）也決定不採用，理由與詳細真實驗證數據見下方另一段評估紀錄。
+> ⚠️ **誠實性附註（2026-08-26，後更新）**：本文件曾經在第 2、3、7 節列出大量從未實作的「模型」與功能（HAT-S、SwinIR、AOT-GAN、MAT-Lite、DexiNed、CodeFormer、GAIC、FontMatcher、桌面版效能數字等）——這些內容已於 2026-08-25 全面核實並改寫。第一輪核實時誤把 Zero-DCE++ 當成「真正訓練過的模型」，後來進一步查證發現它的 Docker 建置設定引用了從未存在過的權重檔案，程式碼裡也從未載入任何訓練權重（隨機初始化，非訓練結果）；VTracer 的 Dockerfile 同樣引用了從未存在過的原始碼，導致建置必定失敗，現已修正為安裝真正發布的 vtracer crate。**Tesseract（OCR）已於 2026-08-26 移除**——查證後發現它從未被任何 UI 功能實際呼叫（純死碼），且它原本想解決的問題（讀取 AI 繪圖產生的亂碼假文字）本來就不是 OCR 能解的，因為那些筆畫通常不是真實字元。同日新增 **Real-ESRGAN**（4x 放大）與 **ARNIQA**（品質評分）——兩者都是真實開源模型的官方發布訓練權重，開箱即用；也新增了 **DehazeFormer-T**（去霧）的真實架構程式碼；作者只透過 Google Drive 發布權重、無法自動下載，已於 2026-08-26 手動下載並**直接提交進 git**（原因見下段），已用真實下載的權重檔驗證：`strict=True` 完整載入 258 個張量、零缺漏零多餘，真實推論在模擬霧霾測試圖上讓對比度提升逾 3 倍（0.0245 → 0.0763）。**Retinexformer**（低光提亮）已於同日取代原本從未載入訓練權重的 Zero-DCE++——真實下載了官方發布的 `LOL_v2_real.pth` 權重（同樣提交進 git）並驗證：`strict=True` 完整載入 122 個張量、零缺漏零多餘，真實推論成功讓測試圖片變亮（平均亮度 0.082 → 0.399）。⚠️ 這兩個權重檔（合計 ~9MB）原本被 gitignore，但因為 Railway 是從 git 儲存庫建置 `zero-dce` 服務（`railway.toml` 用 `builder=DOCKERFILE`），不是從本機硬碟建置，只存在本機的權重檔案永遠不會真正部署上去——即使本機驗證推論成功，Railway 上仍會誠實回報 503。因此改為直接提交進 git（見 `.gitignore` 裡的例外規則）。同日再新增 **LaMa**（物件／浮水印移除）——TorchScript 匯出的 `big-lama.pt`，有可自動下載的 GitHub Release 網址，開箱即用（不受上述問題影響，因為建置時直接從網路下載，不依賴本機檔案）；已用真實下載的權重檔驗證：`torch.jit.load()` 成功，真實推論在模擬「浮水印」色塊測試圖上完全移除目標色塊（移除區域內 0% 殘留原色）。當時可正常建置運作、且已接上真實訓練權重的自建服務是 **VTracer**（向量化）、**Real-ESRGAN**（放大）、**ARNIQA**（品質評分）、**Retinexformer**（低光提亮）、**DehazeFormer-T**（去霧，兩者的權重都已下載並提交進 git，且都已用真實下載的權重檔驗證過推論成功）、**LaMa**（物件／浮水印移除，權重自動下載，已驗證推論成功）。其餘全部是決定性演算法（無 AI 模型），詳見 [README](../README.md#️-引擎組成真實模型-vs-決定性演算法)。**2026-08-27 再新增兩個模型**：**rembg**（去背，`u2netp` session，MIT，權重自動下載，已用真實下載的權重檔驗證——在有紋理漸層背景的合成測試圖上正確分離主體與背景，取代原本只能處理單一色背景的色鍵去背演算法）、**YuNet**（人臉偵測，Apache-2.0/MIT，權重自動下載，已驗證對合成測試圖成功偵測人臉，信心分數 84.2%）。這兩者跑在 ONNX Runtime／OpenCV DNN 後端，不是 PyTorch，是這個服務第一次同時承載兩套推論引擎。曾評估過的 **GFPGAN**（人像修復）與 **DDColor**（老照片上色）**決定不採用**——技術上驗證可行，但與「印前處理」核心定位不符（解決的是「照片好不好看」而非「印刷會不會出錯」），詳見下方 1.1 節後的評估紀錄。另外評估過的 **Florence-2**（浮水印自動定位）也決定不採用，理由與詳細真實驗證數據見下方另一段評估紀錄。⚠️ **DehazeFormer-T 後續於 2026-08-27（同一天）評估後移除**——不是技術問題（模型本身真實可用），而是去霧的真實需求與本站典型使用情境（證件照/名片/貼紙）重疊度太低，詳見下方獨立的評估紀錄段落；**目前**（本文件最後更新後）自建服務的真實模型清單是 VTracer、Real-ESRGAN、ARNIQA、Retinexformer、LaMa、rembg、YuNet 這 7 項，不含 DehazeFormer-T。
 
 ---
 
 ## 1. 系統全景與技術架構 (System Architecture)
 
 ### 1.1 雲端微服務矩陣 (Railway Docker Multi-Container Architecture)
-系統在雲端採用 2 大獨立容器，記憶體硬體上限（OOM 防線，非計費依據）鎖定在約 4.4 GB 內（2026-08-27 起，`zero-dce` 因新增 rembg 與 YuNet 而由 3072 MB 調升為 4096 MB）。⚠️ **費用估算已於 2026-08-26 修正、2026-08-27 更新**：Railway 是按實際用量按秒計費（RAM $10/GB-月、CPU $20/vCPU-月，來源 railway.com/pricing），不是按上面的硬上限計費。用 `zero-dce` 這次真實量到的 7 模型記憶體數據（閒置 837.2 MB、穩態 ~1.70 GB）重算，每月主機總開銷實際落在**約 $10-20 美元（約 NT$ 320-650）**，其中 `printmagic`／`vtracer` 兩個容器這次沒有實測、只用硬上限粗估為次要項目，`zero-dce` 才是主要開銷。用戶量大時 CPU 費用增加得很少（按實測延遲估算，月處理 5 萬次請求也只多 +$1.5 左右）——真正的瓶頸是 `server.py` 目前用單執行緒 HTTP server，並發請求會互相卡隊，不是帳單會爆增；細節見 `docker-compose.yml` 內附的完整測量與推算過程：
+系統在雲端採用 2 大獨立容器，記憶體硬體上限（OOM 防線，非計費依據）鎖定在約 4.4 GB 內（2026-08-27 起，`zero-dce` 因新增 rembg 與 YuNet 而由 3072 MB 調升為 4096 MB）。⚠️ **費用估算已於 2026-08-26 修正、2026-08-27 更新**：Railway 是按實際用量按秒計費（RAM $10/GB-月、CPU $20/vCPU-月，來源 railway.com/pricing），不是按上面的硬上限計費。用 `zero-dce` 當時真實量到的 7 模型記憶體數據（閒置 837.2 MB、穩態 ~1.70 GB，⚠️ 含已於 2026-08-27 移除的 DehazeFormer-T，尚未針對移除後重新量測，實際數字應略低，見 `docker-compose.yml` 的過時提醒）重算，每月主機總開銷實際落在**約 $10-20 美元（約 NT$ 320-650，upper bound）**，其中 `printmagic`／`vtracer` 兩個容器這次沒有實測、只用硬上限粗估為次要項目，`zero-dce` 才是主要開銷。用戶量大時 CPU 費用增加得很少（按實測延遲估算，月處理 5 萬次請求也只多 +$1.5 左右）——真正的瓶頸是 `server.py` 目前用單執行緒 HTTP server，並發請求會互相卡隊，不是帳單會爆增；細節見 `docker-compose.yml` 內附的完整測量與推算過程：
 
 | 服務容器名稱 | 執行語言 / 運行環境 | 端口 (Port) | RAM 硬上限 | 核心職責與承載模組 |
 | :--- | :--- | :---: | :---: | :--- |
 | **`printmagic`** | Node.js 22 (Alpine) + Vite SSR | `3000` | **256 MB** | 主應用入口、UI 渲染、合版拼版算力、印前 PDF 出機檔壓製（非通過驗證的 PDF/X-1a，見第 5 節）。 |
 | **`vtracer`** | Rust 1.78 (Distroless) | `8080` | **128 MB** | 真實 VTracer 向量化引擎（點陣轉 SVG）。「Kurbo 2mm 刀模幾何運算」實際跑在主應用內的 `src/core/kurbo-geometry.ts`（純 TypeScript），不在這個容器裡；「OxiPNG 無損壓縮」查無實作，本服務不做 PNG 壓縮，已移除該說法。 |
-| **`zero-dce`** | Python 3.12 + PyTorch 2.3+ (CPU) + ONNX Runtime | `8082` | **4096 MB** | 承載 7 個模型：**Real-ESRGAN**（4x 放大，真實 BSD-3-Clause 訓練權重）、**ARNIQA**（品質評分，真實 Apache-2.0 訓練權重）、**Retinexformer**（低光提亮，真實 MIT 訓練權重，已用真實下載的 `LOL_v2_real.pth` 驗證推論成功，取代原本從未訓練過的 Zero-DCE++）、**DehazeFormer-T**（去霧，真實 MIT 訓練權重，已用真實下載的 `dehazeformer-t.pth` 驗證推論成功；兩者的權重因無自動下載網址已直接提交進 git，見 `docker/zero-dce/weights/README.md`）、**LaMa**（物件／浮水印移除，真實 Apache-2.0 TorchScript 權重，建置時自動下載，已驗證推論成功）、**rembg u2netp**（去背，2026-08-27 新增，真實 MIT 訓練權重，建置時自動下載，已驗證推論成功）、**YuNet**（人臉偵測，2026-08-27 新增，真實 Apache-2.0/MIT ONNX 權重，建置時自動下載，已驗證推論成功）。記憶體上限是實測數據，非估算——見 `docker-compose.yml` 內附的完整測量說明。 |
+| **`zero-dce`** | Python 3.12 + PyTorch 2.3+ (CPU) + ONNX Runtime | `8082` | **4096 MB** | 承載 6 個模型：**Real-ESRGAN**（4x 放大，真實 BSD-3-Clause 訓練權重）、**ARNIQA**（品質評分，真實 Apache-2.0 訓練權重）、**Retinexformer**（低光提亮，真實 MIT 訓練權重，已用真實下載的 `LOL_v2_real.pth` 驗證推論成功，取代原本從未訓練過的 Zero-DCE++；權重因無自動下載網址已直接提交進 git，見 `docker/zero-dce/weights/README.md`）、**LaMa**（物件／浮水印移除，真實 Apache-2.0 TorchScript 權重，建置時自動下載，已驗證推論成功）、**rembg u2netp**（去背，2026-08-27 新增，真實 MIT 訓練權重，建置時自動下載，已驗證推論成功）、**YuNet**（人臉偵測，2026-08-27 新增，真實 Apache-2.0/MIT ONNX 權重，建置時自動下載，已驗證推論成功）。⚠️ **DehazeFormer-T**（去霧）曾於 2026-08-26 以同等規格真實整合驗證通過，但 2026-08-27 評估後移除，見 §1.1 評估紀錄——去霧功能改回本機 `ContrastDehazeFilter` 演算法。RAM 上限數字尚未針對這次移除重新量測，見 `docker-compose.yml` 內附的過時提醒。 |
 
 ⚠️ **`tesseract`（OCR）容器已於 2026-08-26 移除**：查證後發現從未被任何 UI 功能實際呼叫（純死碼），且它原本想解決的問題——讀取 AI 繪圖產生的亂碼假文字——OCR 本來就解不了，那些筆畫通常不是任何文字系統的真實字元。
 
@@ -48,6 +48,21 @@
 3. **不是印刷特化能力**：對照 rembg（解決貼紙邊緣去背這種印刷特定需求）與 YuNet（解決證件照合規裁切這種印刷特定需求），GFPGAN／DDColor 並不服務任何「這是印刷網站才特別需要」的場景，屬於任何通用修圖工具都能做、也通常做得一樣好的功能。
 
 兩者都沒有進行真實推論驗證（技術上已知可行，第一輪選型評估時已查證授權與模型資料，見選型清單 artifact），純粹是產品範疇決策，未來若產品定位改變可重新評估。
+
+#### 評估紀錄：DehazeFormer-T（去霧）——已真實整合並驗證，2026-08-27 評估後移除
+
+跟上面兩節不同，這個不是「從沒整合過、評估後決定不做」，而是「已經真的整合進 `zero-dce` 容器、真實推論驗證通過，上線一天後重新評估決定移除」，記錄在這裡是為了誠實反映決策，不是隱藏掉一段已發生過的整合。
+
+**真實整合曾經做到什麼程度**：2026-08-26 加入，真實架構程式碼（`dehazeformer_model/dehazeformer.py`，從官方倉庫原樣取得，非憑記憶重寫），真實訓練權重（`dehazeformer-t.pth`，作者只透過 Google Drive 發布、無法自動下載，已手動下載並提交進 git）。已用真實下載的權重檔驗證：`strict=True` 完整載入 258 個張量、零缺漏零多餘，真實推論在模擬霧霾測試圖上讓對比度從 0.0245 提升到 0.0763——技術上完全能跑，不是假貨。
+
+**移除理由（跟 GFPGAN/DDColor 同一套判準，事後才想清楚）**：
+1. **戶外遠景霧霾是很窄的情境**：本站典型使用情境是證件照、名片、貼紙、社群圖——這些幾乎不會碰到「大氣霧霾造成對比度下降」這個問題，只有「風景明信片/海報」這個子類別用得到，遠比「照片曝光不足」（Retinexformer 服務的情境）常見度低。
+2. **不是印刷特化能力**：去霧在螢幕修圖跟印刷輸出上的處理邏輯完全一樣，沒有像 TAC 控墨／出血／ICC 色彩管理那種「只有印刷才需要」的理由，跟任何通用修圖 App 的去霧濾鏡效果相同——判準與上方 GFPGAN/DDColor 的「不是印刷特化能力」完全一致。
+3. **本來就有本機備援，AI 版只是品質升級，不是從無到有**：`ContrastDehazeFilter`（`src/core/contrast-dehaze-filter.ts`，經典 Dark Channel Prior 大氣散射反演公式）在 DehazeFormer-T 加入前就已存在且真實可用；DehazeFormer-T 帶來的是「做得更好」，不是「解決了原本完全做不到的問題」，急迫性因此偏低。
+
+**移除範圍**：`docker/zero-dce/server.py` 的模型載入與 `/dehaze` 端點、`docker/zero-dce/Dockerfile` 的架構檔案 vendoring 步驟、`requirements.txt` 的 `timm` 依賴、已提交的 `dehazeformer-t.pth` 權重檔、`server/services/ai-engine-service.ts` 的 `processDehaze()`、`server/routes/api.ts` 的 `/ai/dehaze` 路由、前端的 `FreeDehazeClient`（`src/services/free-dehaze-client.ts`）全部移除。**去霧功能本身沒有被移除**——`ContrastDehazeFilter` 這個本機演算法一直都在，`main.ts` 的去霧管線步驟改成直接呼叫它，使用者體感上只差在少了「AI 模型優先嘗試」這一層，本機演算法品質本來就已經是實際會用到的退回路徑（多數請求原本也是走這條路，因為去霧預設關閉、只有使用者手動開啟才會觸發）。
+
+**未來可能重新評估的情境**：跟 Florence-2 一樣，若之後真的鎖定「風景/旅遊攝影印刷」這個垂直市場（例如專做風景明信片/海報的子產品線），去霧的真實需求密度會高很多，屆時值得重新評估。
 
 ### 1.2 零外部付費 API 規則 (Strict 100% Zero-Commercial-API Policy)
 - ❌ 徹底剔除 Google Cloud Vision、Remove.bg、PhotoRoom、Midjourney 等任何需第三方 Token/按次計費之商業 API。
@@ -83,7 +98,7 @@
 
 ## 2. 印前演算法陣列 (Pre-Press Algorithm Matrix)
 
-跑在 Docker 微服務裡、真正接上訓練權重推論的模型是 **VTracer**（向量化）、**Real-ESRGAN**（放大）、**ARNIQA**（品質評分）、**Retinexformer**（低光提亮，取代原本從未訓練過的 Zero-DCE++）、**LaMa**（物件／浮水印移除，權重自動下載）、**rembg**（去背，u2netp session，權重自動下載）、**YuNet**（人臉偵測，權重自動下載）（見 1.1 節）。**DehazeFormer-T**（去霧）架構真實，權重無自動下載網址、已直接提交進 git（已用真實下載的權重檔驗證推論成功）。以下全部是 `src/core/` 或 `src/engines/` 裡實際存在的決定性演算法（無 AI 模型、無框架依賴、無授權條款可標——這些都是純 TypeScript 數學運算，不是打包發布的第三方模型），依功能分類：
+跑在 Docker 微服務裡、真正接上訓練權重推論的模型是 **VTracer**（向量化）、**Real-ESRGAN**（放大）、**ARNIQA**（品質評分）、**Retinexformer**（低光提亮，取代原本從未訓練過的 Zero-DCE++）、**LaMa**（物件／浮水印移除，權重自動下載）、**rembg**（去背，u2netp session，權重自動下載）、**YuNet**（人臉偵測，權重自動下載）（見 1.1 節）。**DehazeFormer-T**（去霧）曾以同等規格真實整合並驗證推論成功，但 2026-08-27 評估後移除，詳見 1.1 節評估紀錄——去霧現在是純本機決定性演算法（見下方 `contrast-dehaze-filter.ts`）。以下全部是 `src/core/` 或 `src/engines/` 裡實際存在的決定性演算法（無 AI 模型、無框架依賴、無授權條款可標——這些都是純 TypeScript 數學運算，不是打包發布的第三方模型），依功能分類：
 
 ### 2.1 放大與清晰化
 - **`edge-aware-upscaler.ts`**：雙線性插值 + 局部梯度邊緣強化。用於相片、包裝設計放大。

@@ -9,8 +9,17 @@
 #     actually constrain the Railway deployment the comment was about.
 #
 
+#  ⚠️ STALE NOTICE (2026-08-27): DehazeFormer-T was evaluated and removed the same day (see
+#     docs/SPEC.md's rejected-models section — dehaze's real addressable use case within this
+#     app's typical print jobs turned out too narrow to justify keeping a dedicated model for it;
+#     dehaze itself still works via the local ContrastDehazeFilter algorithm, just without the AI
+#     tier). The measured figures below were taken WITH DehazeFormer-T loaded as one of "7 models"
+#     — they have NOT been re-measured since its removal. Real current RAM/cost should be somewhat
+#     LOWER than these numbers now (one fewer model resident), so treat this whole block as a
+#     conservative upper bound, not current data, until it's actually re-measured.
+#
 #  Monthly cost estimate (Railway, ACTUAL usage-based billing — corrected 2026-08-26, updated for
-#  the 7-model container 2026-08-27):
+#  the 7-model container 2026-08-27, since made stale by DehazeFormer-T's removal — see notice above):
 #  ⚠️ Railway does NOT bill the `memory`/`cpus` numbers below — those are just OOM-kill / throttle
 #     ceilings this compose file enforces for local dev. Railway meters and bills REAL consumption
 #     per second: $10/GB-month for RAM ($0.00000386/GB-sec) and $20/vCPU-month for CPU
@@ -35,10 +44,11 @@
 #  └──────────────────────┴────────────┴───────────┴───────────────────────────┘
 #
 #  ⚠️ `zero-dce`'s RAM limit is 4096M as of 2026-08-27 (raised from 3072M once rembg/u2netp and
-#     YuNet were added as the 6th/7th models — see docker/zero-dce/server.py's header comment:
-#     Retinexformer, Real-ESRGAN, DehazeFormer-T, ARNIQA, LaMa, rembg, YuNet — the last two run on
-#     ONNX Runtime/OpenCV's DNN backend rather than PyTorch, a second inference runtime sharing
-#     this same process). This limit is just the OOM ceiling, not the billed amount — the real cost
+#     YuNet were added as the 6th/7th models — see docker/zero-dce/server.py's header comment;
+#     DehazeFormer-T was the 3rd model added but was later evaluated and removed the same day, see
+#     the stale notice above — current models: Retinexformer, Real-ESRGAN, ARNIQA, LaMa, rembg,
+#     YuNet — the last two run on ONNX Runtime/OpenCV's DNN backend rather than PyTorch, a second
+#     inference runtime sharing this same process). This limit is just the OOM ceiling, not the billed amount — the real cost
 #     estimate above comes from ACTUALLY building the full dependency set (including rembg's ~4.6MB
 #     u2netp.onnx and YuNet's ~0.23MB ONNX weight) in an isolated venv, running the real server.py
 #     as an HTTP server, and hitting all 7 endpoints with real images while measuring RSS with
@@ -177,7 +187,7 @@ services:
     networks:
       - printmagic-net
 
-  # ── PyTorch/ONNX CPU Vision Microservice (Retinexformer / Real-ESRGAN / DehazeFormer-T / ARNIQA / LaMa / rembg / YuNet) ──
+  # ── PyTorch/ONNX CPU Vision Microservice (Retinexformer / Real-ESRGAN / ARNIQA / LaMa / rembg / YuNet) ──
   zero-dce:
     build:
       context: ./docker/zero-dce

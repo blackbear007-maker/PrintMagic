@@ -1,15 +1,18 @@
 # ─── PyTorch CPU Vision Microservice ──────────────────────────────────────
-# Hosts 7 trained models plus 1 stateless color-management engine: Retinexformer (low-light, real
+# Hosts 6 trained models plus 1 stateless color-management engine: Retinexformer (low-light, real
 # trained weights if sourced — replaced the old untrained Zero-DCE++ 2026-08-26, see server.py's
-# honesty note), Real-ESRGAN compact (upscale), DehazeFormer-T (dehaze), ARNIQA (quality
-# assessment), LaMa (object/watermark removal) — all five on PyTorch — plus rembg/u2netp
+# honesty note), Real-ESRGAN compact (upscale), ARNIQA (quality
+# assessment), LaMa (object/watermark removal) — all four on PyTorch — plus rembg/u2netp
 # (background matting) and YuNet (face detection), both added 2026-08-27 and both running on ONNX
 # Runtime/OpenCV's DNN backend instead of PyTorch, since neither had a good small PyTorch-native
-# option. The 8th route, /icc/soft-proof (added 2026-08-27), is NOT a trained model and needs no
+# option. The 7th route, /icc/soft-proof (added 2026-08-27), is NOT a trained model and needs no
 # weight file — it's real ICC color management via Pillow's ImageCms, which already bundles
 # LittleCMS (verified: Pillow==10.3.0 above resolves to a build with lcms2 2.16 linked in), so
-# nothing further needs adding to this Dockerfile for it. Kept under the `zero-dce` service/
-# container name since that's already wired through docker-compose.yml, railway.toml, and
+# nothing further needs adding to this Dockerfile for it. A 7th model, DehazeFormer-T (dehaze),
+# was added 2026-08-26 and removed 2026-08-27 after evaluation found its real addressable use case
+# too narrow for this app's typical print jobs — see docs/SPEC.md's rejected-models section; dehaze
+# still works client-side via the local ContrastDehazeFilter algorithm. Kept under the `zero-dce`
+# service/container name since that's already wired through docker-compose.yml, railway.toml, and
 # ZERO_DCE_URL in the main app — renaming is a separate, larger change than adding routes to the
 # existing container.
 #
@@ -46,12 +49,12 @@ RUN curl -fsSL -o retinexformer_arch.py \
     https://raw.githubusercontent.com/caiyuanhao1998/Retinexformer/master/basicsr/models/archs/RetinexFormer_arch.py
 
 # ─── Retinexformer weights — CANNOT be auto-downloaded, see docker/zero-dce/weights/README.md ─
-# Same situation as DehazeFormer-T: the author only publishes trained checkpoints via a Google
-# Drive folder / Baidu Disk share (no stable direct-download URL) — verified 2026-08-26. Unlike a
-# typical "manually-sourced weight", this file (and dehazeformer-t.pth) is committed directly to
-# git as of 2026-08-26 rather than left gitignored: Railway builds this service from the git repo,
-# not local disk, so a gitignored weight downloaded only locally would never reach the deployed
-# container. Staged via the same `COPY weights/ ./weights/` step below.
+# The author only publishes trained checkpoints via a Google Drive folder / Baidu Disk share (no
+# stable direct-download URL) — verified 2026-08-26. Unlike a typical "manually-sourced weight",
+# this file is committed directly to git as of 2026-08-26 rather than left gitignored: Railway
+# builds this service from the git repo, not local disk, so a gitignored weight downloaded only
+# locally would never reach the deployed container. Staged via the same `COPY weights/ ./weights/`
+# step below.
 
 # ─── Real-ESRGAN's `basicsr` dependency is broken on current torchvision ──────────────────────
 # basicsr 1.4.2 (its last PyPI release, 2022-08-30, unmaintained) imports
@@ -97,29 +100,12 @@ RUN curl -fsSL -o weights/face_detection_yunet_2023mar.onnx \
 ENV U2NET_HOME=/app/.u2net
 RUN python -c "from rembg import new_session; new_session('u2netp')"
 
-# ─── DehazeFormer-T model definition (vendoring the real source file, not reconstructing it) ──
-# Only this one file is needed: verified to import nothing from the rest of the DehazeFormer
-# repo (just torch/torch.nn/torch.nn.functional/math/numpy/timm.models.layers).
-# ⚠️ Deliberately named `dehazeformer_model/`, NOT `models/` — verified by actually running this:
-# ARNIQA's own torch.hub-loaded code does `from models.resnet import ResNet` at import time, and
-# a same-named local `models/` package in this working directory silently shadows it (Python
-# resolves the working directory before the hub cache), making ARNIQA fail to load with
-# `ModuleNotFoundError: No module named 'models.resnet'`. Caught by an actual test run, not
-# theory — see the commit message / PR notes for the reproduction.
-RUN mkdir -p dehazeformer_model && curl -fsSL -o dehazeformer_model/dehazeformer.py \
-    https://raw.githubusercontent.com/IDKiro/DehazeFormer/main/models/dehazeformer.py
-
-# ─── DehazeFormer-T weights — CANNOT be auto-downloaded, see docker/zero-dce/weights/README.md ─
-# The author only publishes trained checkpoints via a Google Drive folder (no stable direct-
-# download URL that works from an unauthenticated `curl`/CI context — verified 2026-08-26).
-# `dehazeformer-t.pth` (like `LOL_v2_real.pth` above) is committed directly to git as of
-# 2026-08-26 — small enough (2.9MB) that this was simpler than any local-disk-only deploy path,
-# and necessary since Railway builds from git, not local disk. The `weights/` directory is always
-# present in git regardless (a tracked `.gitkeep`), so this COPY never fails the build even if a
-# weight file were ever missing — Docker's COPY only fails on a missing SOURCE PATH, not on a
-# directory that exists but is otherwise empty. server.py checks for each weight file at startup
-# and honestly reports the corresponding endpoint unavailable (503) rather than crashing or running
-# unverified weights if one isn't there.
+# ─── Weight files committed to git (LOL_v2_real.pth) — see docker/zero-dce/weights/README.md ──
+# The `weights/` directory is always present in git regardless (a tracked `.gitkeep`), so this
+# COPY never fails the build even if a weight file were ever missing — Docker's COPY only fails on
+# a missing SOURCE PATH, not on a directory that exists but is otherwise empty. server.py checks
+# for each weight file at startup and honestly reports the corresponding endpoint unavailable
+# (503) rather than crashing or running unverified weights if one isn't there.
 COPY weights/ ./weights/
 
 # ─── ARNIQA weights + code cache, pre-warmed at build time (real GitHub Releases, no auth) ────

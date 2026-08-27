@@ -10,14 +10,17 @@ import { NetworkGuard } from '../services/network-guard';
  * 但沒有一行程式碼真的呼叫過那些供應商 —— 全部是本機模擬的假帳本。已整個移除，改成如實呈現：
  * 2 個自建服務容器（VTracer、PyTorch 視覺服務）+ 一律會用到的本機決定性演算法。
  * 誠實現況（2026-08-27）：VTracer 是真正能建置、運作的服務。PyTorch/ONNX 視覺服務容器裡實際跑
- * 7 個模型：Real-ESRGAN、ARNIQA、LaMa、rembg、YuNet（真實訓練權重，建置時自動下載）、Retinexformer 與
- * DehazeFormer-T（真實訓練權重，作者無自動下載網址，2026-08-26 已手動下載並直接提交進 git——因為
+ * 6 個模型：Real-ESRGAN、ARNIQA、LaMa、rembg、YuNet（真實訓練權重，建置時自動下載）、Retinexformer
+ * （真實訓練權重，作者無自動下載網址，2026-08-26 已手動下載並直接提交進 git——因為
  * Railway 是從 git 建置這個服務，只存在本機的權重檔案永遠不會真正部署上去，見
  * docker/zero-dce/weights/README.md）。
  * Retinexformer 已於 2026-08-26 取代原本從未載入訓練權重的 Zero-DCE++，成為低光提亮功能的
  * 真實模型（權重檔案已驗證：strict=True 完整載入 122 個張量無缺漏，真實推論成功讓測試圖片變亮）。
- * DehazeFormer-T 的權重檔案同樣已驗證：strict=True 完整載入 258 個張量無缺漏，真實推論在模擬
- * 霧霾測試圖上讓對比度提升逾 3 倍。
+ * DehazeFormer-T（去霧）於 2026-08-26 加入、2026-08-27 評估後移除——真實模型本身能正常運作（權重檔案
+ * 驗證通過：strict=True 完整載入 258 個張量無缺漏，真實推論讓對比度提升逾 3 倍），但去霧只對戶外霧霾
+ * 遠景照片有幫助，跟本站證件照/名片/貼紙等典型使用情境重疊度低，也不是印刷特化能力（跟一般修圖軟體
+ * 處理邏輯相同），詳見 docs/SPEC.md 的評估紀錄。去霧功能仍可用，改用本機大氣散射模型演算法
+ * （src/core/contrast-dehaze-filter.ts）。
  * LaMa（物件／浮水印移除）於 2026-08-26 加入，TorchScript 權重可自動下載，已驗證：torch.jit.load()
  * 成功、真實推論乾淨移除模擬「浮水印」色塊測試區域（移除區域內 0% 殘留原色，且修正了上游
  * simple-lama-inpainting 套件遺漏的「輸出裁切回原始尺寸」錯誤）。
@@ -68,11 +71,6 @@ export class AiSettingsModal {
         icon: '📊',
         name: 'ARNIQA 影像品質評估',
         desc: '真實訓練權重（Apache-2.0，WACV 2024），開箱即用。離線時自動退回本機像素統計評估。'
-      },
-      {
-        icon: '🌫️',
-        name: 'DehazeFormer-T 去霧',
-        desc: '真實訓練權重（MIT），開箱即用（作者無自動下載網址，權重已手動下載並提交進 git）。離線時自動退回本機大氣散射模型演算法。'
       },
       {
         icon: '☀️',
@@ -139,7 +137,7 @@ export class AiSettingsModal {
 
           <!-- Real self-hosted services -->
           <div style="background: rgba(0, 0, 0, 0.02); border: 1.5px solid var(--pm-border-subtle); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 10px;">
-            <div style="font-size: 0.86rem; font-weight: 700; color: var(--pm-text-primary);">自建服務（2 個容器 · 9 項功能，詳見各項說明）</div>
+            <div style="font-size: 0.86rem; font-weight: 700; color: var(--pm-text-primary);">自建服務（2 個容器 · 8 項功能，詳見各項說明）</div>
             ${realServices.map((s) => `
               <div style="display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; ${s !== realServices[realServices.length - 1] ? 'border-bottom: 1px solid var(--pm-border-subtle);' : ''}">
                 <span style="font-size: 1.1rem;">${s.icon}</span>

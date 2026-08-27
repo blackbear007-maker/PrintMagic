@@ -24,16 +24,17 @@ lerna-debug.log*
 .env.production.local
 
 # Manually-sourced ML weights (no automatable download URL — see docker/zero-dce/weights/README.md).
-# LOL_v2_real.pth (6.2MB) and dehazeformer-t.pth (2.9MB) are committed as exceptions below: Railway
+# LOL_v2_real.pth (6.2MB) is committed as an exception below: Railway
 # builds docker/zero-dce from this git repo (railway.toml uses builder=DOCKERFILE), not from the
 # local disk, so a gitignored weight file downloaded locally would never actually reach the deployed
-# service — /enhance and /dehaze would keep reporting 503 there even after passing local verification.
-# At ~9MB combined these are small enough that committing them (rather than switching to `railway up`
+# service — /enhance would keep reporting 503 there even after passing local verification.
+# At ~6.2MB this is small enough that committing it (rather than switching to `railway up`
 # CLI deploys, or some other transfer mechanism) is the simplest fix. Any OTHER .pth dropped in this
 # directory in the future still defaults to gitignored, per the general rule below.
+# (dehazeformer-t.pth was a previous exception here — removed 2026-08-27 along with DehazeFormer-T
+# itself, see docs/SPEC.md's rejected-models section.)
 docker/zero-dce/weights/*.pth
 !docker/zero-dce/weights/LOL_v2_real.pth
-!docker/zero-dce/weights/dehazeformer-t.pth
 
 # Python bytecode cache (produced by local py_compile/server runs while testing docker/zero-dce)
 __pycache__/

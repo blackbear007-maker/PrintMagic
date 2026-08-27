@@ -15,12 +15,6 @@ realesrgan==0.3.0
 basicsr==1.4.2
 opencv-python-headless==4.10.0.84
 
-# DehazeFormer-T (dehaze) — only needs its own model file (dehazeformer_model/dehazeformer.py,
-# vendored into this image, deliberately NOT named `models/` — see server.py's honesty note on
-# why that collides with ARNIQA's torch.hub-loaded code) plus timm for its layer helpers; does
-# not need the rest of the DehazeFormer repo.
-timm==1.0.9
-
 # ARNIQA (quality assessment) — loaded via torch.hub, no extra pip package needed beyond torch/
 # torchvision above.
 

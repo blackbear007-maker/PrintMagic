@@ -3,7 +3,7 @@
  *
  * Privacy Shield is a real, functional toggle: when active, the app skips the self-hosted
  * services entirely (VTracer, and the PyTorch vision container's Retinexformer/Real-ESRGAN/
- * DehazeFormer-T/ARNIQA, all reachable at `/api/*`) and only ever runs the local deterministic
+ * ARNIQA/LaMa/rembg/YuNet, all reachable at `/api/*`) and only ever runs the local deterministic
  * algorithms in src/core/ — nothing leaves the browser. When
  * inactive, the app still tries the self-hosted services first (better results) and gracefully
  * falls back to the same local algorithms if they're unreachable.

@@ -1,17 +1,26 @@
 """
 PyTorch CPU Vision Microservice
 
-Hosts 7 trained models plus 1 stateless color-management engine, sharing one process — see
+Hosts 6 trained models plus 1 stateless color-management engine, sharing one process — see
 docker/zero-dce/Dockerfile's header comment for why they're all in this one container/service
 (kept under the pre-existing `zero-dce` name rather than a broader rename, to avoid touching
-docker-compose.yml/railway.toml/ZERO_DCE_URL wiring in a single pass). Five of the seven trained
-models (Retinexformer, Real-ESRGAN, DehazeFormer-T, ARNIQA, LaMa) run on PyTorch; the other two
+docker-compose.yml/railway.toml/ZERO_DCE_URL wiring in a single pass). Four of the six trained
+models (Retinexformer, Real-ESRGAN, ARNIQA, LaMa) run on PyTorch; the other two
 (rembg/u2netp, YuNet) run on ONNX Runtime instead — a second, separate inference runtime, added
 2026-08-27 specifically because real background matting and real face detection had no good
 PyTorch-native option at this size, and both ship as pre-converted ONNX weights upstream.
 Verified in an isolated venv: combined RSS for just these two ONNX-based models (no PyTorch
 models loaded) was 791.6 MB, well under any single PyTorch model added so far — see
 docker-compose.yml for the full combined measurement.
+
+⚠️ DehazeFormer-T (dehaze) was added 2026-08-26 and removed 2026-08-27 after evaluation: it
+genuinely worked (real trained weights, verified inference: contrast std 0.0245->0.0763 on a
+washed-out test image), but dehaze only helps a narrow slice of this app's actual print jobs
+(hazy outdoor/landscape photos) and isn't a print-specific need the way TAC/bleed/ICC are — any
+generic photo editor handles it equally well. Not worth keeping a dedicated model resident for;
+the local ContrastDehazeFilter algorithm (src/core/contrast-dehaze-filter.ts, a classical dark-
+channel-prior scattering inversion) still covers this feature client-side. See docs/SPEC.md's
+rejected-models section for the full writeup.
 
 ⚠️ /icc/soft-proof (added 2026-08-27) is NOT a trained model — it's real ICC color management via
 Pillow's `ImageCms` module, which already wraps LittleCMS (verified 2026-08-27: Pillow 10.3.0
@@ -37,35 +46,33 @@ replaced with **Retinexformer** (ICCV 2023, MIT), loaded from a real trained che
 (`LOL_v2_real.pth`) — verified 2026-08-26 by actually loading a real downloaded copy of that
 checkpoint: `strict=True` state_dict load succeeded with 0 missing/0 unexpected keys across all
 122 tensors, and real inference on a test image correctly brightened it (0.082 -> 0.399 mean
-luminance). Same graceful-missing pattern as DehazeFormer-T below applies if this file is ever
-removed without a replacement: no weight file at build time -> /enhance honestly reports 503, not
-a crash or fake success.
+luminance). Same graceful-missing pattern applies if this file is ever removed without a
+replacement: no weight file at build time -> /enhance honestly reports 503, not a crash or fake
+success.
 
-All 5 models here (Retinexformer, Real-ESRGAN, DehazeFormer-T, ARNIQA, LaMa) are genuinely
+All 4 models here (Retinexformer, Real-ESRGAN, ARNIQA, LaMa) are genuinely
 trained, real pretrained-weight models when their weight files are present. Provenance for each
 is documented at its loading site below. Real-ESRGAN, ARNIQA, and LaMa's weights are fetched
-automatically at Docker build time (stable direct-download URLs); Retinexformer and DehazeFormer-T
-have no automatable download URL, so a human sourced them manually once (2026-08-26) and the
-resulting files were committed directly to git (see weights/README.md and the `.gitignore`
-exception for these two) — Railway builds this service from the git repo, not local disk, so a
-gitignored weight downloaded only locally would never actually reach the deployed container. All 5
+automatically at Docker build time (stable direct-download URLs); Retinexformer has no automatable
+download URL, so a human sourced it manually once (2026-08-26) and the resulting file was
+committed directly to git (see weights/README.md and the `.gitignore` exception for it) — Railway
+builds this service from the git repo, not local disk, so a gitignored weight downloaded only
+locally would never actually reach the deployed container. All 4
 have now been verified in an isolated local venv (not
 the actual Docker image itself, which this repo has no way to build in the environment these
 changes were authored in) with a real downloaded checkpoint each — `strict=True` state_dict loads
 with 0 missing/0 unexpected keys (or, for LaMa, a successful `torch.jit.load()` of the real
 TorchScript-traced checkpoint), plus real inference producing sensible output (Retinexformer:
-0.082->0.399 mean luminance on a dark test image; DehazeFormer-T: contrast std 0.0245->0.0763 on
-a washed-out test image; LaMa: cleanly removed a solid-color test "watermark" region, 0% of its
-pixels remained the original fill color after inpainting) — using architecture code fetched from
-each project's actual current source rather than reconstructed from memory.
+0.082->0.399 mean luminance on a dark test image; LaMa: cleanly removed a solid-color test
+"watermark" region, 0% of its pixels remained the original fill color after inpainting) — using
+architecture code fetched from each project's actual current source rather than reconstructed
+from memory.
 
 Endpoints:
   GET  /health
   POST /enhance     -> Retinexformer low-light (real trained weights if sourced, MIT — 503 if the
                        weight file wasn't manually placed at build time, see weights/README.md)
   POST /upscale     -> Real-ESRGAN compact x4v3 (real trained weights, BSD-3-Clause)
-  POST /dehaze      -> DehazeFormer-T (real trained weights if sourced, MIT — 503 if the weight
-                       file wasn't manually placed at build time, see weights/README.md)
   POST /quality     -> ARNIQA no-reference quality score (real trained weights, Apache-2.0)
   POST /inpaint     -> LaMa object/watermark removal (real trained weights, Apache-2.0)
   POST /matting     -> rembg (u2netp session, real trained weights, MIT) background removal.
@@ -109,10 +116,10 @@ from rembg import remove as rembg_remove, new_session as rembg_new_session
 PORT = int(os.environ.get('PORT', 8082))
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 
-# Measured, not guessed (see git history / PR notes for the actual test run): all 4 endpoints
+# Measured, not guessed (see git history / PR notes for the actual test run): all 3 endpoints
 # scale memory with input pixel count, since none of them downsample before running inference.
 # /upscale gets a stricter cap since its 4x output multiplies the effect on top of that.
-MAX_INPUT_PIXELS = 2000 * 2000  # ~4MP, applies to /enhance, /dehaze, /quality
+MAX_INPUT_PIXELS = 2000 * 2000  # ~4MP, applies to /enhance, /quality
 MAX_UPSCALE_INPUT_PIXELS = 1200 * 1200  # ~1.44MP, applies to /upscale only
 
 # Set thread limits to prevent CPU thrashing & cost spikes
@@ -126,8 +133,8 @@ torch.set_num_threads(2)
 # state_dict load with 0 missing/0 unexpected keys across all 122 tensors, plus real inference on
 # a test image that correctly brightened it, 0.082 -> 0.399 mean luminance). Architecture file
 # (retinexformer_arch.py) is vendored verbatim at Docker build time from the real repo — not
-# reconstructed from memory. Same graceful-missing pattern as DehazeFormer-T: if the weight file
-# wasn't manually placed at build time, this stays None and /enhance honestly reports 503.
+# reconstructed from memory. Same graceful-missing pattern used throughout this file: if the
+# weight file wasn't manually placed at build time, this stays None and /enhance honestly reports 503.
 retinexformer_model = None
 try:
     from retinexformer_arch import RetinexFormer
@@ -196,46 +203,16 @@ except Exception as e:
     print(f"[Real-ESRGAN] Failed to load — /upscale will report unavailable. Error: {e}")
 
 
-# ─── DehazeFormer-T — real trained weights, manually sourced once and committed to git, MIT ───
-# github.com/IDKiro/DehazeFormer. dehazeformer_model/dehazeformer.py is vendored verbatim at
-# Docker build time (not reconstructed from memory). Checkpoint has no automatable download URL
-# (Google Drive folder only) — see docker/zero-dce/weights/README.md. If it wasn't manually
-# placed before `docker build`, dehazeformer_net stays None and /dehaze honestly reports 503
-# rather than crashing or running random-initialized weights.
-#
-# ⚠️ The vendored package is named `dehazeformer_model/`, deliberately NOT `models/` — verified
-# by actually running this locally: ARNIQA (loaded further below via torch.hub) has its own
-# `from models.resnet import ResNet` inside its downloaded hub code, and a same-named local
-# `models/` package in this working directory silently shadows it, breaking ARNIQA's import with
-# `ModuleNotFoundError: No module named 'models.resnet'`. Caught by an actual test run.
-dehazeformer_net = None
-try:
-    from dehazeformer_model.dehazeformer import dehazeformer_t
-
-    _dehaze_weights_path = 'weights/dehazeformer-t.pth'
-    if os.path.exists(_dehaze_weights_path):
-        dehazeformer_net = dehazeformer_t()
-        _ckpt = torch.load(_dehaze_weights_path, map_location='cpu')
-        _state_dict = _ckpt['state_dict'] if 'state_dict' in _ckpt else _ckpt
-        # Strip a `module.` DataParallel prefix if present (matches the project's own test.py)
-        _state_dict = {
-            (k[7:] if k.startswith('module.') else k): v for k, v in _state_dict.items()
-        }
-        dehazeformer_net.load_state_dict(_state_dict)
-        dehazeformer_net.eval()
-        print("[DehazeFormer-T] Loaded dehazeformer-t.pth — /dehaze ready")
-    else:
-        print(
-            "[DehazeFormer-T] weights/dehazeformer-t.pth not present (manual download required, "
-            "see weights/README.md) — /dehaze will report unavailable"
-        )
-except Exception as e:
-    print(f"[DehazeFormer-T] Failed to load — /dehaze will report unavailable. Error: {e}")
-
-
 # ─── ARNIQA — real trained weights via torch.hub, Apache-2.0 ──────────────────────────────────
 # github.com/miccunifi/ARNIQA. Pre-warmed into TORCH_HOME at Docker build time (see Dockerfile),
 # so this call hits the local torch.hub cache at container startup rather than the network.
+#
+# ⚠️ If a future model here ever vendors its own architecture package, do NOT name it `models/`
+# — verified by actually running this locally when DehazeFormer-T (since removed, see docs/
+# SPEC.md's rejected-models section) briefly did exactly that: ARNIQA's torch.hub-loaded code
+# below does `from models.resnet import ResNet`, and a same-named local `models/` package in this
+# working directory silently shadows it, breaking ARNIQA's import with `ModuleNotFoundError: No
+# module named 'models.resnet'`. Caught by an actual test run, not theory.
 arniqa_model = None
 try:
     arniqa_model = torch.hub.load(
@@ -293,8 +270,8 @@ def _lama_pad_to_modulo(arr, mod):
 # to `isnet-general-use` or a bundled bria-rmbg model carrying a separate non-commercial license
 # — verified 2026-08-27 against rembg's own session registry before choosing u2netp specifically
 # to avoid that. Weight (u2netp.onnx, ~4.6MB) is auto-downloaded by rembg itself on first use from
-# its own official GitHub Release URL — no manual sourcing needed, unlike Retinexformer/
-# DehazeFormer-T above. Verified 2026-08-27 by actually creating a real session and running
+# its own official GitHub Release URL — no manual sourcing needed, unlike Retinexformer above.
+# Verified 2026-08-27 by actually creating a real session and running
 # inference on a synthetic test image (solid subject on a textured, non-uniform gradient+noise
 # background — the exact case the local color-key fallback, AiMatting, cannot handle): resulting
 # alpha channel was 254/255 opaque at the subject center and 0/255 transparent at all four
@@ -379,7 +356,6 @@ class VisionHandler(BaseHTTPRequestHandler):
                 'models': {
                     'enhance': 'ready' if retinexformer_model is not None else 'unavailable (weights not sourced, see weights/README.md)',
                     'upscale': 'ready' if realesrgan_upsampler is not None else 'unavailable',
-                    'dehaze': 'ready' if dehazeformer_net is not None else 'unavailable (weights not sourced, see weights/README.md)',
                     'quality': 'ready' if arniqa_model is not None else 'unavailable',
                     'inpaint': 'ready' if lama_model is not None else 'unavailable',
                     'matting': 'ready' if rembg_session is not None else 'unavailable',
@@ -393,12 +369,12 @@ class VisionHandler(BaseHTTPRequestHandler):
     def _read_image(self, max_pixels=MAX_INPUT_PIXELS):
         """Parses the multipart form and returns a PIL RGB image, or raises.
 
-        Measured, not guessed: running the real 4 endpoints end-to-end (see git history / PR notes
-        for the actual numbers) showed all four scale memory with input pixel count, not just
-        /upscale — Retinexformer and DehazeFormer-T process at native resolution with no
-        downsampling (only reflect-padded to a small factor), and ARNIQA's preprocessing only
-        halves it once (`scale_factor=0.5`). `max_pixels` lets /upscale pass a stricter cap than
-        the other three, since its 4x output multiplies the effect.
+        Measured, not guessed: running the real endpoints end-to-end (see git history / PR notes
+        for the actual numbers) showed they all scale memory with input pixel count, not just
+        /upscale — Retinexformer processes at native resolution with no downsampling (only
+        reflect-padded to a small factor), and ARNIQA's preprocessing only halves it once
+        (`scale_factor=0.5`). `max_pixels` lets /upscale pass a stricter cap than the others,
+        since its 4x output multiplies the effect.
         """
         content_type = self.headers.get('Content-Type', '')
         content_length = int(self.headers.get('Content-Length', 0))
@@ -428,8 +404,6 @@ class VisionHandler(BaseHTTPRequestHandler):
                 self._handle_enhance(start_time)
             elif self.path == '/upscale':
                 self._handle_upscale(start_time)
-            elif self.path == '/dehaze':
-                self._handle_dehaze(start_time)
             elif self.path == '/quality':
                 self._handle_quality(start_time)
             elif self.path == '/inpaint':
@@ -443,7 +417,7 @@ class VisionHandler(BaseHTTPRequestHandler):
             else:
                 self._send_json(404, {
                     'error': f'No route for {self.path}. '
-                             'Implemented: /enhance, /upscale, /dehaze, /quality, /inpaint, '
+                             'Implemented: /enhance, /upscale, /quality, /inpaint, '
                              '/matting, /detect-face, /icc/soft-proof.'
                 })
         except ValueError as e:
@@ -478,26 +452,13 @@ class VisionHandler(BaseHTTPRequestHandler):
         if realesrgan_upsampler is None:
             self._send_json(503, {'success': False, 'available': False, 'error': 'Real-ESRGAN failed to load at startup'})
             return
-        # Stricter cap than the other 3 endpoints (MAX_UPSCALE_INPUT_PIXELS, not MAX_INPUT_PIXELS)
+        # Stricter cap than the other endpoints (MAX_UPSCALE_INPUT_PIXELS, not MAX_INPUT_PIXELS)
         # since /upscale's 4x output multiplies the memory effect on top of input size — see the
         # honesty note above realesrgan_upsampler's construction for the measured numbers.
         img = self._read_image(max_pixels=MAX_UPSCALE_INPUT_PIXELS)
         img_bgr = np.array(img)[:, :, ::-1].copy()  # RGB -> BGR (cv2 convention RealESRGANer expects)
         output_bgr, _ = realesrgan_upsampler.enhance(img_bgr, outscale=4)
         out_img = Image.fromarray(output_bgr[:, :, ::-1])  # BGR -> RGB
-        self._send_image_response(out_img, start_time)
-
-    def _handle_dehaze(self, start_time):
-        if dehazeformer_net is None:
-            self._send_json(503, {'success': False, 'available': False, 'error': 'DehazeFormer-T weights not sourced, see weights/README.md'})
-            return
-        img = self._read_image()
-        img_tensor = transforms.ToTensor()(img).unsqueeze(0)
-        img_tensor = img_tensor * 2 - 1  # [0,1] -> [-1,1], matches DehazeFormer's own test.py
-        with torch.no_grad():
-            output = dehazeformer_net(img_tensor)
-        output = output.clamp_(-1, 1) * 0.5 + 0.5  # back to [0,1]
-        out_img = transforms.ToPILImage()(output.squeeze(0))
         self._send_image_response(out_img, start_time)
 
     def _handle_quality(self, start_time):

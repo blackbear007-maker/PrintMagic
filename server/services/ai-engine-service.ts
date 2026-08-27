@@ -16,13 +16,13 @@
  * unexpected keys across 122 tensors, and real inference on a test image correctly brightened it.
  * See docker/zero-dce/server.py's header comment for full details.
  *
- * All seven methods below (processLowLight, processUpscale, processDehaze, processQuality,
+ * All six methods below (processLowLight, processUpscale, processQuality,
  * processInpaint, processMatting, processDetectFace) now proxy to genuinely trained real models
- * when their weight files are present on the server side. Retinexformer and DehazeFormer-T have
- * no automatable download URL, so a human sourced their weight file manually once (2026-08-26)
+ * when their weight files are present on the server side. Retinexformer has
+ * no automatable download URL, so a human sourced its weight file manually once (2026-08-26)
  * and it was committed directly to git (see docker/zero-dce/weights/README.md) — Railway builds
  * this service from the git repo, not local disk, so a gitignored weight file would never have
- * actually reached the deployed container. If either file is ever removed without a replacement,
+ * actually reached the deployed container. If that file is ever removed without a replacement,
  * the service reports 503 honestly rather than running untrained/random weights. LaMa
  * (processInpaint), added 2026-08-26, is auto-downloaded at build time like Real-ESRGAN/ARNIQA —
  * verified with a real downloaded checkpoint that it cleanly removes a solid-color test region
@@ -31,6 +31,11 @@
  * with real downloaded weights: rembg correctly separated a solid test subject from a textured,
  * non-uniform background (something the local color-key fallback, AiMatting, cannot do), and
  * YuNet correctly detected a face on a synthetic shaded test image at 84.2% confidence.
+ *
+ * ⚠️ processDehaze (DehazeFormer-T) was added 2026-08-26 and removed 2026-08-27 after evaluation:
+ * it genuinely worked, but dehaze only helps a narrow slice of this app's actual print jobs (hazy
+ * outdoor/landscape photos) and isn't a print-specific need — see docs/SPEC.md's rejected-models
+ * section. Dehaze still works client-side via the local ContrastDehazeFilter algorithm.
  */
 export class AiEngineService {
   private static readonly BASE_URL = process.env.ZERO_DCE_URL || process.env.AI_ENGINE_URL || 'http://127.0.0.1:8082';
@@ -98,26 +103,6 @@ export class AiEngineService {
       return { success: false, error: `Real-ESRGAN service returned HTTP ${status}` };
     } catch (err: any) {
       return { success: false, error: err?.message || 'Real-ESRGAN service unavailable' };
-    }
-  }
-
-  /**
-   * DehazeFormer-T dehaze — real trained weights, committed to git (MIT). Returns
-   * success:false with a clear reason (not a crash) if the weight file were ever missing —
-   * see docker/zero-dce/weights/README.md.
-   */
-  public static async processDehaze(imageDataUrl: string): Promise<{ success: boolean; dataUrl?: string; engine?: string; error?: string }> {
-    try {
-      const { ok, status, data } = await this.postImage('/dehaze', imageDataUrl, 10000);
-      if (ok && data?.success && data.image_base64) {
-        return { success: true, dataUrl: data.image_base64, engine: 'DehazeFormer-T (自建微服務)' };
-      }
-      if (status === 503) {
-        return { success: false, error: data?.error || 'DehazeFormer-T weights not sourced' };
-      }
-      return { success: false, error: `DehazeFormer-T service returned HTTP ${status}` };
-    } catch (err: any) {
-      return { success: false, error: err?.message || 'DehazeFormer-T service unavailable' };
     }
   }
 

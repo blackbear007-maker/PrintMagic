@@ -99,22 +99,6 @@ apiRouter.post('/ai/upscale', async (req: Request, res: Response) => {
   }
 });
 
-// 🌫️ DehazeFormer-T Dehaze — real trained weights, committed to git, see ai-engine-service.ts
-apiRouter.post('/ai/dehaze', async (req: Request, res: Response) => {
-  try {
-    const { image_base64 } = req.body;
-    if (!image_base64) {
-      res.status(400).json({ success: false, error: 'image_base64 is required' });
-      return;
-    }
-    const { AiEngineService } = await import('../services/ai-engine-service.js');
-    const result = await AiEngineService.processDehaze(image_base64);
-    res.json(result);
-  } catch (err: any) {
-    res.status(500).json({ success: false, error: err?.message || 'Dehaze failed' });
-  }
-});
-
 // 📊 ARNIQA No-Reference Quality Score — real trained weights, see ai-engine-service.ts
 apiRouter.post('/ai/quality', async (req: Request, res: Response) => {
   try {
