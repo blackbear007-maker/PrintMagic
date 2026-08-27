@@ -57,7 +57,6 @@ import { ShadowLift } from './core/shadow-lift';
 import { HandShadowBalancer } from './core/hand-shadow-balancer';
 import { AntiBandingFilter } from './core/anti-banding';
 import { FreeQualityClient } from './services/free-quality-client';
-import { ContrastDehazeFilter } from './core/contrast-dehaze-filter';
 import { PantoneMatcher } from './core/pantone-matcher';
 import { BarcodeVerifier } from './core/barcode-verifier';
 import { PassportModal } from './ui/passport-modal';
@@ -1513,16 +1512,6 @@ class App {
       // Step 1.8: Auto Anti-Banding & Gradient Smoothing (漸層防斷階去噪)
       if (opts.enableAntiBanding !== false) {
         processedImgData = AntiBandingFilter.apply(processedImgData, 0.65);
-      }
-
-      // Step 1.9: Dehaze (本機大氣散射模型，預設關閉，僅霧霾照片建議開啟；DehazeFormer-T 已於
-      // 2026-08-27 評估後移除，見 docs/SPEC.md 的未採用清單)
-      if (opts.enableDehaze) {
-        store.setState({
-          processingStep: '正在執行去霧處理...'
-        });
-        processedImgData = ContrastDehazeFilter.dehaze(processedImgData, 0.75);
-        Toast.info('🌫️ 去霧完成 (本機大氣散射模型 Dark Channel Prior)');
       }
 
       // Step 2: Pre-press Unsharp Mask Sharpening

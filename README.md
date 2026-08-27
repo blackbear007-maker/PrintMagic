@@ -96,9 +96,9 @@
 
 ⚠️ **OCR（Tesseract）已於 2026-08-26 移除**：查證後發現它從未被任何 UI 功能實際呼叫過（純死碼），而它原本想解決的問題——讀取 AI 繪圖產生的亂碼假文字——OCR 本來就解不了，因為那些筆畫通常根本不是任何文字系統的真實字元，就算讀出結果也毫無參考價值。實際可行的做法是定位文字區域＋由使用者自己輸入正確文字，見下方「文字防糊」工具。
 
-⚠️ **DehazeFormer-T（去霧模型）已於 2026-08-26 加入、2026-08-27 評估後移除**：模型本身真實可用（權重驗證通過，真實推論讓對比度從 0.0245 提升到 0.0763），移除原因不是技術問題，而是需求評估——去霧只對戶外霧霾遠景照片有幫助，跟本站證件照/名片/貼紙/社群圖等典型使用情境重疊度低，也不是印刷特化能力（跟通用修圖軟體處理邏輯相同）。去霧功能依然可用，改回本機大氣散射模型演算法（`ContrastDehazeFilter`，經典 Dark Channel Prior 公式，非神經網路）。
+⚠️ **DehazeFormer-T（去霧模型）已於 2026-08-26 加入、2026-08-27 評估後移除**：模型本身真實可用（權重驗證通過，真實推論讓對比度從 0.0245 提升到 0.0763），移除原因不是技術問題，而是需求評估——去霧只對戶外霧霾遠景照片有幫助，跟本站證件照/名片/貼紙/社群圖等典型使用情境重疊度低，也不是印刷特化能力（跟通用修圖軟體處理邏輯相同）。同一天再進一步確認印前處理根本不需要這個功能，連本機備援演算法（`ContrastDehazeFilter`，經典 Dark Channel Prior 公式）也一併移除——去霧從此在本站完全不存在，不是「換成本機版本」而是整個功能拿掉。
 
-VTracer/Real-ESRGAN/ARNIQA/DehazeFormer-T/Retinexformer/LaMa/rembg 離線或未就緒時，系統會自動退回下方的本機決定性演算法，並在結果標籤上誠實標示「本機」而非假冒雲端模型名稱。YuNet（人臉偵測）是唯一沒有本機備援的功能——本專案沒有現成的本機人臉偵測演算法，離線時就是誠實回報不可用，而不是假造一個「本機演算法」來冒充。ICC 真實色彩管理離線、或使用者未上傳描述檔時，軟打樣會退回既有的 `CmykEngine.simulatePrintProof()` 近似模擬——這個退回並非「真實 ICC 運算的本機版本」，只是既有的手刻公式近似值，兩者不應混為一談。
+VTracer/Real-ESRGAN/ARNIQA/Retinexformer/LaMa/rembg 離線或未就緒時，系統會自動退回下方的本機決定性演算法，並在結果標籤上誠實標示「本機」而非假冒雲端模型名稱。YuNet（人臉偵測）是唯一沒有本機備援的功能——本專案沒有現成的本機人臉偵測演算法，離線時就是誠實回報不可用，而不是假造一個「本機演算法」來冒充。ICC 真實色彩管理離線、或使用者未上傳描述檔時，軟打樣會退回既有的 `CmykEngine.simulatePrintProof()` 近似模擬——這個退回並非「真實 ICC 運算的本機版本」，只是既有的手刻公式近似值，兩者不應混為一談。
 
 ### 🧮 決定性演算法（前端 TypeScript，非神經網路）
 以下模組過去用 SOTA 論文名稱命名，現已改用描述實際技術的名稱，程式邏輯本身沒有變動：
@@ -113,7 +113,6 @@ VTracer/Real-ESRGAN/ARNIQA/DehazeFormer-T/Retinexformer/LaMa/rembg 離線或未�
 | `SmoothingDenoiseFilter` | 經典雙邊濾波 | Restormer-Denoise / NAFNet |
 | `CurvedPageFlattener` | 固定拋物線位移公式 | DocTr |
 | `EdgeExtendInpaint` | 鏡像外推填色 | LaMa |
-| `ContrastDehazeFilter` | 經典大氣散射模型（He et al. Dark Channel Prior） | DehazeFormer |
 | `LineArtUpscaler` | 雙線性放大 + 邊緣壓黑 | Anime4K |
 | `EdgeChokeMatting` | 四角取樣顏色距離去背 | BiRefNet |
 | `HandShadowBalancer` | 24×24 網格光照插值 | ShadowFormer |

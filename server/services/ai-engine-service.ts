@@ -35,7 +35,9 @@
  * ⚠️ processDehaze (DehazeFormer-T) was added 2026-08-26 and removed 2026-08-27 after evaluation:
  * it genuinely worked, but dehaze only helps a narrow slice of this app's actual print jobs (hazy
  * outdoor/landscape photos) and isn't a print-specific need — see docs/SPEC.md's rejected-models
- * section. Dehaze still works client-side via the local ContrastDehazeFilter algorithm.
+ * section. The local ContrastDehazeFilter fallback was removed the same day too, once it became
+ * clear pre-press processing doesn't need dehaze at all — there is no dehaze feature left in this
+ * app, client-side or otherwise.
  */
 export class AiEngineService {
   private static readonly BASE_URL = process.env.ZERO_DCE_URL || process.env.AI_ENGINE_URL || 'http://127.0.0.1:8082';

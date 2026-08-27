@@ -18,7 +18,7 @@
 | :--- | :--- | :---: | :---: | :--- |
 | **`printmagic`** | Node.js 22 (Alpine) + Vite SSR | `3000` | **256 MB** | 主應用入口、UI 渲染、合版拼版算力、印前 PDF 出機檔壓製（非通過驗證的 PDF/X-1a，見第 5 節）。 |
 | **`vtracer`** | Rust 1.78 (Distroless) | `8080` | **128 MB** | 真實 VTracer 向量化引擎（點陣轉 SVG）。「Kurbo 2mm 刀模幾何運算」實際跑在主應用內的 `src/core/kurbo-geometry.ts`（純 TypeScript），不在這個容器裡；「OxiPNG 無損壓縮」查無實作，本服務不做 PNG 壓縮，已移除該說法。 |
-| **`zero-dce`** | Python 3.12 + PyTorch 2.3+ (CPU) + ONNX Runtime | `8082` | **4096 MB** | 承載 6 個模型：**Real-ESRGAN**（4x 放大，真實 BSD-3-Clause 訓練權重）、**ARNIQA**（品質評分，真實 Apache-2.0 訓練權重）、**Retinexformer**（低光提亮，真實 MIT 訓練權重，已用真實下載的 `LOL_v2_real.pth` 驗證推論成功，取代原本從未訓練過的 Zero-DCE++；權重因無自動下載網址已直接提交進 git，見 `docker/zero-dce/weights/README.md`）、**LaMa**（物件／浮水印移除，真實 Apache-2.0 TorchScript 權重，建置時自動下載，已驗證推論成功）、**rembg u2netp**（去背，2026-08-27 新增，真實 MIT 訓練權重，建置時自動下載，已驗證推論成功）、**YuNet**（人臉偵測，2026-08-27 新增，真實 Apache-2.0/MIT ONNX 權重，建置時自動下載，已驗證推論成功）。⚠️ **DehazeFormer-T**（去霧）曾於 2026-08-26 以同等規格真實整合驗證通過，但 2026-08-27 評估後移除，見 §1.1 評估紀錄——去霧功能改回本機 `ContrastDehazeFilter` 演算法。RAM 上限數字尚未針對這次移除重新量測，見 `docker-compose.yml` 內附的過時提醒。 |
+| **`zero-dce`** | Python 3.12 + PyTorch 2.3+ (CPU) + ONNX Runtime | `8082` | **4096 MB** | 承載 6 個模型：**Real-ESRGAN**（4x 放大，真實 BSD-3-Clause 訓練權重）、**ARNIQA**（品質評分，真實 Apache-2.0 訓練權重）、**Retinexformer**（低光提亮，真實 MIT 訓練權重，已用真實下載的 `LOL_v2_real.pth` 驗證推論成功，取代原本從未訓練過的 Zero-DCE++；權重因無自動下載網址已直接提交進 git，見 `docker/zero-dce/weights/README.md`）、**LaMa**（物件／浮水印移除，真實 Apache-2.0 TorchScript 權重，建置時自動下載，已驗證推論成功）、**rembg u2netp**（去背，2026-08-27 新增，真實 MIT 訓練權重，建置時自動下載，已驗證推論成功）、**YuNet**（人臉偵測，2026-08-27 新增，真實 Apache-2.0/MIT ONNX 權重，建置時自動下載，已驗證推論成功）。⚠️ **DehazeFormer-T**（去霧）曾於 2026-08-26 以同等規格真實整合驗證通過，但 2026-08-27 評估後移除，見 §1.1 評估紀錄——去霧功能（含本機備援演算法）已於同日完全移除，本站不再提供去霧功能。RAM 上限數字尚未針對這次移除重新量測，見 `docker-compose.yml` 內附的過時提醒。 |
 
 ⚠️ **`tesseract`（OCR）容器已於 2026-08-26 移除**：查證後發現從未被任何 UI 功能實際呼叫（純死碼），且它原本想解決的問題——讀取 AI 繪圖產生的亂碼假文字——OCR 本來就解不了，那些筆畫通常不是任何文字系統的真實字元。
 
@@ -60,9 +60,11 @@
 2. **不是印刷特化能力**：去霧在螢幕修圖跟印刷輸出上的處理邏輯完全一樣，沒有像 TAC 控墨／出血／ICC 色彩管理那種「只有印刷才需要」的理由，跟任何通用修圖 App 的去霧濾鏡效果相同——判準與上方 GFPGAN/DDColor 的「不是印刷特化能力」完全一致。
 3. **本來就有本機備援，AI 版只是品質升級，不是從無到有**：`ContrastDehazeFilter`（`src/core/contrast-dehaze-filter.ts`，經典 Dark Channel Prior 大氣散射反演公式）在 DehazeFormer-T 加入前就已存在且真實可用；DehazeFormer-T 帶來的是「做得更好」，不是「解決了原本完全做不到的問題」，急迫性因此偏低。
 
-**移除範圍**：`docker/zero-dce/server.py` 的模型載入與 `/dehaze` 端點、`docker/zero-dce/Dockerfile` 的架構檔案 vendoring 步驟、`requirements.txt` 的 `timm` 依賴、已提交的 `dehazeformer-t.pth` 權重檔、`server/services/ai-engine-service.ts` 的 `processDehaze()`、`server/routes/api.ts` 的 `/ai/dehaze` 路由、前端的 `FreeDehazeClient`（`src/services/free-dehaze-client.ts`）全部移除。**去霧功能本身沒有被移除**——`ContrastDehazeFilter` 這個本機演算法一直都在，`main.ts` 的去霧管線步驟改成直接呼叫它，使用者體感上只差在少了「AI 模型優先嘗試」這一層，本機演算法品質本來就已經是實際會用到的退回路徑（多數請求原本也是走這條路，因為去霧預設關閉、只有使用者手動開啟才會觸發）。
+**第一階段移除範圍（AI 模型層）**：`docker/zero-dce/server.py` 的模型載入與 `/dehaze` 端點、`docker/zero-dce/Dockerfile` 的架構檔案 vendoring 步驟、`requirements.txt` 的 `timm` 依賴、已提交的 `dehazeformer-t.pth` 權重檔、`server/services/ai-engine-service.ts` 的 `processDehaze()`、`server/routes/api.ts` 的 `/ai/dehaze` 路由、前端的 `FreeDehazeClient`（`src/services/free-dehaze-client.ts`）。這一階段刻意保留了本機備援演算法 `ContrastDehazeFilter`，`main.ts` 的去霧管線步驟改成直接呼叫它，去霧功能本身沒有消失，只是少了「AI 模型優先嘗試」這一層。
 
-**未來可能重新評估的情境**：跟 Florence-2 一樣，若之後真的鎖定「風景/旅遊攝影印刷」這個垂直市場（例如專做風景明信片/海報的子產品線），去霧的真實需求密度會高很多，屆時值得重新評估。
+**第二階段移除（同日，範圍擴大到整個功能）**：使用者進一步確認「印前處理不需要去霧功能」，判準是這個功能從一開始就不該存在——不是「AI 版不划算，退回本機版」，而是連本機版存在的理由都站不住腳（跟上面第 2 點「不是印刷特化能力」的判準完全一致，只是徹底貫徹到底）。因此把整條去霧管線全部拔除：`ContrastDehazeFilter`（`src/core/contrast-dehaze-filter.ts`）與其專屬測試（`tests/pro-prepress-suite.test.ts`）整個刪除、`main.ts` 的去霧管線步驟（Step 1.9）整段移除、`PipelineOptions` 型別與預設值（`src/types/index.ts`、`src/ui/state.ts`）拿掉 `enableDehaze` 欄位、「專家管線自訂」彈窗（`src/ui/pipeline-matrix-modal.ts`）拿掉去霧開關項目。**去霧現在在本站完全不存在**，前端、後端、本機演算法三層都沒有殘留，不是「換一種方式繼續提供」。
+
+**未來可能重新評估的情境**：跟 Florence-2 一樣，若之後真的鎖定「風景/旅遊攝影印刷」這個垂直市場（例如專做風景明信片/海報的子產品線），去霧的真實需求密度會高很多，屆時值得重新評估、重新設計（不只是把這次刪掉的程式碼加回去，因為架構本身也已經不存在了）。
 
 ### 1.2 零外部付費 API 規則 (Strict 100% Zero-Commercial-API Policy)
 - ❌ 徹底剔除 Google Cloud Vision、Remove.bg、PhotoRoom、Midjourney 等任何需第三方 Token/按次計費之商業 API。
@@ -98,7 +100,7 @@
 
 ## 2. 印前演算法陣列 (Pre-Press Algorithm Matrix)
 
-跑在 Docker 微服務裡、真正接上訓練權重推論的模型是 **VTracer**（向量化）、**Real-ESRGAN**（放大）、**ARNIQA**（品質評分）、**Retinexformer**（低光提亮，取代原本從未訓練過的 Zero-DCE++）、**LaMa**（物件／浮水印移除，權重自動下載）、**rembg**（去背，u2netp session，權重自動下載）、**YuNet**（人臉偵測，權重自動下載）（見 1.1 節）。**DehazeFormer-T**（去霧）曾以同等規格真實整合並驗證推論成功，但 2026-08-27 評估後移除，詳見 1.1 節評估紀錄——去霧現在是純本機決定性演算法（見下方 `contrast-dehaze-filter.ts`）。以下全部是 `src/core/` 或 `src/engines/` 裡實際存在的決定性演算法（無 AI 模型、無框架依賴、無授權條款可標——這些都是純 TypeScript 數學運算，不是打包發布的第三方模型），依功能分類：
+跑在 Docker 微服務裡、真正接上訓練權重推論的模型是 **VTracer**（向量化）、**Real-ESRGAN**（放大）、**ARNIQA**（品質評分）、**Retinexformer**（低光提亮，取代原本從未訓練過的 Zero-DCE++）、**LaMa**（物件／浮水印移除，權重自動下載）、**rembg**（去背，u2netp session，權重自動下載）、**YuNet**（人臉偵測，權重自動下載）（見 1.1 節）。**DehazeFormer-T**（去霧）曾以同等規格真實整合並驗證推論成功，但 2026-08-27 評估後連同本機備援演算法一併完全移除，詳見 1.1 節評估紀錄——本站現在沒有去霧功能。以下全部是 `src/core/` 或 `src/engines/` 裡實際存在的決定性演算法（無 AI 模型、無框架依賴、無授權條款可標——這些都是純 TypeScript 數學運算，不是打包發布的第三方模型），依功能分類：
 
 ### 2.1 放大與清晰化
 - **`edge-aware-upscaler.ts`**：雙線性插值 + 局部梯度邊緣強化。用於相片、包裝設計放大。
@@ -130,7 +132,6 @@
 - **`zero-dce-enhancer.ts`**：Zero-DCE 論文曲線公式的本機簡化版（單一全域參數，非學習式逐像素參數圖）。Docker `zero-dce` 服務的低光提亮功能已於 2026-08-26 改跑 Retinexformer（真實訓練權重，MIT），此檔案現在是它離線時的本機備援，不再對應同一篇論文的架構。
 - **`hand-shadow-balancer.ts`**：24×24 網格光照插值，均化手機翻拍陰影。
 - **`shadow-lift.ts`**：暗部階調提亮，防止實體印刷死黑糊成一片。
-- **`contrast-dehaze-filter.ts`**：He et al. 經典大氣散射模型去霧（非神經網路，是真實存在的古典電腦視覺演算法）。
 - **`giclee-fineart-dmax.ts`**：博物館級微噴黑階動態增強。
 - **`food-menu-mouthwatering.ts`**：暖色調增豔，用於餐飲菜單。
 - **`wedding-skin-pore-preserver.ts`**：高低頻空間分離磨皮。

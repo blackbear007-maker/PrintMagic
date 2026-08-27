@@ -19,8 +19,8 @@ import { NetworkGuard } from '../services/network-guard';
  * DehazeFormer-T（去霧）於 2026-08-26 加入、2026-08-27 評估後移除——真實模型本身能正常運作（權重檔案
  * 驗證通過：strict=True 完整載入 258 個張量無缺漏，真實推論讓對比度提升逾 3 倍），但去霧只對戶外霧霾
  * 遠景照片有幫助，跟本站證件照/名片/貼紙等典型使用情境重疊度低，也不是印刷特化能力（跟一般修圖軟體
- * 處理邏輯相同），詳見 docs/SPEC.md 的評估紀錄。去霧功能仍可用，改用本機大氣散射模型演算法
- * （src/core/contrast-dehaze-filter.ts）。
+ * 處理邏輯相同），詳見 docs/SPEC.md 的評估紀錄。同一天再進一步確認印前處理根本不需要這個功能，連本機
+ * 大氣散射模型退回演算法（原本的 `contrast-dehaze-filter.ts`）也一併移除，去霧從此在本站完全不存在。
  * LaMa（物件／浮水印移除）於 2026-08-26 加入，TorchScript 權重可自動下載，已驗證：torch.jit.load()
  * 成功、真實推論乾淨移除模擬「浮水印」色塊測試區域（移除區域內 0% 殘留原色，且修正了上游
  * simple-lama-inpainting 套件遺漏的「輸出裁切回原始尺寸」錯誤）。

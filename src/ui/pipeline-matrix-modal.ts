@@ -81,14 +81,6 @@ export class PipelineMatrixModal {
         desc: '套用 Japan Color 2001 或 ISO Coated v2 CMYK 實體印刷打樣校色。',
         defaultHint: '開：精確色域映射',
         offHint: '關：維持 sRGB 原色'
-      },
-      {
-        key: 'enableDehaze',
-        icon: '🌫️',
-        title: '去霧（戶外風景灰濛/霧霾清除）',
-        desc: '套用本機大氣散射模型演算法（古典 Dark Channel Prior 去霧公式，非神經網路）。曾評估過改用 DehazeFormer-T 模型，但去霧只對霧霾戶外遠景照片有幫助，跟本站證件照/名片/貼紙等典型使用情境重疊度低，2026-08-27 評估後決定不採用，詳見 docs/SPEC.md。預設關閉，因為只對有霧霾/灰濛的戶外照片有幫助，一般照片開啟可能反而使色調偏移。',
-        defaultHint: '開：套用去霧演算法',
-        offHint: '關：維持原圖（預設，建議僅霧霾照片手動開啟）'
       }
     ];
 

@@ -159,8 +159,7 @@ class StateStore {
       enableColorProofing: true,
       enableVectorOverlay: true,
       enableAntiBanding: true,
-      enableDeshadow: true,
-      enableDehaze: false
+      enableDeshadow: true
     }
   };
 
