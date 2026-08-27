@@ -24,6 +24,11 @@ import { NetworkGuard } from '../services/network-guard';
  * rembg（去背，固定 u2netp session）與 YuNet（人臉偵測）於 2026-08-27 加入，兩者跑在 ONNX
  * Runtime/OpenCV DNN 後端而非 PyTorch。已驗證：rembg 在有紋理漸層背景的合成測試圖上正確分離主體
  * 與背景（取代原本只能處理單一色背景的色鍵去背）；YuNet 對合成測試圖成功偵測人臉，信心分數 84.2%。
+ * ICC 真實色彩管理（軟打樣）於 2026-08-27 加入——不是模型，是 Pillow 的 ImageCms 模組本來就內建的
+ * LittleCMS（已驗證 Pillow 10.3.0 內建 lcms2 2.16，requirements.txt 無需新增任何套件）。此功能需要
+ * 使用者自行上傳自己印刷廠的 CMYK ICC 描述檔——本專案刻意不內建/散布任何具名描述檔（FOGRA／SWOP／
+ * GRACoL 等），因為查證 ICC 官方描述檔登錄庫後發現這些檔案本身「未經書面同意不得散布、出售或更改」。
+ * 已驗證：用一份真實 CMYK 描述檔實測，軟打樣色彩確實產生可測量位移，逐像素總墨量（TAC）數值也合理。
  * 曾評估過的 GFPGAN（人像修復）、DDColor（老照片上色）、Florence-2（浮水印自動定位）皆決定不採用
  * ——技術可行，但與印前處理定位不符或成本過高，詳見 docs/SPEC.md 的評估紀錄。
  * OCR（Tesseract）已於 2026-08-26 移除——查證後發現它從未被任何 UI 功能實際呼叫，而它原本
@@ -88,6 +93,11 @@ export class AiSettingsModal {
         icon: '🧑',
         name: 'YuNet 人臉偵測',
         desc: '真實訓練權重（Apache-2.0/MIT），開箱即用（建置時自動下載）。沒有本機備援——離線時誠實回報不可用，本專案沒有現成的本機人臉偵測演算法可退回。'
+      },
+      {
+        icon: '🖨️',
+        name: 'ICC 真實色彩管理（軟打樣）',
+        desc: '真實 LittleCMS 色彩轉換（透過 Pillow 的 ImageCms，MIT），需自行上傳你印刷廠的 CMYK 描述檔（.icc/.icm）才會啟用——本專案不內建任何具名描述檔。未上傳描述檔，或此服務離線時，軟打樣會自動退回內建的近似色彩模擬（非真實描述檔運算）。'
       }
     ];
 
@@ -129,7 +139,7 @@ export class AiSettingsModal {
 
           <!-- Real self-hosted services -->
           <div style="background: rgba(0, 0, 0, 0.02); border: 1.5px solid var(--pm-border-subtle); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 10px;">
-            <div style="font-size: 0.86rem; font-weight: 700; color: var(--pm-text-primary);">自建服務（2 個容器 · 8 項功能，詳見各項說明）</div>
+            <div style="font-size: 0.86rem; font-weight: 700; color: var(--pm-text-primary);">自建服務（2 個容器 · 9 項功能，詳見各項說明）</div>
             ${realServices.map((s) => `
               <div style="display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; ${s !== realServices[realServices.length - 1] ? 'border-bottom: 1px solid var(--pm-border-subtle);' : ''}">
                 <span style="font-size: 1.1rem;">${s.icon}</span>

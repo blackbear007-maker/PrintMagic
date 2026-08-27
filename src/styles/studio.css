@@ -323,6 +323,15 @@
   border: 1px solid var(--pm-border-subtle);
 }
 
+.pm-icc-profile-control {
+  display: inline-flex;
+  align-items: center;
+}
+
+.pm-icc-upload-label {
+  cursor: pointer;
+}
+
 .pm-toggle-group {
   display: flex;
   align-items: center;

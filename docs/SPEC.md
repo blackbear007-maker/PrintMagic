@@ -131,7 +131,7 @@
 ### 2.7 印刷色彩與物理防護
 - **`cmyk-engine.ts`**：RGB→CMYK 減法混色預測，Bradford 色適應轉換 + GCR 灰版替代。
 - **`ink-limiter.ts`**：總墨量 (TAC) ≤ 300% 限制與壓制。
-- **`icc-profiles.ts`**：ICC 描述檔參數參考（公開已知標準的名稱/TAC 上限；沒有真正的 `.icc` 描述檔案，不做真正的色彩轉換——詳見 README 誠實說明）。
+- **`icc-profiles.ts`**：ICC 描述檔參數參考（公開已知標準的名稱/TAC 上限；本模組自己沒有真正的 `.icc` 描述檔案，不做真正的色彩轉換——詳見 README 誠實說明）。2026-08-27 起，這不再是本專案唯一的 ICC 相關能力：使用者可自行上傳自己的 CMYK `.icc`/`.icm` 描述檔，透過自建服務（`docker/zero-dce/` 的 `/icc/soft-proof`，Pillow 的 `ImageCms`／LittleCMS）取得真正的描述檔色彩轉換與逐像素 TAC，見 §2.7.1。
 - **`pantone-matcher.ts`**：真實 CIE Lab 轉換 + CIEDE2000 色差公式，比對一份精選的 Pantone 色票近似表（非官方授權完整資料庫）。
 - **`trapping-master.ts`**：自動印刷補邊與陷印。
 - **`spot-uv-dilator.ts`**：局部上光套準溢光補償。
@@ -141,6 +141,12 @@
 - **`ogv-separator.ts`**：擴色域分色（Orange/Green/Violet 專色版）。
 - **`neon-halation-compressor.ts`**：發光招牌防死白光暈壓縮。
 - **`fluorescent-neon-extractor.ts`**：螢光專色獨立分版。
+
+#### 2.7.1 真實 ICC 色彩管理（自建服務，2026-08-27 新增）
+- **`src/services/free-icc-client.ts`** + **自建服務 `docker/zero-dce/` 的 `POST /icc/soft-proof`**：真正的 ICC 描述檔色彩轉換，透過 Pillow 的 `ImageCms` 模組（已內建 LittleCMS 2.16，`requirements.txt` 無需新增套件）。
+- **需要使用者自行上傳 CMYK 描述檔**（`.icc`/`.icm`，自己印刷廠提供的那份）——本專案刻意不內建/散布任何具名描述檔（FOGRA39／Japan Color 2001／GRACoL 等）。查證發現：即使是 ICC 官方自己的描述檔登錄庫，其收錄的 FOGRA 描述檔條款仍寫明「未經書面同意不得散布、出售或更改」；freieFarbe.de 本身並未代管描述檔案（只連結至別處）；basICColor 聲稱的「免費授權」因 colormanagement.org 回應 403 兩次而無法查證，故未採信。這是與 `icc-profiles.ts`（僅供 TAC 門檻參考）架構上不同、完全獨立的能力。
+- **已驗證**（真實 CMYK 描述檔，透過已安裝於本機 Windows 的一份描述檔暫時測試，未複製進本專案）：`ImageCms.buildProofTransform()` 產生的軟打樣色彩位移可測量（測試漸層平均 RGB 差異 19.83），`ImageCms.buildTransform()` 轉出的真實 CMYK 值算出的逐像素總墨量合理（最高 212.2%、平均 135.6%）；並以真實 HTTP 請求對實際的 `server.py`（未修改、原始檔案）驗證：成功路徑、缺少描述檔的 400、上傳非 CMYK 描述檔的 400 拒絕，皆如預期運作。
+- 使用者未上傳描述檔、或此服務離線時，軟打樣功能會退回既有的 `CmykEngine.simulatePrintProof()` 近似模擬——兩者不等價，UI 會誠實標示目前用的是哪一種。
 
 ### 2.8 文字、條碼與防呆
 - **`text-inspector.ts`**：文字區域偵測（對比/邊緣啟發式，非 OCR）+ 錯字檢查。錯字檢查完全是本機的，透過 `free-spellcheck-client.ts` 的 ~18 條正規表示式規則比對——儘管兩個檔案的舊版註解都聲稱有打 LanguageTool 免費 API，實際上整條路徑裡沒有任何一次網路請求，純粹是本機規則比對，已於 2026-08-25 修正說明文字。
@@ -237,6 +243,8 @@
 │    • 3~5 人團隊席位 + 統一開立公司統編發票報帳              │
 └─────────────────────────────────────────────────────────────┘
 ```
+
+> 註：上方「自訂上傳印刷廠機台 ICC 描述檔」原列為 VIP 專屬構想，但 2026-08-27 已把底層技術能力實作出來（見 §2.7.1）並開放給所有使用者免費使用，未做任何付費分級限制——本節其餘的付費分級規劃本身仍未實裝，這一項只是恰好技術上已經做出來了，並非付費機制也跟著上線。
 
 > 註：PDF 內容 SHA-256 雜湊（來源圖片的內容完整性校驗，見第 5 節）已於 2026-08-25 對所有人開放，不是 VIP 專屬——它取代了原本 `mockChecksum`（未加密、非真實雜湊的假認證碼）。它是一個真實可重現的內容雜湊，不是「PrintPass™ ISO 15930 合格證書」或任何形式的防偽認證，因為本專案目前不產生真正通過 ISO 15930 驗證的 PDF/X 檔案。
 

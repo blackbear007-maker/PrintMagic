@@ -179,6 +179,22 @@ apiRouter.post('/ai/detect-face', async (req: Request, res: Response) => {
   }
 });
 
+// 🖨️ Real ICC Soft-Proof + TAC (LittleCMS via Pillow) — requires caller's own CMYK profile, see ai-engine-service.ts
+apiRouter.post('/ai/icc-soft-proof', async (req: Request, res: Response) => {
+  try {
+    const { image_base64, icc_profile_base64 } = req.body;
+    if (!image_base64 || !icc_profile_base64) {
+      res.status(400).json({ success: false, error: 'image_base64 and icc_profile_base64 are required' });
+      return;
+    }
+    const { AiEngineService } = await import('../services/ai-engine-service.js');
+    const result = await AiEngineService.processIccSoftProof(image_base64, icc_profile_base64);
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err?.message || 'ICC soft-proof failed' });
+  }
+});
+
 // 📐 VTracer Rust Vectorizer Microservice Proxy
 apiRouter.post('/vectorize', async (req: Request, res: Response) => {
   try {

@@ -285,6 +285,13 @@
                   <span>📏</span> 1:1 實體
                 </button>
               </div>
+
+              <div class="pm-icc-profile-control" title="上傳您印刷廠提供的 CMYK ICC 描述檔（.icc/.icm），軟打樣將改用該描述檔透過自建服務進行真實色彩管理運算（LittleCMS）；未上傳時沿用內建的近似模擬。描述檔會隨圖片一併傳送至本專案自建的處理服務進行運算，不會轉存或用於其他用途；開啟「100% 本機模式」(Privacy Shield) 時，此功能會停用並自動改回近似模擬。">
+                <label for="iccProfileInput" class="pm-icc-upload-label pm-tool-btn">
+                  <span>📁</span> <span id="iccProfileStatus">上傳 ICC 描述檔（選用，真實色彩管理）</span>
+                </label>
+                <input type="file" id="iccProfileInput" accept=".icc,.icm" style="display: none;">
+              </div>
             </div>
           </div>
 

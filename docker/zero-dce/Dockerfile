@@ -1,11 +1,15 @@
 # ─── PyTorch CPU Vision Microservice ──────────────────────────────────────
-# Hosts 7 independent models: Retinexformer (low-light, real trained weights if sourced —
-# replaced the old untrained Zero-DCE++ 2026-08-26, see server.py's honesty note), Real-ESRGAN
-# compact (upscale), DehazeFormer-T (dehaze), ARNIQA (quality assessment), LaMa (object/watermark
-# removal) — all five on PyTorch — plus rembg/u2netp (background matting) and YuNet (face
-# detection), both added 2026-08-27 and both running on ONNX Runtime/OpenCV's DNN backend instead
-# of PyTorch, since neither had a good small PyTorch-native option. Kept under the `zero-dce`
-# service/container name since that's already wired through docker-compose.yml, railway.toml, and
+# Hosts 7 trained models plus 1 stateless color-management engine: Retinexformer (low-light, real
+# trained weights if sourced — replaced the old untrained Zero-DCE++ 2026-08-26, see server.py's
+# honesty note), Real-ESRGAN compact (upscale), DehazeFormer-T (dehaze), ARNIQA (quality
+# assessment), LaMa (object/watermark removal) — all five on PyTorch — plus rembg/u2netp
+# (background matting) and YuNet (face detection), both added 2026-08-27 and both running on ONNX
+# Runtime/OpenCV's DNN backend instead of PyTorch, since neither had a good small PyTorch-native
+# option. The 8th route, /icc/soft-proof (added 2026-08-27), is NOT a trained model and needs no
+# weight file — it's real ICC color management via Pillow's ImageCms, which already bundles
+# LittleCMS (verified: Pillow==10.3.0 above resolves to a build with lcms2 2.16 linked in), so
+# nothing further needs adding to this Dockerfile for it. Kept under the `zero-dce` service/
+# container name since that's already wired through docker-compose.yml, railway.toml, and
 # ZERO_DCE_URL in the main app — renaming is a separate, larger change than adding routes to the
 # existing container.
 #

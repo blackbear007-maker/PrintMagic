@@ -45,6 +45,7 @@ import { ObjectEraserModal } from './ui/object-eraser-modal';
 import { BleedExpander } from './core/bleed-expander';
 import { FreeMattingClient } from './services/free-matting-client';
 import { FreeFaceDetectClient } from './services/free-face-detect-client';
+import { FreeIccClient } from './services/free-icc-client';
 import { IdPhotoCropper } from './core/id-photo-cropper';
 import { AiVectorizer } from './core/ai-vectorizer';
 import { FreeVectorizeClient } from './services/free-vectorize-client';
@@ -132,6 +133,8 @@ class App {
   private btnToggleHeatmap = document.getElementById('btnToggleHeatmap')!;
   private btnToggleSoftProof = document.getElementById('btnToggleSoftProof')!;
   private btnToggleSafeZone = document.getElementById('btnToggleSafeZone')!;
+  private iccProfileInput = document.getElementById('iccProfileInput') as HTMLInputElement;
+  private iccProfileStatus = document.getElementById('iccProfileStatus')!;
 
   // Action buttons
   private btnOpenMockup = document.getElementById('btnOpenMockup')!;
@@ -147,6 +150,9 @@ class App {
   // Cache of view variations
   private heatmapDataUrl: string | null = null;
   private softProofDataUrl: string | null = null;
+
+  // User-uploaded CMYK ICC profile (session-only, in-memory) — see free-icc-client.ts
+  private uploadedIccProfile: { bytes: ArrayBuffer; name: string } | null = null;
 
   constructor() {
     this.initUIComponents();
@@ -568,15 +574,29 @@ class App {
     });
 
     // Toggle Soft Proof
-    this.btnToggleSoftProof.addEventListener('click', () => {
+    this.btnToggleSoftProof.addEventListener('click', async () => {
       const state = store.getState();
       if (!state.processedImageData) return;
 
       SoundEffects.sliderTick();
 
       if (!state.showSoftProof && !this.softProofDataUrl) {
-        const proof = CmykEngine.simulatePrintProof(state.processedImageData);
-        this.softProofDataUrl = this.imageDataToDataUrl(proof);
+        if (this.uploadedIccProfile) {
+          Toast.info('🖨️ 正在以您上傳的 ICC 描述檔進行真實色彩管理運算...');
+          const result = await FreeIccClient.softProof(state.processedImageData, this.uploadedIccProfile.bytes);
+          if (result.available && result.dataUrl) {
+            this.softProofDataUrl = result.dataUrl;
+            const tacMsg = result.tac ? `（真實總墨量 TAC：最高 ${result.tac.maxPercent}%，平均 ${result.tac.meanPercent}%）` : '';
+            Toast.success(`✅ 已套用真實描述檔色彩管理：${result.profileName || ''}${tacMsg}`);
+          } else {
+            const proof = CmykEngine.simulatePrintProof(state.processedImageData);
+            this.softProofDataUrl = this.imageDataToDataUrl(proof);
+            Toast.info(`⚠️ ${result.error || result.engine}，已改用內建近似模擬`);
+          }
+        } else {
+          const proof = CmykEngine.simulatePrintProof(state.processedImageData);
+          this.softProofDataUrl = this.imageDataToDataUrl(proof);
+        }
       }
       store.toggleSoftProof();
       const updatedState = store.getState();
@@ -584,6 +604,22 @@ class App {
         this.xiangAssistant?.say(XiaoxiangAssistant.LINES.softProofOn, 5000);
       } else {
         this.xiangAssistant?.say(XiaoxiangAssistant.LINES.softProofOff, 3000);
+      }
+    });
+
+    // Upload user's own CMYK ICC profile (session-only, in-memory) — enables real ICC soft-proof
+    this.iccProfileInput.addEventListener('change', async () => {
+      const file = this.iccProfileInput.files?.[0];
+      if (!file) return;
+
+      try {
+        const bytes = await file.arrayBuffer();
+        this.uploadedIccProfile = { bytes, name: file.name };
+        this.iccProfileStatus.textContent = `✅ ${file.name}`;
+        this.softProofDataUrl = null; // force regeneration through the new profile next time soft-proof is toggled
+        Toast.success(`📁 已載入 ICC 描述檔：${file.name}（下次開啟軟打樣時將套用真實色彩管理）`);
+      } catch (err: any) {
+        Toast.error(`ICC 描述檔讀取失敗：${err?.message || err}`);
       }
     });
 

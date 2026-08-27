@@ -82,7 +82,7 @@
 
 早期版本的說明文件把每一個影像處理函式都貼上一個知名 SOTA 論文名字（SAM 2.1、CLIP-IQA+、RealESRGAN、BiRefNet、DehazeFormer……），並宣稱整合「19 款開源商用 AI 模型」。這不準確——本專案沒有內嵌任何 ONNX / TensorFlow.js / WASM 推論引擎，前端從未載入過模型權重檔。以下是誠實的拆分：
 
-### ✅ 自建服務（2 個 Docker 容器，共 8 項功能）
+### ✅ 自建服務（2 個 Docker 容器，共 9 項功能）
 | 服務 | 是什麼 | 用途 |
 | :--- | :--- | :--- |
 | **VTracer**（`docker/vtracer/`） | 真實開源 Rust 向量化工具。⚠️ 2026-08-25 前 Dockerfile 引用了從未存在過的 `Cargo.toml`/`src/`，建置必定失敗；已修正為安裝真正發布的 `vtracer` crate + Python 包裝層 | 點陣轉 SVG 向量（`/api/vectorize`） |
@@ -93,10 +93,11 @@
 | **LaMa**（`docker/zero-dce/`） | 真實開源模型（Apache-2.0，Samsung Research）。TorchScript 匯出的 `big-lama.pt`，有可自動下載的 GitHub Release 網址，建置時自動下載，開箱即用。**已用真實下載的權重檔驗證**：`torch.jit.load()` 成功，真實推論在模擬「浮水印」色塊測試圖上完全移除目標色塊（移除區域內 0% 殘留原色），並修正了上游 `simple-lama-inpainting` 套件遺漏「輸出裁切回原始尺寸」的錯誤 | 物件／浮水印移除（`/api/ai/inpaint`），需同時提供來源圖與遮罩圖 |
 | **rembg**（`docker/zero-dce/`） | 真實開源模型（MIT），固定使用 `u2netp` session（刻意不用 rembg 預設 session，因為那可能解析到非商用授權的模型）。權重（~4.6MB）由 rembg 自行於建置時自動下載。**已用真實下載的權重檔驗證**：在有紋理漸層背景的合成測試圖上，主體中心 alpha 254/255（近乎完全不透明）、四角 alpha 0/255（完全透明），確認能處理現有色鍵去背無法處理的非單一色背景 | 髮絲級去背（`/api/ai/matting`），開箱即用 |
 | **YuNet**（`docker/zero-dce/`） | 真實開源模型（Apache-2.0/MIT），透過 OpenCV 內建的 `cv2.FaceDetectorYN` 載入，不需額外套件（沿用既有的 opencv-python-headless）。權重（~0.23MB）為可自動下載的 Git-LFS Release 資產。**已用真實下載的權重檔驗證**：對合成人臉測試圖成功偵測 1 張臉，信心分數 84.2% | 人臉偵測（`/api/ai/detect-face`），回傳座標 JSON（非圖片），開箱即用 |
+| **ICC 真實色彩管理**（`docker/zero-dce/`） | 不是模型，是 Pillow 的 `ImageCms` 模組本來就內建的 LittleCMS（已驗證 Pillow 10.3.0 內建 lcms2 2.16，`requirements.txt` 無需新增任何套件）。需要使用者自行上傳自己印刷廠的 CMYK ICC 描述檔（`.icc`/`.icm`）——本專案刻意不內建/散布任何具名描述檔（FOGRA／SWOP／GRACoL 等），因為查證 ICC 官方描述檔登錄庫後發現這些檔案本身「未經書面同意不得散布、出售或更改」。**已用真實 CMYK 描述檔驗證**：軟打樣色彩位移可測量（測試漸層平均 RGB 差異 19.83），逐像素總墨量（TAC）數值合理（最高 212.2%、平均 135.6%） | 真實 ICC 軟打樣＋TAC（`/api/ai/icc-soft-proof`），需同時提供來源圖與使用者自己的 CMYK 描述檔 |
 
 ⚠️ **OCR（Tesseract）已於 2026-08-26 移除**：查證後發現它從未被任何 UI 功能實際呼叫過（純死碼），而它原本想解決的問題——讀取 AI 繪圖產生的亂碼假文字——OCR 本來就解不了，因為那些筆畫通常根本不是任何文字系統的真實字元，就算讀出結果也毫無參考價值。實際可行的做法是定位文字區域＋由使用者自己輸入正確文字，見下方「文字防糊」工具。
 
-VTracer/Real-ESRGAN/ARNIQA/DehazeFormer-T/Retinexformer/LaMa/rembg 離線或未就緒時，系統會自動退回下方的本機決定性演算法，並在結果標籤上誠實標示「本機」而非假冒雲端模型名稱。YuNet（人臉偵測）是唯一沒有本機備援的功能——本專案沒有現成的本機人臉偵測演算法，離線時就是誠實回報不可用，而不是假造一個「本機演算法」來冒充。
+VTracer/Real-ESRGAN/ARNIQA/DehazeFormer-T/Retinexformer/LaMa/rembg 離線或未就緒時，系統會自動退回下方的本機決定性演算法，並在結果標籤上誠實標示「本機」而非假冒雲端模型名稱。YuNet（人臉偵測）是唯一沒有本機備援的功能——本專案沒有現成的本機人臉偵測演算法，離線時就是誠實回報不可用，而不是假造一個「本機演算法」來冒充。ICC 真實色彩管理離線、或使用者未上傳描述檔時，軟打樣會退回既有的 `CmykEngine.simulatePrintProof()` 近似模擬——這個退回並非「真實 ICC 運算的本機版本」，只是既有的手刻公式近似值，兩者不應混為一談。
 
 ### 🧮 決定性演算法（前端 TypeScript，非神經網路）
 以下模組過去用 SOTA 論文名稱命名，現已改用描述實際技術的名稱，程式邏輯本身沒有變動：

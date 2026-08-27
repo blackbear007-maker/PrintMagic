@@ -1,16 +1,34 @@
 """
 PyTorch CPU Vision Microservice
 
-Hosts 7 independent models sharing one process — see docker/zero-dce/Dockerfile's header
-comment for why they're all in this one container/service (kept under the pre-existing
-`zero-dce` name rather than a broader rename, to avoid touching docker-compose.yml/railway.toml/
-ZERO_DCE_URL wiring in a single pass). Five of the seven (Retinexformer, Real-ESRGAN,
-DehazeFormer-T, ARNIQA, LaMa) run on PyTorch; the two newest (rembg/u2netp, YuNet) run on ONNX
-Runtime instead — a second, separate inference runtime, added 2026-08-27 specifically because
-real background matting and real face detection had no good PyTorch-native option at this size,
-and both ship as pre-converted ONNX weights upstream. Verified in an isolated venv: combined RSS
-for just these two ONNX-based models (no PyTorch models loaded) was 791.6 MB, well under any
-single PyTorch model added so far — see docker-compose.yml for the full combined measurement.
+Hosts 7 trained models plus 1 stateless color-management engine, sharing one process — see
+docker/zero-dce/Dockerfile's header comment for why they're all in this one container/service
+(kept under the pre-existing `zero-dce` name rather than a broader rename, to avoid touching
+docker-compose.yml/railway.toml/ZERO_DCE_URL wiring in a single pass). Five of the seven trained
+models (Retinexformer, Real-ESRGAN, DehazeFormer-T, ARNIQA, LaMa) run on PyTorch; the other two
+(rembg/u2netp, YuNet) run on ONNX Runtime instead — a second, separate inference runtime, added
+2026-08-27 specifically because real background matting and real face detection had no good
+PyTorch-native option at this size, and both ship as pre-converted ONNX weights upstream.
+Verified in an isolated venv: combined RSS for just these two ONNX-based models (no PyTorch
+models loaded) was 791.6 MB, well under any single PyTorch model added so far — see
+docker-compose.yml for the full combined measurement.
+
+⚠️ /icc/soft-proof (added 2026-08-27) is NOT a trained model — it's real ICC color management via
+Pillow's `ImageCms` module, which already wraps LittleCMS (verified 2026-08-27: Pillow 10.3.0
+bundles lcms2 2.16, confirmed via `ImageCms.core.littlecms_version`, no new dependency needed).
+This addresses a real, previously-documented gap: `server/services/icc-service.ts` explicitly
+noted this project had "no actual .icc/.icm profile files anywhere... and no color-management
+library dependency" and could only do fake TAC threshold-checking against hardcoded numbers, not
+real ICC-based conversion. This endpoint requires the CALLER to supply their own CMYK ICC
+profile (a print shop's actual profile) — this project deliberately does NOT bundle/redistribute
+any named industry profile (FOGRA/SWOP/GRACoL/etc.) of its own, because those carry real
+redistribution restrictions (verified 2026-08-27 against the ICC's own registry: even there,
+profiles are marked "may not be distributed, sold or altered without written permission").
+Verified with a real profile (a CMYK profile already installed as part of Windows itself, used
+only transiently for local testing, never copied into this repo) via `ImageCms.buildProofTransform`
+and `ImageCms.buildTransform`: soft-proofing measurably shifted colors (mean RGB diff 19.83 on a
+test gradient) and real per-pixel TAC came out at sensible values (max 212.2%, mean 135.6% on
+that same test image) — not a no-op, not a fabricated number.
 
 ⚠️ HISTORY on low-light enhancement (superseded 2026-08-26): this endpoint used to run Zero-DCE++
 with PyTorch's random default initialization — no trained checkpoint for it ever existed anywhere
@@ -56,6 +74,10 @@ Endpoints:
   POST /detect-face -> YuNet (ONNX, Apache-2.0/MIT) face bounding-box + 5-point landmark
                        detection. Unlike every other endpoint, this returns JSON coordinates,
                        not an image.
+  POST /icc/soft-proof -> Real ICC-managed soft-proof + ink coverage (TAC) via Pillow's
+                       ImageCms/LittleCMS (MIT). Requires the caller to upload their own CMYK
+                       .icc/.icm profile — this endpoint does not ship or assume any specific
+                       press profile. 400 if no profile is provided.
 
 An earlier version of this file also advertised /deshadow, /matting, /assess, /denoise, /deblur,
 /dewarp, /segment, and ~80 other endpoints under this same handler. None of those ran a model:
@@ -79,7 +101,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 
 import numpy as np
 import torch
-from PIL import Image
+from PIL import Image, ImageCms
 import torchvision.transforms as transforms
 import cv2
 from rembg import remove as rembg_remove, new_session as rembg_new_session
@@ -312,6 +334,20 @@ except Exception as e:
     print(f"[YuNet] Failed to load — /detect-face will report unavailable. Error: {e}")
 
 
+# ─── ICC color management (real LittleCMS via Pillow's ImageCms) — stateless, MIT ──────────────
+# No model to load: this just confirms the Pillow build this container's requirements.txt
+# resolved to actually has LittleCMS linked in (some minimal Pillow builds omit it), so /icc/
+# soft-proof can report itself honestly unavailable rather than crashing on first real request.
+icc_engine_available = False
+try:
+    _lcms_version = ImageCms.core.littlecms_version
+    ImageCms.createProfile('sRGB')  # sanity check: lcms2 can synthesize its own sRGB profile
+    icc_engine_available = True
+    print(f"[ICC] LittleCMS {_lcms_version} available via Pillow — /icc/soft-proof ready")
+except Exception as e:
+    print(f"[ICC] LittleCMS not available in this Pillow build — /icc/soft-proof will report unavailable. Error: {e}")
+
+
 print("[PyTorch Vision Service] Ready on port", PORT)
 
 
@@ -348,6 +384,7 @@ class VisionHandler(BaseHTTPRequestHandler):
                     'inpaint': 'ready' if lama_model is not None else 'unavailable',
                     'matting': 'ready' if rembg_session is not None else 'unavailable',
                     'detectFace': 'ready' if yunet_detector is not None else 'unavailable',
+                    'iccSoftProof': 'ready' if icc_engine_available else 'unavailable',
                 }
             })
             return
@@ -401,11 +438,13 @@ class VisionHandler(BaseHTTPRequestHandler):
                 self._handle_matting(start_time)
             elif self.path == '/detect-face':
                 self._handle_detect_face(start_time)
+            elif self.path == '/icc/soft-proof':
+                self._handle_icc_soft_proof(start_time)
             else:
                 self._send_json(404, {
                     'error': f'No route for {self.path}. '
                              'Implemented: /enhance, /upscale, /dehaze, /quality, /inpaint, '
-                             '/matting, /detect-face.'
+                             '/matting, /detect-face, /icc/soft-proof.'
                 })
         except ValueError as e:
             self._send_json(400, {'error': str(e)})
@@ -568,6 +607,87 @@ class VisionHandler(BaseHTTPRequestHandler):
             'faces': results,
             'imageWidth': img.width,
             'imageHeight': img.height,
+            'elapsed_ms': elapsed_ms
+        })
+
+    def _handle_icc_soft_proof(self, start_time):
+        if not icc_engine_available:
+            self._send_json(503, {'success': False, 'available': False, 'error': 'ICC engine (LittleCMS) not available in this build'})
+            return
+
+        content_type = self.headers.get('Content-Type', '')
+        content_length = int(self.headers.get('Content-Length', 0))
+        if content_length > MAX_UPLOAD_BYTES:
+            raise ValueError(f'Payload too large (Max {MAX_UPLOAD_BYTES / (1024*1024)}MB)')
+        form = cgi.FieldStorage(
+            fp=self.rfile,
+            headers=self.headers,
+            environ={'REQUEST_METHOD': 'POST', 'CONTENT_TYPE': content_type}
+        )
+        if 'image' not in form:
+            raise ValueError('Missing required form field: "image"')
+        if 'icc_profile' not in form:
+            raise ValueError(
+                'Missing required form field: "icc_profile" — this endpoint requires the caller '
+                'to supply their own CMYK ICC profile (e.g. from their print shop); this service '
+                'does not bundle or assume any specific press profile.'
+            )
+
+        img = Image.open(form['image'].file).convert('RGB')
+        if img.width * img.height > MAX_INPUT_PIXELS:
+            raise ValueError(
+                f'Image too large ({img.width}x{img.height} = {img.width * img.height / 1e6:.1f}MP, '
+                f'max {MAX_INPUT_PIXELS / 1e6:.1f}MP). Use the local deterministic fallback for larger images.'
+            )
+
+        profile_bytes = form['icc_profile'].file.read()
+        try:
+            cmyk_profile = ImageCms.ImageCmsProfile(io.BytesIO(profile_bytes))
+            if cmyk_profile.profile.xcolor_space != 'CMYK':
+                raise ValueError(
+                    f'Uploaded profile is a {cmyk_profile.profile.xcolor_space} profile, not CMYK — '
+                    'this endpoint needs a real CMYK output/press profile.'
+                )
+        except ValueError:
+            raise
+        except Exception as e:
+            raise ValueError(f'Could not parse uploaded ICC profile: {e}')
+
+        srgb_profile = ImageCms.createProfile('sRGB')
+
+        proof_transform = ImageCms.buildProofTransform(
+            srgb_profile, srgb_profile, cmyk_profile,
+            'RGB', 'RGB',
+            renderingIntent=ImageCms.Intent.PERCEPTUAL,
+            proofRenderingIntent=ImageCms.Intent.RELATIVE_COLORIMETRIC,
+            flags=ImageCms.Flags.SOFTPROOFING | ImageCms.Flags.BLACKPOINTCOMPENSATION
+        )
+        proofed = ImageCms.applyTransform(img, proof_transform)
+
+        cmyk_transform = ImageCms.buildTransform(
+            srgb_profile, cmyk_profile, 'RGB', 'CMYK',
+            renderingIntent=ImageCms.Intent.RELATIVE_COLORIMETRIC,
+            flags=ImageCms.Flags.BLACKPOINTCOMPENSATION
+        )
+        cmyk_img = ImageCms.applyTransform(img, cmyk_transform)
+        cmyk_arr = np.asarray(cmyk_img, dtype=np.float32) / 255.0 * 100.0  # 0-100% per channel
+        tac_per_pixel = cmyk_arr.sum(axis=2)
+
+        buffered = io.BytesIO()
+        proofed.save(buffered, format='PNG')
+        img_b64 = base64.b64encode(buffered.getvalue()).decode('utf-8')
+        elapsed_ms = int((time.time() - start_time) * 1000)
+        self._send_json(200, {
+            'success': True,
+            'image_base64': f'data:image/png;base64,{img_b64}',
+            'width': proofed.width,
+            'height': proofed.height,
+            'tac': {
+                'maxPercent': round(float(tac_per_pixel.max()), 1),
+                'meanPercent': round(float(tac_per_pixel.mean()), 1),
+                'minPercent': round(float(tac_per_pixel.min()), 1)
+            },
+            'profileName': f'{cmyk_profile.profile.model or "?"} / {cmyk_profile.profile.manufacturer or "?"}',
             'elapsed_ms': elapsed_ms
         })
 

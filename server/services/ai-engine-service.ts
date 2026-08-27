@@ -238,4 +238,66 @@ export class AiEngineService {
       return { success: false, error: err?.message || 'YuNet service unavailable' };
     }
   }
+
+  /**
+   * Real ICC soft-proof + ink coverage (TAC) via Pillow's ImageCms/LittleCMS (MIT), added
+   * 2026-08-27. Requires the CALLER to supply their own CMYK .icc/.icm profile — this project
+   * deliberately does not bundle any named press profile (FOGRA/SWOP/GRACoL/etc.), since those
+   * carry real redistribution restrictions (verified against the ICC's own profile registry).
+   * Verified with a real CMYK profile: soft-proofing measurably shifted colors and real per-pixel
+   * TAC came out at sensible values — see docker/zero-dce/server.py's header comment.
+   */
+  public static async processIccSoftProof(
+    imageDataUrl: string,
+    iccProfileBase64: string
+  ): Promise<{
+    success: boolean;
+    dataUrl?: string;
+    tac?: { maxPercent: number; meanPercent: number; minPercent: number };
+    profileName?: string;
+    engine?: string;
+    error?: string;
+  }> {
+    try {
+      const toBuffer = (dataUrl: string) =>
+        Buffer.from(dataUrl.replace(/^data:image\/\w+;base64,/, ''), 'base64');
+
+      const formData = new FormData();
+      formData.append('image', new Blob([toBuffer(imageDataUrl)], { type: 'image/png' }), 'input.png');
+      formData.append(
+        'icc_profile',
+        new Blob([Buffer.from(iccProfileBase64, 'base64')], { type: 'application/octet-stream' }),
+        'profile.icc'
+      );
+
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 15000);
+      let res: Response;
+      try {
+        res = await fetch(`${this.BASE_URL}/icc/soft-proof`, { method: 'POST', body: formData, signal: controller.signal });
+      } finally {
+        clearTimeout(timer);
+      }
+      const data = res.ok || res.status === 503 || res.status === 400 ? await res.json().catch(() => undefined) : undefined;
+
+      if (res.ok && data?.success && data.image_base64) {
+        return {
+          success: true,
+          dataUrl: data.image_base64,
+          tac: data.tac,
+          profileName: data.profileName,
+          engine: 'LittleCMS (自建微服務)'
+        };
+      }
+      if (res.status === 400) {
+        return { success: false, error: data?.error || 'Invalid ICC profile or missing image' };
+      }
+      if (res.status === 503) {
+        return { success: false, error: data?.error || 'ICC engine unavailable' };
+      }
+      return { success: false, error: `ICC service returned HTTP ${res.status}` };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'ICC service unavailable' };
+    }
+  }
 }
