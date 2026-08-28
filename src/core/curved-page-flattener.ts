@@ -16,6 +16,8 @@ export interface CurvedPageFlattenResult {
   linesStraightened: number;
 }
 
+import { createImageData } from './image-data-factory';
+
 export class CurvedPageFlattener {
   /**
    * Straightens curved/wavy photographed book pages and paper documents
@@ -40,9 +42,7 @@ export class CurvedPageFlattener {
     const src = srcImageData.data;
 
     const dstBuffer = new Uint8ClampedArray(w * h * 4);
-    const dstImageData: ImageData = typeof ImageData !== 'undefined'
-      ? new ImageData(dstBuffer, w, h)
-      : ({ width: w, height: h, data: dstBuffer, colorSpace: 'srgb' } as ImageData);
+    const dstImageData: ImageData = createImageData(dstBuffer, w, h);
     const dst = dstImageData.data;
 
     let totalDisplacement = 0;
@@ -50,24 +50,41 @@ export class CurvedPageFlattener {
     // Fixed parabolic spine-curvature displacement
     for (let y = 0; y < h; y++) {
       const ny = (y / h) - 0.5; // -0.5 to 0.5
+      // Hoisted out of the x loop — both depend only on y/ny, not x. Pure perf, same values.
+      const sinNyPi = Math.sin(ny * Math.PI);
+      const absNy = Math.abs(ny);
 
       for (let x = 0; x < w; x++) {
         const nx = (x / w) - 0.5; // -0.5 to 0.5
 
         // Parabolic spine curvature formula: dy = f(nx, ny)
-        const dyCurve = curveStrength * (1.0 - 4.0 * nx * nx) * Math.sin(ny * Math.PI) * 18;
-        const dxCurve = curveStrength * nx * Math.abs(ny) * 6;
+        const dyCurve = curveStrength * (1.0 - 4.0 * nx * nx) * sinNyPi * 18;
+        const dxCurve = curveStrength * nx * absNy * 6;
 
-        const srcY = Math.max(0, Math.min(h - 1, Math.round(y + dyCurve)));
-        const srcX = Math.max(0, Math.min(w - 1, Math.round(x + dxCurve)));
+        const srcYf = Math.max(0, Math.min(h - 1, y + dyCurve));
+        const srcXf = Math.max(0, Math.min(w - 1, x + dxCurve));
 
-        const srcIdx = (srcY * w + srcX) * 4;
+        // Bilinear sample instead of nearest-neighbor round — smooths the resampled edges the
+        // curve displacement introduces, at the cost of a slight blur (disclosed quality/behavior
+        // change, not a bug fix: output pixels differ from the old nearest-neighbor version).
+        const x0 = Math.floor(srcXf);
+        const y0 = Math.floor(srcYf);
+        const x1 = Math.min(w - 1, x0 + 1);
+        const y1 = Math.min(h - 1, y0 + 1);
+        const fx = srcXf - x0;
+        const fy = srcYf - y0;
+
+        const idx00 = (y0 * w + x0) * 4;
+        const idx10 = (y0 * w + x1) * 4;
+        const idx01 = (y1 * w + x0) * 4;
+        const idx11 = (y1 * w + x1) * 4;
         const dstIdx = (y * w + x) * 4;
 
-        dst[dstIdx] = src[srcIdx];
-        dst[dstIdx + 1] = src[srcIdx + 1];
-        dst[dstIdx + 2] = src[srcIdx + 2];
-        dst[dstIdx + 3] = src[srcIdx + 3];
+        for (let c = 0; c < 4; c++) {
+          const v0 = src[idx00 + c] * (1 - fx) + src[idx10 + c] * fx;
+          const v1 = src[idx01 + c] * (1 - fx) + src[idx11 + c] * fx;
+          dst[dstIdx + c] = Math.round(v0 * (1 - fy) + v1 * fy);
+        }
 
         totalDisplacement += Math.abs(dyCurve);
       }

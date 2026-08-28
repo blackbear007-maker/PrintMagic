@@ -14,6 +14,8 @@
  * convincing-looking no-op; a real deskew implementation is future work, not something to fake in
  * the meantime.
  */
+import { createImageData } from './image-data-factory';
+
 export class ContrastStretchFilter {
   /**
    * Applies a global power-curve contrast stretch
@@ -27,9 +29,7 @@ export class ContrastStretchFilter {
     const src = srcImageData.data;
 
     const dstBuffer = new Uint8ClampedArray(w * h * 4);
-    const dstImageData: ImageData = typeof ImageData !== 'undefined'
-      ? new ImageData(dstBuffer, w, h)
-      : ({ width: w, height: h, data: dstBuffer, colorSpace: 'srgb' } as ImageData);
+    const dstImageData: ImageData = createImageData(dstBuffer, w, h);
     const dst = dstImageData.data;
 
     for (let i = 0; i < src.length; i += 4) {

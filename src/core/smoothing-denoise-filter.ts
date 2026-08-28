@@ -7,6 +7,8 @@
  * transformer denoiser — no attention mechanism, no learned weights.
  */
 
+import { createImageData } from './image-data-factory';
+
 export class SmoothingDenoiseFilter {
   /**
    * Performs edge-preserving bilateral smoothing to reduce sensor/compression noise
@@ -20,9 +22,7 @@ export class SmoothingDenoiseFilter {
     const src = srcImageData.data;
 
     const dstBuffer = new Uint8ClampedArray(w * h * 4);
-    const dstImageData: ImageData = typeof ImageData !== 'undefined'
-      ? new ImageData(dstBuffer, w, h)
-      : ({ width: w, height: h, data: dstBuffer, colorSpace: 'srgb' } as ImageData);
+    const dstImageData: ImageData = createImageData(dstBuffer, w, h);
     const dst = dstImageData.data;
 
     const spatialRadius = 2;

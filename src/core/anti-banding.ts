@@ -12,6 +12,8 @@
  * 3. Edge-Preservation Mask: strictly locks fine lines, text, and vector boundaries from getting blurred.
  */
 
+import { createImageData } from './image-data-factory';
+
 export class AntiBandingFilter {
   // ──────────────────────────────────────────────────────────
   // Blue-noise dither tile (Ulichney 1993 void-and-cluster algorithm)
@@ -166,9 +168,7 @@ export class AntiBandingFilter {
     const src = srcImageData.data;
 
     const dstBuffer = new Uint8ClampedArray(w * h * 4);
-    const dstImageData: ImageData = typeof ImageData !== 'undefined'
-      ? new ImageData(dstBuffer, w, h)
-      : ({ width: w, height: h, data: dstBuffer, colorSpace: 'srgb' } as ImageData);
+    const dstImageData: ImageData = createImageData(dstBuffer, w, h);
     const dst = dstImageData.data;
 
     const radius = Math.max(1, Math.round(Math.min(w, h) / 300));

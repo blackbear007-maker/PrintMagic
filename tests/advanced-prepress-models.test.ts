@@ -3,6 +3,7 @@ import { PantoneMatcher } from '../src/core/pantone-matcher';
 import { AntiBandingFilter } from '../src/core/anti-banding';
 import { PerspectiveRectifier } from '../src/core/perspective-rectifier';
 import { EdgeChokeMatting } from '../src/core/edge-choke-matting';
+import { AiMatting } from '../src/core/ai-matting';
 
 describe('Advanced Pre-Press Commercial Models Suite', () => {
   // Helper to make dummy ImageData in Node test environment
@@ -83,6 +84,107 @@ describe('Advanced Pre-Press Commercial Models Suite', () => {
     const rectified = PerspectiveRectifier.rectify(img, corners, 80, 80);
     expect(rectified.width).toBe(80);
     expect(rectified.height).toBe(80);
+  });
+
+  it('should throw a clear error instead of silently returning garbage for a degenerate (collinear) quad', () => {
+    const img = createMockImageData(100, 100);
+    const collinear = {
+      topLeft: { x: 10, y: 50 },
+      topRight: { x: 40, y: 50 },
+      bottomRight: { x: 70, y: 50 },
+      bottomLeft: { x: 100, y: 50 }
+    };
+    expect(() => PerspectiveRectifier.rectify(img, collinear, 80, 80)).toThrow(/degenerate/i);
+  });
+
+  it('should throw a clear error for a quad with a near-zero-length edge', () => {
+    const img = createMockImageData(100, 100);
+    const zeroEdge = {
+      topLeft: { x: 10, y: 10 },
+      topRight: { x: 10.5, y: 10.2 }, // topLeft -> topRight edge is ~0.5px
+      bottomRight: { x: 90, y: 90 },
+      bottomLeft: { x: 10, y: 90 }
+    };
+    expect(() => PerspectiveRectifier.rectify(img, zeroEdge, 80, 80)).toThrow(/degenerate/i);
+  });
+
+  it('should still accept a legitimately thin (but non-degenerate) quad', () => {
+    const img = createMockImageData(200, 200);
+    const thinButValid = {
+      topLeft: { x: 10, y: 50 },
+      topRight: { x: 190, y: 50 },
+      bottomRight: { x: 190, y: 60 },
+      bottomLeft: { x: 10, y: 60 }
+    };
+    expect(() => PerspectiveRectifier.rectify(img, thinButValid, 100, 10)).not.toThrow();
+  });
+
+  // ─── Corner-sampling robustness (5x5 block avg vs. a single noisy pixel) ──
+  it('AiMatting: a single noisy pixel exactly at the corner should not skew the whole background estimate', () => {
+    const w = 50, h = 50;
+    const img = createMockImageData(w, h, 250, 250, 250); // near-white background
+    // Foreground subject clearly different from background
+    for (let y = 15; y < 35; y++) {
+      for (let x = 15; x < 35; x++) {
+        const idx = (y * w + x) * 4;
+        img.data[idx] = 10;
+        img.data[idx + 1] = 10;
+        img.data[idx + 2] = 10;
+      }
+    }
+    const clean = AiMatting.removeBackground(img, 25);
+
+    // Corrupt exactly the top-left corner pixel to a color far from both bg and fg
+    const noisy = createMockImageData(w, h, 250, 250, 250);
+    for (let y = 15; y < 35; y++) {
+      for (let x = 15; x < 35; x++) {
+        const idx = (y * w + x) * 4;
+        noisy.data[idx] = 10;
+        noisy.data[idx + 1] = 10;
+        noisy.data[idx + 2] = 10;
+      }
+    }
+    noisy.data[0] = 0;
+    noisy.data[1] = 255;
+    noisy.data[2] = 0;
+    const withNoise = AiMatting.removeBackground(noisy, 25);
+
+    // A pixel in the middle of the clean background area should stay classified as background
+    // (transparent) in both cases — a single-pixel corner sample would have shifted the whole
+    // background-color estimate toward green and misclassified real background pixels.
+    const midBgIdx = (2 * w + 25) * 4; // y=2 x=25, clearly background, far from the corrupted corner
+    expect(clean.imageData.data[midBgIdx + 3]).toBe(0);
+    expect(withNoise.imageData.data[midBgIdx + 3]).toBe(0);
+  });
+
+  it('EdgeChokeMatting: a single noisy pixel exactly at the corner should not skew the whole background estimate', () => {
+    const w = 50, h = 50;
+    const makeImg = (corrupt: boolean) => {
+      const img = createMockImageData(w, h, 250, 250, 250);
+      for (let y = 15; y < 35; y++) {
+        for (let x = 15; x < 35; x++) {
+          const idx = (y * w + x) * 4;
+          img.data[idx] = 10;
+          img.data[idx + 1] = 10;
+          img.data[idx + 2] = 10;
+        }
+      }
+      if (corrupt) {
+        img.data[0] = 0;
+        img.data[1] = 255;
+        img.data[2] = 0;
+      }
+      return img;
+    };
+
+    const clean = EdgeChokeMatting.extractMatting(makeImg(false), 0.5, false);
+    const withNoise = EdgeChokeMatting.extractMatting(makeImg(true), 0.5, false);
+
+    const midBgIdx = 2 * w + 25;
+    // Background alpha should stay low in both cases, not spike because a corrupted single-pixel
+    // corner sample pulled the whole background-color baseline toward an unrelated color.
+    expect(withNoise.alphaMask[midBgIdx]).toBeLessThan(60);
+    expect(Math.abs(withNoise.alphaMask[midBgIdx] - clean.alphaMask[midBgIdx])).toBeLessThan(20);
   });
 
   // ─── 4. Edge-Choke Color-Distance Matting ──────────────────────────────────

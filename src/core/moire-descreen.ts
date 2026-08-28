@@ -34,6 +34,8 @@
  *   an opt-in tool, not an always-on pipeline step.
  */
 
+import { createImageData } from './image-data-factory';
+
 export interface DescreenOptions {
   /** Threshold level for the normalized log-magnitude spectrum. Matches the original's `--thresh` (default 92). */
   threshold?: number;
@@ -131,7 +133,14 @@ export class MoireDescreen {
       writeChannelFromPadded(outData, re, srcW, srcH, padW, padH, channel);
     }
 
-    return { width: srcW, height: srcH, data: outData, colorSpace: 'srgb' } as ImageData;
+    // 2026-08-29: this used to always build a plain object here, never a real `ImageData`
+    // instance. Real bug: the main-thread Worker-fallback path (worker-client.ts's
+    // runMainThreadFallback 'descreen' case, used when Web Workers are unavailable or crash)
+    // returned this result directly into main.ts's `imageDataToDataUrl()`, which calls
+    // `ctx.putImageData()` — verified empirically in a real browser that `putImageData()` throws
+    // TypeError on a plain object (it does a WebIDL brand check, not duck typing). Fixed by using
+    // the shared factory, which produces a real ImageData when the constructor is available.
+    return createImageData(outData, srcW, srcH);
   }
 }
 

@@ -10,6 +10,8 @@
  * backgrounds, gradients, or subjects that share the background's color.
  */
 
+import { createImageData } from './image-data-factory';
+
 export interface EdgeChokeMattingResult {
   mattedImageData: ImageData;
   alphaMask: Uint8ClampedArray;
@@ -39,23 +41,10 @@ export class EdgeChokeMatting {
     let translucencyCount = 0;
     let highFrequencyEdgeCount = 0;
 
-    // 1. Estimate background color baseline from corners (Top-Left, Top-Right, Bottom-Left, Bottom-Right)
-    const corners = [
-      0,
-      (w - 1) * 4,
-      ((h - 1) * w) * 4,
-      ((h - 1) * w + (w - 1)) * 4
-    ];
-
-    let bgR = 0, bgG = 0, bgB = 0;
-    for (const c of corners) {
-      bgR += src[c];
-      bgG += src[c + 1];
-      bgB += src[c + 2];
-    }
-    bgR /= 4;
-    bgG /= 4;
-    bgB /= 4;
+    // 1. Estimate background color baseline from a small block at each corner (Top-Left,
+    // Top-Right, Bottom-Left, Bottom-Right) — not a single pixel, which is fragile to a lone
+    // noisy/JPEG-artifact pixel landing exactly on the corner.
+    const [bgR, bgG, bgB] = this.sampleCornerBackgroundColor(src, w, h);
 
     // 2. Per-pixel color-distance-to-background alpha pass
     for (let y = 0; y < h; y++) {
@@ -116,12 +105,7 @@ export class EdgeChokeMatting {
       }
     }
 
-    const mattedImageData = {
-      width: w,
-      height: h,
-      data: outData,
-      colorSpace: 'srgb'
-    } as ImageData;
+    const mattedImageData = createImageData(outData, w, h);
 
     return {
       mattedImageData,
@@ -130,5 +114,48 @@ export class EdgeChokeMatting {
       translucencyDetected: translucencyCount > totalPixels * 0.02,
       foregroundAreaRatio: Number((foregroundCount / totalPixels).toFixed(2))
     };
+  }
+
+  /**
+   * Averages a small block at each of the 4 corners (clamped to stay in-bounds on tiny images)
+   * instead of reading a single corner pixel, then averages the 4 corner block-means. A single
+   * exact-corner pixel is fragile — one noisy/JPEG-artifact pixel there skews the whole background
+   * estimate; a small block absorbs that noise.
+   */
+  private static sampleCornerBackgroundColor(
+    src: Uint8ClampedArray,
+    w: number,
+    h: number,
+    blockSize: number = 5
+  ): [number, number, number] {
+    const corners: Array<[number, number, number, number]> = [
+      [0, 0, 1, 1],
+      [w - 1, 0, -1, 1],
+      [0, h - 1, 1, -1],
+      [w - 1, h - 1, -1, -1]
+    ];
+
+    let bgR = 0, bgG = 0, bgB = 0;
+    for (const [originX, originY, dirX, dirY] of corners) {
+      let sumR = 0, sumG = 0, sumB = 0, count = 0;
+      for (let dy = 0; dy < blockSize; dy++) {
+        const y = originY + dy * dirY;
+        if (y < 0 || y >= h) continue;
+        for (let dx = 0; dx < blockSize; dx++) {
+          const x = originX + dx * dirX;
+          if (x < 0 || x >= w) continue;
+          const i = (y * w + x) * 4;
+          sumR += src[i];
+          sumG += src[i + 1];
+          sumB += src[i + 2];
+          count++;
+        }
+      }
+      bgR += sumR / count;
+      bgG += sumG / count;
+      bgB += sumB / count;
+    }
+
+    return [bgR / 4, bgG / 4, bgB / 4];
   }
 }

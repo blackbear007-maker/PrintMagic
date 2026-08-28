@@ -7,18 +7,13 @@
  * 3. 邊界羽化帶 (Feathering Band) — 修補完成後在遮罩邊緣 4px 施加 Raised-Cosine alpha 混合，消除可見修補邊緣
  * 4. 100% 離線純本機運算：多尺度快速前進法 (Fast Marching Inward Diffusion) + 邊界餘弦羽化接縫修補
  */
+import { createImageData } from './image-data-factory';
+
 export interface InpaintOptions {
   radius?: number;
   dilation?: number;
   smoothPasses?: number;
   featherRadius?: number;
-}
-
-function createImageData(data: Uint8ClampedArray, width: number, height: number): ImageData {
-  if (typeof ImageData !== 'undefined') {
-    return new ImageData(new Uint8ClampedArray(data), width, height);
-  }
-  return { data, width, height, colorSpace: 'srgb' } as unknown as ImageData;
 }
 
 export class ObjectEraser {

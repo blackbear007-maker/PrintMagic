@@ -130,7 +130,7 @@ export class MoireRiskPredictor {
 
     let peakIdx = -1;
     let peakMag = -Infinity;
-    const sortedForMedian: number[] = [];
+    const magnitudesForMedian: number[] = [];
     for (let y = 0; y < padH; y++) {
       for (let x = 0; x < padW; x++) {
         const dx = x - cx;
@@ -138,7 +138,7 @@ export class MoireRiskPredictor {
         const r = Math.hypot(dx, dy);
         if (r < dcExcludeRadius) continue;
         const idx = y * padW + x;
-        sortedForMedian.push(magnitude[idx]);
+        magnitudesForMedian.push(magnitude[idx]);
         if (magnitude[idx] > peakMag) {
           peakMag = magnitude[idx];
           peakIdx = idx;
@@ -147,8 +147,7 @@ export class MoireRiskPredictor {
     }
     if (peakIdx < 0) return null;
 
-    sortedForMedian.sort((a, b) => a - b);
-    const median = sortedForMedian[Math.floor(sortedForMedian.length / 2)] || 1e-6;
+    const median = quickSelectMedian(magnitudesForMedian, Math.floor(magnitudesForMedian.length / 2)) || 1e-6;
     const prominence = peakMag / Math.max(median, 1e-6);
 
     // A real periodic pattern's peak stands out sharply from the rest of the spectrum; a
@@ -283,6 +282,42 @@ function downsampleLuminance(
   const out = new Float64Array(dstW * dstH);
   for (let i = 0; i < out.length; i++) out[i] = counts[i] > 0 ? sums[i] / counts[i] : 0;
   return out;
+}
+
+/**
+ * Returns the k-th smallest element (0-indexed) of `arr` via Lomuto-partition quickselect,
+ * mutating `arr` in place. O(n) average vs. a full O(n log n) sort — used because the caller only
+ * needs one order statistic (the median), not the whole sorted spectrum. Selecting the k-th order
+ * statistic gives the exact same value a full sort's `sorted[k]` would, for any input including
+ * ties/duplicates.
+ */
+export function quickSelectMedian(arr: Float64Array | number[], k: number): number {
+  let lo = 0;
+  let hi = arr.length - 1;
+  while (lo < hi) {
+    const pivotIdx = lo + Math.floor(Math.random() * (hi - lo + 1));
+    const pivotVal = arr[pivotIdx];
+    const tmp1 = arr[pivotIdx];
+    arr[pivotIdx] = arr[hi];
+    arr[hi] = tmp1;
+    let storeIdx = lo;
+    for (let i = lo; i < hi; i++) {
+      if (arr[i] < pivotVal) {
+        const tmp2 = arr[i];
+        arr[i] = arr[storeIdx];
+        arr[storeIdx] = tmp2;
+        storeIdx++;
+      }
+    }
+    const tmp3 = arr[storeIdx];
+    arr[storeIdx] = arr[hi];
+    arr[hi] = tmp3;
+
+    if (storeIdx === k) return arr[storeIdx];
+    if (storeIdx < k) lo = storeIdx + 1;
+    else hi = storeIdx - 1;
+  }
+  return arr[lo];
 }
 
 function applyHannWindow2d(plane: Float64Array, w: number, h: number): void {

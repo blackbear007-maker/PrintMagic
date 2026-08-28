@@ -27,6 +27,8 @@ export interface QuadCorners {
   bottomLeft: Point2D;
 }
 
+import { createImageData } from './image-data-factory';
+
 export class PerspectiveRectifier {
   /**
    * NOT real corner detection — always returns a fixed 5% margin inset regardless of image
@@ -67,13 +69,13 @@ export class PerspectiveRectifier {
     const leftDist = Math.hypot(corners.bottomLeft.x - corners.topLeft.x, corners.bottomLeft.y - corners.topLeft.y);
     const rightDist = Math.hypot(corners.bottomRight.x - corners.topRight.x, corners.bottomRight.y - corners.topRight.y);
 
+    this.assertNonDegenerateQuad(corners, topDist, botDist, leftDist, rightDist);
+
     const outW = targetWidth || Math.round(Math.max(topDist, botDist));
     const outH = targetHeight || Math.round(Math.max(leftDist, rightDist));
 
     const dstBuffer = new Uint8ClampedArray(outW * outH * 4);
-    const dstImageData: ImageData = typeof ImageData !== 'undefined'
-      ? new ImageData(dstBuffer, outW, outH)
-      : ({ width: outW, height: outH, data: dstBuffer, colorSpace: 'srgb' } as ImageData);
+    const dstImageData: ImageData = createImageData(dstBuffer, outW, outH);
     const dst = dstImageData.data;
 
     // Compute Inverse Projective Homography Matrix (Target Rect ➔ Source Quad)
@@ -128,6 +130,45 @@ export class PerspectiveRectifier {
     }
 
     return dstImageData;
+  }
+
+  /**
+   * Rejects a quad that would make the homography system in `solveGaussian` singular or
+   * near-singular — near-zero-length edges, or corners so close to collinear that the
+   * quadrilateral has almost no area. Without this check, `solveGaussian`'s `|| 0.00001` pivot
+   * fallback silently returns huge/garbage homography coefficients instead of failing loudly,
+   * producing a scrambled or solid-noise output image rather than an error.
+   */
+  private static assertNonDegenerateQuad(
+    corners: QuadCorners,
+    topDist: number,
+    botDist: number,
+    leftDist: number,
+    rightDist: number
+  ): void {
+    const MIN_EDGE_PX = 2;
+    if (topDist < MIN_EDGE_PX || botDist < MIN_EDGE_PX || leftDist < MIN_EDGE_PX || rightDist < MIN_EDGE_PX) {
+      throw new Error(
+        `PerspectiveRectifier.rectify: degenerate quad — an edge is only ${Math.min(topDist, botDist, leftDist, rightDist).toFixed(2)}px long. Corners must form a real quadrilateral.`
+      );
+    }
+
+    // Shoelace formula for polygon area; near-zero relative to the quad's own scale means the
+    // corners are (near-)collinear rather than a genuine quadrilateral.
+    const { topLeft, topRight, bottomRight, bottomLeft } = corners;
+    const quadArea = 0.5 * Math.abs(
+      (topLeft.x * topRight.y - topRight.x * topLeft.y) +
+      (topRight.x * bottomRight.y - bottomRight.x * topRight.y) +
+      (bottomRight.x * bottomLeft.y - bottomLeft.x * bottomRight.y) +
+      (bottomLeft.x * topLeft.y - topLeft.x * bottomLeft.y)
+    );
+    const boundingDiag = Math.max(topDist, botDist, leftDist, rightDist);
+    const minArea = boundingDiag * boundingDiag * 0.001;
+    if (quadArea < minArea) {
+      throw new Error(
+        `PerspectiveRectifier.rectify: degenerate quad — corners are nearly collinear (area ${quadArea.toFixed(2)}px² is too small relative to edge length ${boundingDiag.toFixed(1)}px).`
+      );
+    }
   }
 
   /**

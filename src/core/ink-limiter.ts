@@ -1,5 +1,6 @@
 import type { InkAnalysis } from '../types';
 import { CmykEngine } from './cmyk-engine';
+import { createImageData, createBlankImageData } from './image-data-factory';
 
 /**
  * Total Area Coverage (TAC) Ink Limiter & Heatmap Analyzer — v2 Perceptual
@@ -85,7 +86,7 @@ export class InkLimiter {
     const height = imageData.height;
     const copy = new Uint8ClampedArray(imageData.data.length);
     copy.set(imageData.data);
-    const output = new ImageData(copy, width, height);
+    const output = createImageData(copy, width, height);
     const pixels = output.data;
     let modifiedPixels = 0;
 
@@ -220,7 +221,7 @@ export class InkLimiter {
   ): ImageData {
     const width = imageData.width;
     const height = imageData.height;
-    const heatmap = new ImageData(width, height);
+    const heatmap = createBlankImageData(width, height);
     const src = imageData.data;
     const dst = heatmap.data;
 

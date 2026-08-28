@@ -13,6 +13,7 @@
  * 5. 保留 CIE Lab L* 純亮度銳化（無色偏）
  */
 import { CmykEngine } from './cmyk-engine';
+import { createImageData } from './image-data-factory';
 
 export class UnsharpMask {
   public static readonly DEFAULT_AMOUNT = 1.5;
@@ -105,10 +106,7 @@ export class UnsharpMask {
       dst[pi + 2] = Math.min(255, Math.max(0, Math.round(src[pi + 2] + gain)));
     }
 
-    if (typeof ImageData !== 'undefined') {
-      return new ImageData(dst, width, height);
-    }
-    return { data: dst, width, height } as ImageData;
+    return createImageData(dst, width, height);
   }
 
   // ─────────────────────────────────────────────────────────

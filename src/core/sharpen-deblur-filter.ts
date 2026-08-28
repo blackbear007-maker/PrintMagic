@@ -7,6 +7,8 @@
  * detail that motion blur has genuinely destroyed, only boost existing local contrast.
  */
 
+import { createImageData } from './image-data-factory';
+
 export class SharpenDeblurFilter {
   /**
    * Applies a fixed deconvolution-style sharpening kernel to counteract mild blur/soft focus
@@ -20,9 +22,7 @@ export class SharpenDeblurFilter {
     const src = srcImageData.data;
 
     const dstBuffer = new Uint8ClampedArray(w * h * 4);
-    const dstImageData: ImageData = typeof ImageData !== 'undefined'
-      ? new ImageData(dstBuffer, w, h)
-      : ({ width: w, height: h, data: dstBuffer, colorSpace: 'srgb' } as ImageData);
+    const dstImageData: ImageData = createImageData(dstBuffer, w, h);
     const dst = dstImageData.data;
 
     // Fixed 5x5 sharpening deconvolution kernel (suppresses ringing halos)

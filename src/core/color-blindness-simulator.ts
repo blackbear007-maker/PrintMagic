@@ -27,6 +27,7 @@
  */
 
 import { CmykEngine } from './cmyk-engine';
+import { createBlankImageData } from './image-data-factory';
 
 export type CvdType = 'protanopia' | 'deuteranopia' | 'tritanopia';
 
@@ -66,7 +67,7 @@ export class ColorBlindnessSimulator {
     const width = imageData.width;
     const height = imageData.height;
     const src = imageData.data;
-    const output = new ImageData(width, height);
+    const output = createBlankImageData(width, height);
     const dst = output.data;
 
     const M = this.MATRICES[type];

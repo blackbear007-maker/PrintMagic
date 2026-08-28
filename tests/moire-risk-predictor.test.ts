@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll } from 'vitest';
-import { MoireRiskPredictor } from '../src/core/moire-risk-predictor';
+import { MoireRiskPredictor, quickSelectMedian } from '../src/core/moire-risk-predictor';
 
 beforeAll(() => {
   if (typeof global.ImageData === 'undefined') {
@@ -167,5 +167,45 @@ describe('MoireRiskPredictor.assess', () => {
     const { detected, assessments } = MoireRiskPredictor.assess(img, 300, [133, 175]);
     expect(detected).toBeNull();
     for (const a of assessments) expect(a.riskLevel).toBe('low');
+  });
+});
+
+describe('quickSelectMedian — matches a full sort at every index (exact order-statistic equivalence)', () => {
+  it('matches sort()[k] for random arrays with duplicates, across all k', () => {
+    let seed = 7;
+    const rand = () => {
+      seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+      return seed / 0x7fffffff;
+    };
+    for (let trial = 0; trial < 20; trial++) {
+      const len = 5 + Math.floor(rand() * 60);
+      // Small value range forces heavy duplication, stressing quickselect's partition on ties.
+      const source = Array.from({ length: len }, () => Math.floor(rand() * 8));
+      const expectedSorted = [...source].sort((a, b) => a - b);
+      for (let k = 0; k < len; k++) {
+        const copy = Float64Array.from(source);
+        expect(quickSelectMedian(copy, k)).toBe(expectedSorted[k]);
+      }
+    }
+  });
+
+  it('matches sort()[k] for an already-sorted and a reverse-sorted array (adversarial pivot cases)', () => {
+    const asc = Float64Array.from({ length: 40 }, (_, i) => i);
+    const desc = Float64Array.from({ length: 40 }, (_, i) => 40 - i);
+    for (let k = 0; k < 40; k++) {
+      expect(quickSelectMedian(Float64Array.from(asc), k)).toBe(k);
+      expect(quickSelectMedian(Float64Array.from(desc), k)).toBe(k + 1);
+    }
+  });
+
+  it('matches sort()[k] for an all-identical array', () => {
+    const arr = new Float64Array(25).fill(3.5);
+    for (let k = 0; k < 25; k++) {
+      expect(quickSelectMedian(Float64Array.from(arr), k)).toBe(3.5);
+    }
+  });
+
+  it('handles a single-element array', () => {
+    expect(quickSelectMedian(new Float64Array([42]), 0)).toBe(42);
   });
 });

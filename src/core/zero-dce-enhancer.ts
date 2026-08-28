@@ -17,6 +17,8 @@
  * misrepresent itself as a trained model.
  */
 
+import { createImageData } from './image-data-factory';
+
 export interface ZeroDceResult {
   enhancedImageData: ImageData;
   meanLuminanceBefore: number;
@@ -91,12 +93,7 @@ export class ZeroDceEnhancer {
     const meanLumAfter = sumLumAfter / totalPixels;
 
     return {
-      enhancedImageData: {
-        width: w,
-        height: h,
-        data: outData,
-        colorSpace: 'srgb'
-      } as ImageData,
+      enhancedImageData: createImageData(outData, w, h),
       meanLuminanceBefore: Number(meanLumBefore.toFixed(1)),
       meanLuminanceAfter: Number(meanLumAfter.toFixed(1)),
       shadowBoostFactor: Number(((meanLumAfter / (meanLumBefore || 1))).toFixed(2)),

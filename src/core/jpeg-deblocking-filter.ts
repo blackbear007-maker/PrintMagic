@@ -27,6 +27,8 @@
  * published filter kernel, which wasn't accessible to verify. Fully deterministic, synchronous,
  * and unit-testable against a synthetic 8x8-blocked test image, unlike the Nosratinia approach.
  */
+import { createImageData } from './image-data-factory';
+
 export class JpegDeblockingFilter {
   private static readonly BLOCK_SIZE = 8;
 
@@ -45,7 +47,7 @@ export class JpegDeblockingFilter {
     const src = imageData.data;
     const copy = new Uint8ClampedArray(src.length);
     copy.set(src);
-    const output = new ImageData(copy, width, height);
+    const output = createImageData(copy, width, height);
     const dst = output.data;
 
     const B = this.BLOCK_SIZE;

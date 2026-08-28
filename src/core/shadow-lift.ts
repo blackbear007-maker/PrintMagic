@@ -6,6 +6,8 @@
  * 本演算法自動偵測深色分佈，施加平滑非線性 S 曲線 / Gamma 階調提升 (8~12%)，
  * 同時保護 100% 純黑錨點不變灰，確保印刷出紙時頭髮絲、深色西裝與陰影紋理層次分明！
  */
+import { createImageData } from './image-data-factory';
+
 export class ShadowLift {
   /**
    * 對 ImageData 施加平滑暗部階調提升
@@ -16,9 +18,7 @@ export class ShadowLift {
     const w = src.width;
     const h = src.height;
     const copyData = new Uint8ClampedArray(src.data);
-    const out: ImageData = typeof ImageData !== 'undefined'
-      ? new ImageData(copyData, w, h)
-      : ({ width: w, height: h, data: copyData, colorSpace: 'srgb' } as ImageData);
+    const out: ImageData = createImageData(copyData, w, h);
     const data = out.data;
 
     // 建立 256 色階預先運算對照表 (LUT)

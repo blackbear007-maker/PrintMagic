@@ -8,6 +8,8 @@
  * carries no affiliation with or license from that project.
  */
 
+import { createImageData } from './image-data-factory';
+
 export class LineArtUpscaler {
   /**
    * Upscales flat-color illustration art with a directional dark-line contrast push
@@ -23,9 +25,7 @@ export class LineArtUpscaler {
     const src = srcImageData.data;
 
     const dstBuffer = new Uint8ClampedArray(dstW * dstH * 4);
-    const dstImageData: ImageData = typeof ImageData !== 'undefined'
-      ? new ImageData(dstBuffer, dstW, dstH)
-      : ({ width: dstW, height: dstH, data: dstBuffer, colorSpace: 'srgb' } as ImageData);
+    const dstImageData: ImageData = createImageData(dstBuffer, dstW, dstH);
     const dst = dstImageData.data;
 
     // 1. Bilinear expansion

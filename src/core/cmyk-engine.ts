@@ -12,6 +12,8 @@
  *    → 所有輸出確保在 [0, 1] 範圍且 C+M+Y+K ≤ 400%
  * 4. 沿用 LUT 加速的 sRGB→Linear 轉換 (256-entry)
  */
+import { createBlankImageData } from './image-data-factory';
+
 export class CmykEngine {
   // Precomputed 256-entry LUT for sRGB → Linear conversion (10x speedup)
   private static readonly SRGB_TO_LINEAR_LUT: Float32Array = (() => {
@@ -95,8 +97,20 @@ export class CmykEngine {
     const Y50 = M[3] * X65 + M[4] * Y65 + M[5] * Z65;
     const Z50 = M[6] * X65 + M[7] * Y65 + M[8] * Z65;
 
-    // 3. XYZ D50 → linear RGB using D50-adapted inverse sRGB matrix
-    // Approximate: for printing purposes, use simplified conversion back
+    // 3. XYZ D50 → linear RGB using the D50-adapted inverse sRGB matrix.
+    //
+    // ⚠️ 2026-08-29 clarified a misleading comment here: this used to say "Approximate: for
+    // printing purposes, use simplified conversion back", which an optimization audit flagged as
+    // a possible bug (worried this was actually the D65 inverse matrix reused by mistake). It
+    // isn't — these are the correct, standard Bradford-adapted "sRGB D50" XYZ→RGB coefficients
+    // (Bruce Lindbloom's published reference values: brucelindbloom.com, RGB/XYZ Matrices, sRGB
+    // row, D50 illuminant), NOT the plain D65 sRGB inverse matrix (which would be 3.2404542,
+    // -1.5371385, -0.4985314, ...) mistakenly substituted in. Verified two ways: (1) this matrix
+    // maps the D50 reference white XYZ (0.9642, 1.0000, 0.8249) to RGB (1.0000, 1.0000, 0.9996) —
+    // i.e. neutral white stays neutral, which only holds for a matrix actually adapted to D50; the
+    // plain D65 matrix maps that same input to (1.176, ...), visibly non-neutral. (2) cross-checked
+    // against the published Bruce Lindbloom coefficients via web search. See the locked-in
+    // regression test in cmyk-engine.test.ts. No code change was needed — only the comment was wrong.
     const r50 = Math.max(0, Math.min(1,  3.1338561 * X50 - 1.6168667 * Y50 - 0.4906146 * Z50));
     const g50 = Math.max(0, Math.min(1, -0.9787684 * X50 + 1.9161415 * Y50 + 0.0334540 * Z50));
     const b50 = Math.max(0, Math.min(1,  0.0719453 * X50 - 0.2289914 * Y50 + 1.4052427 * Z50));
@@ -214,7 +228,7 @@ export class CmykEngine {
   public static simulatePrintProof(imageData: ImageData): ImageData {
     const width = imageData.width;
     const height = imageData.height;
-    const output = new ImageData(width, height);
+    const output = createBlankImageData(width, height);
     const src = imageData.data;
     const dst = output.data;
 

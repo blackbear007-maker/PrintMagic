@@ -9,6 +9,8 @@
  * document); will not cleanly remove a hard-edged, high-contrast shadow.
  */
 
+import { createImageData } from './image-data-factory';
+
 export class HandShadowBalancer {
   /**
    * Automatically evens out phone/hand shadows from photos of artwork & documents
@@ -22,9 +24,7 @@ export class HandShadowBalancer {
     const src = srcImageData.data;
 
     const dstBuffer = new Uint8ClampedArray(w * h * 4);
-    const dstImageData: ImageData = typeof ImageData !== 'undefined'
-      ? new ImageData(dstBuffer, w, h)
-      : ({ width: w, height: h, data: dstBuffer, colorSpace: 'srgb' } as ImageData);
+    const dstImageData: ImageData = createImageData(dstBuffer, w, h);
     const dst = dstImageData.data;
 
     // Spatial illumination sampling grid (24x24)

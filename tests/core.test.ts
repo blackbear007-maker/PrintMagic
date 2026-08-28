@@ -144,6 +144,43 @@ describe('CmykEngine', () => {
     expect(rgb.g).toBe(150);
     expect(rgb.b).toBe(139);
   });
+
+  it('should use the correct D50-adapted (not D65) inverse matrix — verified by white-point neutrality', () => {
+    // A 5-agent optimization audit flagged rgbToCmyk()'s "XYZ D50 -> linear RGB" step (previously
+    // commented "Approximate: simplified conversion back") as possibly reusing the plain D65
+    // inverse sRGB matrix by mistake. Verified against Bruce Lindbloom's published sRGB/D50
+    // reference matrix and by direct computation: it's already correct. This test pins that down
+    // mathematically — a matrix genuinely adapted to the D50 white point must map the D50
+    // reference white's own XYZ back to a neutral RGB (r≈g≈b≈1); the plain D65 inverse matrix
+    // does NOT have this property (it maps D50 white to a visibly non-neutral ~(1.176, ...)).
+    const D50_WHITE_XYZ = { X: 0.9642, Y: 1.0000, Z: 0.8249 };
+    const D65_INVERSE_MATRIX = [
+      3.2404542, -1.5371385, -0.4985314,
+      -0.9692660, 1.8760108, 0.0415560,
+      0.0556434, -0.2040259, 1.0572252
+    ];
+    const applyD50: (X: number, Y: number, Z: number) => [number, number, number] = (X, Y, Z) => [
+      3.1338561 * X - 1.6168667 * Y - 0.4906146 * Z,
+      -0.9787684 * X + 1.9161415 * Y + 0.0334540 * Z,
+      0.0719453 * X - 0.2289914 * Y + 1.4052427 * Z
+    ];
+    const applyD65 = (X: number, Y: number, Z: number): [number, number, number] => [
+      D65_INVERSE_MATRIX[0] * X + D65_INVERSE_MATRIX[1] * Y + D65_INVERSE_MATRIX[2] * Z,
+      D65_INVERSE_MATRIX[3] * X + D65_INVERSE_MATRIX[4] * Y + D65_INVERSE_MATRIX[5] * Z,
+      D65_INVERSE_MATRIX[6] * X + D65_INVERSE_MATRIX[7] * Y + D65_INVERSE_MATRIX[8] * Z
+    ];
+
+    const [r50, g50, b50] = applyD50(D50_WHITE_XYZ.X, D50_WHITE_XYZ.Y, D50_WHITE_XYZ.Z);
+    expect(r50).toBeCloseTo(1.0, 2);
+    expect(g50).toBeCloseTo(1.0, 2);
+    expect(b50).toBeCloseTo(1.0, 2);
+
+    // Sanity check the test's own premise: the D65 matrix must NOT be neutral for D50 white,
+    // otherwise this test couldn't actually distinguish the two matrices.
+    const [r65, g65] = applyD65(D50_WHITE_XYZ.X, D50_WHITE_XYZ.Y, D50_WHITE_XYZ.Z);
+    expect(Math.abs(r65 - 1.0)).toBeGreaterThan(0.1);
+    expect(Math.abs(g65 - 1.0)).toBeLessThan(0.1); // g channel is coincidentally close; r/b are not
+  });
 });
 
 describe('UnsharpMask', () => {

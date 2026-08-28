@@ -9,6 +9,8 @@
  * super-resolution model can on genuinely low-resolution photographic sources.
  */
 
+import { createImageData } from './image-data-factory';
+
 export interface EdgeAwareUpscaleResult {
   upscaledImageData: ImageData;
   scaleFactor: number;
@@ -32,12 +34,13 @@ export class EdgeAwareUpscaler {
     const src = srcImageData.data;
 
     const dstBuffer = new Uint8ClampedArray(dstW * dstH * 4);
-    const dstImageData = {
-      width: dstW,
-      height: dstH,
-      data: dstBuffer,
-      colorSpace: 'srgb'
-    } as ImageData;
+    // 2026-08-29: this used to always build a plain object here — never a real `ImageData`
+    // instance, even in a real browser. That's a real bug: `ctx.putImageData()` performs a
+    // WebIDL brand check and THROWS TypeError on a plain object (verified empirically in a real
+    // browser), and this result reaches `ctx.putImageData()` unconditionally via main.ts's
+    // `imageDataToDataUrl()` for every portrait/landscape-classified image. Fixed by using the
+    // shared factory, which produces a real ImageData when the constructor is available.
+    const dstImageData = createImageData(dstBuffer, dstW, dstH);
 
     // 1. High-Precision Bilinear + Gradient-Aware Convolution Filter
     for (let y = 0; y < dstH; y++) {

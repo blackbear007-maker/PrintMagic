@@ -86,29 +86,65 @@ export class AiVectorizer {
   }
 
   /**
-   * Groups points into connected spatial chains
+   * Groups points into connected spatial chains.
+   *
+   * Uses a uniform spatial grid (cell size = maxDist) so each nearest-neighbor step only scans
+   * the 3x3 cell neighborhood around `current` instead of every remaining point — a cell size
+   * equal to the search radius guarantees that neighborhood contains every point within maxDist.
+   * Candidates are re-sorted into original point-index order before the scan so ties resolve
+   * identically to the old O(n^2) full-array scan (which kept the highest index on a `<=` tie).
    */
   private static buildContourChains(points: Point[], maxDist: number): Point[][] {
     const chains: Point[][] = [];
     const visited = new Uint8Array(points.length);
     const maxDistSq = maxDist * maxDist;
+    const cellSize = maxDist;
+
+    const cellKey = (x: number, y: number) => `${Math.floor(x / cellSize)},${Math.floor(y / cellSize)}`;
+    const grid = new Map<string, number[]>();
+    for (let i = 0; i < points.length; i++) {
+      const key = cellKey(points[i].x, points[i].y);
+      let bucket = grid.get(key);
+      if (!bucket) {
+        bucket = [];
+        grid.set(key, bucket);
+      }
+      bucket.push(i);
+    }
+    const removeFromGrid = (i: number) => {
+      const bucket = grid.get(cellKey(points[i].x, points[i].y));
+      if (!bucket) return;
+      const pos = bucket.indexOf(i);
+      if (pos !== -1) bucket.splice(pos, 1);
+    };
 
     for (let i = 0; i < points.length; i++) {
       if (visited[i]) continue;
 
       const chain: Point[] = [points[i]];
       visited[i] = 1;
+      removeFromGrid(i);
 
       let current = points[i];
       let foundNext = true;
 
       while (foundNext) {
         foundNext = false;
+
+        const cgx = Math.floor(current.x / cellSize);
+        const cgy = Math.floor(current.y / cellSize);
+        const candidates: number[] = [];
+        for (let gx = cgx - 1; gx <= cgx + 1; gx++) {
+          for (let gy = cgy - 1; gy <= cgy + 1; gy++) {
+            const bucket = grid.get(`${gx},${gy}`);
+            if (bucket && bucket.length) candidates.push(...bucket);
+          }
+        }
+        candidates.sort((a, b) => a - b);
+
         let nearestIdx = -1;
         let nearestDistSq = maxDistSq;
-
-        for (let j = 0; j < points.length; j++) {
-          if (visited[j]) continue;
+        for (const j of candidates) {
           const dx = points[j].x - current.x;
           const dy = points[j].y - current.y;
           const dSq = dx * dx + dy * dy;
@@ -121,6 +157,7 @@ export class AiVectorizer {
 
         if (nearestIdx !== -1) {
           visited[nearestIdx] = 1;
+          removeFromGrid(nearestIdx);
           current = points[nearestIdx];
           chain.push(current);
           foundNext = true;

@@ -13,6 +13,8 @@
  * segmentation model would be needed for that.
  */
 
+import { createImageData } from './image-data-factory';
+
 export interface RegionSelectPromptPoint {
   x: number;
   y: number;
@@ -131,12 +133,7 @@ export class ColorRegionSelector {
 
     return {
       spotType,
-      k100MaskData: {
-        width: w,
-        height: h,
-        data: maskData,
-        colorSpace: 'srgb'
-      } as ImageData,
+      k100MaskData: createImageData(maskData, w, h),
       contourSvgPath,
       coverageMm2: Number(((bboxW * bboxH * 25.4 * 25.4) / (300 * 300)).toFixed(2)),
       coveragePercent: Number(((matchCount / totalPixels) * 100).toFixed(1)),

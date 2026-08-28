@@ -8,6 +8,8 @@
  * edge model's robustness on noisy photographic input.
  */
 
+import { createImageData } from './image-data-factory';
+
 export interface EdgeContourResult {
   contourImageData: ImageData;
   edgeMask: Uint8ClampedArray;
@@ -102,12 +104,7 @@ export class EdgeContourDetector {
       }
     }
 
-    const contourImageData = {
-      width: w,
-      height: h,
-      data: outBuffer,
-      colorSpace: 'srgb'
-    } as ImageData;
+    const contourImageData = createImageData(outBuffer, w, h);
 
     return {
       contourImageData,
