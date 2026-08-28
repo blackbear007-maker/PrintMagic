@@ -7,6 +7,8 @@
 
 > ⚠️ **誠實性附註（2026-08-26，後更新）**：本文件曾經在第 2、3、7 節列出大量從未實作的「模型」與功能（HAT-S、SwinIR、AOT-GAN、MAT-Lite、DexiNed、CodeFormer、GAIC、FontMatcher、桌面版效能數字等）——這些內容已於 2026-08-25 全面核實並改寫。第一輪核實時誤把 Zero-DCE++ 當成「真正訓練過的模型」，後來進一步查證發現它的 Docker 建置設定引用了從未存在過的權重檔案，程式碼裡也從未載入任何訓練權重（隨機初始化，非訓練結果）；VTracer 的 Dockerfile 同樣引用了從未存在過的原始碼，導致建置必定失敗，現已修正為安裝真正發布的 vtracer crate。**Tesseract（OCR）已於 2026-08-26 移除**——查證後發現它從未被任何 UI 功能實際呼叫（純死碼），且它原本想解決的問題（讀取 AI 繪圖產生的亂碼假文字）本來就不是 OCR 能解的，因為那些筆畫通常不是真實字元。同日新增 **Real-ESRGAN**（4x 放大）與 **ARNIQA**（品質評分）——兩者都是真實開源模型的官方發布訓練權重，開箱即用；也新增了 **DehazeFormer-T**（去霧）的真實架構程式碼；作者只透過 Google Drive 發布權重、無法自動下載，已於 2026-08-26 手動下載並**直接提交進 git**（原因見下段），已用真實下載的權重檔驗證：`strict=True` 完整載入 258 個張量、零缺漏零多餘，真實推論在模擬霧霾測試圖上讓對比度提升逾 3 倍（0.0245 → 0.0763）。**Retinexformer**（低光提亮）已於同日取代原本從未載入訓練權重的 Zero-DCE++——真實下載了官方發布的 `LOL_v2_real.pth` 權重（同樣提交進 git）並驗證：`strict=True` 完整載入 122 個張量、零缺漏零多餘，真實推論成功讓測試圖片變亮（平均亮度 0.082 → 0.399）。⚠️ 這兩個權重檔（合計 ~9MB）原本被 gitignore，但因為 Railway 是從 git 儲存庫建置 `zero-dce` 服務（`railway.toml` 用 `builder=DOCKERFILE`），不是從本機硬碟建置，只存在本機的權重檔案永遠不會真正部署上去——即使本機驗證推論成功，Railway 上仍會誠實回報 503。因此改為直接提交進 git（見 `.gitignore` 裡的例外規則）。同日再新增 **LaMa**（物件／浮水印移除）——TorchScript 匯出的 `big-lama.pt`，有可自動下載的 GitHub Release 網址，開箱即用（不受上述問題影響，因為建置時直接從網路下載，不依賴本機檔案）；已用真實下載的權重檔驗證：`torch.jit.load()` 成功，真實推論在模擬「浮水印」色塊測試圖上完全移除目標色塊（移除區域內 0% 殘留原色）。當時可正常建置運作、且已接上真實訓練權重的自建服務是 **VTracer**（向量化）、**Real-ESRGAN**（放大）、**ARNIQA**（品質評分）、**Retinexformer**（低光提亮）、**DehazeFormer-T**（去霧，兩者的權重都已下載並提交進 git，且都已用真實下載的權重檔驗證過推論成功）、**LaMa**（物件／浮水印移除，權重自動下載，已驗證推論成功）。其餘全部是決定性演算法（無 AI 模型），詳見 [README](../README.md#️-引擎組成真實模型-vs-決定性演算法)。**2026-08-27 再新增兩個模型**：**rembg**（去背，`u2netp` session，MIT，權重自動下載，已用真實下載的權重檔驗證——在有紋理漸層背景的合成測試圖上正確分離主體與背景，取代原本只能處理單一色背景的色鍵去背演算法）、**YuNet**（人臉偵測，Apache-2.0/MIT，權重自動下載，已驗證對合成測試圖成功偵測人臉，信心分數 84.2%）。這兩者跑在 ONNX Runtime／OpenCV DNN 後端，不是 PyTorch，是這個服務第一次同時承載兩套推論引擎。曾評估過的 **GFPGAN**（人像修復）與 **DDColor**（老照片上色）**決定不採用**——技術上驗證可行，但與「印前處理」核心定位不符（解決的是「照片好不好看」而非「印刷會不會出錯」），詳見下方 1.1 節後的評估紀錄。另外評估過的 **Florence-2**（浮水印自動定位）也決定不採用，理由與詳細真實驗證數據見下方另一段評估紀錄。⚠️ **DehazeFormer-T 後續於 2026-08-27（同一天）評估後移除**——不是技術問題（模型本身真實可用），而是去霧的真實需求與本站典型使用情境（證件照/名片/貼紙）重疊度太低，詳見下方獨立的評估紀錄段落；**目前**（本文件最後更新後）自建服務的真實模型清單是 VTracer、Real-ESRGAN、ARNIQA、Retinexformer、LaMa、rembg、YuNet 這 7 項，不含 DehazeFormer-T。
 
+> ⚠️ **誠實性附註（2026-08-28）**：這一輪稽核修正三類問題。(1) **真實計算錯誤**：`cmyk-engine.ts` 的 GCR（灰版替代）公式有個可證明恆真的邏輯錯誤，導致自適應 GCR 分級程式碼從未真正執行過；`ink-limiter.ts` 因此把同一份灰階份量算兩次，總墨量 TAC 虛報（純黑誤算成 400% 而非正確的 100%）。已修正兩者並改用真實統一公式，測試已驗證。`anti-banding.ts` 的抖動雜訊公式少了關鍵的 `sin()` 與放大係數，用頻譜分析量測後發現高/低頻能量比僅 0.47（應遠大於 1），等於這個「消除色階斷層」的濾鏡自己在製造新的規律條紋——已改用 void-and-cluster 演算法產生真正的藍雜訊，量測後比值提升至 ~80。(2) **即時使用者可見的誤導文字**：`scene-classifier.ts` 每個分類分支的訊息原本宣稱「已自動套用專屬處理流程（X）」，但實際上只有 anime/portrait/landscape 三類的超解析度部分真的有對應執行，其餘完全沒有任何呼叫方會自動執行——已將措辭改為「建議搭配」，不再宣稱已執行未執行的動作。(3) **§1.3「絕不能移除的黃金核心護城河」清單本身也是本輪稽核發現的假象**：清單裡列出的 `sticker-kisscut-builder.ts`／`acrylic-charm-builder.ts`／`tshirt-color-knockout.ts`／`canvas-wrap-mirror.ts`／`real-paper-simulator.ts`／`qr-preflight-enhancer.ts`，逐一核對後發現全部**從未被任何 UI 或後端路徑呼叫過**（純死碼），且文檔宣稱的技術（如 StickerKisscutBuilder 的「向量 kiss-cut 輪廓線」）實際上只是一個固定矩形，根本不會貼合裁切輪廓——「護城河」的框架本身建立在不存在的使用者可觸及功能上。連同同一批查出的另外 13 個模組（`chromatic-aberration-corrector.ts`、`flatfield-vignette-corrector.ts`、`fluorescent-neon-extractor.ts`、`food-menu-mouthwatering.ts`、`giclee-fineart-dmax.ts`、`hairline-thickener.ts`、`luxury-embossing-bevel.ts`、`neon-halation-compressor.ts`、`packaging-3d-mockup-renderer.ts`、`packaging-box-dieline.ts`、`photocard-holo-glitter.ts`、`rollup-banner-scaler.ts`、`wedding-skin-pore-preserver.ts`），共 19 個檔案——全部帶有虛構的「(MIT)」／「(MIT, 0 KB)」授權標籤（100% 本專案自己寫的程式碼，並未引用任何第三方授權碼）、文檔宣稱的具名演算法（Sobel 邊緣偵測、Voronoi 碎裂、11-Zone Tonal System、EDT 距離變換、分塊串流放大等）在程式碼裡完全不存在，且都是死碼——已全部移除，連同其專屬測試檔（測試本身也只驗證輸出尺寸，從未驗證過文檔宣稱的行為）。另外 1 個活著但帶假授權標籤的檔案（`exif-metadata-sniffer.ts`，透過 `scene-classifier.ts` 被 `main.ts` 呼叫，本次稽核方法論一開始漏抓了這種 core 目錄內部互相引用的情況，修正後才發現它其實是活的）與 2 個「部分真實」的檔案（`perspective-rectifier.ts` 的角點偵測是假的但透視矩陣運算是真的；`kurbo-geometry.ts` 的多邊形偏移運算是真的但 Bézier 曲線宣稱是假的）已修正文檔措辭，保留程式碼。其餘經稽核確認文檔誠實、只是尚未被 UI 呼叫的模組（`color-region-selector.ts`、`contrast-stretch-filter.ts`、`curved-page-flattener.ts`、`edge-contour-detector.ts`、`edge-extend-inpaint.ts`、`gradient-centroid-cropper.ts`、`sharpen-deblur-filter.ts`、`smoothing-denoise-filter.ts`、`subscription-tier.ts`、`text-zone-detector.ts`）維持原樣，未被移除——它們沒有說謊，只是還沒被接上 UI。
+
 ---
 
 ## 1. 系統全景與技術架構 (System Architecture)
@@ -70,29 +72,25 @@
 - ❌ 徹底剔除 Google Cloud Vision、Remove.bg、PhotoRoom、Midjourney 等任何需第三方 Token/按次計費之商業 API。
 - ✅ 100% 採用 **MIT / Apache 2.0 / BSD** 開源協議之演算法與模型，杜絕任何隱形成本與超額扣款風險。
 
-### 1.3 🛡️ 絕不能移除的【黃金核心護城河】（Golden Core Moat Modules - 永久保留清單）
-以下模組是真正**解決印刷翻車痛點、支撐產品付費轉換與商業護城河**的核心資產，**任何架構精簡或重構均嚴禁移除**：
+### 1.3 🛡️ 核心資產清單（Core Modules — 已附帶真實使用狀態）
+以下模組是真正**解決印刷翻車痛點**的核心資產，任何架構精簡或重構前應先確認這裡的即時使用狀態，而不是照抄本清單的舊有標籤。
+
+> ⚠️ **2026-08-28 更正**：這個清單原本標題是「絕不能移除的黃金核心護城河」，並宣稱以下每一項都「支撐產品付費轉換與商業護城河」。逐一核對呼叫路徑後發現：`sticker-kisscut-builder.ts`、`acrylic-charm-builder.ts`、`tshirt-color-knockout.ts`、`canvas-wrap-mirror.ts`、`real-paper-simulator.ts`、`qr-preflight-enhancer.ts` 這 6 項從未被任何 UI 或後端路徑呼叫過——使用者根本無法觸發它們，談不上「護城河」。且其中多項文檔宣稱的技術本身也不成立（例如 `sticker-kisscut-builder.ts` 宣稱生成「向量 kiss-cut 輪廓線」，實際上只是一個固定尺寸的矩形，不會貼合裁切物件的實際輪廓）。這 6 個檔案已於同日移除（詳見文件頂端 2026-08-28 附註），下方清單已同步移除這些項目，只保留真正被 `main.ts`／`server/` 呼叫的模組。
 
 全部是決定性演算法（無 AI 模型），檔名為 `src/core/` 中的真實檔案：
 
 #### 🎨 1. 動漫 / 文創周邊剛需（創作者變現主力）
-- **`sticker-kisscut-builder.ts` (手帳貼紙刀模線 + 0.2mm 內縮白墨)**：解決透明/PVC 貼紙透光問題，自動生成洋紅刀模與白墨遮罩層。
-- **`acrylic-charm-builder.ts` (壓克力立牌/吊飾外框與打孔)**：自動生成 2mm 圓滑邊界向量刀模與頂部打孔圈。
-- **`tshirt-color-knockout.ts` (衣服膠印底色去色透氣)**：智慧扣除同色衣物底色，使熱轉印膠膜柔軟透氣不悶熱。
 - **`line-art-upscaler.ts` (二次元插畫放大)**：雙線性放大 + 邊緣壓黑，強化墨線輪廓（不是 Anime4K 官方實作，僅技法取向相近）。
 
 #### 🖼️ 2. 相片與生活輸出剛需（大眾消費轉化主力）
 - **`edge-aware-upscaler.ts` (金字塔超解析度)**：雙線性插值 + 邊緣強化演算法（非神經網路，不會生成原本不存在的細節）。
-- **`canvas-wrap-mirror.ts` (無框畫 3.5cm 立體包邊鏡像)**：四面包邊鏡像延伸，正面構圖 100% 完整不切人臉與重要細節。
-- **`real-paper-simulator.ts` (畫廊卡紙裝裱內襯白邊)**：自動計算 2:3/3:4 比例與 45° 倒角陰影，營造美術館級裝裱質感。
 - **`passport-modal.ts`（UI）+ 相關比例計算 (2 吋護照大頭照頭頂自動校準)**：精確定位台灣與國際 2 吋大頭照 3.2~3.6cm 官方頭部比例。
 - **`object-eraser.ts` (智慧消除筆)**：Fast Marching 快速前進法補景演算法，筆刷塗抹秒除路人、雜物、反光斑點與浮水印。2026-08-26 起，`free-inpainting-client.ts` 會優先嘗試自建 **LaMa** 微服務（真實訓練權重，見 1.1 節），這裡的本機演算法是離線時的備援。
 
 #### 🖨️ 3. 工業級印前物理與色彩安全（印刷廠零退件保證）
 - **`bleed-expander.ts` (3mm 智慧出血背景生長)**：鏡像外推 + 接縫混合，徹底杜絕裁切白邊與文字切除。
-- **`cmyk-engine.ts` / `ink-limiter.ts` (控墨防死黑、軟打樣)**：物理減法混色預測 + 總墨量 TAC ≤ 300% 限制。
+- **`cmyk-engine.ts` / `ink-limiter.ts` (控墨防死黑、軟打樣)**：物理減法混色預測 + 總墨量 TAC ≤ 300% 限制（2026-08-28 修正 GCR 與 TAC 計算錯誤，見文件頂端附註）。
 - **`foil-simulator.ts` (亮金/玫瑰金/局部光 3D 擬真與獨立黑版分離)**：即時反光模擬並自動生成 100% K100 菲林鋅版遮罩。
-- **`qr-preflight-enhancer.ts` (純黑 K100 向量小字與 QR 碼對比檢查)**：高反差對比驗證與純黑向量重構。
 - **`imposition-engine.ts` (A4/A3 智慧合版拼模)**：多模自動排滿大版，大幅節省實體合版印刷費。
 - **`engines/pdf-exporter.ts` (印前 PDF 壓製)**：內嵌向量角線、十字規矩線、出血框，見第 5 節關於 PDF/X-1a 合規現況的誠實說明。
 
@@ -109,7 +107,6 @@
 - **`sharpen-deblur-filter.ts`**：固定 5×5 反卷積核銳化，緩解輕微手震模糊。
 - **`unsharp-mask.ts`**：USM 邊緣銳化，補償紙張吸墨網點擴大 (Dot Gain)。
 - **`contrast-stretch-filter.ts`**：全域冪次曲線對比拉伸。
-- **`rollup-banner-scaler.ts`**：巨幅展架瓦片分塊放大，避免記憶體爆量。
 
 ### 2.2 出血外推與修補
 - **`bleed-expander.ts`**：鏡像外推 + 接縫余弦混合 + 四角交叉修補 + 接縫色溫微調，生成 3mm 印刷出血。
@@ -123,8 +120,6 @@
 
 ### 2.4 去噪、去模糊、去雜訊
 - **`smoothing-denoise-filter.ts`**：經典雙邊濾波（空間核 × 色彩範圍核）。
-- **`chromatic-aberration-corrector.ts`**：邊緣色差消減。
-- **`flatfield-vignette-corrector.ts`**：廣角鏡頭暗角平坦化校正。
 
 ⚠️ **`descreen-engine.ts` 與 `fabric-moire-neutralizer.ts` 已於 2026-08-28 移除**——查證後發現這兩個檔案是本文件早期誠實性稽核（見文件頂端 2026-08-26 附註）沒抓到的漏網之魚：它們的註解宣稱做「頻域陷波抑制」「辨識重複半色調網花」「沿織紋方向的非等向高斯平滑，同時衰減橫紋諧波」，但實際程式碼只是一個固定 3x3 鄰域平均閾值混合（`descreen-engine.ts`）或普通等向高斯模糊（`fabric-moire-neutralizer.ts`）——沒有任何頻域分析、沒有方向性偵測，註解描述的技術完全沒有實作。兩者也從未被任何 UI 功能呼叫過（純死碼），對應的測試也只驗證輸出尺寸不變，沒有驗證「摩爾紋真的被去除」這個核心宣稱。已整個移除，改用 §2.4.1 的 `moire-descreen.ts`（真實 FFT 頻域陷波濾波，port 自 `6o6o/fft-descreen`，MIT，已用真實週期圖案測試驗證高頻能量確實下降）。
 
@@ -136,35 +131,29 @@
 - **已驗證**：7 個真實單元測試涵蓋 FFT 正確性（自行以已知頻率訊號驗證尖峰位置正確）、非 2 的冪次尺寸的 padding 路徑、輸出尺寸維持、alpha 完全不受影響；最關鍵的一項——對真實合成的高頻棋盤格週期圖案（模擬網點）套用濾波，量化驗證高頻能量確實大幅下降（>50%），而對平滑漸層圖片幾乎沒有副作用。另外用真實瀏覽器端對端測試（透過 Web Worker，避免卡住主執行緒 UI）確認：真實上傳一張帶有棋盤格週期圖案的圖片，套用後取樣像素資料，高頻能量從有意義的數值降到接近 0，相鄰像素從劇烈跳動變成平滑——不是空跑一趟而已。
 - **效能與限制（誠實揭露）**：純 JS FFT 沒有 WASM/GPU 加速，1200×1200～2000×2000 範圍的圖片（都會被 padding 到同一個 2048×2048 運算尺寸）在瀏覽器 Worker 中實測約需 7-20 秒；超過這個範圍會被 padding 到 4096×4096，耗時粗估再乘 4 倍以上，因此設有 `MAX_DESCREEN_INPUT_PIXELS`（2000×2000）上限，超過會清楚回報錯誤而不是卡住或裝忙。這是**手動觸發的工具**（工具列的「🌀 去網紋」按鈕，「✨ 智慧增強」區），不是自動管線步驟——因為只對真的有網紋/摩爾紋的圖片有幫助，套用在一般照片上可能誤刪細節。
 
+#### 2.4.2 摩爾紋風險預測 + JPEG 去區塊（2026-08-28 新增，⚠️ 尚未接上 UI）
+
+這兩個是先前研究找到「有真實開源公式可查證、值得實作」的成果，已經寫成真實、有測試驗證的 `src/core/` 模組，**但目前都還沒有任何 UI 按鈕或管線步驟呼叫它們**——跟本文件其他地方誠實揭露過的「死代碼」性質不同：這兩個模組的文檔完全誠實描述自己實際做什麼，沒有假授權標籤、沒有誇大宣稱，只是還沒被接上介面，屬於「能用但還沒接線」而非「假裝能用」。
+
+- **`src/core/moire-risk-predictor.ts`（摩爾紋風險預測）**：真實數學來自 Amidror, Hersch & Ostromoukhov, *"Spectral Analysis and Minimization of Moiré Patterns in Color Separation,"* Journal of Electronic Imaging 3(3), 1994（開放取用全文：`perso.liris.cnrs.fr/victor.ostromoukhov/publications/pdf/JEI94_Moire.pdf`）——兩個週期圖案（週期 T1/T2、夾角 α）疊加後的摩爾紋週期公式 `T = T1·T2 / sqrt(T1² + T2² − 2·T1·T2·cos(α))`，直接引用論文的 Eq. 6.1，已用單元測試驗證邊界情況（完全重合兩個週期圖案應得到無限大週期、夾角 90° 時應等於 `T/√2`、對調兩個圖案應該對稱）。作品本身的主週期偵測則重用 `moire-descreen.ts` 已驗證過的 FFT 基礎設施，加上 Hann 窗函數（週期型慣例，已數值驗證平坦影像的洩漏降到浮點雜訊等級）與「徑向衰減」判斷式，區分「真正的週期圖案窄頻峰」跟「一般漸層/光照造成的寬頻低頻能量」——後者不該被誤判成摩爾紋風險。風險分級門檻（2mm/15mm）是工程判斷，不是論文本身提供的視覺閾值，文件內已誠實標註。
+- **`src/core/jpeg-deblocking-filter.ts`（JPEG 去區塊）**：教科書參考解法是 A. Nosratinia 的位移＋真實 JPEG 重新編碼＋平均法（"Denoising of JPEG images by re-application of JPEG," 2001），但那個方法需要瀏覽器原生 `canvas.toDataURL('image/jpeg')` 做真正的編碼往返，這個專案的 vitest 測試環境沒有 DOM/canvas，完全無法寫自動化單元測試驗證。改為直接在解碼後的像素上運作：偵測 JPEG 固定的 8×8 網格邊界，比對邊界處的跳動量跟區塊內部的局部梯度活動量，只有「邊界有明顯跳動、但區塊內部平坦」這個量化壓縮的特徵訊號出現時才做局部平滑，真實邊緣（區塊內外都有連續變化）不會被誤觸碰。已用合成的 8×8 網格假影圖片驗證：邊界跳動量確實大幅下降、區塊內部像素完全不受影響、平滑連續漸層完全不觸碰。誠實聲明：這不是 Nosratinia 論文精確係數的重現，是同一類「鎖定網格邊界做選擇性濾波」技術的自製、可驗證版本。
+
 ### 2.5 光照與色調
 - **`zero-dce-enhancer.ts`**：Zero-DCE 論文曲線公式的本機簡化版（單一全域參數，非學習式逐像素參數圖）。Docker `zero-dce` 服務的低光提亮功能已於 2026-08-26 改跑 Retinexformer（真實訓練權重，MIT），此檔案現在是它離線時的本機備援，不再對應同一篇論文的架構。
 - **`hand-shadow-balancer.ts`**：24×24 網格光照插值，均化手機翻拍陰影。
 - **`shadow-lift.ts`**：暗部階調提亮，防止實體印刷死黑糊成一片。
-- **`giclee-fineart-dmax.ts`**：博物館級微噴黑階動態增強。
-- **`food-menu-mouthwatering.ts`**：暖色調增豔，用於餐飲菜單。
-- **`wedding-skin-pore-preserver.ts`**：高低頻空間分離磨皮。
 
 ### 2.6 幾何校正與版面
 - **`curved-page-flattener.ts`**：固定拋物線位移公式，粗略校正翻拍書頁曲面（非學習式 3D 網格估算）。
-- **`perspective-rectifier.ts`**：四角點單應性幾何變換，校正斜拍視角。
-- **`kurbo-geometry.ts`**：2D 多邊形內縮/外擴幾何運算（純 TypeScript，非 Rust）。
+- **`perspective-rectifier.ts`**：3x3 單應性矩陣運算與雙線性反向取樣是真實實作；`autoDetectCorners()` 不做真正的角點偵測，永遠回傳固定 5% 邊距內縮（2026-08-28 修正文檔誇大宣稱，程式碼本身未變）。
+- **`kurbo-geometry.ts`**：2D 多邊形內縮/外擴幾何運算（純 TypeScript，非 Rust）。2026-08-28 移除文檔裡不成立的「Bézier 曲線平滑化」宣稱，該功能程式碼裡不存在。
 - **`imposition-engine.ts` / `imposition-calculator.ts`**：A4/A3 智慧合版拼模計算。
-- **`nesting-optimizer.ts`**：異形貼紙 2D 凸包旋轉排版。
-- **`packaging-box-dieline.ts` / `packaging-3d-mockup-renderer.ts`**：包裝紙盒刀模與 3D 預覽。
 
 ### 2.7 印刷色彩與物理防護
-- **`cmyk-engine.ts`**：RGB→CMYK 減法混色預測，Bradford 色適應轉換 + GCR 灰版替代。
-- **`ink-limiter.ts`**：總墨量 (TAC) ≤ 300% 限制與壓制。
+- **`cmyk-engine.ts`**：RGB→CMYK 減法混色預測，Bradford 色適應轉換 + GCR 灰版替代（2026-08-28 修正一個可證明恆真的 GCR 邏輯錯誤，自適應分級過去從未真正執行過，詳見文件頂端附註）。
+- **`ink-limiter.ts`**：總墨量 (TAC) ≤ 300% 限制與壓制（2026-08-28 修正雙重計算灰階份量導致的 TAC 虛報錯誤）。
 - **`icc-profiles.ts`**：ICC 描述檔參數參考（公開已知標準的名稱/TAC 上限；本模組自己沒有真正的 `.icc` 描述檔案，不做真正的色彩轉換——詳見 README 誠實說明）。2026-08-27 起，這不再是本專案唯一的 ICC 相關能力：使用者可自行上傳自己的 CMYK `.icc`/`.icm` 描述檔，透過自建服務（`docker/zero-dce/` 的 `/icc/soft-proof`，Pillow 的 `ImageCms`／LittleCMS）取得真正的描述檔色彩轉換與逐像素 TAC，見 §2.7.1。
 - **`pantone-matcher.ts`**：真實 CIE Lab 轉換 + CIEDE2000 色差公式，比對一份精選的 Pantone 色票近似表（非官方授權完整資料庫）。
-- **`trapping-master.ts`**：自動印刷補邊與陷印。
-- **`spot-uv-dilator.ts`**：局部上光套準溢光補償。
-- **`metallic-foil-separator.ts`**：燙金/燙銀獨立 K100 出片遮罩。
-- **`crystal-uv-heightmap.ts`**：UV 水晶標立體浮雕高度圖。
-- **`luxury-embossing-bevel.ts`**：立體打凸浮雕高度圖。
-- **`ogv-separator.ts`**：擴色域分色（Orange/Green/Violet 專色版）。
-- **`neon-halation-compressor.ts`**：發光招牌防死白光暈壓縮。
-- **`fluorescent-neon-extractor.ts`**：螢光專色獨立分版。
 
 #### 2.7.1 真實 ICC 色彩管理（自建服務，2026-08-27 新增）
 - **`src/services/free-icc-client.ts`** + **自建服務 `docker/zero-dce/` 的 `POST /icc/soft-proof`**：真正的 ICC 描述檔色彩轉換，透過 Pillow 的 `ImageCms` 模組（已內建 LittleCMS 2.16，`requirements.txt` 無需新增套件）。
@@ -172,21 +161,23 @@
 - **已驗證**（真實 CMYK 描述檔，透過已安裝於本機 Windows 的一份描述檔暫時測試，未複製進本專案）：`ImageCms.buildProofTransform()` 產生的軟打樣色彩位移可測量（測試漸層平均 RGB 差異 19.83），`ImageCms.buildTransform()` 轉出的真實 CMYK 值算出的逐像素總墨量合理（最高 212.2%、平均 135.6%）；並以真實 HTTP 請求對實際的 `server.py`（未修改、原始檔案）驗證：成功路徑、缺少描述檔的 400、上傳非 CMYK 描述檔的 400 拒絕，皆如預期運作。
 - 使用者未上傳描述檔、或此服務離線時，軟打樣功能會退回既有的 `CmykEngine.simulatePrintProof()` 近似模擬——兩者不等價，UI 會誠實標示目前用的是哪一種。
 
+#### 2.7.2 色盲/色覺辨識障礙模擬（2026-08-28 新增，⚠️ 尚未接上 UI）
+
+- **`src/core/color-blindness-simulator.ts`**：真實實作 Machado, Oliveira & Fernandes 2009 模型（*"A Physiologically-based Model for Simulation of Color Vision Deficiency,"* IEEE TVCG 15(6)）——全色盲（100% 嚴重度）色差矩陣取自作者官方補充資料頁，並跨查兩個獨立來源（DaltonLens-Python 的 `machado_2009_matrices` 表格，MIT 授權；Chrome DevTools 官方色覺模擬功能）確認係數吻合。用途：印前預檢「這個設計如果只靠顏色分辨（例如紅綠圖表），色盲使用者看得出來嗎？」。已驗證並修正一個容易誤踩的坑：矩陣必須套用在線性 RGB，不是 gamma 編碼的 sRGB（R 語言 `colorspace` 套件的 v2.1-0 更新記錄明確記載了這個曾經犯過的錯誤）。部分嚴重度（非 100%）採用線性內插近似，非論文原始資料，文件內已誠實標註。已用單元測試驗證：白/黑在色盲模擬下仍接近白/黑（在無彩色軸上）；一組真實紅綠混淆色對，在紅綠色盲（deuteranopia/protanopia）模擬下的色差距離顯著小於原始色差，且明顯小於藍黃色盲（tritanopia，物理上不該影響紅綠判斷）下的色差——這是矩陣本身是否符合生理學意義的真實驗證，不只是檢查輸出尺寸。
+
 ### 2.8 文字、條碼與防呆
 - **`text-inspector.ts`**：文字區域偵測（對比/邊緣啟發式，非 OCR）+ 錯字檢查。錯字檢查完全是本機的，透過 `free-spellcheck-client.ts` 的 ~18 條正規表示式規則比對——儘管兩個檔案的舊版註解都聲稱有打 LanguageTool 免費 API，實際上整條路徑裡沒有任何一次網路請求，純粹是本機規則比對，已於 2026-08-25 修正說明文字。
 - **`text-zone-detector.ts`**：深色像素密度網格掃描，標示可能的文字區域（不做文字辨識）。
-- **`hairline-thickener.ts`**：細線防斷印自動增厚。
-- **`k100-barcode-generator.ts`**：⚠️ 目前產生的 QR/條碼圖案**不是真正可掃描的編碼**（QR 沒有糾錯碼與遮罩、Code128 缺少檢查碼），且未被任何 UI 呼叫（死代碼）。列在此處是為了誠實揭露現況，不是推薦使用。
-- **`barcode-verifier.ts`**：真實的對比度/尺寸預檢啟發式（不是解碼器，無法確認條碼本身正確，只能檢查印刷可讀性風險）。
-- **`qr-preflight-enhancer.ts`**：QR 對比度與純黑向量重構檢查。
+- **`k100-barcode-generator.ts`**：⚠️ 目前產生的 QR/條碼圖案**不是真正可掃描的編碼**（QR 沒有糾錯碼與遮罩、Code128 缺少檢查碼）。未被前端 UI 呼叫，但透過 `server/services/prepress-toolkit.ts` 接了真實的 `/api/prepress/k100-barcode` 後端端點（動態 import，非死碼）——列在此處是為了誠實揭露「產生的編碼不可掃描」這件事，不是推薦使用。
+- **`barcode-verifier.ts`**：真實的對比度/尺寸預檢啟發式（不是解碼器，無法確認條碼本身正確，只能檢查印刷可讀性風險）。2026-08-28 移除文檔裡「偵測 4 色富黑污染」的宣稱，程式碼裡從未實作過這項檢查。
 
 ### 2.9 場景分類與版面工具
 - **`scene-classifier.ts`**：EXIF 特徵 + YCbCr 膚色模型 + Otsu 雙峰方差 + 飽和度/邊緣統計的決策樹分類器（純像素統計，非訓練分類模型）。
 - **`gradient-centroid-cropper.ts`**：梯度能量加權 + 中心偏向的焦點裁切估算（非物件偵測模型）。
 - **`dpi-calculator.ts`**：DPI 與放大倍率計算。
 - **`print-score.ts`**：依實際分析數據（DPI、墨量、對比等）加權計算的印前健檢分數（本機自我評分，非第三方驗證）。
-- **`svg-path-optimizer.ts`**：SVG 路徑精度裁剪與空白壓縮（非 SVGO 完整實作）。
-- **`exif-metadata-sniffer.ts`**：EXIF/PNG metadata 讀取，辨識拍攝軟體/AI 生圖工具簽名。
+- **`svg-path-optimizer.ts`**：SVG 路徑精度裁剪與空白壓縮（非 SVGO 完整實作）。未被前端 UI 呼叫，但透過 `server/services/prepress-toolkit.ts` 接了真實的 `/api/prepress/optimize-svg` 後端端點（動態 import，非死碼）。
+- **`exif-metadata-sniffer.ts`**：對檔案前 16KB 做 ASCII 關鍵字子字串比對，辨識拍攝軟體/AI 生圖工具簽名（子字串比對會有誤判風險，例如圖片內容剛好包含品牌名稱文字；2026-08-28 移除文檔裡不成立的「100%」宣稱與虛構的「(MIT, 0 KB)」授權標籤）。
 - **`geo-distance.ts`**：Haversine 距離計算，用於鄰近印刷廠定位。
 - **`ai-vectorizer.ts`**：LAB 顏色量化 + Douglas-Peucker 化簡 + 三次貝茲曲線擬合的本機向量化引擎（VTracer 離線時的備援，非 VTracer 本身）。
 

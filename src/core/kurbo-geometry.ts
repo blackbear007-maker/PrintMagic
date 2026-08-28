@@ -9,7 +9,11 @@
  * Pre-Press Functionality:
  * 1. 2mm Acrylic Standee Die-Cut Offset: Computes smooth outer contour buffer for laser cutters.
  * 2. 0.2mm White Ink Choke (White Ink Inset): Computes inward offset to prevent white fringe from peeking out.
- * 3. Exact Bézier Spline Flattening and Arc Approximation.
+ *
+ * 2026-08-28 honesty note: an earlier version of this docstring also claimed "Exact Bézier Spline
+ * Flattening and Arc Approximation" — there is no Bézier/arc code in this file, only the polygon
+ * point-offset math below (`offsetPolygon`, using per-vertex averaged edge normals with miter
+ * scaling). Removed the unsupported claim; the polygon-offset math itself is real.
  */
 
 export interface Point2D {

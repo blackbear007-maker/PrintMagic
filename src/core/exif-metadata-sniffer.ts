@@ -1,12 +1,15 @@
 /**
- * 📷 ExifMetadataSniffer (MIT, 0 KB)
- * 
- * Extracts decisive pre-press intent clues directly from binary file headers:
- * 1. Camera Metadata: ISO, Shutter, Make/Model, Apple iPhone Portrait Mode -> 100% Real Photo.
- * 2. Software Tags: 'Clip Studio Paint', 'Procreate', 'SAI' -> 100% Anime/Manga Illustration.
- * 3. AI Generator Tags: 'Midjourney', 'Stable Diffusion', 'NovelAI', 'DALL-E' -> 100% AI Art.
- * 4. Vector/Design Tools: 'Adobe Illustrator', 'CorelDRAW' -> 100% Vector/Dieline Graphic.
- * 5. Embedded Color Profiles: 'Japan Color 2001 Coated', 'FOGRA39', 'Display P3'.
+ * 📷 ExifMetadataSniffer
+ *
+ * ⚠️ 2026-08-28 誠實澄清：這不是真正的 EXIF 解析器，也不是「(MIT, 0 KB)」——那個授權標籤是虛構的
+ * （100% 本專案自己寫的程式碼，沒有引用任何第三方授權碼）。實際作法是把檔案前 16KB 轉成 ASCII、
+ * 全部轉小寫，直接對關鍵字做子字串比對（例如檔名或圖片裡剛好出現 "canon" 這個詞也會誤判）。這種
+ * 子字串比對無法保證「100%」— 一張隨手拍到印有 "Procreate" 字樣海報的照片、或檔案中剛好包含某廠牌
+ * 名稱的文字內容，都可能被誤判成對應軟體/相機生成。以下功能描述已移除不成立的百分比宣稱：
+ * 1. 相機廠牌/型號關鍵字比對，用於推測是否為實拍照片。
+ * 2. 繪圖軟體名稱關鍵字比對（Clip Studio Paint、Procreate、SAI 等），用於推測是否為手繪插畫。
+ * 3. AI 生成工具關鍵字比對（Midjourney、Stable Diffusion、NovelAI、DALL-E 等）。
+ * 4. 向量設計軟體關鍵字比對（Adobe Illustrator、CorelDRAW、Inkscape）。
  */
 
 export interface ExifDetectionResult {

@@ -1412,8 +1412,12 @@ class App {
     const fileBytes = firstItem.file ? await firstItem.file.arrayBuffer() : undefined;
     const scene = SceneClassifier.classifyImage(firstItem.originalImageData, fileBytes);
     const traitInfo = scene.detectedTraits.length > 0 ? ` (${scene.detectedTraits[0]})` : '';
-    this.xiangAssistant?.say(`🎯 偵測到為【${scene.categoryIcon} ${scene.categoryNameZh}${traitInfo}】！已為您自動匹配【${autoPreset.nameZh}】並套用專屬處理流程（${scene.recommendedPipeline.superResolutionModel}）！`, 7500);
-    Toast.success(`✨ 智慧辨識：【${scene.categoryIcon} ${scene.categoryNameZh}】· 已自動適配專屬處理流程！`);
+    // 2026-08-28: this used to say "已...套用專屬處理流程（X）" (already applied pipeline X) — false for
+    // most categories (see the honesty note in scene-classifier.ts: only the super-resolution step for
+    // anime/portrait/landscape is actually invoked later in the pipeline; nothing else here is auto-run).
+    // Preset matching IS real; the named pipeline is a suggestion, so the wording now says so honestly.
+    this.xiangAssistant?.say(`🎯 偵測到為【${scene.categoryIcon} ${scene.categoryNameZh}${traitInfo}】！已為您自動匹配【${autoPreset.nameZh}】，建議搭配處理流程（${scene.recommendedPipeline.superResolutionModel}）！`, 7500);
+    Toast.success(`✨ 智慧辨識：【${scene.categoryIcon} ${scene.categoryNameZh}】· 已自動匹配專屬預設！`);
 
     // Show/hide backside quick prompt based on preset and batch count
     const promptAddBack = document.getElementById('btnPromptAddBack');

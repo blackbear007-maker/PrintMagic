@@ -137,21 +137,23 @@ export class MoireDescreen {
 }
 
 // ─── Small helpers ──────────────────────────────────────────────────────────────────────────
+// nextPow2/extractChannel/reflectPad/fft2d/fftshift2d are also reused by moire-risk-predictor.ts
+// (real periodicity detection for moiré-risk preflight) — exported rather than duplicated.
 
-function nextPow2(n: number): number {
+export function nextPow2(n: number): number {
   let p = 1;
   while (p < n) p *= 2;
   return p;
 }
 
-function extractChannel(data: Uint8ClampedArray, w: number, h: number, channel: number): Float64Array {
+export function extractChannel(data: Uint8ClampedArray, w: number, h: number, channel: number): Float64Array {
   const out = new Float64Array(w * h);
   for (let i = 0; i < w * h; i++) out[i] = data[i * 4 + channel];
   return out;
 }
 
 /** Reflect-pads a (srcW x srcH) plane into a (padW x padH) buffer, source anchored at (0,0). */
-function reflectPad(src: Float64Array, srcW: number, srcH: number, padW: number, padH: number): Float64Array {
+export function reflectPad(src: Float64Array, srcW: number, srcH: number, padW: number, padH: number): Float64Array {
   if (srcW === padW && srcH === padH) {
     // Still need a fresh, appropriately-sized buffer since this becomes the in-place FFT buffer.
     const out = new Float64Array(padW * padH);
@@ -331,7 +333,7 @@ function clampIndex(i: number, n: number): number {
 // (used by the original on the forward transform) paired with a plain cv2.idft — this specific
 // split matters because the threshold comparison downstream is calibrated against that scaling.
 
-function fftshift2d(re: Float64Array, im: Float64Array, w: number, h: number): void {
+export function fftshift2d(re: Float64Array, im: Float64Array, w: number, h: number): void {
   const hw = w >> 1;
   const hh = h >> 1;
   for (let y = 0; y < hh; y++) {
@@ -352,7 +354,7 @@ function swap(re: Float64Array, im: Float64Array, a: number, b: number): void {
   im[b] = ti;
 }
 
-function fft2d(re: Float64Array, im: Float64Array, w: number, h: number, invert: boolean): void {
+export function fft2d(re: Float64Array, im: Float64Array, w: number, h: number, invert: boolean): void {
   const rowRe = new Float64Array(w);
   const rowIm = new Float64Array(w);
   for (let y = 0; y < h; y++) {

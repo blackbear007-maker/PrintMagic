@@ -7,7 +7,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.5-blue)](https://www.typescriptlang.org/)
 [![Vite](https://img.shields.io/badge/Vite-6.4-purple)](https://vitejs.dev/)
 [![Docker Microservices](https://img.shields.io/badge/Docker-2%20Containers-blue)](./docker-compose.yml)
-[![Tests](https://img.shields.io/badge/Tests-230%2F230%20Passed-brightgreen)](./tests)
+[![Tests](https://img.shields.io/badge/Tests-255%2F255%20Passed-brightgreen)](./tests)
 [![SPEC](https://img.shields.io/badge/System%20SPEC-v3.1.0-orange)](./docs/SPEC.md)
 
 ---
@@ -32,25 +32,23 @@
 
 ---
 
-## 🛡️ 黃金核心護城河（Golden Core Moat Modules）
+## 🛡️ 核心資產模組（Core Modules）
 
-以下模組是真正**解決印刷翻車痛點、支撐產品付費轉換與商業護城河**的核心資產，全部是決定性數學/幾何演算法（非 AI 模型）：
+以下模組真正被前端或後端呼叫、解決印刷翻車痛點，全部是決定性數學/幾何演算法（非 AI 模型）：
+
+> ⚠️ **2026-08-28 更正**：這個區塊原本標題是「黃金核心護城河」，列出 `Sticker-KissCut-Builder`、`Acrylic-Charm-Builder`、`TShirt-Color-Knockout`、`Canvas-Wrap-Mirror`、`Photo-Frame-Mat` 五項，宣稱它們「支撐產品付費轉換與商業護城河」。逐一核對後發現這 5 項對應的原始碼（`sticker-kisscut-builder.ts`／`acrylic-charm-builder.ts`／`tshirt-color-knockout.ts`／`canvas-wrap-mirror.ts`／`real-paper-simulator.ts`）從未被任何 UI 或後端路徑呼叫過，且都帶有虛構的「(MIT)」授權標籤——使用者根本無法觸發，已於同日移除，詳見 [docs/SPEC.md](./docs/SPEC.md) 開頭的誠實性附註。原本的「Barcode-QR-Fixer」條目也已移除：它宣稱「保證秒掃的 QR 碼」與本文件其他地方的誠實揭露互相矛盾（`k100-barcode-generator.ts` 產生的編碼**不是真正可掃描的編碼**，QR 沒有糾錯碼與遮罩）；下方已用真正對應的模組取代。
 
 ### 🎨 1. 動漫 / 文創周邊剛需
-- **`Sticker-KissCut-Builder`**（手帳貼紙刀模線 + 0.2mm 內縮白墨）：解決透明/PVC 貼紙透光問題，自動生成洋紅刀模與白墨遮罩層。
-- **`Acrylic-Charm-Builder`**（壓克力立牌/吊飾外框與打孔）：自動生成 2mm 圓滑邊界向量刀模與頂部打孔圈。
-- **`TShirt-Color-Knockout`**（衣服膠印底色去色透氣）：智慧扣除同色衣物底色，使熱轉印膠膜柔軟透氣不悶熱。
+- **`Line-Art-Upscaler`**（二次元插畫放大）：雙線性放大 + 邊緣壓黑，強化墨線輪廓。
 
 ### 🖼️ 2. 相片與生活輸出剛需
-- **`Canvas-Wrap-Mirror`**（無框畫 3.5cm 立體包邊鏡像）：四面包邊鏡像延伸，正面構圖完整不切人臉與重要細節。
-- **`Photo-Frame-Mat`**（畫廊卡紙裝裱內襯白邊）：自動計算 2:3/3:4 比例與 45° 倒角陰影。
 - **`Passport-Proportion-Aligner`**（2 吋護照大頭照頭頂自動校準）：精確定位台灣與國際 2 吋大頭照官方頭部比例。
 
 ### 🖨️ 3. 工業級印前物理與色彩安全（印刷廠零退件保證）
 - **`Bleed-Expander`**（3mm 智慧出血背景生長）：鏡像外推演算法，杜絕裁切白邊與文字切除。
-- **`CMYK-Engine / Kubelka-Munk / GCR-Gray`**（控墨防死黑、軟打樣、省墨）：物理減法混色預測 + 總墨量 TAC ≤ 300% 限制。
+- **`CMYK-Engine / GCR-Gray`**（控墨防死黑、軟打樣、省墨）：物理減法混色預測 + 總墨量 TAC ≤ 300% 限制（2026-08-28 修正 GCR 與 TAC 計算錯誤，詳見 SPEC.md）。
 - **`Foil-Simulator`**（亮金/玫瑰金/局部光 3D 擬真與獨立黑版分離）：即時反光模擬並自動生成 K100 菲林鋅版遮罩。
-- **`Barcode-QR-Fixer`**（純黑 K100 向量小字與保證秒掃的 QR 碼）：重構純黑向量碼與高反差對比驗證。
+- **`Barcode-Verifier`**（條碼/QR 印前可讀性預檢）：對比度與實體尺寸啟發式檢查——這是預檢工具，不是解碼器，無法確認條碼本身正確，只能檢查印刷可讀性風險。
 - **`Imposition-Engine`**（A4/A3 智慧合版拼模）：多模自動排滿大版，節省合版印刷費。
 - **`PDF/X-1a 出機壓製`**（零退件標準出機檔）：內嵌向量角線、十字規矩線、出血框與 CMYK 描述檔。
 

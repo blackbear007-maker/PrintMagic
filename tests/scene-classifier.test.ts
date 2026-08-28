@@ -119,7 +119,7 @@ describe('Intelligent Pre-Press Scene & Image Type Auto-Classifier', () => {
     const res = SceneClassifier.classifyImage(img);
     expect(res.category).toBe('food');
     expect(res.categoryNameZh).toContain('美食');
-    expect(res.recommendedPipeline.superResolutionModel).toContain('FoodMenuMouthwatering');
+    expect(res.recommendedPipeline.superResolutionModel).toContain('EdgeAwareUpscaler');
   });
 
   it('should instantly identify Anime via Clip Studio Paint EXIF software tag', () => {

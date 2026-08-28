@@ -6,9 +6,13 @@
  * the image suffers from trapezoidal/keystone perspective tilt and skewed aspect ratios.
  * 
  * Solution:
- * 1. Corner localization (Top-Left, Top-Right, Bottom-Right, Bottom-Left).
- * 2. 3x3 Projective Homography Matrix calculation (Gaussian elimination).
- * 3. Bilinear backward warping to unwarp the tilted quad into an orthogonal 300 DPI canvas.
+ * 1. 3x3 Projective Homography Matrix calculation (Gaussian elimination) — real, verified math.
+ * 2. Bilinear backward warping to unwarp the tilted quad into an orthogonal 300 DPI canvas.
+ *
+ * ⚠️ 2026-08-28 誠實澄清：`autoDetectCorners()` 不做任何真正的角點偵測——它不看圖片內容，永遠回傳
+ * 固定的 5% 邊距內縮四個角，跟原本文檔暗示的「Corner localization」不符。真正的透視校正邏輯
+ * （homography 矩陣求解 + bilinear 反向取樣）是真的、算法正確，只是需要呼叫端自己提供準確角點座標
+ * 才有意義——目前沒有任何呼叫方接了真正的角點偵測，`autoDetectCorners()` 只能當一個不可靠的預設值。
  */
 
 export interface Point2D {
@@ -25,7 +29,8 @@ export interface QuadCorners {
 
 export class PerspectiveRectifier {
   /**
-   * Automatically estimates the bounding quad of a tilted document on a background
+   * NOT real corner detection — always returns a fixed 5% margin inset regardless of image
+   * content. A placeholder default for callers that don't supply real corner coordinates.
    */
   public static autoDetectCorners(imageData: ImageData): QuadCorners {
     const w = imageData.width;

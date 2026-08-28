@@ -13,7 +13,6 @@
  * 1. Scans for high-frequency rectangular module clusters (QR/Barcode regions).
  * 2. Checks Michelson & Weber Optical Contrast ratio (>70% required for optical scanning).
  * 3. Validates minimum physical module size (at 300 DPI, minimum 0.5mm module size).
- * 4. Flags 4-color rich black CMYK contamination.
  */
 
 export interface BarcodeVerificationReport {
