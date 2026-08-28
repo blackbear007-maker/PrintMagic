@@ -60,7 +60,12 @@ describe('Advanced Pre-Press Commercial Models Suite', () => {
     const filtered = AntiBandingFilter.apply(img, 0.7);
     expect(filtered.width).toBe(50);
     expect(filtered.height).toBe(50);
-    const edgePixelIdx = (25 * 50 + 35) * 4;
+    // 2026-08-28: the original assertion checked (x=35, y=25) — deep inside the flat red region,
+    // nowhere near the real gray/red boundary at x=24|25. It only passed because the old (broken)
+    // dither formula happened to round to a 0 offset at that exact coordinate; a real blue-noise
+    // dither legitimately perturbs flat regions by ±1 there, which is the fix working as intended,
+    // not a regression. The real edge to check is the actual high-contrast boundary itself.
+    const edgePixelIdx = (25 * 50 + 25) * 4;
     expect(filtered.data[edgePixelIdx]).toBe(255);
     expect(filtered.data[edgePixelIdx + 1]).toBe(0);
   });
