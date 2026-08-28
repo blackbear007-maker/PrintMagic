@@ -18,7 +18,16 @@ beforeAll(() => {
   }
 });
 
-describe('InkLimiter — Fixed CMYK ↔ RGB Formula (P0 Bug Fix)', () => {
+/**
+ * 2026-08-28: this file's own name and its old describe title ("Fixed CMYK ↔ RGB Formula (P0 Bug
+ * Fix)") turned out to be describing the wrong fix. Its first test asserted that pure black
+ * (0,0,0) *should* produce exactly 400% TAC — that was the actual bug (naive CMY double-counted
+ * against a separately-added K), not the correct value. Real industry-standard TAC for pure
+ * K-only black is 100%. See the fix note in src/core/ink-limiter.ts for the full explanation and
+ * why InkLimiter now calls the same CmykEngine.rgbToCmyk() the app's real output uses, instead of
+ * a disconnected formula of its own.
+ */
+describe('InkLimiter — GCR-aware TAC formula (corrected 2026-08-28)', () => {
   function solidColorImage(r: number, g: number, b: number, count = 100): ImageData {
     const data = new Uint8ClampedArray(count * 4);
     for (let i = 0; i < count; i++) {
@@ -31,13 +40,14 @@ describe('InkLimiter — Fixed CMYK ↔ RGB Formula (P0 Bug Fix)', () => {
     return { data, width: 10, height: 10 } as ImageData;
   }
 
-  it('should correctly detect over-limit on pure black (0,0,0) → 400% TAC > 300% limit', () => {
-    // Pure black in unseparated RGB → C=1, M=1, Y=1, K=1 → TAC = 400%
+  it('should NOT flag pure black as over-limit under the real adaptive-GCR separation', () => {
+    // Pure black separates to mostly-K (grayComponent=1, adaptive GCR pushes most of it to K),
+    // real TAC lands well under 200% — nowhere near the old (buggy) 400% figure.
     const img = solidColorImage(0, 0, 0);
     const result = InkLimiter.analyze(img, 300);
-    expect(result.hasOverflow).toBe(true);
-    expect(result.maxTotalInk).toBe(400);
-    expect(result.exceededPixelCount).toBe(100);
+    expect(result.hasOverflow).toBe(false);
+    expect(result.maxTotalInk).toBeLessThan(200);
+    expect(result.exceededPixelCount).toBe(0);
   });
 
   it('should detect safe TAC on medium gray / white without overflow', () => {
@@ -46,25 +56,27 @@ describe('InkLimiter — Fixed CMYK ↔ RGB Formula (P0 Bug Fix)', () => {
     expect(result.hasOverflow).toBe(false);
   });
 
-  it('clampInk should restore pixel colors without darkening artifacts from wrong formula', () => {
-    // Saturated red: should not cause excessive color shift after clamping
+  it('clampInk should not touch a fully saturated primary that is already under threshold', () => {
+    // Pure red has zero gray component, so GCR does nothing to it: C=0%, M=100%, Y=100%, K=0% —
+    // real TAC is ~200%, still under a 300% limit, so no modification should occur.
     const img = solidColorImage(255, 0, 0);
     const { clampedImageData, modifiedPixels } = InkLimiter.clampInk(img, 300);
 
-    // Pure red at 100% C = 0, M = 0, Y = 0, K = 0 → TAC = 0, no modification needed
     expect(modifiedPixels).toBe(0);
     expect(clampedImageData.data[0]).toBe(255);
     expect(clampedImageData.data[1]).toBe(0);
     expect(clampedImageData.data[2]).toBe(0);
   });
 
-  it('clampInk should bring 400% TAC black down to threshold and pass reanalysis', () => {
-    const img = solidColorImage(0, 0, 0);
-    const { clampedImageData, modifiedPixels } = InkLimiter.clampInk(img, 300);
+  it('clampInk should still clamp a genuinely over-limit color down to threshold and pass reanalysis', () => {
+    // Pure red's ~200% real TAC exceeds a 150% threshold, so this should genuinely trigger
+    // clamping (the pure-black case above no longer does, since it's honestly under threshold).
+    const img = solidColorImage(255, 0, 0);
+    const { clampedImageData, modifiedPixels } = InkLimiter.clampInk(img, 150);
 
     expect(modifiedPixels).toBe(100);
-    const reAnalysis = InkLimiter.analyze(clampedImageData, 300);
-    expect(reAnalysis.maxTotalInk).toBeLessThanOrEqual(300);
+    const reAnalysis = InkLimiter.analyze(clampedImageData, 150);
+    expect(reAnalysis.maxTotalInk).toBeLessThanOrEqual(150);
     expect(reAnalysis.hasOverflow).toBe(false);
   });
 });

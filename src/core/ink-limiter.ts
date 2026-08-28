@@ -1,4 +1,5 @@
 import type { InkAnalysis } from '../types';
+import { CmykEngine } from './cmyk-engine';
 
 /**
  * Total Area Coverage (TAC) Ink Limiter & Heatmap Analyzer — v2 Perceptual
@@ -27,7 +28,24 @@ export class InkLimiter {
   })();
 
   // ──────────────────────────────────────────────────────────
-  // TAC Analysis (unchanged for backwards compat + speed)
+  // TAC Analysis
+  //
+  // ⚠️ 2026-08-28 修正一個真實存在的計算錯誤：舊版算 `totalInk = (c+m+y+k)*100`，其中 c/m/y 是「完全
+  // 沒去底色」的 naive CMY（c=1-r 等），k 又另外疊加 `min(c,m,y)`——等於同一份灰階份量被算了兩次。純黑
+  // (0,0,0) 因此被算成 400%（c=m=y=k=100%），但業界標準的 TAC 定義（K 版完全取代灰階份量後）純黑應該
+  // 是 100%。這不是無傷大雅的高估：預設 300% 上限下，任何深於 75% 灰的像素就會被誤判超標，導致陰影/
+  // 黑色文字大量被 `clampInk()` 過度沖淡飽和度，而它們本來印起來完全安全。這也正是 `cmyk-engine.ts`
+  // 同一天修正的那個 GCR bug 的姊妹問題——兩個檔案原本用兩套不同、互相矛盾的公式算同一件事。
+  //
+  // 修正時考慮過改用「全 UCR」（K 版完全取代灰階份量）：純黑會正確算出 100% 沒錯，但反而製造了新問題
+  // ——可以證明這個公式對任何 RGB 輸入，TAC 理論上限剛好是 200%（純飽和單色，如純紅 (255,0,0)：
+  // C=0/M=100/Y=100/K=0）。這代表在預設 300% 上限下，`hasOverflow`／`clampInk`／熱力圖警示這整套安全
+  // 機制會變成永遠不會觸發的死功能——用一個新的「安靜的不安全」換掉舊的「吵鬧的假警報」，並不是真正
+  // 的修正。
+  //
+  // 因此改為直接呼叫 `CmykEngine.rgbToCmyk()`——本站實際輸出分色真正會用的那套「可調式局部 GCR」公式
+  // ——確保這裡回報的 TAC 數字，就是這張圖片實際送印時真正會用到的墨量，而不是另一套脫節的理論假設。
+  // 兩個檔案從此用同一套真相來源，不會再對同一個像素算出不同答案。
   // ──────────────────────────────────────────────────────────
 
   public static analyze(
@@ -41,17 +59,9 @@ export class InkLimiter {
     let exceededPixelCount = 0;
 
     for (let i = 0; i < data.length; i += 4) {
-      const r = data[i] / 255;
-      const g = data[i + 1] / 255;
-      const b = data[i + 2] / 255;
-
-      // Standard pre-press 4-color composite (C + M + Y + K)
-      const c = 1 - r;
-      const m = 1 - g;
-      const y = 1 - b;
-      const k = Math.min(c, m, y);
-
-      const totalInk = (c + m + y + k) * 100;
+      // Same separation the app actually prints with — see the fix note above.
+      const cmyk = CmykEngine.rgbToCmyk(data[i], data[i + 1], data[i + 2]);
+      const totalInk = (cmyk.c + cmyk.m + cmyk.y + cmyk.k) * 100;
       if (totalInk > maxTotalInk) maxTotalInk = totalInk;
       sumTotalInk += totalInk;
       if (totalInk > threshold) exceededPixelCount++;
@@ -95,16 +105,20 @@ export class InkLimiter {
       const b8 = pixels[i + 2];
 
       // ── Step 1: Detect TAC using the SAME formula as analyze() ──
-      // (sRGB domain, not linear — keeps detection consistent)
+      // (the real CmykEngine separation, see the fix note above analyze())
       const rN = r8 / 255;
       const gN = g8 / 255;
       const bN = b8 / 255;
 
+      // Naive (pre-GCR) CMY — kept for Step 3's proportional compression path and the
+      // isChromatic heuristic below; NOT used for the TAC measurement itself anymore.
       const cSimple = 1 - rN;
       const mSimple = 1 - gN;
       const ySimple = 1 - bN;
       const kSimple = Math.min(cSimple, mSimple, ySimple);
-      const totalInk = (cSimple + mSimple + ySimple + kSimple) * 100;
+
+      const cmykIn = CmykEngine.rgbToCmyk(r8, g8, b8);
+      const totalInk = (cmykIn.c + cmykIn.m + cmykIn.y + cmykIn.k) * 100;
 
       if (totalInk <= maxLimit) continue;
       modifiedPixels++;
@@ -154,22 +168,43 @@ export class InkLimiter {
       }
 
       // ── Step 4: Guaranteed post-check ──
-      // Verify the output pixel passes analyze()'s formula; if not, fall back
-      // to the safe proportional scaling path.
-      const cOut = 1 - outR8 / 255;
-      const mOut = 1 - outG8 / 255;
-      const yOut = 1 - outB8 / 255;
-      const kOut = Math.min(cOut, mOut, yOut);
-      const tacOut = (cOut + mOut + yOut + kOut) * 100;
-      if (tacOut > maxLimit) {
-        // Fallback: safe proportional sRGB compression
-        const ff = maxLimit / tacOut;
-        const cf = Math.min(1, cOut * ff);
-        const mf = Math.min(1, mOut * ff);
-        const yf = Math.min(1, yOut * ff);
-        outR8 = Math.min(255, Math.max(0, Math.round((1 - cf) * 255)));
-        outG8 = Math.min(255, Math.max(0, Math.round((1 - mf) * 255)));
-        outB8 = Math.min(255, Math.max(0, Math.round((1 - yf) * 255)));
+      // Verify the output pixel passes analyze()'s formula (the real adaptive-GCR separation).
+      //
+      // 2026-08-28 追加修正：原本這裡用「naive CMY 比例縮放」去逼近由真實 GCR 公式量測出的 TAC
+      // ——用手動追蹤實際失敗像素驗證過，這是兩套不同的色彩模型：縮放 naive C/M/Y 的幅度跟真實
+      // （Bradford + 分級 GCR）TAC 實際下降的幅度不成比例，導致每次迭代只能緩慢逼近目標，6 次
+      // 迭代後仍卡在剛好超標一點點（150.1~151.6% vs 目標 150%），不是精度問題而是收斂速度問題。
+      //
+      // 改用「向白色二分搜尋」：在目前顏色與純白 (255,255,255) 之間二分，每次都用真實公式重新
+      // 量測候選值，只有通過安全檢查才採用。純白的 TAC 恆為 0（不可能超標），因此保證有解；且因
+      // 為只在「確認安全」時才更新採用的候選值，即使真實 GCR 分級公式在灰階份量跨越 0.3/0.6 門檻
+      // 時有不連續跳動（非嚴格單調），這個演算法仍保證回傳的像素一定安全，只是可能不是理論上最
+      // 飽和的安全值——對印前安全機制而言，「保證安全」比「精確逼近門檻」更重要。
+      const safeTarget = maxLimit * 0.995;
+      {
+        const startR = outR8, startG = outG8, startB = outB8;
+        let loT = 0, hiT = 1;
+        // Pure white is always safe (TAC ≈ 0), so it's a valid fallback answer.
+        let bestR = 255, bestG = 255, bestB = 255;
+        for (let iter = 0; iter < 14; iter++) {
+          const t = (loT + hiT) / 2;
+          const candR = Math.round(startR + (255 - startR) * t);
+          const candG = Math.round(startG + (255 - startG) * t);
+          const candB = Math.round(startB + (255 - startB) * t);
+          const cmykCand = CmykEngine.rgbToCmyk(candR, candG, candB);
+          const tacCand = (cmykCand.c + cmykCand.m + cmykCand.y + cmykCand.k) * 100;
+          if (tacCand <= safeTarget) {
+            hiT = t;
+            bestR = candR;
+            bestG = candG;
+            bestB = candB;
+          } else {
+            loT = t;
+          }
+        }
+        outR8 = bestR;
+        outG8 = bestG;
+        outB8 = bestB;
       }
 
       pixels[i]     = outR8;
@@ -196,15 +231,9 @@ export class InkLimiter {
     const dst = heatmap.data;
 
     for (let i = 0; i < src.length; i += 4) {
-      const r = src[i] / 255;
-      const g = src[i + 1] / 255;
-      const b = src[i + 2] / 255;
-
-      const c = 1 - r;
-      const m = 1 - g;
-      const y = 1 - b;
-      const k = Math.min(c, m, y);
-      const totalInk = (c + m + y + k) * 100;
+      // Same real adaptive-GCR separation as analyze()/clampInk() — see the fix note above analyze().
+      const cmyk = CmykEngine.rgbToCmyk(src[i], src[i + 1], src[i + 2]);
+      const totalInk = (cmyk.c + cmyk.m + cmyk.y + cmyk.k) * 100;
 
       if (totalInk > threshold) {
         // Severity gradient: threshold→400%

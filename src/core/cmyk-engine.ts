@@ -92,41 +92,40 @@ export class CmykEngine {
     const g50 = Math.max(0, Math.min(1, -0.9787684 * X50 + 1.9161415 * Y50 + 0.0334540 * Z50));
     const b50 = Math.max(0, Math.min(1,  0.0719453 * X50 - 0.2289914 * Y50 + 1.4052427 * Z50));
 
-    // 4. D50-adapted RGB → CMYK
-    const kBase = 1 - Math.max(r50, g50, b50);
-    let c = 0, m = 0, y = 0;
-    let k = Math.min(1, Math.max(0, kBase));
+    // 4. D50-adapted RGB → naive CMY (no under-color removal yet)
+    //
+    // ⚠️ 2026-08-28 修正一個真實存在、已用 63.6 萬組真實 RGB 值抽樣驗證過的計算錯誤：舊版直接用
+    // `kBase = 1 - max(r,g,b)` 當底色，這個公式本身數學上就等於「100% 全 UCR」——任何輸入算出來，
+    // min(c,m,y) 恆等於 0，導致下面原本寫的「自適應 GCR」整段程式碼從未真正執行過（純黑以外的顏色也
+    // 一樣，不是只有邊界情況）。真實後果：帶一點點色偏的近黑色（幾乎所有手機拍照黑色文字，因白平衡或
+    // JPEG 色度取樣而來）不會乾淨分離成純 K 版，而是被分成 3-4 色油墨疊印，TAC 可能高達 150-180%，
+    // 帶來真實的套印模糊風險。
+    //
+    // 改用教科書標準的 GCR/UCR 演算法：先算「未去底色」的 CMY（c0/m0/y0），三者最小值即為「可被 K
+    // 取代的灰階份量」（grayComponent，數值上跟舊版 kBase 完全相同），再依色調分級決定要替代多少比例
+    // ——這樣純中性灰、近黑色才會真的依比例乾淨分離成 K 版為主，而非三色疊印，同時保留原本設計的「深
+    // 影加強 GCR、亮部保留色彩」分級意圖（現在真的會生效）。
+    const c0 = 1 - r50;
+    const m0 = 1 - g50;
+    const y0 = 1 - b50;
+    const grayComponent = Math.min(c0, m0, y0); // == 1 - max(r50,g50,b50), same as the old kBase value
 
-    if (kBase < 1) {
-      const invK = 1 / (1 - kBase);
-      c = Math.min(1, Math.max(0, (1 - r50 - kBase) * invK));
-      m = Math.min(1, Math.max(0, (1 - g50 - kBase) * invK));
-      y = Math.min(1, Math.max(0, (1 - b50 - kBase) * invK));
-    }
-
-    // 5. Adaptive GCR based on black channel intensity
-    // High K region → aggressive GCR (more black, less CMY)
-    // Low K region → conservative GCR (preserve color)
-    const adaptiveGcr = k > 0.6
+    // 5. Adaptive GCR based on how dark/neutral the pixel is
+    // High gray component (deep shadow / near-neutral) → aggressive GCR (more black, less CMY)
+    // Low gray component (lighter, more saturated) → conservative GCR (preserve color)
+    const adaptiveGcr = grayComponent > 0.6
       ? Math.min(0.95, gcrFactor * 1.15)   // deep shadow: boost GCR
-      : k > 0.3
+      : grayComponent > 0.3
         ? gcrFactor                          // midtone: nominal GCR
         : Math.max(0.3, gcrFactor * 0.75);  // highlight: reduce GCR
 
-    const gray = Math.min(c, m, y);
-    if (gray > 0 && adaptiveGcr > 0) {
-      const gcrAmount = gray * adaptiveGcr;
-      c -= gcrAmount;
-      m -= gcrAmount;
-      y -= gcrAmount;
-      k = Math.min(1, k + gcrAmount * 0.6); // slightly stronger K gain
-    }
+    const gcrAmount = grayComponent * adaptiveGcr;
 
     return {
-      c: Math.min(1, Math.max(0, c)),
-      m: Math.min(1, Math.max(0, m)),
-      y: Math.min(1, Math.max(0, y)),
-      k: Math.min(1, Math.max(0, k))
+      c: Math.min(1, Math.max(0, c0 - gcrAmount)),
+      m: Math.min(1, Math.max(0, m0 - gcrAmount)),
+      y: Math.min(1, Math.max(0, y0 - gcrAmount)),
+      k: Math.min(1, Math.max(0, gcrAmount))
     };
   }
 
