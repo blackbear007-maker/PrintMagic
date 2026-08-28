@@ -17,6 +17,7 @@ import {
   type UiMode
 } from '../types';
 import { DEFAULT_PRESET, getPresetById } from '../core/presets';
+import type { CvdType } from '../core/color-blindness-simulator';
 
 export interface AppState {
   // Active Image Sources
@@ -67,6 +68,7 @@ export interface AppState {
   selectedPaper: PaperType;
   showHeatmap: boolean;
   showSoftProof: boolean;
+  cvdPreviewType: CvdType | null;
   showSafeZone: boolean;
   isComparing: boolean;
   isProcessing: boolean;
@@ -145,6 +147,7 @@ class StateStore {
     selectedPaper: 'glossy',
     showHeatmap: false,
     showSoftProof: false,
+    cvdPreviewType: null,
     showSafeZone: false,
     isComparing: false,
     isProcessing: false,
@@ -217,6 +220,13 @@ class StateStore {
 
   public toggleSoftProof(): void {
     this.setState({ showSoftProof: !this.state.showSoftProof });
+  }
+
+  /** Cycles the color-blindness preview: off -> protanopia -> deuteranopia -> tritanopia -> off. */
+  public cycleCvdPreview(): void {
+    const order: (CvdType | null)[] = [null, 'protanopia', 'deuteranopia', 'tritanopia'];
+    const next = order[(order.indexOf(this.state.cvdPreviewType) + 1) % order.length];
+    this.setState({ cvdPreviewType: next });
   }
 
   public toggleSafeZone(): void {
@@ -410,6 +420,7 @@ class StateStore {
       activeBatchId: null,
       showHeatmap: false,
       showSoftProof: false,
+      cvdPreviewType: null,
       isComparing: false,
       isProcessing: false,
       processingStep: '',

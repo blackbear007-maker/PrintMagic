@@ -3,6 +3,7 @@ import { UnsharpMask } from '../core/unsharp-mask';
 import { InkLimiter } from '../core/ink-limiter';
 import { PrintScoreCalculator } from '../core/print-score';
 import { MoireDescreen } from '../core/moire-descreen';
+import { JpegDeblockingFilter } from '../core/jpeg-deblocking-filter';
 import type { WorkerRequest, WorkerResponse } from '../types';
 
 function wrapImageData(data: Uint8ClampedArray, width: number, height: number): ImageData {
@@ -118,6 +119,25 @@ self.onmessage = (e: MessageEvent<WorkerRequest>) => {
           }
         };
         self.postMessage(response, [descreened.data.buffer]);
+        return;
+      }
+
+      case 'deblock': {
+        const strength = payload.amount ?? 0.6;
+        const artifactThreshold = payload.threshold ?? 6;
+        const imgObj = wrapImageData(srcData, srcWidth, srcHeight);
+        const deblocked = JpegDeblockingFilter.deblock(imgObj, strength, artifactThreshold);
+
+        response = {
+          id,
+          success: true,
+          imageData: {
+            width: deblocked.width,
+            height: deblocked.height,
+            data: deblocked.data
+          }
+        };
+        self.postMessage(response, [deblocked.data.buffer]);
         return;
       }
 

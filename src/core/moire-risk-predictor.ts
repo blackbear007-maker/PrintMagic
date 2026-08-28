@@ -26,7 +26,11 @@ import { nextPow2, reflectPad, fft2d, fftshift2d } from './moire-descreen';
  * 1. Detecting T1/angle from the actual artwork via the same FFT machinery `moire-descreen.ts`
  *    already uses (peak-finding in the log-magnitude spectrum, excluding the low-frequency
  *    "image content" region), rather than requiring the user to already know their pattern's
- *    period.
+ *    period. Runs the FFT on a box-averaged downsample to a fixed small working size (this is a
+ *    preflight check, not a full filter) and rescales the detected period back to the source
+ *    image's own pixel units — real print images are essentially always larger than any FFT size
+ *    that would stay fast enough to run automatically, so this downsamples rather than rejecting
+ *    large inputs outright.
  * 2. Converting a chosen halftone screen ruling (LPI) at a target print DPI into its period T2 in
  *    the same pixel units as T1.
  * 3. Mapping the resulting predicted moiré period into a risk tier by its size in millimeters at
@@ -54,9 +58,13 @@ export interface ScreenMoireAssessment {
 const STANDARD_CMYK_SCREEN_ANGLES_DEG = [15, 75, 0, 45];
 const DEFAULT_SCREENS_LPI = [133, 150, 175, 200];
 
-// A quick preflight check, not a full filter — cap the FFT working size well below
-// moire-descreen.ts's own cap so this stays fast enough to run automatically.
+// This is a quick preflight check, not a full filter, so the FFT always runs at a small fixed
+// working resolution regardless of the source image's actual size (see the box-downsample note
+// on `detectDominantPeriodicity` below) — real print images are essentially always larger than
+// any hard pixel cap would allow, so rejecting them outright would make this feature never fire
+// in practice. Kept exported for backward compatibility / tests that reference the old cap name.
 export const MAX_PREDICTOR_INPUT_PIXELS = 800 * 800;
+const WORKING_MAX_DIMENSION = 768;
 
 export class MoireRiskPredictor {
   /**
@@ -66,21 +74,27 @@ export class MoireRiskPredictor {
    */
   public static detectDominantPeriodicity(source: ImageData): DetectedPeriodicity | null {
     const { width: srcW, height: srcH, data } = source;
-    if (srcW * srcH > MAX_PREDICTOR_INPUT_PIXELS) {
-      throw new Error(
-        `圖片過大（${srcW}x${srcH}），摩爾紋風險預測上限為 ${(MAX_PREDICTOR_INPUT_PIXELS / 1e6).toFixed(2)}MP，請先縮小圖片再檢查。`
-      );
-    }
 
-    // Luminance only — we want the dominant repeating STRUCTURE, not per-channel screening detail.
-    const lumPlane = new Float64Array(srcW * srcH);
-    for (let i = 0; i < srcW * srcH; i++) {
-      lumPlane[i] = 0.2126 * data[i * 4] + 0.7152 * data[i * 4 + 1] + 0.0722 * data[i * 4 + 2];
-    }
+    // Box-average downsample to a fixed small working resolution before the FFT — this is a
+    // preflight check, not a full filter, and real print images (often thousands of pixels per
+    // side) would otherwise always exceed any reasonable direct-FFT size. Uses a clean INTEGER
+    // decimation factor `n` (every output pixel = the average of exactly n×n source pixels) —
+    // deliberately not a fractional scale ratio: a fractional ratio (e.g. 1600/768 = 25/12) makes
+    // most output bins average n source pixels but some average n+1, an unevenly-modulated
+    // grouping whose own periodicity (repeating every `denominator` output pixels) can alias with
+    // the image's real pattern and produce a spurious detected frequency — verified this
+    // empirically produced a 3x-wrong period on a synthetic 32px-period test image before
+    // switching to integer decimation. The detected period is rescaled back to the ORIGINAL
+    // image's pixel units before returning, so callers never see the internal working resolution.
+    const decimFactor = Math.max(1, Math.ceil(Math.max(srcW, srcH) / WORKING_MAX_DIMENSION));
+    const scale = 1 / decimFactor;
+    const workW = Math.max(8, Math.ceil(srcW / decimFactor));
+    const workH = Math.max(8, Math.ceil(srcH / decimFactor));
+    const lumPlane = downsampleLuminance(data, srcW, srcH, workW, workH, decimFactor);
 
-    const padW = nextPow2(srcW);
-    const padH = nextPow2(srcH);
-    const re = reflectPad(lumPlane, srcW, srcH, padW, padH);
+    const padW = nextPow2(workW);
+    const padH = nextPow2(workH);
+    const re = reflectPad(lumPlane, workW, workH, padW, padH);
     const im = new Float64Array(padW * padH);
 
     // Apply a 2D Hann window before the FFT. A non-periodic signal (e.g. a plain gradient) has a
@@ -101,12 +115,18 @@ export class MoireRiskPredictor {
     const cx = padW >> 1;
     const cy = padH >> 1;
     // Protect the central low-frequency region (real image content — including ordinary smooth
-    // gradients like lighting falloff or sky, which have genuine broadband low-frequency energy
-    // that decays but doesn't vanish near DC, not just a hard "flat vs. periodic" split) from
-    // ever being mistaken for a repeating pattern. Same purpose and same ratio as
-    // moire-descreen.ts's "middle" mask default (middleRatio=4 → divisor 8), reusing its
-    // already-tuned value rather than inventing an independent one.
-    const dcExcludeRadius = Math.max(padW, padH) / 8;
+    // gradients like lighting falloff or sky) from being mistaken for a repeating pattern.
+    // Expressed as "the pattern must complete at least MIN_REPETITIONS full cycles across the
+    // working image" rather than a fixed fraction of the padded FFT size: a fixed padW-based
+    // fraction is NOT scale-invariant once box-downsampling is involved (see the decimFactor note
+    // above) — for a heavily-downsampled large image, padW ends up much larger relative to the
+    // pattern's own working-domain period than for a small image, so the same padW-fraction
+    // radius silently swallows genuinely fine real patterns (verified empirically: a real 32px-
+    // period test pattern in a 1600px image was being excluded this way, leaving its 3rd harmonic
+    // as the strongest surviving peak — a 3x-wrong detected period). Requiring a minimum cycle
+    // count is invariant to how much downsampling happened.
+    const MIN_REPETITIONS = 3;
+    const dcExcludeRadius = Math.max(4, (MIN_REPETITIONS * padW) / Math.max(workW, workH));
 
     let peakIdx = -1;
     let peakMag = -Infinity;
@@ -156,17 +176,23 @@ export class MoireRiskPredictor {
       const farMag = magnitude[outY * padW + outX];
       radialDecayRatio = peakMag / Math.max(farMag, 1e-6);
     }
-    if (radialDecayRatio < 4) return null;
+    // Empirically calibrated margin: genuine periodic test patterns measured radial decay ratios
+    // in the thousands to millions; a plain gradient's leakage right at the DC-exclusion boundary
+    // measured only ~5.6x (it decays, but far more gradually than a real narrowband spike). 50x
+    // sits with a wide safety margin below the genuine cases and well above the gradient case.
+    if (radialDecayRatio < 50) return null;
 
-    // Frequency in cycles/pixel along each axis, back in the ORIGINAL (unpadded) image's pixel
-    // grid — the padding changes the FFT's bin spacing, not the physical spatial frequency it
-    // represents, so we normalize by the padded size (the transform's actual sample grid).
+    // Frequency in cycles/pixel along each axis, in the WORKING (downsampled, padded) image's
+    // pixel grid — normalize by the padded size (the transform's actual sample grid).
     const fx = dx / padW;
     const fy = dy / padH;
     const freq = Math.hypot(fx, fy);
     if (freq <= 0) return null;
 
-    const periodPx = 1 / freq;
+    // Rescale the period back to the ORIGINAL image's pixel units (divide by `scale`, since the
+    // working image was `scale`x the original size) — callers should never need to know this
+    // function ran its FFT on a downsampled copy. Angle is scale-invariant, no rescale needed.
+    const periodPx = 1 / freq / scale;
     const angleDeg = ((Math.atan2(fy, fx) * 180) / Math.PI + 180) % 180; // gratings are 180°-periodic
 
     return { periodPx, angleDeg, prominence: Math.round(prominence * 10) / 10 };
@@ -219,6 +245,44 @@ export class MoireRiskPredictor {
 
     return { detected, assessments };
   }
+}
+
+/**
+ * Converts RGBA pixel data directly to a box-averaged, downsampled luminance plane in one pass,
+ * using a clean integer n×n decimation factor (see the caller's note on why this must be an
+ * integer, not a fractional scale ratio — a fractional ratio's unevenly-modulated group sizes can
+ * alias with the image's real periodic content and produce a spurious detected frequency). Every
+ * output pixel is the average of exactly n×n source pixels, except possibly a smaller partial
+ * block at the right/bottom edge when n doesn't evenly divide srcW/srcH.
+ */
+function downsampleLuminance(
+  data: Uint8ClampedArray,
+  srcW: number,
+  srcH: number,
+  dstW: number,
+  dstH: number,
+  decimFactor: number
+): Float64Array {
+  const sums = new Float64Array(dstW * dstH);
+  const counts = new Int32Array(dstW * dstH);
+
+  for (let y = 0; y < srcH; y++) {
+    const dy = Math.min(dstH - 1, Math.floor(y / decimFactor));
+    const rowBase = y * srcW;
+    const dstRowBase = dy * dstW;
+    for (let x = 0; x < srcW; x++) {
+      const dx = Math.min(dstW - 1, Math.floor(x / decimFactor));
+      const i = (rowBase + x) * 4;
+      const lum = 0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2];
+      const dstIdx = dstRowBase + dx;
+      sums[dstIdx] += lum;
+      counts[dstIdx]++;
+    }
+  }
+
+  const out = new Float64Array(dstW * dstH);
+  for (let i = 0; i < out.length; i++) out[i] = counts[i] > 0 ? sums[i] / counts[i] : 0;
+  return out;
 }
 
 function applyHannWindow2d(plane: Float64Array, w: number, h: number): void {

@@ -275,6 +275,9 @@
                 <button id="btnToggleSoftProof" class="pm-tool-btn" title="模擬 CMYK 實體印刷打樣色彩">
                   <span>🖨️</span> 軟打樣
                 </button>
+                <button id="btnToggleCvdPreview" class="pm-tool-btn" title="色盲/色覺辨識障礙預覽：模擬紅綠色盲(protanopia/deuteranopia)、藍黃色盲(tritanopia)使用者實際看到的顏色，檢查設計是否過度依賴顏色分辨（Machado 2009 生理模型）">
+                  <span id="cvdPreviewIcon">🌈</span> <span id="cvdPreviewLabel">色盲預覽</span>
+                </button>
                 <button id="btnToggleHeatmap" class="pm-tool-btn" title="檢視 TAC 總墨量超過 300% 之危險溢墨區域">
                   <span>🎨</span> 溢墨熱力
                 </button>
@@ -401,6 +404,10 @@
                 <button id="btnDescreen" class="pm-dock-btn" title="去網紋摩爾紋：FFT 頻域陷波濾波（本機決定性演算法，非 AI），適合翻拍印刷品/掃描文件產生的網點干涉紋。運算量較高，大圖可能需要數秒；一般照片不建議套用（可能誤刪細節）">
                   <span class="pm-dock-icon">🌀</span>
                   <span class="pm-dock-name">去網紋</span>
+                </button>
+                <button id="btnJpegDeblock" class="pm-dock-btn" title="JPEG 去區塊：偵測 8x8 壓縮網格邊界的量化痕跡並局部平滑，適合網路截圖/多次轉傳壓縮過的圖片。只處理確認是壓縮瑕疵的邊界，真實圖案邊緣不受影響；一般未經 JPEG 重壓縮的圖片套用可能沒有效果">
+                  <span class="pm-dock-icon">🧩</span>
+                  <span class="pm-dock-name">去區塊</span>
                 </button>
               </div>
 

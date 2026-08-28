@@ -9,6 +9,7 @@ import { UnsharpMask } from '../core/unsharp-mask';
 import { InkLimiter } from '../core/ink-limiter';
 import { PrintScoreCalculator } from '../core/print-score';
 import { MoireDescreen } from '../core/moire-descreen';
+import { JpegDeblockingFilter } from '../core/jpeg-deblocking-filter';
 
 function createClampedImageData(data: Uint8ClampedArray, width: number, height: number): ImageData {
   const copy = new Uint8ClampedArray(data.length);
@@ -170,6 +171,14 @@ export class WorkerClient {
         });
         return { imageData: descreened };
       }
+      case 'deblock': {
+        const deblocked = JpegDeblockingFilter.deblock(
+          imageData,
+          extra.amount ?? 0.6,
+          extra.threshold ?? 6
+        );
+        return { imageData: deblocked };
+      }
     }
   }
 
@@ -217,6 +226,18 @@ export class WorkerClient {
     middle?: number
   ): Promise<ImageData> {
     const res = await this.postToWorker('descreen', imageData, { threshold, radius, middle });
+    return res.imageData;
+  }
+
+  public async deblock(
+    imageData: ImageData,
+    strength = 0.6,
+    artifactThreshold = 6
+  ): Promise<ImageData> {
+    const res = await this.postToWorker('deblock', imageData, {
+      amount: strength,
+      threshold: artifactThreshold
+    });
     return res.imageData;
   }
 }

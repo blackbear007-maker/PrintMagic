@@ -59,6 +59,8 @@ import { AntiBandingFilter } from './core/anti-banding';
 import { FreeQualityClient } from './services/free-quality-client';
 import { PantoneMatcher } from './core/pantone-matcher';
 import { BarcodeVerifier } from './core/barcode-verifier';
+import { ColorBlindnessSimulator, type CvdType } from './core/color-blindness-simulator';
+import { MoireRiskPredictor } from './core/moire-risk-predictor';
 import { PassportModal } from './ui/passport-modal';
 import { CanvasZoomController } from './ui/canvas-zoom';
 import { WebShareService } from './services/web-share';
@@ -132,6 +134,8 @@ class App {
   private btnFlipBack = document.getElementById('btnFlipBack')!;
   private btnToggleHeatmap = document.getElementById('btnToggleHeatmap')!;
   private btnToggleSoftProof = document.getElementById('btnToggleSoftProof')!;
+  private btnToggleCvdPreview = document.getElementById('btnToggleCvdPreview')!;
+  private cvdPreviewLabel = document.getElementById('cvdPreviewLabel')!;
   private btnToggleSafeZone = document.getElementById('btnToggleSafeZone')!;
   private iccProfileInput = document.getElementById('iccProfileInput') as HTMLInputElement;
   private iccProfileStatus = document.getElementById('iccProfileStatus')!;
@@ -150,6 +154,8 @@ class App {
   // Cache of view variations
   private heatmapDataUrl: string | null = null;
   private softProofDataUrl: string | null = null;
+  private cvdPreviewDataUrl: string | null = null;
+  private cvdPreviewCachedType: CvdType | null = null;
 
   // User-uploaded CMYK ICC profile (session-only, in-memory) — see free-icc-client.ts
   private uploadedIccProfile: { bytes: ArrayBuffer; name: string } | null = null;
@@ -412,6 +418,8 @@ class App {
       store.reset();
       this.heatmapDataUrl = null;
       this.softProofDataUrl = null;
+      this.cvdPreviewDataUrl = null;
+      this.cvdPreviewCachedType = null;
       this.loupe.setImageData(null);
       this.loupe.setEnabled(false);
       Toast.info('已重置畫布，請拖入新圖片');
@@ -604,6 +612,34 @@ class App {
         this.xiangAssistant?.say(XiaoxiangAssistant.LINES.softProofOn, 5000);
       } else {
         this.xiangAssistant?.say(XiaoxiangAssistant.LINES.softProofOff, 3000);
+      }
+    });
+
+    // Cycle Color-Blindness (CVD) Preview: off -> protanopia -> deuteranopia -> tritanopia -> off
+    this.btnToggleCvdPreview.addEventListener('click', () => {
+      const state = store.getState();
+      if (!state.processedImageData) return;
+
+      SoundEffects.sliderTick();
+      store.cycleCvdPreview();
+      const type = store.getState().cvdPreviewType;
+
+      if (type && (type !== this.cvdPreviewCachedType || !this.cvdPreviewDataUrl)) {
+        const preview = ColorBlindnessSimulator.simulate(state.processedImageData, type);
+        this.cvdPreviewDataUrl = this.imageDataToDataUrl(preview);
+        this.cvdPreviewCachedType = type;
+      }
+
+      const labels: Record<CvdType, string> = {
+        protanopia: '紅色盲預覽',
+        deuteranopia: '綠色盲預覽',
+        tritanopia: '藍黃色盲預覽'
+      };
+      this.cvdPreviewLabel.textContent = type ? labels[type] : '色盲預覽';
+      if (type) {
+        Toast.info(`🌈 ${labels[type]}中 — 模擬色覺辨識障礙使用者實際看到的顏色`);
+      } else {
+        Toast.info('🌈 已關閉色盲預覽');
       }
     });
 
@@ -897,6 +933,32 @@ class App {
         Toast.success('✓ 去網紋完成（本機 FFT 陷波濾波）。若原圖沒有明顯網紋/摩爾紋，效果可能不明顯。');
       } catch (err: any) {
         Toast.error(`去網紋失敗：${err?.message || '未知錯誤'}`);
+      }
+    });
+
+    // 🧩 JPEG 去區塊（偵測 8x8 壓縮網格邊界痕跡並局部平滑，見 src/core/jpeg-deblocking-filter.ts）
+    document.getElementById('btnJpegDeblock')?.addEventListener('click', async () => {
+      const state = store.getState();
+      const imgData = state.processedImageData || state.originalImageData;
+      if (!imgData) {
+        Toast.error('請先上傳圖片');
+        return;
+      }
+
+      SoundEffects.laserScan();
+      Toast.info('🧩 正在偵測並修復 JPEG 壓縮區塊痕跡...');
+
+      try {
+        const result = await workerClient.deblock(imgData);
+        store.setState({
+          processedImageData: result,
+          processedDataUrl: this.imageDataToDataUrl(result)
+        });
+        this.mainPreviewImg.src = this.imageDataToDataUrl(result);
+        SoundEffects.purityChime();
+        Toast.success('✓ 去區塊完成。若原圖沒有明顯 JPEG 壓縮網格痕跡，效果可能不明顯。');
+      } catch (err: any) {
+        Toast.error(`去區塊失敗：${err?.message || '未知錯誤'}`);
       }
     });
 
@@ -1303,6 +1365,8 @@ class App {
           this.mainPreviewImg.src = this.heatmapDataUrl;
         } else if (state.showSoftProof && this.softProofDataUrl) {
           this.mainPreviewImg.src = this.softProofDataUrl;
+        } else if (state.cvdPreviewType && this.cvdPreviewDataUrl) {
+          this.mainPreviewImg.src = this.cvdPreviewDataUrl;
         } else {
           this.mainPreviewImg.src = state.processedDataUrl;
         }
@@ -1325,6 +1389,7 @@ class App {
       // 7. Button Active States
       this.btnToggleHeatmap.classList.toggle('active', state.showHeatmap);
       this.btnToggleSoftProof.classList.toggle('active', state.showSoftProof);
+      this.btnToggleCvdPreview.classList.toggle('active', !!state.cvdPreviewType);
       this.btnToggleSafeZone.classList.toggle('active', state.showSafeZone);
       this.btnFlipBack.classList.toggle('active', this.paper3D.getIsFlipped());
 
@@ -1446,6 +1511,8 @@ class App {
 
     this.heatmapDataUrl = null;
     this.softProofDataUrl = null;
+    this.cvdPreviewDataUrl = null;
+    this.cvdPreviewCachedType = null;
 
     store.setState({
       isProcessing: true,
@@ -1599,6 +1666,27 @@ class App {
       }
       if (iqaReport.score >= 80) {
         scoreResult.recommendations.push(`📊 印刷品質評分：${iqaReport.score}/100 (${iqaReport.grade} 級商業標準)`);
+      }
+
+      // Moiré risk preflight (見 src/core/moire-risk-predictor.ts) — wrapped locally so a failure
+      // here can't abort the whole Step 4 diagnostic; this is a bonus check, not core safety math.
+      try {
+        const { detected, assessments } = MoireRiskPredictor.assess(processedImgData, dpiAnalysis.targetDpi || 300);
+        if (detected) {
+          const worst = assessments.reduce((a, b) => (b.predictedMoirePeriodMm > a.predictedMoirePeriodMm ? b : a));
+          if (worst.riskLevel === 'high') {
+            scoreResult.issues.push(
+              `🌀 偵測到圖片本身有規律重複圖案（週期約 ${detected.periodPx.toFixed(1)}px），與常見網屏線數（如 ${worst.lpi} LPI）疊印可能產生明顯摩爾紋波紋（預估週期 ${worst.predictedMoirePeriodMm}mm）`
+            );
+            scoreResult.recommendations.push('💡 建議送印前與印刷廠確認網屏線數，或考慮微調圖片解析度/角度以錯開規律頻率');
+          } else if (worst.riskLevel === 'moderate') {
+            scoreResult.recommendations.push(
+              `🌀 圖片含規律圖案，與部分網屏線數搭配時可能出現輕微摩爾紋（預估週期 ${worst.predictedMoirePeriodMm}mm），建議送印前留意打樣`
+            );
+          }
+        }
+      } catch {
+        // Preflight nicety only — silently skip on any unexpected failure (e.g. degenerate input).
       }
 
       const processedDataUrl = this.imageDataToDataUrl(processedImgData);

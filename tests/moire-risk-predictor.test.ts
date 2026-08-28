@@ -69,6 +69,34 @@ describe('MoireRiskPredictor.detectDominantPeriodicity', () => {
     expect(Math.min(result!.angleDeg, 180 - result!.angleDeg)).toBeLessThan(10);
   });
 
+  it('should correctly rescale the detected period back to source pixels on a large image that triggers internal downsampling', () => {
+    // Larger than WORKING_MAX_DIMENSION (768) on both sides, so this exercises the box-downsample
+    // + period-rescale path, not just scale=1 passthrough like the 32px test above.
+    const size = 1600;
+    const data = new Uint8ClampedArray(size * size * 4);
+    for (let y = 0; y < size; y++) {
+      for (let x = 0; x < size; x++) {
+        const val = (Math.floor(x / 16) % 2 === 0) ? 220 : 40; // period-32 stripes along x
+        const idx = (y * size + x) * 4;
+        data[idx] = val;
+        data[idx + 1] = val;
+        data[idx + 2] = val;
+        data[idx + 3] = 255;
+      }
+    }
+    // @ts-ignore
+    const img = { data, width: size, height: size } as ImageData;
+
+    const result = MoireRiskPredictor.detectDominantPeriodicity(img);
+    expect(result).not.toBeNull();
+    // Allow a wider tolerance than the small-image test — downsampling to a working resolution
+    // quantizes the detectable period to the nearest working-grid frequency bin, then rescaling
+    // that back up amplifies the quantization step, so exact-integer closeness isn't expected.
+    expect(result!.periodPx).toBeGreaterThan(26);
+    expect(result!.periodPx).toBeLessThan(38);
+    expect(Math.min(result!.angleDeg, 180 - result!.angleDeg)).toBeLessThan(10);
+  });
+
   it('should report no significant periodicity for a smooth low-frequency gradient', () => {
     // A larger image than the stripe-pattern test above, deliberately: a plain gradient's energy
     // is genuinely spread across many low frequency bins near DC (it's a real, broadband signal,
