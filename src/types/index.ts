@@ -208,7 +208,7 @@ export interface ProcessedImageData {
 
 export interface WorkerRequest {
   id: string;
-  operation: 'lanczos' | 'unsharp' | 'analyze' | 'clampInk' | 'generateHeatmap';
+  operation: 'lanczos' | 'unsharp' | 'analyze' | 'clampInk' | 'generateHeatmap' | 'descreen';
   payload: {
     imageData: {
       width: number;
@@ -220,6 +220,7 @@ export interface WorkerRequest {
     radius?: number;
     threshold?: number;
     maxInk?: number;
+    middle?: number;
   };
 }
 

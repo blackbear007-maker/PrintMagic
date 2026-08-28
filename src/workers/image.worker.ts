@@ -2,6 +2,7 @@ import { LanczosResizer } from '../engines/lanczos';
 import { UnsharpMask } from '../core/unsharp-mask';
 import { InkLimiter } from '../core/ink-limiter';
 import { PrintScoreCalculator } from '../core/print-score';
+import { MoireDescreen } from '../core/moire-descreen';
 import type { WorkerRequest, WorkerResponse } from '../types';
 
 function wrapImageData(data: Uint8ClampedArray, width: number, height: number): ImageData {
@@ -96,6 +97,27 @@ self.onmessage = (e: MessageEvent<WorkerRequest>) => {
           }
         };
         self.postMessage(response, [heatmap.data.buffer]);
+        return;
+      }
+
+      case 'descreen': {
+        const imgObj = wrapImageData(srcData, srcWidth, srcHeight);
+        const descreened = MoireDescreen.apply(imgObj, {
+          threshold: payload.threshold,
+          radius: payload.radius,
+          middle: payload.middle
+        });
+
+        response = {
+          id,
+          success: true,
+          imageData: {
+            width: descreened.width,
+            height: descreened.height,
+            data: descreened.data
+          }
+        };
+        self.postMessage(response, [descreened.data.buffer]);
         return;
       }
 

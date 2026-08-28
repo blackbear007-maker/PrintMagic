@@ -8,6 +8,7 @@ import { LanczosResizer } from '../engines/lanczos';
 import { UnsharpMask } from '../core/unsharp-mask';
 import { InkLimiter } from '../core/ink-limiter';
 import { PrintScoreCalculator } from '../core/print-score';
+import { MoireDescreen } from '../core/moire-descreen';
 
 function createClampedImageData(data: Uint8ClampedArray, width: number, height: number): ImageData {
   const copy = new Uint8ClampedArray(data.length);
@@ -161,6 +162,14 @@ export class WorkerClient {
         const inkAnalysis = InkLimiter.analyze(imageData);
         return { stats, inkAnalysis };
       }
+      case 'descreen': {
+        const descreened = MoireDescreen.apply(imageData, {
+          threshold: extra.threshold,
+          radius: extra.radius,
+          middle: extra.middle
+        });
+        return { imageData: descreened };
+      }
     }
   }
 
@@ -199,6 +208,16 @@ export class WorkerClient {
     imageData: ImageData
   ): Promise<{ stats: ImagePixelStats; inkAnalysis: InkAnalysis }> {
     return this.postToWorker('analyze', imageData);
+  }
+
+  public async descreen(
+    imageData: ImageData,
+    threshold?: number,
+    radius?: number,
+    middle?: number
+  ): Promise<ImageData> {
+    const res = await this.postToWorker('descreen', imageData, { threshold, radius, middle });
+    return res.imageData;
   }
 }
 

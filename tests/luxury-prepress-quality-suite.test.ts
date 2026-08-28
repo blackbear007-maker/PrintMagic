@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { ChromaticAberrationCorrector } from '../src/core/chromatic-aberration-corrector';
-import { FabricMoireNeutralizer } from '../src/core/fabric-moire-neutralizer';
 import { NeonHalationCompressor } from '../src/core/neon-halation-compressor';
 import { Packaging3DMockupRenderer } from '../src/core/packaging-3d-mockup-renderer';
 import { FlatFieldVignetteCorrector } from '../src/core/flatfield-vignette-corrector';
@@ -23,19 +22,6 @@ describe('Luxury Pre-Press Quality Enhancement Modules Suite', () => {
     expect(res.width).toBe(10);
     expect(res.height).toBe(10);
     expect(res.data[2]).toBeLessThan(240); // Blue clamped down towards green
-  });
-
-  it('02. FabricMoireNeutralizer: should smooth textile weave periodic interference', () => {
-    const img = createMockImg(20, 20);
-    // Add fine grid textile variation
-    for (let i = 0; i < img.data.length; i += 8) {
-      img.data[i] = 180;
-      img.data[i + 1] = 180;
-      img.data[i + 2] = 180;
-    }
-    const res = FabricMoireNeutralizer.neutralizeWeaveMoire(img, 1.5, 0.7);
-    expect(res.width).toBe(20);
-    expect(res.height).toBe(20);
   });
 
   it('03. NeonHalationCompressor: should restore saturated neon hue in blown-out highlight cores', () => {

@@ -874,6 +874,32 @@ class App {
     document.getElementById('btnOpenVectorOverlayTop')?.addEventListener('click', openVectorOverlayModal);
     document.getElementById('btnSimpleVectorOverlay')?.addEventListener('click', openVectorOverlayModal);
 
+    // 🌀 去網紋摩爾紋（本機 FFT 陷波濾波，非 AI，見 src/core/moire-descreen.ts）
+    document.getElementById('btnDescreen')?.addEventListener('click', async () => {
+      const state = store.getState();
+      const imgData = state.processedImageData || state.originalImageData;
+      if (!imgData) {
+        Toast.error('請先上傳圖片');
+        return;
+      }
+
+      SoundEffects.laserScan();
+      Toast.info('🌀 正在執行去網紋運算（FFT 頻域濾波，大圖可能需要數秒）...');
+
+      try {
+        const result = await workerClient.descreen(imgData);
+        store.setState({
+          processedImageData: result,
+          processedDataUrl: this.imageDataToDataUrl(result)
+        });
+        this.mainPreviewImg.src = this.imageDataToDataUrl(result);
+        SoundEffects.purityChime();
+        Toast.success('✓ 去網紋完成（本機 FFT 陷波濾波）。若原圖沒有明顯網紋/摩爾紋，效果可能不明顯。');
+      } catch (err: any) {
+        Toast.error(`去網紋失敗：${err?.message || '未知錯誤'}`);
+      }
+    });
+
     // Open Direct Print & Live Quote Modal
     document.getElementById('btnOpenDirectPrint')?.addEventListener('click', () => {
       this.directPrintModal.open();
