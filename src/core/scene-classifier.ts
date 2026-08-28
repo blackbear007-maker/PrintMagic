@@ -67,7 +67,7 @@ export class SceneClassifier {
           detectedTraits: traits,
           recommendedPipeline: {
             superResolutionModel: 'LineArtUpscaler 墨線銳化放大',
-            outpaintingModel: 'EdgeExtendInpaint 背景外推',
+            outpaintingModel: 'BleedExpander 智慧出血背景生長',
             specialCraft: 'Kurbo 2mm 刀模',
             reasonZh: `檢測到繪圖軟體簽名（${exif.softwareName}），建議搭配線稿銳化放大與刀模生成。`
           }
@@ -237,7 +237,7 @@ export class SceneClassifier {
         detectedTraits: traits,
         recommendedPipeline: {
           superResolutionModel: 'LineArtUpscaler 墨線銳化放大',
-          outpaintingModel: 'EdgeExtendInpaint 背景外推',
+          outpaintingModel: 'BleedExpander 智慧出血背景生長',
           specialCraft: 'EdgeChokeMatting 人物立牌去背',
           reasonZh: '偵測到動漫飽和色塊與墨線，建議搭配線稿銳化放大與鐳射刀模。'
         }
@@ -276,7 +276,7 @@ export class SceneClassifier {
         detectedTraits: traits,
         recommendedPipeline: {
           superResolutionModel: 'EdgeAwareUpscaler 邊緣強化放大',
-          outpaintingModel: 'EdgeExtendInpaint (柔和邊緣擴散)',
+          outpaintingModel: 'BleedExpander (鏡像外推邊緣擴散)',
           specialCraft: '菜單文字微反差強化',
           reasonZh: '偵測到美食暖色熱量光譜，建議搭配邊緣強化放大與菜單文字反差強化。'
         }
@@ -296,7 +296,7 @@ export class SceneClassifier {
       detectedTraits: traits,
       recommendedPipeline: {
         superResolutionModel: 'EdgeAwareUpscaler 邊緣強化放大',
-        outpaintingModel: 'EdgeExtendInpaint (深度透視外推)',
+        outpaintingModel: 'BleedExpander (智慧出血背景生長)',
         specialCraft: '大圖輸出建議：確認出血與解析度是否足夠',
         reasonZh: '偵測到廣色域大圖與藝術攝影，建議搭配邊緣強化放大與背景外推。'
       }

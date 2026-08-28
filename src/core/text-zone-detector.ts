@@ -49,6 +49,13 @@ export class TextZoneDetector {
     const cellW = Math.floor(w / gridCols);
     const cellH = Math.floor(h / gridRows);
 
+    // 2026-08-28 修正兩個真實問題：(1) 沒有跟 text-inspector.ts 一樣的抽樣 stride，大圖會逐像素全掃
+    // （例如 6000×4000 圖片約 2400 萬次亮度計算），改用相同精神的抽樣間隔，大圖效能明顯改善；(2) 沒
+    // 檢查 alpha 通道，完全透明像素（常見的 rgb=0,0,0 alpha=0 清空像素）會被誤判成「暗像素」，導致
+    // 帶透明背景的圖片（例如去背後的貼紙）出現假的文字區域誤判，跟同目錄下 barcode-verifier.ts 早就
+    // 用的 `if (a < 50) continue` 寫法保持一致。
+    const stride = Math.max(1, Math.floor(Math.min(w, h) / 250));
+
     for (let r = 0; r < gridRows; r++) {
       for (let c = 0; c < gridCols; c++) {
         const startX = c * cellW;
@@ -56,23 +63,30 @@ export class TextZoneDetector {
 
         let darkPixels = 0;
         let highEdgeTransitions = 0;
+        let sampledPixels = 0;
 
-        for (let y = startY; y < Math.min(h, startY + cellH); y++) {
-          for (let x = startX; x < Math.min(w, startX + cellW); x++) {
+        for (let y = startY; y < Math.min(h, startY + cellH); y += stride) {
+          for (let x = startX; x < Math.min(w, startX + cellW); x += stride) {
             const idx = (y * w + x) * 4;
+            if (src[idx + 3] < 50) continue; // transparent — not real dark content
+
+            sampledPixels++;
             const lum = 0.299 * src[idx] + 0.587 * src[idx + 1] + 0.114 * src[idx + 2];
             if (lum < 120) darkPixels++;
 
-            if (x < w - 1) {
-              const rightLum = 0.299 * src[idx + 4] + 0.587 * src[idx + 5] + 0.114 * src[idx + 6];
-              if (Math.abs(lum - rightLum) > 40) highEdgeTransitions++;
+            const nx = x + stride;
+            if (nx < w) {
+              const nIdx = idx + stride * 4;
+              if (src[nIdx + 3] >= 50) {
+                const rightLum = 0.299 * src[nIdx] + 0.587 * src[nIdx + 1] + 0.114 * src[nIdx + 2];
+                if (Math.abs(lum - rightLum) > 40) highEdgeTransitions++;
+              }
             }
           }
         }
 
-        // Textual stroke density signature
-        const cellPixels = (cellW * cellH) / 4;
-        if (darkPixels > 0 && (darkPixels > cellPixels * 0.05 || highEdgeTransitions > 0)) {
+        // Textual stroke density signature (ratio against actually-sampled, non-transparent pixels)
+        if (darkPixels > 0 && (darkPixels > sampledPixels * 0.05 || highEdgeTransitions > 0)) {
           const isLegible = cellH >= minFontHeightPx;
           if (!isLegible) preflightPassed = false;
 

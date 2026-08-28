@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
 // Deterministic local pre-press algorithms — no ML models, no framework claims.
-import { EdgeExtendInpainter } from '../src/core/edge-extend-inpaint';
 import { SmoothingDenoiseFilter } from '../src/core/smoothing-denoise-filter';
 import { SharpenDeblurFilter } from '../src/core/sharpen-deblur-filter';
 import { GradientCentroidCropper } from '../src/core/gradient-centroid-cropper';
@@ -27,14 +26,6 @@ describe('Deterministic Local Pre-Press Algorithm Suite', () => {
     }
     return { width: w, height: h, data, colorSpace: 'srgb' } as ImageData;
   };
-
-  // ─── Mirror-extend bleed generator ───────────────────────────────────────
-  it('EdgeExtendInpainter: should extend 3mm bleed margins seamlessly', () => {
-    const img = createMockImageData(40, 40);
-    const outpainted = EdgeExtendInpainter.generateBleedMargin(img, 10);
-    expect(outpainted.expandedImageData.width).toBe(60);
-    expect(outpainted.expandedImageData.height).toBe(60);
-  });
 
   // ─── Bilateral-style smoothing denoiser ──────────────────────────────────
   it('SmoothingDenoiseFilter: should suppress JPEG and chromatic noise with edge-awareness', () => {

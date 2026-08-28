@@ -80,13 +80,31 @@ export class VectorOverlayEngine {
   }
 
   /**
-   * Renders the vector overlay elements on top of a destination canvas context
+   * Renders the vector overlay elements on top of a destination canvas context.
+   *
+   * ⚠️ 2026-08-28 修正一個真實存在的計算錯誤：舊版是同步函式，`new Image(); img.src = dataUrl;`
+   * 之後立刻呼叫 `ctx.drawImage(img, ...)`——設定 `.src` 觸發的是非同步解碼，緊接著同步呼叫
+   * `drawImage` 時圖片幾乎必然還沒載入完成，導致 Logo 靜默完全沒畫出來（不會噴錯誤，只是輸出裡
+   * 沒有 Logo），沒有任何跡象顯示發生了什麼事。改成非同步函式，用 `img.decode()`（現代瀏覽器標準
+   * API，比舊式 onload 事件更可靠）確保每張 Logo 圖片真正解碼完成後才畫。
    */
-  public renderOverlay(ctx: CanvasRenderingContext2D, canvasW: number, canvasH: number): void {
-    // 1. Render Logos
-    for (const logo of this.logoItems) {
-      const img = new Image();
-      img.src = logo.dataUrl;
+  public async renderOverlay(ctx: CanvasRenderingContext2D, canvasW: number, canvasH: number): Promise<void> {
+    // 1. Render Logos (loaded first, in parallel, before any drawing starts)
+    const loadedLogos = await Promise.all(
+      this.logoItems.map(async (logo) => {
+        const img = new Image();
+        img.src = logo.dataUrl;
+        try {
+          await img.decode();
+        } catch {
+          return null; // corrupt/unsupported data URL — skip this logo rather than draw garbage
+        }
+        return { img, logo };
+      })
+    );
+    for (const loaded of loadedLogos) {
+      if (!loaded) continue;
+      const { img, logo } = loaded;
       const x = (logo.xPercent / 100) * canvasW;
       const y = (logo.yPercent / 100) * canvasH;
       const w = (logo.widthPercent / 100) * canvasW;

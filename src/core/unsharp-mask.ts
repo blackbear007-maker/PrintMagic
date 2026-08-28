@@ -12,6 +12,8 @@
  *    → 保持完全準確的 Gaussian 頻率響應，無箱型濾波的中頻洩漏
  * 5. 保留 CIE Lab L* 純亮度銳化（無色偏）
  */
+import { CmykEngine } from './cmyk-engine';
+
 export class UnsharpMask {
   public static readonly DEFAULT_AMOUNT = 1.5;
   public static readonly DEFAULT_RADIUS = 1.2;
@@ -181,14 +183,13 @@ export class UnsharpMask {
     const labL = new Float32Array(pixelCount);
     for (let i = 0; i < pixelCount; i++) {
       const pi = i * 4;
-      const r = data[pi]     / 255;
-      const g = data[pi + 1] / 255;
-      const b = data[pi + 2] / 255;
 
-      // sRGB → linear
-      const linR = r <= 0.04045 ? r / 12.92 : Math.pow((r + 0.055) / 1.055, 2.4);
-      const linG = g <= 0.04045 ? g / 12.92 : Math.pow((g + 0.055) / 1.055, 2.4);
-      const linB = b <= 0.04045 ? b / 12.92 : Math.pow((b + 0.055) / 1.055, 2.4);
+      // sRGB → linear, via CmykEngine's precomputed 256-entry LUT (2026-08-28: this used to
+      // recompute the same formula with Math.pow per channel per pixel across the whole image —
+      // cmyk-engine.ts already has an equivalent LUT built once, reused here instead).
+      const linR = CmykEngine.sRgbToLinear(data[pi]);
+      const linG = CmykEngine.sRgbToLinear(data[pi + 1]);
+      const linB = CmykEngine.sRgbToLinear(data[pi + 2]);
 
       // linear → Y (CIE XYZ luminance, D65)
       const Y = 0.2126 * linR + 0.7152 * linG + 0.0722 * linB;

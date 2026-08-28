@@ -254,7 +254,7 @@ class App {
     this.impositionModal = new ImpositionModal();
     this.dielineModal = new DielineModal();
     this.vectorOverlayModal = new VectorOverlayModal(this.vectorOverlayEngine, () => {
-      this.renderVectorOverlayOnCanvas();
+      void this.renderVectorOverlayOnCanvas();
     });
     this.textInspectionModal = new TextInspectionModal(
       (suggestedText) => {
@@ -1634,13 +1634,18 @@ class App {
       }
 
       // Step 3.5: User-Configured Vector Text Overlay (僅在用戶手動編輯或確認後套用，絕不自動覆蓋假浮水印文字)
-      if (opts.enableVectorOverlay === true && this.vectorOverlayEngine.getTextItems().length > 0) {
+      // 2026-08-28 修正：這個條件原本只檢查 getTextItems().length>0，代表使用者如果只加了 Logo、
+      // 沒加任何文字項目，這整段（包含 Logo 繪製）會被整個跳過，Logo 永遠不會出現在送印檔案裡。
+      if (
+        opts.enableVectorOverlay === true &&
+        (this.vectorOverlayEngine.getTextItems().length > 0 || this.vectorOverlayEngine.getLogoItems().length > 0)
+      ) {
         const canvas = document.createElement('canvas');
         canvas.width = processedImgData.width;
         canvas.height = processedImgData.height;
         const ctx = canvas.getContext('2d')!;
         ctx.putImageData(processedImgData, 0, 0);
-        this.vectorOverlayEngine.renderOverlay(ctx, canvas.width, canvas.height);
+        await this.vectorOverlayEngine.renderOverlay(ctx, canvas.width, canvas.height);
         processedImgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       }
 
@@ -1788,7 +1793,7 @@ class App {
     }
   }
 
-  private renderVectorOverlayOnCanvas(): void {
+  private async renderVectorOverlayOnCanvas(): Promise<void> {
     const state = store.getState();
     const baseImgData = state.processedImageData || state.originalImageData;
     if (!baseImgData) return;
@@ -1800,7 +1805,7 @@ class App {
     ctx.putImageData(baseImgData, 0, 0);
 
     // Draw Vector Overlay Elements
-    this.vectorOverlayEngine.renderOverlay(ctx, canvas.width, canvas.height);
+    await this.vectorOverlayEngine.renderOverlay(ctx, canvas.width, canvas.height);
 
     const updatedDataUrl = canvas.toDataURL('image/png');
     const updatedImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);

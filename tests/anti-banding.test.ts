@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll } from 'vitest';
-import { AntiBandingFilter } from '../src/core/anti-banding';
+import { AntiBandingFilter, buildIntegralImage, boxSum } from '../src/core/anti-banding';
 
 // Polyfill ImageData for Node/vitest environment
 beforeAll(() => {
@@ -113,5 +113,57 @@ describe('AntiBandingFilter — blue-noise dither spectrum', () => {
     const edgeIdx = (20 * size + 35) * 4;
     expect(out.data[edgeIdx]).toBe(255);
     expect(out.data[edgeIdx + 1]).toBe(0);
+  });
+});
+
+// 2026-08-28: the local-mean computation was rewritten from a per-pixel O(radius²) brute-force
+// window scan to an O(1)-per-query integral image (summed-area table) — a real performance fix,
+// but claimed to be mathematically EXACT (not an approximation). This directly verifies that
+// claim against independently brute-force-computed box sums, rather than just trusting the
+// derivation — this filter runs on every processed image by default (not an opt-in tool), so a
+// silent behavior change here would be a real, widely-hitting regression.
+describe('anti-banding integral image — exact equivalence to brute-force box sum', () => {
+  it('should match a brute-force box sum for many random rectangles on a non-uniform image', () => {
+    const w = 37, h = 29; // deliberately non-square, non-power-of-2
+    const data = new Uint8ClampedArray(w * h * 4);
+    // Deterministic pseudo-random-looking fill (no Math.random() per project convention).
+    let seed = 12345;
+    const rand = () => {
+      seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+      return seed % 256;
+    };
+    for (let i = 0; i < w * h; i++) {
+      data[i * 4] = rand();
+      data[i * 4 + 1] = rand();
+      data[i * 4 + 2] = rand();
+      data[i * 4 + 3] = 255;
+    }
+
+    const integral = buildIntegralImage(data, w, h, 0); // red channel
+
+    function bruteForceSum(x0: number, y0: number, x1: number, y1: number): number {
+      let sum = 0;
+      for (let y = y0; y <= y1; y++) {
+        for (let x = x0; x <= x1; x++) {
+          sum += data[(y * w + x) * 4];
+        }
+      }
+      return sum;
+    }
+
+    const rects: [number, number, number, number][] = [
+      [0, 0, 0, 0],           // single pixel, top-left corner
+      [w - 1, h - 1, w - 1, h - 1], // single pixel, bottom-right corner
+      [0, 0, w - 1, h - 1],   // whole image
+      [5, 3, 20, 15],         // interior rectangle
+      [0, 5, 10, 5],          // touches left edge
+      [w - 8, 2, w - 1, 10],  // touches right edge
+      [3, 0, 15, 4],          // touches top edge
+      [3, h - 6, 15, h - 1]   // touches bottom edge
+    ];
+
+    for (const [x0, y0, x1, y1] of rects) {
+      expect(boxSum(integral, w, x0, y0, x1, y1)).toBe(bruteForceSum(x0, y0, x1, y1));
+    }
   });
 });

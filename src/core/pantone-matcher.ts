@@ -37,6 +37,8 @@ export interface SpotColorMatchResult {
   accuracy: 'exact' | 'close' | 'approximate';
 }
 
+import { CmykEngine } from './cmyk-engine';
+
 export class PantoneMatcher {
   // Curated ISO Standard Pantone Solid Coated, Metallic & Brand Spot Color Palette
   private static readonly PANTONE_DATABASE: PantoneColor[] = [
@@ -63,7 +65,17 @@ export class PantoneMatcher {
     // Neons & Fluorescents
     { code: 'Pantone 805 C', name: 'Fluorescent Red/Orange', category: 'neon', hex: '#FF4858', lab: [58.2, 71.3, 35.1], cmyk: [0, 78, 55, 0] },
     { code: 'Pantone 806 C', name: 'Fluorescent Pink', category: 'neon', hex: '#FF3EB5', lab: [56.4, 82.1, -18.2], cmyk: [0, 80, 0, 0] },
-    { code: 'Pantone 802 C', name: 'Fluorescent Green', category: 'neon', hex: '#44D62C', lab: [75.1, -68.2, 65.4], cmyk: [55, 0, 95, 0] }
+    { code: 'Pantone 802 C', name: 'Fluorescent Green', category: 'neon', hex: '#44D62C', lab: [75.1, -68.2, 65.4], cmyk: [55, 0, 95, 0] },
+
+    // Pastels — 2026-08-28 新增：`category` 型別本來就有 'pastel'，但這張表原本 0 個色票用到，任何
+    // 粉彩色調的作品（例如淺色包裝、嬰兒用品、婚禮小卡）都只能被硬套進上面的飽和色系，配對品質很差。
+    // Lab 值透過本檔案自己的 `rgbToLab()` 公式從下方 hex 算出（跟比對時用的是同一套轉換，保證自洽），
+    // CMYK 是簡單去底色估算——跟表格裡其他既有色票同等級的「粗略近似」，不是官方 Pantone 數值（本檔案
+    // 開頭已誠實聲明整張表都是近似色票，不是官方授權完整資料庫）。
+    { code: 'Pantone 706 C', name: 'Pastel Pink', category: 'pastel', hex: '#F5C6CE', lab: [84.1, 17.9, 2.3], cmyk: [0, 18, 15, 4] },
+    { code: 'Pantone 656 C', name: 'Pastel Blue', category: 'pastel', hex: '#C9DDEF', lab: [87.2, -3.0, -11.0], cmyk: [15, 7, 0, 6] },
+    { code: 'Pantone 7401 C', name: 'Pastel Yellow', category: 'pastel', hex: '#F1E4B3', lab: [90.5, -3.0, 25.6], cmyk: [0, 5, 24, 5] },
+    { code: 'Pantone 351 C', name: 'Pastel Mint Green', category: 'pastel', hex: '#B7DCC5', lab: [84.6, -16.6, 7.3], cmyk: [15, 0, 9, 14] }
   ];
 
   /**
@@ -146,13 +158,12 @@ export class PantoneMatcher {
 
   // ─── Color Space Conversion Math (sRGB ➔ CIE XYZ ➔ CIE Lab) ─────────────
   public static rgbToLab(r: number, g: number, b: number): [number, number, number] {
-    let rL = r / 255;
-    let gL = g / 255;
-    let bL = b / 255;
-
-    rL = rL > 0.04045 ? Math.pow((rL + 0.055) / 1.055, 2.4) : rL / 12.92;
-    gL = gL > 0.04045 ? Math.pow((gL + 0.055) / 1.055, 2.4) : gL / 12.92;
-    bL = bL > 0.04045 ? Math.pow((bL + 0.055) / 1.055, 2.4) : bL / 12.92;
+    // sRGB → linear via CmykEngine's shared LUT/formula (2026-08-28 deduped — this used to
+    // recompute the same formula inline, with the comparison direction flipped relative to every
+    // other copy in the codebase; not a bug at the boundary, but a needless independent copy).
+    const rL = CmykEngine.sRgbToLinear(r);
+    const gL = CmykEngine.sRgbToLinear(g);
+    const bL = CmykEngine.sRgbToLinear(b);
 
     // D65 Standard Illuminant
     const x = (rL * 0.4124564 + gL * 0.3575761 + bL * 0.1804375) / 0.95047;

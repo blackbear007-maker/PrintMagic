@@ -37,9 +37,9 @@ export class BarcodeVerifier {
     const h = imageData.height;
     const data = imageData.data;
 
-    let darkPixels = 0;
-    let lightPixels = 0;
     let highFrequencyTransitions = 0;
+    let lumMax = -Infinity;
+    let lumMin = Infinity;
 
     // Sample horizontal scanlines across the image
     const stepY = Math.max(1, Math.floor(h / 80));
@@ -59,8 +59,8 @@ export class BarcodeVerifier {
         // Perceived luminance (ITU-R BT.709)
         const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
 
-        if (lum < 60) darkPixels++;
-        else if (lum > 190) lightPixels++;
+        if (lum > lumMax) lumMax = lum;
+        if (lum < lumMin) lumMin = lum;
 
         if (prevLum !== -1 && Math.abs(lum - prevLum) > 120) {
           highFrequencyTransitions++;
@@ -76,12 +76,16 @@ export class BarcodeVerifier {
     const recommendations: string[] = [];
     let score = 100;
 
-    // 1. Contrast Check
-    const contrastRatio = lightPixels > 0 && darkPixels > 0
-      ? (lightPixels / (lightPixels + darkPixels))
+    // 1. Contrast Check — 2026-08-28 修正：文檔宣稱用 Michelson 對比公式，實際上舊版只是算亮/暗
+    // 像素「數量比例」，不是真正的對比度（一張 95% 白底 + 5% 淺灰字的圖，舊公式算出高比例、誤判成
+    // 對比良好，但淺灰字本身可能根本掃不出來）。改用真正的 Michelson 對比公式
+    // `(Lmax-Lmin)/(Lmax+Lmin)`，用掃描過程中實際取樣到的最大/最小亮度值計算，正確反映條碼真正的
+    // 明暗極值反差，不受黑白像素面積比例影響。
+    const contrastRatio = lumMax > -Infinity && lumMax + lumMin > 0
+      ? (lumMax - lumMin) / (lumMax + lumMin)
       : 0.5;
 
-    if (contrastRatio < 0.25 || contrastRatio > 0.85) {
+    if (contrastRatio < 0.70) {
       score -= 25;
       issues.push('條碼黑白明暗對比度過低 (Contrast < 70%)');
       recommendations.push('建議將條碼底色改為純白，條碼本體改為純黑以確保手機秒掃。');

@@ -223,10 +223,15 @@ export class TextInspector {
         const py = gy * step;
         const idx = (py * width + px) * 4;
 
-        const lum = 0.299 * data[idx] + 0.587 * data[idx + 1] + 0.114 * data[idx + 2];
+        // 2026-08-28: skip cells touching transparency — a cleared canvas region's leftover RGB
+        // (typically rgba(0,0,0,0)) can differ sharply from adjacent opaque content, registering
+        // as a fake high-contrast "edge" even though nothing is actually visible there.
         const idxRight = (py * width + (px + 1)) * 4;
-        const lumRight = 0.299 * data[idxRight] + 0.587 * data[idxRight + 1] + 0.114 * data[idxRight + 2];
         const idxDown = ((py + 1) * width + px) * 4;
+        if (data[idx + 3] < 50 || data[idxRight + 3] < 50 || data[idxDown + 3] < 50) continue;
+
+        const lum = 0.299 * data[idx] + 0.587 * data[idx + 1] + 0.114 * data[idx + 2];
+        const lumRight = 0.299 * data[idxRight] + 0.587 * data[idxRight + 1] + 0.114 * data[idxRight + 2];
         const lumDown = 0.299 * data[idxDown] + 0.587 * data[idxDown + 1] + 0.114 * data[idxDown + 2];
 
         const grad = Math.abs(lum - lumRight) + Math.abs(lum - lumDown);

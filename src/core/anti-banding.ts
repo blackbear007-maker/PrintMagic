@@ -175,13 +175,23 @@ export class AntiBandingFilter {
     const edgeThreshold = 35; // Gradient variance vs real edge threshold
     const ditherAmp = strength * 2.5;
 
+    // 2026-08-28 效能修正：局部平均（sumR/sumG/sumB）原本是逐像素 O(半徑²) 暴力視窗掃描，大張海報
+    // （例如 min(w,h)=9000px 時 radius=30，每個像素要掃 61×61=3721 格）會明顯拖慢處理速度，而且這個
+    // 濾鏡是預設一律套用的管線步驟（不像 moire-descreen.ts 等工具是使用者手動觸發），不能簡單設尺寸
+    // 上限拒絕處理。改用積分圖（summed-area table）：任何矩形視窗的總和都能透過預先算好的前綴和表在
+    // O(1) 查表得到——這是精確、零誤差的加速，不是近似，跟逐格暴力加總算出來的結果數學上完全相同（見
+    // tests/anti-banding.test.ts 的積分圖與暴力掃描逐像素數值比對測試）。`gradMax`（判斷是漸層還是
+    // 真實邊緣的依據）維持原本逐格掃描邏輯不變，只加一旦超過門檻值就提早跳出視窗迴圈——同樣是零行為
+    // 差異的加速，因為一旦確定要走「保留邊緣」分支，就不需要再算出精確的 gradMax 數值；它沒有安全、
+    // 行為不變的積分圖等價寫法，因為它是「視窗內每格跟中心點的差」，中心點會隨每個輸出像素改變，不是
+    // 單純可以預先加總的視窗總和。
+    const integralR = buildIntegralImage(src, w, h, 0);
+    const integralG = buildIntegralImage(src, w, h, 1);
+    const integralB = buildIntegralImage(src, w, h, 2);
+
     for (let y = 0; y < h; y++) {
       for (let x = 0; x < w; x++) {
         const centerIdx = (y * w + x) * 4;
-
-        // Compute local spatial gradient variance around 3x3 window
-        let gradMax = 0;
-        let sumR = 0, sumG = 0, sumB = 0, count = 0;
 
         const cR = src[centerIdx];
         const cG = src[centerIdx + 1];
@@ -196,7 +206,10 @@ export class AntiBandingFilter {
           continue;
         }
 
-        for (let dy = -radius; dy <= radius; dy++) {
+        // Compute local spatial gradient variance around the window (early-exit once the
+        // edge/smooth decision is already determined — see the fix note above).
+        let gradMax = 0;
+        edgeScan: for (let dy = -radius; dy <= radius; dy++) {
           const ny = y + dy;
           if (ny < 0 || ny >= h) continue;
 
@@ -207,19 +220,19 @@ export class AntiBandingFilter {
             const nIdx = (ny * w + nx) * 4;
             const diff = Math.abs(src[nIdx] - cR) + Math.abs(src[nIdx + 1] - cG) + Math.abs(src[nIdx + 2] - cB);
             if (diff > gradMax) gradMax = diff;
-
-            sumR += src[nIdx];
-            sumG += src[nIdx + 1];
-            sumB += src[nIdx + 2];
-            count++;
+            if (gradMax >= edgeThreshold) break edgeScan;
           }
         }
 
         // If local variance is small (Smooth gradient region with banding stair-steps)
-        if (gradMax < edgeThreshold && count > 0) {
-          const meanR = sumR / count;
-          const meanG = sumG / count;
-          const meanB = sumB / count;
+        if (gradMax < edgeThreshold) {
+          const x0 = Math.max(0, x - radius), x1 = Math.min(w - 1, x + radius);
+          const y0 = Math.max(0, y - radius), y1 = Math.min(h - 1, y + radius);
+          const count = (x1 - x0 + 1) * (y1 - y0 + 1);
+
+          const meanR = boxSum(integralR, w, x0, y0, x1, y1) / count;
+          const meanG = boxSum(integralG, w, x0, y0, x1, y1) / count;
+          const meanB = boxSum(integralB, w, x0, y0, x1, y1) / count;
 
           // Genuine spatial blue-noise dither — see the fix note above the class for why this
           // replaced the old hash formula (which had no real high-frequency content).
@@ -243,4 +256,36 @@ export class AntiBandingFilter {
 
     return dstImageData;
   }
+}
+
+// ─── Integral image (summed-area table) for O(1) exact box-sum queries ────────────────────────
+
+/**
+ * Builds a (w+1)×(h+1) summed-area table for one RGBA channel, 1-padded on the top/left with an
+ * implicit zero row/column so box-sum queries never need special-casing for windows touching the
+ * image edge.
+ */
+export function buildIntegralImage(data: Uint8ClampedArray, w: number, h: number, channelOffset: number): Float64Array {
+  const iw = w + 1;
+  const integral = new Float64Array(iw * (h + 1));
+  for (let y = 0; y < h; y++) {
+    let rowSum = 0;
+    const rowBaseOut = (y + 1) * iw;
+    const rowBasePrev = y * iw;
+    for (let x = 0; x < w; x++) {
+      rowSum += data[(y * w + x) * 4 + channelOffset];
+      integral[rowBaseOut + (x + 1)] = integral[rowBasePrev + (x + 1)] + rowSum;
+    }
+  }
+  return integral;
+}
+
+/** O(1) exact sum over the inclusive pixel rectangle [x0,x1] × [y0,y1] via the integral image. */
+export function boxSum(integral: Float64Array, w: number, x0: number, y0: number, x1: number, y1: number): number {
+  const iw = w + 1;
+  const a = integral[y0 * iw + x0];
+  const b = integral[y0 * iw + (x1 + 1)];
+  const c = integral[(y1 + 1) * iw + x0];
+  const d = integral[(y1 + 1) * iw + (x1 + 1)];
+  return d - b - c + a;
 }

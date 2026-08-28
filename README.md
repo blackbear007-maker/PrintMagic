@@ -110,7 +110,7 @@ VTracer/Real-ESRGAN/ARNIQA/Retinexformer/LaMa/rembg 離線或未就緒時，系�
 | `SharpenDeblurFilter` | 固定 5×5 反卷積核 | Stripformer / Restormer |
 | `SmoothingDenoiseFilter` | 經典雙邊濾波 | Restormer-Denoise / NAFNet |
 | `CurvedPageFlattener` | 固定拋物線位移公式 | DocTr |
-| `EdgeExtendInpaint` | 鏡像外推填色 | LaMa |
+| `BleedExpander` | 鏡像外推 + 接縫混合 3mm 出血 | LaMa |
 | `LineArtUpscaler` | 雙線性放大 + 邊緣壓黑 | Anime4K |
 | `EdgeChokeMatting` | 四角取樣顏色距離去背 | BiRefNet |
 | `HandShadowBalancer` | 24×24 網格光照插值 | ShadowFormer |
@@ -151,7 +151,7 @@ Port 自真實開源專案 [`6o6o/fft-descreen`](https://github.com/6o6o/fft-des
 | **🎨 1. 動漫 / 二次元插畫** | 飽和度高、封閉黑色墨線輪廓 | `LineArtUpscaler` 墨線銳化 + 去背 + 刀模 |
 | **📷 2. 寫實人像 / 婚紗寫真** | 肌膚暖色溫、微細毛孔、景深 | `EdgeAwareUpscaler` + `HandShadowBalancer` + `SmoothingDenoiseFilter` |
 | **📄 3. 文件 / 名片 / 證書** | 白底黑字、高密度文字條紋 | 純黑 K100 向量轉曲 + 歪斜校正 + `CurvedPageFlattener` |
-| **🏞️ 4. 風景 / 建築 / 展覽** | 寬廣漸層天空、深遠地平線 | `EdgeExtendInpaint` 背景生長 + 防斷階平滑 |
+| **🏞️ 4. 風景 / 建築 / 展覽** | 寬廣漸層天空、深遠地平線 | `BleedExpander` 背景生長 + 防斷階平滑 |
 | **🏷️ 5. 模切貼紙 / 標誌圖標** | 帶有 Alpha 透明通道、純幾何 | VTracer 轉向量 + 內縮白墨 + 刀模 |
 
 ---

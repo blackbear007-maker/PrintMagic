@@ -201,6 +201,35 @@ describe('PrintScoreCalculator', () => {
     expect(scoreResult.breakdown.resolution).toBeDefined();
     expect(scoreResult.issues.length).toBeGreaterThan(0);
   });
+
+  it('should actually detect gamut-risk pixels for a vividly saturated image', () => {
+    // 2026-08-28: the old formula was a mathematical identity (round-trip always ~equals the
+    // input), so gamutOverflowRatio was ~0 for every image regardless of content — this test
+    // pins the fix: a genuinely vivid, highly saturated image must produce a nonzero ratio.
+    const data = new Uint8ClampedArray(200 * 200 * 4);
+    for (let i = 0; i < data.length; i += 4) {
+      data[i] = 0;       // pure saturated green — the classic sRGB-vs-CMYK gamut mismatch case
+      data[i + 1] = 255;
+      data[i + 2] = 0;
+      data[i + 3] = 255;
+    }
+    const imgData = new ImageData(data, 200, 200);
+    const stats = PrintScoreCalculator.analyzePixels(imgData);
+    expect(stats.gamutOverflowRatio).toBeGreaterThan(0.9);
+  });
+
+  it('should NOT flag an ordinary desaturated photo as gamut risk', () => {
+    const data = new Uint8ClampedArray(200 * 200 * 4);
+    for (let i = 0; i < data.length; i += 4) {
+      data[i] = 224;     // skin-tone-ish, not saturated
+      data[i + 1] = 172;
+      data[i + 2] = 140;
+      data[i + 3] = 255;
+    }
+    const imgData = new ImageData(data, 200, 200);
+    const stats = PrintScoreCalculator.analyzePixels(imgData);
+    expect(stats.gamutOverflowRatio).toBe(0);
+  });
 });
 
 describe('VectorTracer', () => {

@@ -8,7 +8,6 @@ import { SmoothingDenoiseFilter } from '../src/core/smoothing-denoise-filter';
 import { SharpenDeblurFilter } from '../src/core/sharpen-deblur-filter';
 import { CurvedPageFlattener } from '../src/core/curved-page-flattener';
 import { ColorRegionSelector } from '../src/core/color-region-selector';
-import { EdgeExtendInpainter } from '../src/core/edge-extend-inpaint';
 
 describe('Deterministic Pre-Press Algorithm Suite', () => {
   const createMockImageData = (w: number, h: number, r = 180, g = 180, b = 180, a = 255): ImageData => {
@@ -59,16 +58,13 @@ describe('Deterministic Pre-Press Algorithm Suite', () => {
       expect(deblurred.width).toBe(30);
     });
 
-    it('CurvedPageFlattener & ColorRegionSelector & EdgeExtendInpainter: should dewarp, select a region, and extend bleed', () => {
+    it('CurvedPageFlattener & ColorRegionSelector: should dewarp and select a region', () => {
       const img = createMockImageData(40, 40);
       const dewarped = CurvedPageFlattener.dewarp(img, 0.25);
       expect(dewarped.width).toBe(40);
 
       const seg = ColorRegionSelector.segmentObjectAtPoint(img, 20, 20, 'foil', 32);
       expect(seg.coverageMm2).toBeGreaterThanOrEqual(0);
-
-      const outpainted = EdgeExtendInpainter.generateBleedMargin(img, 12);
-      expect(outpainted.expandedImageData.width).toBe(64);
     });
   });
 });

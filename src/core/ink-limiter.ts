@@ -17,16 +17,6 @@ import { CmykEngine } from './cmyk-engine';
 export class InkLimiter {
   public static readonly DEFAULT_TAC_LIMIT = 300; // 300% industry safe standard
 
-  // Precomputed 256-entry sRGB → Linear LUT
-  private static readonly SRGB_LUT: Float32Array = (() => {
-    const lut = new Float32Array(256);
-    for (let c = 0; c < 256; c++) {
-      const v = c / 255;
-      lut[c] = v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
-    }
-    return lut;
-  })();
-
   // ──────────────────────────────────────────────────────────
   // TAC Analysis
   //
@@ -140,9 +130,9 @@ export class InkLimiter {
       if (isChromatic) {
         // ── Perceptual Lab path for colorful pixels ──
         // Preserves Hue & Chroma, only compresses Lightness
-        const linR = this.SRGB_LUT[r8];
-        const linG = this.SRGB_LUT[g8];
-        const linB = this.SRGB_LUT[b8];
+        const linR = CmykEngine.sRgbToLinear(r8);
+        const linG = CmykEngine.sRgbToLinear(g8);
+        const linB = CmykEngine.sRgbToLinear(b8);
         const [L, a, bLab] = this.linearRgbToLab(linR, linG, linB);
 
         // Scale lightness by factor; mild chroma scale to avoid gamut clipping
@@ -152,9 +142,9 @@ export class InkLimiter {
           Lcomp, a * chromaScale, bLab * chromaScale
         );
 
-        outR8 = this.linearToSrgb8(Math.max(0, Math.min(1, rOut)));
-        outG8 = this.linearToSrgb8(Math.max(0, Math.min(1, gOut)));
-        outB8 = this.linearToSrgb8(Math.max(0, Math.min(1, bOut)));
+        outR8 = CmykEngine.linearToSRgb(Math.max(0, Math.min(1, rOut)));
+        outG8 = CmykEngine.linearToSRgb(Math.max(0, Math.min(1, gOut)));
+        outB8 = CmykEngine.linearToSRgb(Math.max(0, Math.min(1, bOut)));
       } else {
         // ── Simple proportional path for neutrals and near-blacks ──
         // Compress C/M/Y proportionally; reconstruct RGB
@@ -186,7 +176,11 @@ export class InkLimiter {
         let loT = 0, hiT = 1;
         // Pure white is always safe (TAC ≈ 0), so it's a valid fallback answer.
         let bestR = 255, bestG = 255, bestB = 255;
-        for (let iter = 0; iter < 14; iter++) {
+        // 10 iterations halve the [0,1] blend range to ~1/1024 — comfortably under half an 8-bit
+        // LSB (1/510), so further iterations can't change the final rounded R/G/B byte values;
+        // 2026-08-28 trimmed from 14 (which converged to the same output, just with wasted extra
+        // CmykEngine.rgbToCmyk() calls past the point where precision could matter).
+        for (let iter = 0; iter < 10; iter++) {
           const t = (loT + hiT) / 2;
           const candR = Math.round(startR + (255 - startR) * t);
           const candG = Math.round(startG + (255 - startG) * t);
@@ -259,12 +253,10 @@ export class InkLimiter {
 
   // ──────────────────────────────────────────────────────────
   // Color space helpers
+  // (sRGB↔linear conversion reuses CmykEngine.sRgbToLinear()/linearToSRgb() — this file used to
+  // maintain its own byte-identical duplicate LUT/formula despite already importing CmykEngine
+  // for rgbToCmyk() elsewhere in this file; 2026-08-28 deduped.)
   // ──────────────────────────────────────────────────────────
-
-  private static linearToSrgb8(v: number): number {
-    const gamma = v <= 0.0031308 ? 12.92 * v : 1.055 * Math.pow(v, 1 / 2.4) - 0.055;
-    return Math.min(255, Math.max(0, Math.round(gamma * 255)));
-  }
 
   /** Linear RGB → CIE L*a*b* (D65 white point) */
   private static linearRgbToLab(r: number, g: number, b: number): [number, number, number] {

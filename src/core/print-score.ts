@@ -280,19 +280,35 @@ export class PrintScoreCalculator {
       const bin = Math.min(255, Math.round(lum * 255));
       lumHist[bin]++;
 
-      // CMYK gamut check: detect out-of-gamut pixels (simplified)
-      // A pixel is OOG if its saturated CMYK round-trip differs by >40 units
-      if (sat > 0.6 && max > 0.3) {
-        const k = 1 - max;
-        const invK = k < 1 ? 1 / (1 - k) : 0;
-        const c = max < 1 ? (1 - r - k) * invK : 0;
-        const m = max < 1 ? (1 - g - k) * invK : 0;
-        const y = max < 1 ? (1 - b - k) * invK : 0;
-        const rBack = (1 - c) * (1 - k);
-        const gBack = (1 - m) * (1 - k);
-        const bBack = (1 - y) * (1 - k);
-        const diff = Math.abs(r - rBack) + Math.abs(g - gBack) + Math.abs(b - bBack);
-        if (diff > 0.15) gamutOverflowCount++;
+      // CMYK gamut risk check: flags pixels likely to shift noticeably when printed in CMYK.
+      //
+      // ⚠️ 2026-08-28 修正一個真實存在的計算錯誤，過程中也記錄一個「看似合理但驗證後是錯的」修正嘗試：
+      //
+      // 舊版用 `k=1-max` 當底色的簡化公式算「CMYK round-trip」，但這個公式代數上是個恆等式——對任何
+      // max<1 的輸入，rBack/gBack/bBack 展開後恆等於原始 r/g/b（可手動代入驗證：c=(max-r)/max，
+      // rBack=(1-c)*(1-k)=(1-c)*max=max-(max-r)=r，g/b 同理），所以 `diff` 幾乎永遠算出接近 0，
+      // 導致這個佔總分 10% 權重的「超出印刷色域」偵測，對任何圖片實際上都不會觸發。
+      //
+      // 第一次修正嘗試：改用本站真實送印會用的 `CmykEngine.rgbToCmyk()`/`cmykToRgb()`（Bradford
+      // D65→D50 色適應 + 自適應 GCR）做 round-trip，門檻沿用 `CmykEngine.analyzeGamut()` 的 38。
+      // 用真實色域網格抽樣驗證後發現這個訊號是「反的」：純飽和原色（255,0,0 等）因為 GCR 為 0、
+      // 二色分離可完美還原，diff=0（誤判為色域內）；但普通可印刷的品牌紅（220,40,40，未飽和到底）
+      // GCR 真的丟失資訊，diff=145（誤判為嚴重超出色域）——GCR 是有損的油墨分配選擇，不是色域邊界，
+      // 拿它的 round-trip 差異當色域指標，量到的其實是「GCR 丟了多少資訊」而不是「印得出來嗎」。
+      //
+      // 第二次嘗試：檢查 Bradford 適應後、GCR 之前的 D50 RGB 是否需要被夾在 [0,1] 之外——這是数學上
+      // 真正的色域邊界訊號，跟 GCR 無關。但實測發現這個簡化模型（線性減色法 + Bradford CAT，沒有真實
+      // 油墨光譜/印刷描述檔資料）對任何合法 sRGB 輸入，D50 RGB 從未真正超出 [0,1]——這個矩陣本身就
+      // 不會製造出可偵測的邊界，跟 `icc-profiles.ts` 已經誠實揭露的限制一致：沒有真正 `.icc` 描述檔
+      // 就沒有真正的色域邊界可算（真正的 ICC 色域檢查只能透過非同步的自建服務 `free-icc-client.ts`，
+      // 不適合這裡的同步逐像素迴圈）。
+      //
+      // 最終改用一個誠實標註為「粗略經驗法則」的判準：高飽和度 + 高亮度的顏色，在真實印刷經驗中最常
+      // 見螢幕與紙本的明顯色差（尤其是飽和的綠/藍/青，這正是 sRGB 螢幕色域比 CMYK 印刷色域寬最多的
+      // 區域）——不是精確的色域邊界測試，但至少方向正確（純飽和原色會被標記，膚色/粉彩/中性色不會），
+      // 不像上面兩次嘗試那樣在數學上失效或反向。
+      if (sat > 0.75 && max > 0.4) {
+        gamutOverflowCount++;
       }
     }
 

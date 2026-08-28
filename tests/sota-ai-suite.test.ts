@@ -7,7 +7,6 @@ import { ColorRegionSelector } from '../src/core/color-region-selector';
 import { CurvedPageFlattener } from '../src/core/curved-page-flattener';
 import { EdgeContourDetector } from '../src/core/edge-contour-detector';
 import { PixelStatQualityAssessor } from '../src/core/pixel-stat-quality-assessor';
-import { EdgeExtendInpainter } from '../src/core/edge-extend-inpaint';
 
 describe('Deterministic Pre-Press Algorithm Suite (本機決定性演算法陣列，非 AI 模型)', () => {
   const createMockImageData = (w: number, h: number, r = 180, g = 180, b = 180, a = 255): ImageData => {
@@ -85,6 +84,15 @@ describe('Deterministic Pre-Press Algorithm Suite (本機決定性演算法陣�
     expect(typeof ocr.preflightPassed).toBe('boolean');
   });
 
+  it('4b. TextZoneDetector: should NOT flag a fully transparent image as text (alpha guard)', () => {
+    // 2026-08-28: this used to read RGB with no alpha check, so a cleared/transparent image
+    // (rgb=0,0,0, alpha=0 — the typical output of a background-removal pass) was misread as
+    // "all dark pixels" and produced false-positive text zones.
+    const img = createMockImageData(80, 80, 0, 0, 0, 0);
+    const ocr = TextZoneDetector.inspectText(img, 8);
+    expect(ocr.detectedZones.length).toBe(0);
+  });
+
   // 5. Color-Region Flood-Fill 1-Click Spot Finish (color-distance based, not a segmentation model)
   it('5. ColorRegionSelector: should isolate object from click coordinates and generate 100% K100 mask', () => {
     const img = createMockImageData(60, 60, 255, 255, 255);
@@ -150,15 +158,5 @@ describe('Deterministic Pre-Press Algorithm Suite (本機決定性演算法陣�
     expect(res.technicalClarityScore).toBeGreaterThan(50);
     expect(res.aestheticQualityScore).toBeGreaterThan(50);
     expect(['EXCELLENT', 'GOOD', 'FAIR', 'POOR']).toContain(res.grade);
-  });
-
-  // 9. Edge-Extend Bleed Inpainter (mirror/edge extrapolation, not a generative inpainting model)
-  it('9. EdgeExtendInpainter: should generate seamless 3mm bleed margin extension without boundary seam', () => {
-    const img = createMockImageData(50, 50, 100, 120, 140);
-    const res = EdgeExtendInpainter.generateBleedMargin(img, 36);
-
-    expect(res.expandedImageData.width).toBe(50 + 72);
-    expect(res.expandedImageData.height).toBe(50 + 72);
-    expect(res.bleedWidthPx).toBe(36);
   });
 });

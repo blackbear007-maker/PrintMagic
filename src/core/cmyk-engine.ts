@@ -46,6 +46,15 @@ export class CmykEngine {
   }
 
   /**
+   * Direct read-only access to the 256-entry sRGB→linear LUT, for callers doing many raw
+   * `lut[byteValue]` lookups in a hot loop (already-integer byte indices) where the extra
+   * function-call/rounding overhead of `sRgbToLinear()` per call would add up.
+   */
+  public static getSrgbToLinearLut(): Readonly<Float32Array> {
+    return this.SRGB_TO_LINEAR_LUT;
+  }
+
+  /**
    * Convert linear RGB [0, 1] to sRGB gamma-compressed [0, 255]
    */
   public static linearToSRgb(v: number): number {

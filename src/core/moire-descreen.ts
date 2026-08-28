@@ -80,7 +80,6 @@ export class MoireDescreen {
     // differ slightly per channel due to CFA/print-process color separation).
     const coefs = buildDistanceCoefs(padW, padH);
     const middleMask = buildMiddleMask(padW, padH, middleRatio);
-    const dilateKernel = ellipseKernel(radius, radius);
 
     const outData = new Uint8ClampedArray(srcData.length);
     // Alpha passes through unchanged — this filter only touches color.
@@ -109,7 +108,7 @@ export class MoireDescreen {
       for (let idx = 0; idx < mask.length; idx++) {
         mask[idx] *= 1 - middleMask[idx];
       }
-      mask = grayscaleDilate(mask, padW, padH, dilateKernel, radius);
+      mask = grayscaleDilate(mask, padW, padH, radius);
       mask = gaussianBlur(mask, padW, padH, radius / 3);
       for (let idx = 0; idx < mask.length; idx++) {
         mask[idx] = 1 - mask[idx] / 255;
@@ -256,30 +255,51 @@ function buildMiddleMask(padW: number, padH: number, middleRatio: number): Float
   return out;
 }
 
-// ─── Grayscale (max-filter) dilation with an elliptical structuring element ────────────────────
+// ─── Binary dilation (spike-mask expansion) — separable box filter, O(w·h) total ──────────────
+//
+// ⚠️ 2026-08-28 效能修正：舊版是逐像素 O(半徑²) 全窗口掃描套用橢圓結構元素（預設 radius=6 時，
+// 169 格核心 × 3 色版，在 padding 到 2048×2048 的緩衝區上，疊代量級可能比 FFT 本身還大，卻沒有記錄
+// 在這個檔案自己的效能誠實揭露段落裡）。改用可分離（水平再垂直兩次 1D 掃描）的滑動窗口總和演算法。
+// 這個函式的實際輸入永遠是二元值（呼叫端在套用前已經把遮罩量化成 0 或 255——見 `apply()` 裡
+// `mask[idx] = spectrum[idx] > threshold ? 255 : 0` 那段），所以跟 dieline-engine.ts 的二元侵蝕/
+// 膨脹用的是同一招：「視窗內總和 >0」等價於「視窗內至少一格是 255」，可以用進出視窗各一像素的
+// 滑動總和在 O(1) 攤銷時間更新，不需要真正處理連續灰階值的通用滑動窗口最大值演算法。誠實揭露一個
+// 形狀取捨：可分離性只對正方形/矩形結構元素成立，原本的橢圓形結構元素無法真正分離，因此改用正方形
+// 視窗——對「把偵測到的頻譜尖峰遮罩往外擴一圈再模糊」這個用途，方形跟橢圓形視窗的差異只在遮罩邊緣
+// 的圓角程度，後面還會再做高斯模糊柔化邊緣，實務上不影響最終去網紋效果（已用真實週期圖案測試組
+// 驗證高頻能量下降幅度不變，見 tests/moire-descreen.test.ts）。
+function grayscaleDilate(src: Float64Array, w: number, h: number, radius: number): Float64Array {
+  if (radius <= 0) return new Float64Array(src);
 
-function grayscaleDilate(src: Float64Array, w: number, h: number, kernel: Uint8Array, radius: number): Float64Array {
-  const kSize = 2 * radius + 1;
-  const out = new Float64Array(w * h);
+  // Horizontal pass
+  const afterRows = new Float64Array(w * h);
   for (let y = 0; y < h; y++) {
+    const rowBase = y * w;
+    let sum = 0;
+    for (let dx = 0; dx <= radius && dx < w; dx++) sum += src[rowBase + dx] > 0 ? 1 : 0;
     for (let x = 0; x < w; x++) {
-      let best = 0;
-      for (let j = 0; j < kSize; j++) {
-        const sy = y + j - radius;
-        if (sy < 0 || sy >= h) continue;
-        const rowBase = sy * w;
-        const kRowBase = j * kSize;
-        for (let i = 0; i < kSize; i++) {
-          if (!kernel[kRowBase + i]) continue;
-          const sx = x + i - radius;
-          if (sx < 0 || sx >= w) continue;
-          const v = src[rowBase + sx];
-          if (v > best) best = v;
-        }
-      }
-      out[y * w + x] = best;
+      afterRows[rowBase + x] = sum > 0 ? 1 : 0;
+      const leaveX = x - radius;
+      const enterX = x + radius + 1;
+      if (leaveX >= 0) sum -= src[rowBase + leaveX] > 0 ? 1 : 0;
+      if (enterX < w) sum += src[rowBase + enterX] > 0 ? 1 : 0;
     }
   }
+
+  // Vertical pass
+  const out = new Float64Array(w * h);
+  for (let x = 0; x < w; x++) {
+    let sum = 0;
+    for (let dy = 0; dy <= radius && dy < h; dy++) sum += afterRows[dy * w + x];
+    for (let y = 0; y < h; y++) {
+      out[y * w + x] = sum > 0 ? 255 : 0;
+      const leaveY = y - radius;
+      const enterY = y + radius + 1;
+      if (leaveY >= 0) sum -= afterRows[leaveY * w + x];
+      if (enterY < h) sum += afterRows[enterY * w + x];
+    }
+  }
+
   return out;
 }
 

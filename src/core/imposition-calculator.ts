@@ -58,14 +58,21 @@ export class ImpositionCalculator {
     const itemSlotW = itemWidthMm + cuttingGapMm;
     const itemSlotH = itemHeightMm + cuttingGapMm;
 
+    // 2026-08-28 修正一個真實存在的計算錯誤：N 件寬度 w、間隔 g 排成一列，實際佔用空間是
+    // `N*w + (N-1)*g`（N-1 個間隔，最後一件後面不需要留間隔），要解「最大 N 使得
+    // N*w+(N-1)*g <= printableW」，整理後是 `N <= (printableW+g)/(w+g)`，即
+    // `floor((printableW+g)/(w+g))`。舊版少加了分子的 `+g`，等於假設每件（含最後一件）後面都要留
+    // 間隔，會系統性少算一整欄/列——跟 `imposition-engine.ts`（前端拼版 UI 實際使用、公式正確）算
+    // 出的坪數利用率/省錢百分比不一致，兩者理應是同一件事的兩種呈現方式。已改用跟 imposition-engine.ts
+    // 一致的公式。
     // Layout 1: Normal Orientation
-    const cols1 = Math.floor(printableW / itemSlotW);
-    const rows1 = Math.floor(printableH / itemSlotH);
+    const cols1 = Math.floor((printableW + cuttingGapMm) / itemSlotW);
+    const rows1 = Math.floor((printableH + cuttingGapMm) / itemSlotH);
     const count1 = cols1 * rows1;
 
     // Layout 2: Rotated 90 degrees
-    const cols2 = Math.floor(printableW / itemSlotH);
-    const rows2 = Math.floor(printableH / itemSlotW);
+    const cols2 = Math.floor((printableW + cuttingGapMm) / itemSlotH);
+    const rows2 = Math.floor((printableH + cuttingGapMm) / itemSlotW);
     const count2 = cols2 * rows2;
 
     const isRotatedBetter = count2 > count1;

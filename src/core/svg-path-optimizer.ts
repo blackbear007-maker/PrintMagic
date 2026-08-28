@@ -11,8 +11,12 @@
  *
  * Solution:
  * 1. Decimal Precision Clamping (e.g. 124.54923184 ➔ 124.5)
- * 2. Collinear and Duplicate Node Removal
- * 3. Command Consolidation (e.g. L 10 10 L 20 20 ➔ L 10 10 20 20)
+ * 2. XML comment/doctype stripping and redundant-whitespace trimming.
+ *
+ * ⚠️ 2026-08-28 誠實澄清：文檔曾經還宣稱做「共線與重複節點移除」跟「指令合併」（例如
+ * `L 10 10 L 20 20` 合併成 `L 10 10 20 20`），但 `optimizePathData()` 完全沒有實作這兩項——只做
+ * 精度裁切跟空白清理。對應的 `pathNodesRemoved` 統計欄位也從未真正被計算過（`nodeCount` 宣告後從未
+ * 被遞增，永遠回傳 0），已一併移除這個欄位而不是留著一個假的 0。
  *
  * Actual size reduction varies a lot by source SVG (precision/redundancy in the input) — the old
  * "60% ~ 75%" figure was an unverified number, not measured against any benchmark in this repo.
@@ -24,7 +28,6 @@ export interface SvgOptimizationResult {
   originalSize: number;
   optimizedSize: number;
   reductionPercent: number;
-  pathNodesRemoved: number;
 }
 
 export class SvgPathOptimizer {
@@ -33,7 +36,6 @@ export class SvgPathOptimizer {
    */
   public static optimize(svgContent: string, precision: number = 1): SvgOptimizationResult {
     const originalSize = svgContent.length;
-    let nodeCount = 0;
 
     // 1. Clean xml comments and doctypes to avoid parser quirks
     let clean = svgContent
@@ -60,8 +62,7 @@ export class SvgPathOptimizer {
       optimizedSvg: clean,
       originalSize,
       optimizedSize,
-      reductionPercent,
-      pathNodesRemoved: nodeCount
+      reductionPercent
     };
   }
 

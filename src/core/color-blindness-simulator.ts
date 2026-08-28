@@ -26,17 +26,13 @@
  * model. Default is full severity (1.0), matching the typical "view as a protanope" use case.
  */
 
+import { CmykEngine } from './cmyk-engine';
+
 export type CvdType = 'protanopia' | 'deuteranopia' | 'tritanopia';
 
 export class ColorBlindnessSimulator {
-  private static readonly SRGB_TO_LINEAR_LUT: Float32Array = (() => {
-    const lut = new Float32Array(256);
-    for (let c = 0; c < 256; c++) {
-      const v = c / 255;
-      lut[c] = v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
-    }
-    return lut;
-  })();
+  // sRGB<->linear conversion reuses CmykEngine's LUT/formula (2026-08-28 deduped — this file used
+  // to maintain its own byte-identical copy of both).
 
   // Full-severity (100%) dichromacy matrices, Machado/Oliveira/Fernandes 2009 — see header note.
   private static readonly MATRICES: Record<CvdType, readonly number[]> = {
@@ -57,11 +53,6 @@ export class ColorBlindnessSimulator {
     ]
   };
 
-  private static linearToSrgb8(v: number): number {
-    const gamma = v <= 0.0031308 ? 12.92 * v : 1.055 * Math.pow(v, 1 / 2.4) - 0.055;
-    return Math.min(255, Math.max(0, Math.round(gamma * 255)));
-  }
-
   /**
    * Renders a preview of how a viewer with the given color vision deficiency would see this
    * image. `severity` in [0, 1] — see the honesty note above about how partial severity is
@@ -80,12 +71,11 @@ export class ColorBlindnessSimulator {
 
     const M = this.MATRICES[type];
     const s = Math.min(1, Math.max(0, severity));
-    const lut = this.SRGB_TO_LINEAR_LUT;
 
     for (let i = 0; i < src.length; i += 4) {
-      const linR = lut[src[i]];
-      const linG = lut[src[i + 1]];
-      const linB = lut[src[i + 2]];
+      const linR = CmykEngine.sRgbToLinear(src[i]);
+      const linG = CmykEngine.sRgbToLinear(src[i + 1]);
+      const linB = CmykEngine.sRgbToLinear(src[i + 2]);
 
       const simR = M[0] * linR + M[1] * linG + M[2] * linB;
       const simG = M[3] * linR + M[4] * linG + M[5] * linB;
@@ -95,9 +85,9 @@ export class ColorBlindnessSimulator {
       const outG = linG + (simG - linG) * s;
       const outB = linB + (simB - linB) * s;
 
-      dst[i] = this.linearToSrgb8(outR);
-      dst[i + 1] = this.linearToSrgb8(outG);
-      dst[i + 2] = this.linearToSrgb8(outB);
+      dst[i] = CmykEngine.linearToSRgb(outR);
+      dst[i + 1] = CmykEngine.linearToSRgb(outG);
+      dst[i + 2] = CmykEngine.linearToSRgb(outB);
       dst[i + 3] = src[i + 3];
     }
 
@@ -118,7 +108,7 @@ export class ColorBlindnessSimulator {
   }[] {
     const types: CvdType[] = ['protanopia', 'deuteranopia', 'tritanopia'];
     const src = imageData.data;
-    const lut = this.SRGB_TO_LINEAR_LUT;
+    const lut = CmykEngine.getSrgbToLinearLut();
     const totalPixels = src.length / 4;
     const stride = totalPixels > 250_000 ? 4 : 1;
 
