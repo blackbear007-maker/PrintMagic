@@ -9,18 +9,18 @@ describe('IccService (ISO Color Profiles & Compliance)', () => {
     const profiles = IccService.listProfiles();
     expect(profiles.length).toBeGreaterThanOrEqual(4);
     const ids = profiles.map((p) => p.id);
-    expect(ids).toContain('japan-color-2001');
-    expect(ids).toContain('fogra-39');
-    expect(ids).toContain('us-swop-v2');
-    expect(ids).toContain('pso-coated-v3');
+    expect(ids).toContain('japan-color-2001-coated');
+    expect(ids).toContain('iso-coated-v2-fogra39');
+    expect(ids).toContain('gracol-2006-coated');
+    expect(ids).toContain('japan-color-2001-uncoated');
   });
 
   it('should correctly validate TAC compliance against profile limit', () => {
-    const compliant = IccService.validateTacCompliance(280, 'japan-color-2001');
+    const compliant = IccService.validateTacCompliance(280, 'japan-color-2001-coated');
     expect(compliant.compliant).toBe(true);
     expect(compliant.delta).toBe(0);
 
-    const exceeded = IccService.validateTacCompliance(360, 'japan-color-2001');
+    const exceeded = IccService.validateTacCompliance(360, 'japan-color-2001-coated');
     expect(exceeded.compliant).toBe(false);
     expect(exceeded.delta).toBe(10);
   });
@@ -43,7 +43,7 @@ describe('PdfxService (Industrial PDF/X-1a & PDF/X-4)', () => {
         colorBars: true,
         registrationMarks: true
       },
-      iccProfileId: 'japan-color-2001',
+      iccProfileId: 'japan-color-2001-coated',
       pdfStandard: 'PDF/X-1a:2001',
       artworkName: 'TestArtwork'
     });
@@ -69,6 +69,6 @@ describe('Hybrid Dual-Engine & Fallback Strategy', () => {
   it('should provide default ICC profiles when offline', async () => {
     const profiles = await CloudClient.getIccProfiles();
     expect(profiles.length).toBeGreaterThanOrEqual(2);
-    expect(profiles[0].id).toBe('japan-color-2001');
+    expect(profiles[0].id).toBe('japan-color-2001-coated');
   });
 });

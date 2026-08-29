@@ -365,6 +365,24 @@ export class TextInspector {
     }
 
     // Real OCR pass: one recognizeRegion call per candidate, against a single shared canvas.
+    //
+    // ⚠️ 2026-08-29 修正：這個迴圈原本沒有逾時保護——若 Tesseract worker 卡住（例如某台
+    // 裝置上 WASM 初始化異常、worker 當掉但 promise 既不 resolve 也不 reject），
+    // detectTextRegions() 會被永遠卡住，連帶讓呼叫它的 autoDetectTextLayers()/inspectImage()
+    // （進而是「一鍵掃描文字區域」按鈕與整個文字檢查彈窗）永遠停在讀取中，沒有任何辦法恢復。
+    // 這裡替每個候選區塊的 OCR 呼叫加上逾時：超時就視同「OCR 讀不出可信文字」（跟信心不足
+    // 是同一種 fallback），繼續處理下一個區塊，讓整個流程的最壞情況時間有上限
+    // （至多 8 個候選 × OCR_TIMEOUT_MS），而不是無限等待。
+    const OCR_TIMEOUT_MS = 8000;
+    const withTimeout = <T>(promise: Promise<T>, ms: number): Promise<T | null> =>
+      new Promise((resolve) => {
+        const timer = setTimeout(() => resolve(null), ms);
+        promise.then(
+          (v) => { clearTimeout(timer); resolve(v); },
+          () => { clearTimeout(timer); resolve(null); }
+        );
+      });
+
     const sourceCanvas = FreeOcrClient.imageDataToCanvas(imageData);
     const regions: Array<{ x: number; y: number; width: number; height: number; text: string; edgeScore: number; ocrConfidence: number }> = [];
 
@@ -373,7 +391,7 @@ export class TextInspector {
       let ocrConfidence = 0;
 
       if (sourceCanvas) {
-        const ocrResult = await FreeOcrClient.recognizeRegion(sourceCanvas, r);
+        const ocrResult = await withTimeout(FreeOcrClient.recognizeRegion(sourceCanvas, r), OCR_TIMEOUT_MS);
         if (ocrResult && ocrResult.text.length > 0 && ocrResult.confidence >= OCR_MIN_TRUSTED_CONFIDENCE) {
           text = ocrResult.text;
           ocrConfidence = ocrResult.confidence;

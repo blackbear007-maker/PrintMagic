@@ -6,6 +6,7 @@ import { Toast } from './toast';
  */
 export class SpecModal {
   private modalEl: HTMLElement;
+  private hideTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
     this.modalEl = document.createElement('div');
@@ -105,6 +106,11 @@ export class SpecModal {
       </div>
     `;
 
+    // ⚠️ 2026-08-29 修正：見 hide() 內的說明，快速關閉又重開需取消未執行的隱藏 timeout。
+    if (this.hideTimeoutId !== null) {
+      clearTimeout(this.hideTimeoutId);
+      this.hideTimeoutId = null;
+    }
     this.modalEl.style.display = 'flex';
     requestAnimationFrame(() => this.modalEl.classList.add('pm-modal-open'));
 
@@ -137,8 +143,12 @@ export class SpecModal {
 
   public hide(): void {
     this.modalEl.classList.remove('pm-modal-open');
-    setTimeout(() => {
+    // ⚠️ 2026-08-29 修正：追蹤 timeout id，讓 open() 可以取消尚未觸發的舊 hide timeout
+    // （否則快速重新開啟後，舊 timeout 仍會把剛重開的視窗設回 display:none）。
+    if (this.hideTimeoutId !== null) clearTimeout(this.hideTimeoutId);
+    this.hideTimeoutId = setTimeout(() => {
       this.modalEl.style.display = 'none';
+      this.hideTimeoutId = null;
     }, 250);
   }
 }

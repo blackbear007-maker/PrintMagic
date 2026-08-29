@@ -55,6 +55,20 @@ describe('DpiCalculator', () => {
     expect(analysis.qualityTier).toBe('excellent');
     expect(analysis.needsUpscale).toBe(false);
   });
+
+  it('should report the social preset\'s real 1080x1920 target, matching its own portrait-oriented spec (not a hardcoded square)', () => {
+    const socialPreset = PRINT_PRESETS['social'];
+    // A portrait/square-ish input image -> target should be portrait 1080x1920, matching
+    // presets.ts's own "1080 × 1920 px" description, not a hardcoded 1080x1080 square.
+    const portraitAnalysis = DpiCalculator.analyze(900, 1600, socialPreset);
+    expect(portraitAnalysis.targetWidthPx).toBe(1080);
+    expect(portraitAnalysis.targetHeightPx).toBe(1920);
+
+    // A landscape input image -> target dimensions should flip to match orientation.
+    const landscapeAnalysis = DpiCalculator.analyze(1600, 900, socialPreset);
+    expect(landscapeAnalysis.targetWidthPx).toBe(1920);
+    expect(landscapeAnalysis.targetHeightPx).toBe(1080);
+  });
 });
 
 describe('InkLimiter', () => {

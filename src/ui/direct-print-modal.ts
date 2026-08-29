@@ -18,6 +18,7 @@ export class DirectPrintModal {
   private selectedQuantity = 50;
   private isPackaging = false;
   private onOpenShopsMap?: () => void;
+  private hideTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
   constructor(onOpenShopsMap?: () => void) {
     this.onOpenShopsMap = onOpenShopsMap;
@@ -36,6 +37,11 @@ export class DirectPrintModal {
       return;
     }
 
+    // ⚠️ 2026-08-29 修正：見 hide() 內的說明，快速關閉又重開需取消未執行的隱藏 timeout。
+    if (this.hideTimeoutId !== null) {
+      clearTimeout(this.hideTimeoutId);
+      this.hideTimeoutId = null;
+    }
     this.render();
     this.modalEl.style.display = 'flex';
     requestAnimationFrame(() => this.modalEl.classList.add('pm-modal-open'));
@@ -44,8 +50,11 @@ export class DirectPrintModal {
 
   public hide(): void {
     this.modalEl.classList.remove('pm-modal-open');
-    setTimeout(() => {
+    // ⚠️ 2026-08-29 修正：追蹤 timeout id，讓 open() 可以取消尚未觸發的舊 hide timeout。
+    if (this.hideTimeoutId !== null) clearTimeout(this.hideTimeoutId);
+    this.hideTimeoutId = setTimeout(() => {
       this.modalEl.style.display = 'none';
+      this.hideTimeoutId = null;
     }, 250);
   }
 
@@ -294,6 +303,14 @@ export class DirectPrintModal {
       return;
     }
 
+    // ⚠️ 2026-08-29 修正一個真實的競態條件：舊版在這裡先跑完 `await PdfExporter.exportToDataUrl()`
+    // 之後才呼叫 `getCurrentQuote()`——但下載按鈕是唯一被 `isPackaging` 停用的元件，商店分頁/紙材卡片
+    // /數量按鈕在整段非同步等待期間都還能點。使用者點擊下載後、PDF 還在產生時，如果又點了別的數量或
+    // 紙材，最後打包進 ZIP 的訂單規格（品項、單價、總金額）會是「點擊當下畫面顯示的」和「實際寫進封包
+    // 的」兩者不一致，使用者拿到的是自己完全沒意識到已經變更過的訂單內容。已改成在任何 await 之前，先
+    // 把當下的選擇快照下來，整個函式都只用這份快照，不管使用者後續點了什麼都不受影響。
+    const quoteSnapshot = this.getCurrentQuote();
+
     this.isPackaging = true;
     this.render();
 
@@ -312,12 +329,11 @@ export class DirectPrintModal {
         state.cropAnchor
       );
 
-      // 2. Build ZIP Package
-      const quote = this.getCurrentQuote();
+      // 2. Build ZIP Package (using the quote snapshotted before any await)
       const packageResult = await OrderPackageGenerator.createOrderZip(
         pdfDataUrl,
         state,
-        quote,
+        quoteSnapshot,
         artworkName
       );
 
@@ -332,7 +348,7 @@ export class DirectPrintModal {
       URL.revokeObjectURL(url);
 
       SoundEffects.purityChime();
-      Toast.success(`✓ 已成功下載【${quote.shopName}】專屬送印封包 (${packageResult.zipFilename})！內含標準 PDF 與 PrintPass 檢驗護照。`);
+      Toast.success(`✓ 已成功下載【${quoteSnapshot.shopName}】專屬送印封包 (${packageResult.zipFilename})！內含標準 PDF 與 PrintPass 檢驗護照。`);
     } catch (err: any) {
       console.error('Package download error:', err);
       Toast.error(`工單打包失敗: ${err?.message || '未知錯誤'}`);

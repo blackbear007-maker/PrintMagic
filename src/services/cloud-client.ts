@@ -61,22 +61,41 @@ export class CloudClient {
       // Return local fallback
     }
 
+    // ⚠️ 2026-08-29 修正：這裡原本只回傳 2 筆、id/數字跟前端 src/core/icc-profiles.ts 對不上
+    // 的「離線備援清單」（fogra-39 這裡是 330%，前端是 300%）。改成與前端 4 個設定檔的
+    // id／maxTac 完全一致，避免離線備援跟使用者實際會看到的選項互相矛盾。
     return [
       {
-        id: 'japan-color-2001',
+        id: 'japan-color-2001-coated',
         name: 'Japan Color 2001 Coated',
-        region: '亞洲 / 台灣 / 日本',
+        region: '台灣 / 日本 合版印刷標準',
         standard: 'ISO 12647-2:2001',
         maxTac: 350,
-        description: '亞洲平版印刷最廣泛採用之商業銅版紙標準'
+        description: '台灣合版印刷界最普遍採用之色彩標準，顯色鮮豔飽和，適用高彩度商業印件。'
       },
       {
-        id: 'fogra-39',
-        name: 'FOGRA39 (ISO Coated v2)',
-        region: '歐洲 / 國際標準',
+        id: 'iso-coated-v2-fogra39',
+        name: 'ISO Coated v2 (ECI) / FOGRA39',
+        region: '歐洲商業印刷與精裝藝術畫冊規範',
         standard: 'ISO 12647-2:2004',
-        maxTac: 330,
-        description: '歐洲高階商業印刷與展覽畫冊通用標準'
+        maxTac: 300,
+        description: '歐洲 ISO 12647-2 國際印刷標準，嚴格限制總墨量 ≤300%，階調平衡平穩細緻。'
+      },
+      {
+        id: 'gracol-2006-coated',
+        name: 'GRACoL 2006 Coated1v2',
+        region: '北美商業平版印刷標準 (IDEAlliance G7 校正)',
+        standard: 'IDEAlliance GRACoL2006_Coated1v2',
+        maxTac: 320,
+        description: '美洲外銷印件通用之 G7 灰色平衡印刷標準，階調高反差、色彩亮麗。'
+      },
+      {
+        id: 'japan-color-2001-uncoated',
+        name: 'Japan Color 2001 Uncoated',
+        region: '非塗布紙 / 吸墨紙專用標準',
+        standard: 'ISO 12647-2:2001 (Uncoated)',
+        maxTac: 260,
+        description: '針對吸墨量大、無塗布之美術紙設計，網點擴大率補償達 22%，防止深色死黑黏結。'
       }
     ];
   }
@@ -88,7 +107,7 @@ export class CloudClient {
     imageDataUrl: string,
     preset: PrintPreset,
     artworkName = 'Artwork',
-    iccProfileId = 'japan-color-2001'
+    iccProfileId = 'japan-color-2001-coated'
   ): Promise<void> {
     const isOnline = store.getState().cloudStatus === 'online' || (await this.checkHealth());
 

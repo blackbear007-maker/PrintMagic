@@ -26,7 +26,7 @@ apiRouter.get('/icc-profiles', (_req: Request, res: Response) => {
 
 // Pre-flight validation
 apiRouter.post('/preflight', (req: Request, res: Response) => {
-  const { maxTac = 300, profileId = 'japan-color-2001' } = req.body;
+  const { maxTac = 300, profileId = 'japan-color-2001-coated' } = req.body;
   const result = IccService.validateTacCompliance(maxTac, profileId);
   res.json({
     success: true,

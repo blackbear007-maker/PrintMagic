@@ -167,7 +167,6 @@ export class CanvasZoomController {
   private onPointerUp(e: PointerEvent): void {
     this.activePointers.delete(e.pointerId);
     this.clearPressTimer();
-    this.isPanning = false;
 
     if (this.isPeekingOriginal) {
       this.endPeekingOriginal();
@@ -175,6 +174,20 @@ export class CanvasZoomController {
 
     if (this.activePointers.size < 2) {
       this.initialPinchDist = 0;
+    }
+
+    // ⚠️ 2026-08-29 修正：原本這裡無條件把 isPanning 設回 false。雙指縮放後，使用者
+    // 常見手勢是先放開其中一指、用剩下那一指繼續拖曳平移畫面——但因為 isPanning 被
+    // 強制關閉，且從未針對「剩下那一指」重新校正拖曳基準點，平移會直接失效，
+    // 必須整個放開重新觸控才能恢復。這裡改成：若縮放後還剩一指，就以該指目前座標
+    // 重新設定拖曳基準點並重新啟用平移；否則才真正關閉 isPanning。
+    if (this.activePointers.size === 1 && this.scale > 1.05) {
+      const remaining = Array.from(this.activePointers.values())[0];
+      this.startPanX = remaining.x - this.posX;
+      this.startPanY = remaining.y - this.posY;
+      this.isPanning = true;
+    } else {
+      this.isPanning = false;
     }
   }
 

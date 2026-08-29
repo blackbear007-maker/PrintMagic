@@ -98,7 +98,13 @@ export class AiVectorizer {
     const chains: Point[][] = [];
     const visited = new Uint8Array(points.length);
     const maxDistSq = maxDist * maxDist;
-    const cellSize = maxDist;
+    // ⚠️ 2026-08-29 修正（防禦性，目前唯一呼叫端傳入 step*2.2 恆為正數，尚未真的觸發過）：
+    // 若 maxDist 是 0，cellSize 會是 0，讓 `Math.floor(x / cellSize)` 產生 ±Infinity/NaN 的
+    // 網格座標；下面掃描鄰近格子的 `for (gx = cgx-1; gx <= cgx+1; gx++)` 迴圈一旦 cgx 是
+    // Infinity，`gx++` 對 Infinity 沒有作用（Infinity+1 仍是 Infinity），迴圈條件永遠成立，
+    // 造成無窮迴圈、瀏覽器分頁卡死。這裡只保護網格索引用的 cellSize，不影響 maxDistSq
+    // 這個真正的距離門檻語意（maxDist=0 時仍然只有完全重合的點會被視為「相鄰」）。
+    const cellSize = maxDist > 0 ? maxDist : 1e-6;
 
     const cellKey = (x: number, y: number) => `${Math.floor(x / cellSize)},${Math.floor(y / cellSize)}`;
     const grid = new Map<string, number[]>();

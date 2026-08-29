@@ -17,6 +17,13 @@ export class ExportModal {
       el.className = 'pm-modal';
       el.style.display = 'none';
       document.body.appendChild(el);
+      // ⚠️ 2026-08-29 修正：backdrop 點擊監聽器要綁在「第一次建立」這個分支，只綁一次。
+      // 原本綁在 open() 裡，每次開啟都會對同一個 this.modalEl 節點（innerHTML 只會換掉其
+      // 子節點，modalEl 本身不會被換掉）疊加一個新的 click 監聽器，永遠不會被移除——
+      // 開過 N 次之後，點一下背景會連續呼叫 N 次 close()（疊加音效與副作用）。
+      el.addEventListener('click', (e) => {
+        if (e.target === this.modalEl) this.close();
+      });
     }
     this.modalEl = el;
   }
@@ -131,11 +138,8 @@ export class ExportModal {
 
     this.modalEl.style.display = 'flex';
 
-    // Wire events
+    // Wire events (safe to re-bind every open(): these elements are freshly created by innerHTML= above)
     document.getElementById('btnCloseExportModal')?.addEventListener('click', () => this.close());
-    this.modalEl.addEventListener('click', (e) => {
-      if (e.target === this.modalEl) this.close();
-    });
 
     this.modalEl.querySelectorAll('.pm-export-choice-card').forEach((btn) => {
       btn.addEventListener('click', async () => {

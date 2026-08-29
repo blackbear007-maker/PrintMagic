@@ -146,6 +146,17 @@ export class PerspectiveRectifier {
     leftDist: number,
     rightDist: number
   ): void {
+    // ⚠️ 2026-08-29 修正：任何比較運算子跟 NaN 比較都會回傳 false（`NaN < 2` 是 false，
+    // `NaN < minArea` 也是 false），所以只要角點座標含有 NaN，下面兩個「長度太短」/「面積太小」
+    // 的檢查全都會被繞過，讓明顯是垃圾資料的四邊形直接通過驗證。目前沒有任何真實呼叫端會產生
+    // NaN 角點（純屬防禦性修正），但一旦未來接上真實角點偵測或使用者拖曳角點的 UI，
+    // 任何上游除以零之類的錯誤都可能產生 NaN，此處先明確擋下。
+    const allFinite = Number.isFinite(topDist) && Number.isFinite(botDist)
+      && Number.isFinite(leftDist) && Number.isFinite(rightDist);
+    if (!allFinite) {
+      throw new Error('PerspectiveRectifier.rectify: degenerate quad — corner coordinates produced a non-finite (NaN/Infinity) edge length.');
+    }
+
     const MIN_EDGE_PX = 2;
     if (topDist < MIN_EDGE_PX || botDist < MIN_EDGE_PX || leftDist < MIN_EDGE_PX || rightDist < MIN_EDGE_PX) {
       throw new Error(

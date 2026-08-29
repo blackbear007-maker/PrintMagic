@@ -12,6 +12,7 @@ export class RulerCalibrationModal {
   private sliderEl!: HTMLInputElement;
   private ppiValueEl!: HTMLElement;
   private cardWidthPx = 324; // Default ~96 PPI (85.6mm / 25.4 * 96 ≈ 323.5px)
+  private hideTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
   public static readonly CARD_WIDTH_MM = 85.60;
   public static readonly CARD_HEIGHT_MM = 53.98;
@@ -56,10 +57,15 @@ export class RulerCalibrationModal {
           </div>
 
           <!-- Slider Controls -->
+          <!-- ⚠️ 2026-08-29 修正：原本 max="600" 但下方「Retina (220 PPI)」快速預設對應的卡片寬度
+               是 round(85.6/25.4*220) = 741px，超出滑桿上限。<input type=range> 對超出 max 的
+               programmatic value 賦值會直接把底層 value 鉗制在 600，導致點下 Retina 預設後只要
+               稍微碰一下滑桿，數值就會瞬間從 741 掉回 600（PPI 從 220 跌到 ~178），使用者完全
+               無法用滑桿微調到 220 PPI 附近的數值。上限調整為 900，涵蓋既有預設並留有微調空間。 -->
           <div class="pm-calib-controls">
             <div class="pm-calib-slider-row">
               <span class="pm-calib-slider-label">卡片寬度微調：</span>
-              <input type="range" id="calibSlider" min="200" max="600" step="1" value="${this.cardWidthPx}" class="pm-calib-slider" />
+              <input type="range" id="calibSlider" min="200" max="900" step="1" value="${this.cardWidthPx}" class="pm-calib-slider" />
               <span class="pm-calib-slider-val" id="calibCardPx">${this.cardWidthPx} px</span>
             </div>
 
@@ -142,6 +148,11 @@ export class RulerCalibrationModal {
   }
 
   public open(): void {
+    // ⚠️ 2026-08-29 修正：見 hide() 內的說明，快速關閉又重開需取消未執行的隱藏 timeout。
+    if (this.hideTimeoutId !== null) {
+      clearTimeout(this.hideTimeoutId);
+      this.hideTimeoutId = null;
+    }
     const currentPpi = store.getState().screenPpi;
     this.cardWidthPx = Math.round((RulerCalibrationModal.CARD_WIDTH_MM / 25.4) * currentPpi);
     this.sliderEl.value = String(this.cardWidthPx);
@@ -153,8 +164,11 @@ export class RulerCalibrationModal {
 
   public hide(): void {
     this.modalEl.classList.remove('pm-modal-open');
-    setTimeout(() => {
+    // ⚠️ 2026-08-29 修正：追蹤 timeout id，讓 open() 可以取消尚未觸發的舊 hide timeout。
+    if (this.hideTimeoutId !== null) clearTimeout(this.hideTimeoutId);
+    this.hideTimeoutId = setTimeout(() => {
       this.modalEl.style.display = 'none';
+      this.hideTimeoutId = null;
     }, 250);
   }
 }

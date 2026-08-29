@@ -13,6 +13,7 @@ export class NearbyShopsModal {
   private userCoords: UserCoordinates | null = null;
   private selectedCity = 'all';
   private isLocating = false;
+  private hideTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
     this.modalEl = document.createElement('div');
@@ -24,6 +25,11 @@ export class NearbyShopsModal {
   }
 
   public open(): void {
+    // ⚠️ 2026-08-29 修正：見 hide() 內的說明，快速關閉又重開需取消未執行的隱藏 timeout。
+    if (this.hideTimeoutId !== null) {
+      clearTimeout(this.hideTimeoutId);
+      this.hideTimeoutId = null;
+    }
     this.render();
     this.modalEl.style.display = 'flex';
     requestAnimationFrame(() => this.modalEl.classList.add('pm-modal-open'));
@@ -36,12 +42,24 @@ export class NearbyShopsModal {
 
   public hide(): void {
     this.modalEl.classList.remove('pm-modal-open');
-    setTimeout(() => {
+    // ⚠️ 2026-08-29 修正：原本每次 hide() 都排一個新的 250ms setTimeout，若在這段時間內
+    // 快速重新 open()，舊 timeout 仍會照時把剛重開、使用者正在看的視窗設回 display:none。
+    // 現在追蹤 timeout id，讓 open() 可以取消它。
+    if (this.hideTimeoutId !== null) clearTimeout(this.hideTimeoutId);
+    this.hideTimeoutId = setTimeout(() => {
       this.modalEl.style.display = 'none';
+      this.hideTimeoutId = null;
     }, 250);
   }
 
   private async detectLocation(): Promise<void> {
+    // ⚠️ 2026-08-29 修正：原本沒有防止重入的保護——若使用者在上一次定位仍在等待瀏覽器
+    // GPS 權限回應時，把視窗關閉又重新打開（open() 會在 userCoords 仍是 null 時自動再呼叫
+    // 一次 detectLocation()），會同時存在兩個併發的定位請求，最後 resolve 的那個會覆蓋
+    // this.userCoords，可能讓「先成功」的 GPS 結果被「後解析、但其實是較早發出」的逾時
+    // 失敗結果覆蓋回台北市中心預設值，且會重複跳出成功/失敗的 Toast。
+    if (this.isLocating) return;
+
     this.isLocating = true;
     this.updateLocationButtonUI();
 

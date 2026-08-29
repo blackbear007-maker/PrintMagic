@@ -471,7 +471,7 @@ export async function run480StressTests() {
       await PdfxService.generatePdfx({
         imageDataUrl: dummyPng,
         preset,
-        iccProfileId: 'japan-color-2001',
+        iccProfileId: 'japan-color-2001-coated',
         pdfStandard: 'PDF/X-1a:2001',
         artworkName: `Stress480_${runCounter}`
       });

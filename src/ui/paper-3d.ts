@@ -41,6 +41,12 @@ export class Paper3DController {
       backside = document.createElement('div');
       backside.className = 'pm-paper-back';
       this.canvasSheet.appendChild(backside);
+      // ⚠️ 2026-08-29 修正：click 監聽器只在「第一次建立」這個分支綁一次即可。
+      // 原本綁在 updateBacksideContent() 裡，每次切換印刷預設都會重新呼叫該函式，
+      // 對同一個 backside 節點疊加一個新的 click 監聽器（永遠不會被移除），
+      // 導致切換 N 次預設後，點一下背面會連續觸發 N 次 flip()（偶數次等於完全沒反應，
+      // 還會連續播放 N 次翻頁音效）。
+      backside.addEventListener('click', () => this.flip());
     }
     this.updateBacksideContent();
   }
@@ -91,8 +97,6 @@ export class Paper3DController {
         </div>
       </div>
     `;
-
-    backside.addEventListener('click', () => this.flip());
   }
 
   private bindTiltEvents(): void {

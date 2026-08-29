@@ -116,7 +116,7 @@ describe('10 Sample AI Artworks Pre-press Pipeline & Weighted Scoring Test', () 
       const pdfx = await PdfxService.generatePdfx({
         imageDataUrl: sample.dataUrl,
         preset,
-        iccProfileId: 'japan-color-2001',
+        iccProfileId: 'japan-color-2001-coated',
         pdfStandard: 'PDF/X-1a:2001',
         artworkName: sample.filename
       });

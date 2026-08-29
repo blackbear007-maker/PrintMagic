@@ -37,8 +37,17 @@ export class TextInspectionModal {
     this.currentImageDataUrl = imageDataUrl;
     this.selectedRegionId = result.regions.length > 0 ? result.regions[0].id : null;
     SoundEffects.sliderTick();
-    this.render();
+    // ⚠️ 2026-08-29 修正：原本先 render() 再把 overlay 設成 display:flex。render() 內部
+    // bindEvents() 若偵測到 <img> 已經是瀏覽器快取（img.complete 立即為 true，常見於
+    // 使用者已經看過同一張圖），會「同步、立即」呼叫 adjustBoundingBoxPositions()，
+    // 但此時 overlay 祖先元素還是 display:none，任何子元素的 clientWidth/clientHeight
+    // 都會讀到 0。雖然程式碼有 `|| naturalW` 的 fallback，但這只是讓 scaleX/scaleY
+    // 都變成剛好 1，等於把標註框座標當成「圖片以原生像素 1:1 顯示」來定位——
+    // 但圖片實際上是被 CSS 縮小顯示在彈窗裡的，導致標註框整個跑位到畫面外或錯誤位置。
+    // 改成先讓 overlay 變成可見（display:flex）再呼叫 render()，這樣 bindEvents() 執行時
+    // clientWidth/clientHeight 就能讀到真實、已經套用 CSS 縮放後的顯示尺寸。
     this.overlay.style.display = 'flex';
+    this.render();
     document.body.style.overflow = 'hidden';
   }
 

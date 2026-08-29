@@ -130,27 +130,6 @@ export class DiagnosticCard {
 
     // Render depending on uiMode (Simple vs Advanced)
     if (uiMode === 'simple') {
-      const typoWarningHtml = (textInspectionResult && textInspectionResult.typoCount > 0)
-        ? `
-          <div class="pm-diag-text-inspect-banner pm-banner-warning" id="btnOpenTextInspectFromCard" style="cursor: pointer; margin-bottom: 10px;">
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <span style="font-size: 1.1rem;">⚠️</span>
-              <div>
-                <div style="font-weight: 700; font-size: 0.82rem; color: var(--pm-text-primary);">
-                  發現 ${textInspectionResult.typoCount} 處文字疑似異常
-                </div>
-                <div style="font-size: 0.72rem; color: var(--pm-text-secondary);">
-                  ${textInspectionResult.summary}
-                </div>
-              </div>
-            </div>
-            <button class="pm-btn pm-btn-xs pm-btn-artisan" type="button">
-              點擊糾錯 ➔
-            </button>
-          </div>
-        `
-        : '';
-
       this.container.innerHTML = `
         <div class="pm-card pm-diagnostic-panel pm-panel-simple">
           <!-- 1. Hero Score Header -->
@@ -231,13 +210,23 @@ export class DiagnosticCard {
             </div>
           </div>
 
-          <!-- 3. Typo Warning Banner (Only if abnormal) -->
-          ${typoWarningHtml}
+          <!-- 3. Text Inspection Banner (scan CTA / clean result / typo warning) -->
+          <!-- 2026-08-29 修正：這裡原本用 typoWarningHtml，只有「已經有結果且發現錯字」才會顯示——
+               簡易模式下從來沒有任何按鈕可以觸發第一次掃描，所以這個橫幅在簡易模式(預設模式)實際上
+               永遠不會出現。改用跟進階模式一樣的 textInspectHtml，它本身就正確處理「尚未掃描」
+               （顯示可點擊的「立即檢查」CTA）、「掃描完成、乾淨」、「掃描完成、有問題」三種狀態。 -->
+          ${textInspectHtml}
 
           <!-- 4. Big Action Buttons -->
           <div class="pm-diag-hero-actions">
             <button class="pm-btn pm-btn-primary pm-btn-lg btn-diag-export-pdf" style="font-size: 0.95rem; font-weight: 700; width: 100%; box-shadow: 0 4px 14px rgba(0, 113, 227, 0.35);" title="一鍵下載最高畫質標準印刷 PDF">
               <span>🌟</span> 一鍵下載標準印刷檔 (PDF)
+            </button>
+            <!-- 2026-08-29 補上：DirectPrintModal（比價四大印刷廠 + 打包送印工單）原本已經接好
+                 onDirectPrintClick 回呼與 bindEvents() 的 .btn-diag-direct-print 監聽器，
+                 但兩種模式的樣板都從未真的渲染過這個按鈕，導致整個功能完全打不開。這裡補上入口。 -->
+            <button class="pm-btn pm-btn-artisan pm-btn-lg btn-diag-direct-print" style="width: 100%; margin-top: 8px; font-weight: 700;" title="比價台灣四大合版印刷廠，一鍵打包送印工單 ZIP">
+              <span>🏭</span> 送印估價與比價
             </button>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px;">
               <button class="pm-btn pm-btn-secondary pm-btn-md btn-diag-open-export" title="選擇輸出 TIFF / JPG / 向量刀模 SVG 或一鍵全打包出機 ZIP">
@@ -329,6 +318,11 @@ export class DiagnosticCard {
           <div class="pm-diag-hero-actions">
             <button class="pm-btn pm-btn-primary pm-btn-lg btn-diag-export-pdf" style="width: 100%; font-weight: 700; box-shadow: 0 4px 14px rgba(0, 113, 227, 0.35);" title="下載含裁切十字、色條與出血之標準印刷 PDF">
               <span>📄</span> 下載標準印刷 PDF (含出血)
+            </button>
+            <!-- 2026-08-29 補上：見 Simple 模式樣板同段落註解，DirectPrintModal 入口按鈕原本兩種
+                 模式都沒有渲染，這裡補上。 -->
+            <button class="pm-btn pm-btn-artisan pm-btn-lg btn-diag-direct-print" style="width: 100%; margin-top: 8px; font-weight: 700;" title="比價台灣四大合版印刷廠，一鍵打包送印工單 ZIP">
+              <span>🏭</span> 送印估價與比價
             </button>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px;">
               <button class="pm-btn pm-btn-secondary pm-btn-md btn-diag-export-png" title="下載 300 DPI 高解析度 PNG 影像檔">

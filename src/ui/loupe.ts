@@ -19,20 +19,24 @@ export class LoupeController {
     this.container = target;
 
     // Create Loupe Element
+    // ⚠️ 2026-08-29 修正：這裡原本用的 class 名稱（pm-loupe-lens/pm-loupe-bezel/
+    // pm-loupe-reticle/pm-loupe-badge）在 components.css 裡完全沒有對應的樣式規則
+    // （實際定義的是 .pm-loupe/.pm-loupe-canvas/.pm-loupe-label），導致這個放大鏡
+    // 完全沒有樣式——不是圓形、沒有邊框陰影、也沒有固定定位，只是一個跟著文件流跑版的
+    // 未樣式化 DOM 區塊。改用實際存在的 class 名稱接上既有樣式。同時把徽章文字改成
+    // 動態顯示 `${this.zoom}x`，而不是寫死「20x」（實際放大倍率是下面的 zoom=10）。
     this.loupeEl = document.createElement('div');
-    this.loupeEl.className = 'pm-loupe-lens';
+    this.loupeEl.className = 'pm-loupe';
     this.loupeEl.style.display = 'none';
 
     this.loupeCanvas = document.createElement('canvas');
+    this.loupeCanvas.className = 'pm-loupe-canvas';
     this.loupeCanvas.width = this.loupeSize;
     this.loupeCanvas.height = this.loupeSize;
     this.loupeCtx = this.loupeCanvas.getContext('2d')!;
 
     this.loupeEl.innerHTML = `
-      <div class="pm-loupe-bezel">
-        <div class="pm-loupe-reticle"></div>
-        <div class="pm-loupe-badge">20x CMYK 網點</div>
-      </div>
+      <div class="pm-loupe-label">${this.zoom}x CMYK 網點</div>
     `;
     this.loupeEl.insertBefore(this.loupeCanvas, this.loupeEl.firstChild);
     document.body.appendChild(this.loupeEl);

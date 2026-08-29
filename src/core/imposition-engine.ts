@@ -16,6 +16,9 @@ export interface ImpositionLayout {
   gapMm: number;
   marginMm: number;
   costSavingsPercent: number;
+  /** True when the grid packs more items by rotating each item 90° — generateImpositionCanvas()
+   *  must actually rotate the drawn image to match, not just swap the cell's width/height labels. */
+  isRotated: boolean;
 }
 
 export class ImpositionEngine {
@@ -51,8 +54,9 @@ export class ImpositionEngine {
     let rows: number;
     let cellW: number;
     let cellH: number;
+    const isRotated = totalRotated > totalNormal;
 
-    if (totalRotated > totalNormal) {
+    if (isRotated) {
       cols = colsRotated;
       rows = rowsRotated;
       cellW = itemHeightMm;
@@ -88,12 +92,19 @@ export class ImpositionEngine {
       cellHeightPx: mmToPx(cellH),
       gapMm,
       marginMm,
-      costSavingsPercent
+      costSavingsPercent,
+      isRotated
     };
   }
 
   /**
    * Generates a 300 DPI composite Imposition Canvas with crop marks & crosshairs
+   *
+   * ⚠️ 2026-08-29 修正一個真實存在的計算錯誤：`calculateLayout()` 選擇「旋轉排版」時只是把
+   * `cellWidthMm`/`cellHeightMm` 兩個數字互換，從來沒有真的旋轉圖片本身——`drawImage()` 只是把原圖
+   * 直接拉伸塞進轉向後的格子，造成印出來的每一模都是變形拉伸的（例如直式證件照被硬拉成橫式格子的
+   * 比例）。已改成：當 `layout.isRotated` 為真時，實際把畫布旋轉 90 度再繪圖，讓來源圖片維持原始長寬比、
+   * 真正旋轉後填滿格子，而不是被拉伸。
    */
   public static async generateImpositionCanvas(
     items: ImageData[],
@@ -156,7 +167,18 @@ export class ImpositionEngine {
         if (currentSource) {
           ctx.imageSmoothingEnabled = true;
           ctx.imageSmoothingQuality = 'high';
-          ctx.drawImage(currentSource, x, y, cellWPx, cellHPx);
+          if (layout.isRotated) {
+            // Rotate the canvas 90° around the cell's center, then draw the source at its own
+            // (un-swapped) natural aspect ratio — after the rotation it lands correctly filling
+            // the swapped-dimension cell instead of being stretched into it.
+            ctx.save();
+            ctx.translate(x + cellWPx / 2, y + cellHPx / 2);
+            ctx.rotate(Math.PI / 2);
+            ctx.drawImage(currentSource, -cellHPx / 2, -cellWPx / 2, cellHPx, cellWPx);
+            ctx.restore();
+          } else {
+            ctx.drawImage(currentSource, x, y, cellWPx, cellHPx);
+          }
         }
 
         // Draw 0.1mm Crosshairs & Precision Crop Marks

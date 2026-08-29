@@ -17,6 +17,8 @@ export class ObjectEraserModal {
   private isDrawing: boolean = false;
   private isEraserMode: boolean = false;
   private isComparing: boolean = false;
+  private isProcessing: boolean = false;
+  private sessionToken: number = 0;
 
   private imgCanvas: HTMLCanvasElement | null = null;
   private maskCanvas: HTMLCanvasElement | null = null;
@@ -37,6 +39,9 @@ export class ObjectEraserModal {
   }
 
   public open(srcImageData: ImageData): void {
+    // ⚠️ 2026-08-29 修正：每次 open() 換一個新的 session token，讓「關閉視窗時仍在跑的
+    // 去背請求」在事後 resolve 時能偵測到自己已經過期，不會把結果寫進新 session 的狀態。
+    this.sessionToken++;
     this.currentSrcImageData = srcImageData;
     this.currentResultImageData = null;
     this.isComparing = false;
@@ -272,6 +277,10 @@ export class ObjectEraserModal {
     const btnCompare = document.getElementById('btnToggleCompareResult') as HTMLButtonElement;
 
     btnRunInpaint?.addEventListener('click', async () => {
+      // ⚠️ 2026-08-29 修正：原本按鈕在等待期間仍可點擊，快速連點會同時發出多個併發的
+      // eraseObject() 請求，最後 resolve（不一定是最後點擊）的那次會覆蓋畫面與內部狀態，
+      // 且 loading 動畫會在「任一次」請求完成時就被關掉，讓使用者誤以為已經處理完成。
+      if (this.isProcessing) return;
       if (!this.currentSrcImageData || !this.maskCanvas) return;
 
       const maskCtx = this.maskCanvas.getContext('2d')!;
@@ -291,27 +300,40 @@ export class ObjectEraserModal {
         return;
       }
 
+      this.isProcessing = true;
+      const requestToken = this.sessionToken;
       if (loadingEl) loadingEl.style.display = 'flex';
+      if (btnRunInpaint) (btnRunInpaint as HTMLButtonElement).disabled = true;
       SoundEffects.shutterClick();
 
-      const startTime = performance.now();
-      const inpaintResult = await FreeInpaintingClient.eraseObject(this.currentSrcImageData, maskImageData);
-      const inpainted = inpaintResult.imageData;
-      const elapsed = Math.round(performance.now() - startTime);
+      try {
+        const startTime = performance.now();
+        const inpaintResult = await FreeInpaintingClient.eraseObject(this.currentSrcImageData, maskImageData);
+        const inpainted = inpaintResult.imageData;
+        const elapsed = Math.round(performance.now() - startTime);
 
-      this.currentResultImageData = inpainted;
+        // 視窗已經被關閉又重新開啟（換了新圖片）——這個結果已經過期，不套用。
+        if (requestToken !== this.sessionToken) return;
 
-      // Render result on imgCanvas
-      imgCtx.putImageData(inpainted, 0, 0);
-      // Clear mask canvas
-      maskCtx.clearRect(0, 0, w, h);
+        this.currentResultImageData = inpainted;
 
-      if (loadingEl) loadingEl.style.display = 'none';
-      if (btnApply) btnApply.disabled = false;
-      if (btnCompare) btnCompare.style.display = 'inline-flex';
+        // Render result on imgCanvas
+        imgCtx.putImageData(inpainted, 0, 0);
+        // Clear mask canvas
+        maskCtx.clearRect(0, 0, w, h);
 
-      SoundEffects.purityChime();
-      Toast.success(`✨ 物件消除完成 (${elapsed}ms · ${inpaintResult.modelUsed})！可長按「查看原圖」進行對比。`);
+        if (btnApply) btnApply.disabled = false;
+        if (btnCompare) btnCompare.style.display = 'inline-flex';
+
+        SoundEffects.purityChime();
+        Toast.success(`✨ 物件消除完成 (${elapsed}ms · ${inpaintResult.modelUsed})！可長按「查看原圖」進行對比。`);
+      } finally {
+        if (requestToken === this.sessionToken) {
+          if (loadingEl) loadingEl.style.display = 'none';
+          if (btnRunInpaint) (btnRunInpaint as HTMLButtonElement).disabled = false;
+        }
+        this.isProcessing = false;
+      }
     });
 
     // Before / After Compare Toggle Button

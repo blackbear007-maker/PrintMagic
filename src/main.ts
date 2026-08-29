@@ -302,7 +302,11 @@ class App {
     // 11. Batch Studio Filmstrip Bar
     this.batchBar = new BatchBar('batchBarRoot', {
       onAddFiles: (files) => {
-        new DropZone('dropZone', () => {}).handleFiles(Array.from(files));
+        // ⚠️ 2026-08-29 修正：這裡原本每次呼叫都 `new DropZone(...)`，對著同一個 #dropZone
+        // 元素重複綁定 click/dragover/dragleave/drop 監聽器（疊加、永遠不會被移除），
+        // 還會在 document.body 底下建立一個從未使用、也從未移除的隱藏 <input type=file>（DOM 洩漏）。
+        // 改成重用建構時就已存在、事件已綁定好的 this.dropZoneInstance。
+        this.dropZoneInstance.handleFiles(Array.from(files));
       },
       onBatchOptimize: () => {
         this.runBatchOptimizeAll();
@@ -567,7 +571,12 @@ class App {
 
       if (!state.showHeatmap) {
         if (!this.heatmapDataUrl) {
-          const heatmap = await workerClient.generateHeatmap(state.processedImageData, 300);
+          // Use the same active-ICC-profile TAC limit the actual ink-clamping step applies
+          // (see Step 3's honesty note), so the heatmap's warning threshold matches reality.
+          const heatmap = await workerClient.generateHeatmap(
+            state.processedImageData,
+            iccProfileEngine.getActiveProfile().maxTac
+          );
           this.heatmapDataUrl = this.imageDataToDataUrl(heatmap);
         }
       }
@@ -732,11 +741,21 @@ class App {
     document.getElementById('btnSideBack')?.addEventListener('click', () => {
       const ds = this.doubleSidedManager.getState();
       if (!ds.hasBack) {
-        // Auto generate default back template if none exists
+        // Auto generate default back template if none exists.
+        // 2026-08-29 修正：這裡原本不管目前選的是哪個規格，一律寫死套用明信片公版——名片規格的使用者
+        // 切到背面分頁時，會拿到尺寸正確但版型錯誤的明信片背面（郵遞區號框、寄件框等），而不是名片
+        // 背面該有的公司/聯絡資訊版型。已改成跟「載入公版」按鈕（下面 btnLoadBackTemplate）同一套依
+        // 目前選取規格判斷版型的邏輯，兩個入口現在保持一致。
         const state = store.getState();
-        const tmpl = DoubleSidedManager.generateBackTemplate('postcard_standard', state.currentPreset);
+        const tmplType: BackTemplateType =
+          state.currentPreset.id === 'business-card' ? 'business_card_minimal' : 'postcard_standard';
+        const tmpl = DoubleSidedManager.generateBackTemplate(tmplType, state.currentPreset);
         this.doubleSidedManager.setBackImage(tmpl.dataUrl, tmpl.imageData);
-        Toast.success('✨ 已為您自動載入標準明信片背面公版！');
+        Toast.success(
+          tmplType === 'business_card_minimal'
+            ? '✨ 已為您自動載入標準名片背面公版！'
+            : '✨ 已為您自動載入標準明信片背面公版！'
+        );
       }
 
       this.doubleSidedManager.setActiveSide('back');
@@ -777,6 +796,9 @@ class App {
       if (iccId) {
         iccProfileEngine.setProfile(iccId);
         const active = iccProfileEngine.getActiveProfile();
+        // Invalidate any cached TAC heatmap — it was rendered against the previous profile's
+        // maxTac and would show a stale warning threshold otherwise.
+        this.heatmapDataUrl = null;
         SoundEffects.sliderTick();
         Toast.info(`🎨 已切換印刷色彩描述檔：【${active.name}】(TAC ≤${active.maxTac}%)`);
       }
@@ -961,11 +983,6 @@ class App {
       }
     });
 
-    // Open Direct Print & Live Quote Modal
-    document.getElementById('btnOpenDirectPrint')?.addEventListener('click', () => {
-      this.directPrintModal.open();
-    });
-
     // Open Convenience Store Cloud Print Modal (7-11 & FamilyMart)
     document.getElementById('btnOpenConvPrint')?.addEventListener('click', () => {
       this.convPrintModal.open();
@@ -1131,9 +1148,6 @@ class App {
     });
     document.getElementById('btnSimpleConvPrint')?.addEventListener('click', () => {
       this.convPrintModal.open();
-    });
-    document.getElementById('btnSimpleDirectPrint')?.addEventListener('click', () => {
-      this.directPrintModal.open();
     });
 
     // 📷 Camera Direct Capture (Document Scanner)
@@ -1623,12 +1637,20 @@ class App {
         processedImgData = ShadowLift.apply(processedImgData, 0.10);
       }
 
-      // Step 3: Total Area Coverage (TAC 300%) Clamp & Verification
+      // Step 3: Total Area Coverage (TAC) Clamp & Verification
+      //
+      // ⚠️ 2026-08-29 修正一個真實存在的問題：這裡原本不管使用者在「ICC 描述檔」下拉選單選了哪個
+      // 印刷標準，一律寫死用 300% 當總墨量上限——選擇「Japan Color 2001 Uncoated」（該標準宣稱上限
+      // 260%，針對容易死黑的美術紙設計）的使用者，實際上還是被放行到 300%，比描述檔自己宣稱的安全
+      // 上限多了 40 個百分點；選擇「Japan Color 2001 Coated」（該標準宣稱上限 350%）的使用者，
+      // 反而被限制得比描述檔容許的更嚴格。等於這個選單選了等於沒選，完全不影響實際壓墨結果。
+      // 已改成讀取目前選取描述檔真正的 `maxTac`。
       if (opts.enableInkLimiting) {
+        const activeMaxTac = iccProfileEngine.getActiveProfile().maxTac;
         store.setState({
-          processingStep: '4/4 正在檢測並修正總墨量 TAC 限制 (300%)...'
+          processingStep: `4/4 正在檢測並修正總墨量 TAC 限制 (${activeMaxTac}%)...`
         });
-        const clampResult = await workerClient.clampInk(processedImgData, 300);
+        const clampResult = await workerClient.clampInk(processedImgData, activeMaxTac);
         processedImgData = clampResult.imageData;
       }
 

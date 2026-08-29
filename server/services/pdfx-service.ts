@@ -28,7 +28,7 @@ export class PdfxService {
     standard: string;
     iccName: string;
   }> {
-    const { imageDataUrl, preset, iccProfileId = 'japan-color-2001', pdfStandard = 'PDF/X-1a:2001', artworkName = 'Artwork' } = options;
+    const { imageDataUrl, preset, iccProfileId = 'japan-color-2001-coated', pdfStandard = 'PDF/X-1a:2001', artworkName = 'Artwork' } = options;
     const icc = IccService.getProfile(iccProfileId);
 
     const bleedMm = preset.bleedMm || 0;

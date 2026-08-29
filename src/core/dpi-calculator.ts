@@ -31,9 +31,16 @@ export class DpiCalculator {
     preset: PrintPreset
   ): DpiAnalysis {
     // Special handling for digital social media preset
+    //
+    // ⚠️ 2026-08-29 修正：這裡曾經不管圖片方向、一律回傳 1080×1080（正方形）當目標尺寸，但
+    // `presets.ts` 裡 `social` 這個唯一會走到這個分支的預設，自己宣稱的規格是「1080 × 1920 px」
+    // （直式 9:16），跟這裡回傳的正方形完全對不上——診斷卡片會把錯誤的目標尺寸顯示給使用者。
+    // 已改成依照使用者圖片本身的直向/橫向，回傳對應方向的 1080×1920（或 1920×1080），
+    // 而不是寫死一個正方形；下面的 `currentMin`/`targetMin` 品質門檻邏輯不受影響，維持原樣。
     if (preset.id === 'social' || preset.widthMm <= 0 || preset.heightMm <= 0) {
-      const targetW = 1080;
-      const targetH = 1080;
+      const isPortraitOrSquare = heightPx >= widthPx;
+      const targetW = isPortraitOrSquare ? 1080 : 1920;
+      const targetH = isPortraitOrSquare ? 1920 : 1080;
       const currentMin = Math.min(widthPx, heightPx);
       const targetMin = 1080;
       const scaleFactor = currentMin < targetMin ? Math.ceil(targetMin / currentMin) : 1;

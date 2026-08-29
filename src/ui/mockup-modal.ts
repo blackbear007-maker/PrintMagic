@@ -11,6 +11,7 @@ export class MockupModal {
   private currentArtImg: HTMLImageElement | null = null;
   private previewImgEl!: HTMLImageElement;
   private currentMockupDataUrl: string | null = null;
+  private hideTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
     this.modalEl = document.createElement('div');
@@ -101,6 +102,14 @@ export class MockupModal {
   }
 
   public async open(artImg: HTMLImageElement): Promise<void> {
+    // ⚠️ 2026-08-29 修正：hide() 會排一個 250ms 後才執行的 setTimeout 來真正隱藏視窗。
+    // 若使用者在 250ms 內快速重新 open()，舊的 timeout 仍會照時觸發，把剛重新打開、
+    // 使用者正在看的視窗 display 設回 none——即使 classList 已經是「開啟」狀態。
+    // 這裡在真正開啟前先取消任何尚未執行的舊 hide timeout。
+    if (this.hideTimeoutId !== null) {
+      clearTimeout(this.hideTimeoutId);
+      this.hideTimeoutId = null;
+    }
     this.currentArtImg = artImg;
     this.modalEl.style.display = 'flex';
     requestAnimationFrame(() => this.modalEl.classList.add('pm-modal-open'));
@@ -109,8 +118,10 @@ export class MockupModal {
 
   public hide(): void {
     this.modalEl.classList.remove('pm-modal-open');
-    setTimeout(() => {
+    if (this.hideTimeoutId !== null) clearTimeout(this.hideTimeoutId);
+    this.hideTimeoutId = setTimeout(() => {
       this.modalEl.style.display = 'none';
+      this.hideTimeoutId = null;
     }, 250);
   }
 
