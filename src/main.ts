@@ -165,7 +165,7 @@ class App {
     this.subscribeState();
     this.updateSoundIcon();
     this.initServiceWorker();
-    this.updatePresetButtonsUI(store.getState().currentPreset.id, true);
+    this.updatePresetButtonsUI(store.getState().currentPreset.id, null);
 
     // Check Cloud Backend status on startup (Advanced mode only)
     void CloudClient.checkHealth();
@@ -1975,7 +1975,12 @@ class App {
     return canvas.toDataURL('image/png');
   }
 
-  private updatePresetButtonsUI(activeId: string, isAuto = false): void {
+  // ⚠️ 2026-08-29 修正：isAuto 原本只有 true/false 兩種狀態，但初次載入頁面、使用者
+  // 還沒上傳任何圖片時，也會用 true 呼叫這個函式（見建構子），讓徽章顯示「✨ 自動偵測」——
+  // 但這時候系統根本還沒分析過任何圖片，沒有東西可以「偵測」，這是誤導性的宣告。
+  // isAuto=null 代表「還沒有真正的偵測或手動選擇結果，先不顯示徽章」；true 只在真的
+  // 依照剛上傳圖片的尺寸跑完 detectBestPreset() 之後才傳入；false 代表使用者自己手動選了預設。
+  private updatePresetButtonsUI(activeId: string, isAuto: boolean | null = false): void {
     // Re-query in case DOM elements were populated
     this.presetButtons = document.querySelectorAll<HTMLButtonElement>('.pm-preset-btn');
     this.presetButtons.forEach((btn) => {
@@ -1993,12 +1998,19 @@ class App {
     if (simpleIcon) simpleIcon.textContent = preset.icon || '📄';
     if (simpleName) simpleName.textContent = `${preset.nameZh} (${sizeText})`;
     if (simpleAutoBadge) {
-      simpleAutoBadge.textContent = isAuto ? '✨ 自動偵測' : '🎨 已手動自訂';
+      if (isAuto === null) {
+        simpleAutoBadge.style.display = 'none';
+      } else {
+        simpleAutoBadge.style.display = '';
+        simpleAutoBadge.textContent = isAuto ? '✨ 自動偵測' : '🎨 已手動自訂';
+      }
     }
 
     // 2. Update Advanced Mode Auto Badge
     if (this.presetAutoBadge) {
-      if (isAuto) {
+      if (isAuto === null) {
+        this.presetAutoBadge.style.display = 'none';
+      } else if (isAuto) {
         this.presetAutoBadge.style.display = 'inline-flex';
         this.presetAutoBadge.textContent = `✨ 智慧適配：${shortName}`;
       } else {
