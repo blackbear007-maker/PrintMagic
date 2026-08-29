@@ -1,19 +1,30 @@
 import type { DetectedTextRegion, TextInspectionResult } from '../types';
 import { FreeSpellCheckClient } from '../services/free-spellcheck-client';
+import { FreeOcrClient, OCR_MIN_TRUSTED_CONFIDENCE } from '../services/free-ocr-client';
 
 /**
  * Text & Typo Inspector Engine
- * Client-side only: contrast/edge region-detection heuristic + a local regex typo dictionary.
+ * Client-side only: contrast/edge region-detection heuristic, real local OCR, and a local regex
+ * typo dictionary.
  *
  * Capabilities:
- * - High-contrast text region localization (contrast/edge heuristic — this detects *where* text
- *   probably is, it does not read/recognize characters; it is not OCR)
- * - Dictionary Spellcheck (Levenshtein distance)
+ * - High-contrast text region localization (contrast/edge heuristic — finds *where* text probably
+ *   is; a deterministic pixel-statistics scan, not a trained detector)
+ * - Real OCR (2026-08-29) on each located region via FreeOcrClient (self-hosted Tesseract.js,
+ *   Apache-2.0) — reads what the text actually says, gated by Tesseract's own confidence score
+ *   (see OCR_MIN_TRUSTED_CONFIDENCE). Scoped deliberately to real printed/photographed text that
+ *   may be low-res/blurry — NOT to AI-hallucinated garbled pseudo-text, which server-side OCR
+ *   (Tesseract, removed 2026-08-26) was originally and wrongly pointed at; that content usually
+ *   isn't composed of real characters at all, and low OCR confidence naturally rejects it here
+ *   rather than needing special-case detection.
+ * - Dictionary Spellcheck (Levenshtein distance) — now reachable for the first time, since
+ *   `region.text` can finally be non-empty
  * - Local regex-based typo matching, via FreeSpellCheckClient (~18 hardcoded rules — despite the
  *   name and its own header comment, this does NOT call the real LanguageTool API; see
  *   src/services/free-spellcheck-client.ts, fixed separately)
  * - Pseudo-gibberish detection heuristic (consonant clustering, repeating chars, casing entropy) —
- *   a pattern-matching filter, not a trained "AI hallucination detector"
+ *   a pattern-matching filter, not a trained "AI hallucination detector"; now a genuine second
+ *   line of defense on top of OCR's own confidence gate, not dead code
  * - Pre-press text sharpness & edge definition check
  */
 export interface AutoDetectedTextItem {
@@ -26,6 +37,9 @@ export interface AutoDetectedTextItem {
   color: string;
   isOverprint: boolean;
   confidence?: number;
+  /** Real OCR confidence (0-100) when `text` was filled in by FreeOcrClient; undefined when OCR
+   *  found nothing trustworthy and `text` is the manual-entry placeholder instead. */
+  ocrConfidence?: number;
 }
 
 export class TextInspector {
@@ -87,18 +101,18 @@ export class TextInspector {
   /**
    * Auto Text-Region Detector for the Vector Overlay Tool
    *
-   * Finds where text probably is (via contrast/edge heuristics) and returns one editable overlay
-   * item per detected region, positioned and sized to match. It does NOT read what the text says —
-   * this is not OCR. `text` starts as a placeholder the user is expected to type over; a previous
-   * version tried to auto-fill it via `heuristicExtractSampleText()`, which returned '' for every
-   * region, and a filter silently dropped every region with empty text — meaning this feature
-   * always reported "no text found," regardless of the image. Fixed by no longer requiring
-   * generated text and using an honest, obviously-a-placeholder string instead.
+   * Finds where text probably is (via contrast/edge heuristics), attempts real OCR on each region
+   * (FreeOcrClient), and returns one editable overlay item per detected region, positioned and
+   * sized to match. When OCR reads a region with enough confidence, `text` is pre-filled with the
+   * real recognized string; otherwise it falls back to an honest, obviously-a-placeholder string.
+   * Either way the caller (vector-overlay-modal.ts) still requires human review before applying —
+   * OCR can misread real text, especially on stylized poster fonts or chi_tra, so a recognized
+   * string is a starting point to confirm/correct, never auto-applied as final print output.
    */
-  public static autoDetectTextLayers(imageData: ImageData): AutoDetectedTextItem[] {
+  public static async autoDetectTextLayers(imageData: ImageData): Promise<AutoDetectedTextItem[]> {
     const { width, height } = imageData;
 
-    const regions = this.detectTextRegions(imageData);
+    const regions = await this.detectTextRegions(imageData);
     if (regions.length === 0) {
       return [];
     }
@@ -117,8 +131,9 @@ export class TextInspector {
         isK100: true,
         color: '#000000',
         isOverprint: true,
-        // Region-detection strength, not OCR confidence — this tool doesn't read text content
-        confidence: Math.min(0.95, Math.max(0.6, 0.6 + r.edgeScore * 0.1))
+        // Region-detection strength, not OCR confidence — separate signal, see ocrConfidence
+        confidence: Math.min(0.95, Math.max(0.6, 0.6 + r.edgeScore * 0.1)),
+        ocrConfidence: detectedText.length > 0 ? r.ocrConfidence : undefined
       };
     });
   }
@@ -126,12 +141,11 @@ export class TextInspector {
   /**
    * Main entry point to inspect text in image
    *
-   * ⚠️ Structural limitation, not a bug to "fix" without real OCR: `detectTextRegions()` never
-   * populates `region.text` with real recognized content (it's always ''), so every typo/spelling
-   * check below is unreachable — this can only ever report "no issues found," which previously
-   * read as "checked, and it's clean." It has never actually checked spelling on real text. The
-   * summary text below is worded to reflect that honestly instead of claiming a clean bill of
-   * health for a check that never ran.
+   * 2026-08-29: `detectTextRegions()` now runs real OCR (FreeOcrClient) on each region, so the
+   * typo/spelling checks below finally have real text to work with — but only for regions where
+   * OCR cleared its own confidence gate (OCR_MIN_TRUSTED_CONFIDENCE); `region.text` is still ''
+   * for regions OCR couldn't read confidently, and the summary below reports that split honestly
+   * rather than claiming every region was checked.
    */
   public static async inspectImage(
     imageData: ImageData,
@@ -141,7 +155,7 @@ export class TextInspector {
     const minConf = options?.minConfidence ?? 0.5;
 
     // 1. Detect candidate text regions using edge & high-contrast bounding box clustering
-    const rawRegions = this.detectTextRegions(imageData);
+    const rawRegions = await this.detectTextRegions(imageData);
 
     // 2. Perform OCR and spelling verification on each region
     const processedRegions: DetectedTextRegion[] = [];
@@ -183,12 +197,17 @@ export class TextInspector {
     if (processedRegions.length === 0) {
       summary = '未檢測到明顯文字區塊。';
     } else {
-      // Honesty note: this tool locates text regions but does not read their content (no OCR),
-      // so a real spelling/typo check never actually runs — don't claim "拼寫正常" (spelling
-      // verified clean), since nothing was verified. Only report what was genuinely checked
-      // (blur/clarity, which is real pixel analysis) and be explicit that content wasn't read.
+      // Honesty note: OCR only succeeds (and the spelling/typo check only actually runs) on
+      // regions that clear its own confidence gate — report the real split instead of implying
+      // every region was checked.
       const blurryCount = processedRegions.filter(r => r.isBlurry).length;
-      summary = `檢測到 ${processedRegions.length} 處文字區塊${blurryCount > 0 ? `，其中 ${blurryCount} 處清晰度不足` : '，清晰度正常'}。本工具不讀取文字內容，錯字仍需自行校對。`;
+      const ocrReadCount = processedRegions.filter(r => r.text.length > 0).length;
+      const ocrNote = ocrReadCount === processedRegions.length
+        ? '全部成功辨識文字內容'
+        : ocrReadCount > 0
+          ? `${ocrReadCount} 處成功辨識文字內容，其餘 OCR 信心不足，內容仍需自行輸入`
+          : 'OCR 未能可靠辨識任何區塊內容，錯字仍需自行校對';
+      summary = `檢測到 ${processedRegions.length} 處文字區塊${blurryCount > 0 ? `，其中 ${blurryCount} 處清晰度不足` : '，清晰度正常'}。${ocrNote}。`;
     }
 
     return {
@@ -202,13 +221,16 @@ export class TextInspector {
   }
 
   /**
-   * Scans ImageData for high-contrast character clusters & bounding boxes
+   * Scans ImageData for high-contrast character clusters & bounding boxes, then attempts real OCR
+   * on each candidate region. Region localization stays synchronous pixel-statistics work; only
+   * the OCR pass (one FreeOcrClient.recognizeRegion call per candidate, sequential — the worker
+   * processes one job at a time regardless, and there are at most 8 candidates) is async.
    */
-  public static detectTextRegions(
+  public static async detectTextRegions(
     imageData: ImageData
-  ): Array<{ x: number; y: number; width: number; height: number; text: string; edgeScore: number }> {
+  ): Promise<Array<{ x: number; y: number; width: number; height: number; text: string; edgeScore: number; ocrConfidence: number }>> {
     const { width, height, data } = imageData;
-    const regions: Array<{ x: number; y: number; width: number; height: number; text: string; edgeScore: number }> = [];
+    const rawRegions: Array<{ x: number; y: number; width: number; height: number; edgeScore: number }> = [];
 
     // Subsampling grid for rapid <30ms scanning
     const step = Math.max(2, Math.floor(Math.min(width, height) / 250));
@@ -251,7 +273,20 @@ export class TextInspector {
       rowDensity[gy] = sum / gridW;
     }
 
-    // Find dense horizontal bands (typical text headlines & captions)
+    // Find dense horizontal bands (typical text headlines & captions).
+    //
+    // 2026-08-29: the end-of-band threshold used to be 0.04, same order of magnitude as the
+    // 0.08 start threshold — too close together for real bold/large glyphs, verified via real OCR.
+    // A row entering solid glyph ink from background lights up nearly every column (high density,
+    // clears 0.08 easily), but the very next row — still inside the same letters — only has edges
+    // where strokes/counters/gaps break up the fill, a much lower density that can dip under 0.04
+    // for a single row even mid-glyph. That prematurely ended the band one row in, before the
+    // minimum-length filter below even had a chance to run, silently dropping the entire line.
+    // Confirmed directly: a text line read at 95% OCR confidence once given its true height,
+    // 0% when cut down to the 1-2 row fragment this produced. Lowering the end threshold to 0.02
+    // — well below the 0.08 start threshold, but still comfortably above the genuine all-zero gap
+    // between separate lines seen in real test data — lets a band survive a brief internal dip
+    // without merging genuinely separate lines together.
     let inBand = false;
     let bandStart = 0;
     const candidateBands: Array<{ start: number; end: number; density: number }> = [];
@@ -260,7 +295,7 @@ export class TextInspector {
       if (rowDensity[gy] > 0.08 && !inBand) {
         inBand = true;
         bandStart = gy;
-      } else if (rowDensity[gy] <= 0.04 && inBand) {
+      } else if (rowDensity[gy] <= 0.02 && inBand) {
         inBand = false;
         if (gy - bandStart >= 2 && gy - bandStart <= gridH * 0.4) {
           candidateBands.push({ start: bandStart, end: gy, density: rowDensity[bandStart] });
@@ -271,10 +306,30 @@ export class TextInspector {
       candidateBands.push({ start: bandStart, end: gridH - 1, density: rowDensity[bandStart] });
     }
 
-    const aspect = width / height;
+    // Merge bands separated by only a small vertical gap. Real bug, found via real OCR (2026-08-29):
+    // a single line of bold/large text produces a very dense top-edge row (entering the glyphs from
+    // background), then a much sparser run through the glyph interiors (solid fill has near-zero
+    // internal gradient — edges only appear at counters/gaps between letters), before density rises
+    // again — fragmenting one text line into two-plus thin bands instead of one. Cropping to just
+    // the thin top-edge band feeds OCR a sliver through the middle of every glyph instead of the
+    // full letterforms; verified directly — the same region read at 96% confidence when given its
+    // true full height, 0% when cropped to the fragment this produced. A genuine gap between two
+    // separate text lines is comfortably larger than this internal-dip gap, so merging only small
+    // gaps doesn't fuse unrelated lines together.
+    const MERGE_GAP_ROWS = Math.max(6, Math.round(gridH * 0.04));
+    const mergedBands: Array<{ start: number; end: number; density: number }> = [];
+    for (const band of candidateBands) {
+      const prev = mergedBands[mergedBands.length - 1];
+      if (prev && band.start - prev.end <= MERGE_GAP_ROWS) {
+        prev.end = band.end;
+        prev.density = Math.max(prev.density, band.density);
+      } else {
+        mergedBands.push({ ...band });
+      }
+    }
 
     // Extract text blocks inside candidate bands
-    for (const band of candidateBands.slice(0, 8)) {
+    for (const band of mergedBands.slice(0, 8)) {
       const y1 = band.start * step;
       const y2 = Math.min(height, band.end * step + step * 2);
       const bandHeight = y2 - y1;
@@ -299,27 +354,36 @@ export class TextInspector {
         const textWidth = Math.min(width - minX, maxX - minX + step * 4);
         const textHeight = bandHeight;
 
-        // Sample text token based on aspect ratio & position
-        const textSample = this.heuristicExtractSampleText(band.start / gridH, textWidth / width, aspect);
-        regions.push({
+        rawRegions.push({
           x: Math.max(0, minX - step * 2),
           y: y1,
           width: textWidth,
           height: textHeight,
-          text: textSample,
           edgeScore: highContrastCount / ((textWidth / step) * (textHeight / step) || 1)
         });
       }
     }
 
-    return regions;
-  }
+    // Real OCR pass: one recognizeRegion call per candidate, against a single shared canvas.
+    const sourceCanvas = FreeOcrClient.imageDataToCanvas(imageData);
+    const regions: Array<{ x: number; y: number; width: number; height: number; text: string; edgeScore: number; ocrConfidence: number }> = [];
 
-  /**
-   * Generates heuristic recognized tokens based on text line structural metrics (no hardcoded fake text)
-   */
-  private static heuristicExtractSampleText(_relY: number, _relW: number, _aspect: number = 1.0): string {
-    return '';
+    for (const r of rawRegions) {
+      let text = '';
+      let ocrConfidence = 0;
+
+      if (sourceCanvas) {
+        const ocrResult = await FreeOcrClient.recognizeRegion(sourceCanvas, r);
+        if (ocrResult && ocrResult.text.length > 0 && ocrResult.confidence >= OCR_MIN_TRUSTED_CONFIDENCE) {
+          text = ocrResult.text;
+          ocrConfidence = ocrResult.confidence;
+        }
+      }
+
+      regions.push({ ...r, text, ocrConfidence });
+    }
+
+    return regions;
   }
 
   /**

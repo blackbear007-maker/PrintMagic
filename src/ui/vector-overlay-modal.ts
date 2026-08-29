@@ -35,9 +35,10 @@ export class VectorOverlayModal {
       return;
     }
 
-    // Auto-detect and populate if empty
+    // Auto-detect and populate if empty (async — OCR runs in the background; modal opens now
+    // and the item list refreshes in place once detection/recognition finishes)
     if (this.engine.getTextItems().length === 0) {
-      this.autoDetectFromCurrentState(false);
+      void this.autoDetectFromCurrentState(false);
     }
 
     SoundEffects.sliderTick();
@@ -56,17 +57,19 @@ export class VectorOverlayModal {
   }
 
   /**
-   * Detects likely text regions and loads them into the editable list.
+   * Detects likely text regions, attempts real OCR on each (FreeOcrClient — self-hosted
+   * Tesseract.js), and loads them into the editable list.
    *
    * The `applyImmediately` parameter is accepted for call-site compatibility but no longer
    * bypasses review. Fixed 2026-08-25: this used to, when `applyImmediately` was true, stamp the
-   * detected regions straight onto the canvas as final K100 vector text and report success —
-   * but TextInspector does not read what the text actually says (no OCR), so every region's
-   * `text` is a placeholder string. That meant this could silently overwrite real artwork with
-   * literal "（點此輸入文字）" placeholders while telling the user it succeeded. Detected regions
-   * always need a human to type the real text in before they're applied now.
+   * detected regions straight onto the canvas as final K100 vector text and report success — back
+   * when TextInspector didn't read text content at all, every region's `text` was a placeholder
+   * string, so this could silently overwrite real artwork with literal "（點此輸入文字）"
+   * placeholders while telling the user it succeeded. That risk is smaller now that OCR can fill
+   * in real text (2026-08-29), but OCR itself can misread — especially stylized poster fonts or
+   * chi_tra — so detected regions still always need a human to confirm/correct before applying.
    */
-  public autoDetectFromCurrentState(applyImmediately: boolean = false): boolean {
+  public async autoDetectFromCurrentState(applyImmediately: boolean = false): Promise<boolean> {
     const state = store.getState();
     const imgData = state.processedImageData || state.originalImageData;
     if (!imgData) {
@@ -74,7 +77,7 @@ export class VectorOverlayModal {
       return false;
     }
 
-    const detected = TextInspector.autoDetectTextLayers(imgData);
+    const detected = await TextInspector.autoDetectTextLayers(imgData);
     if (detected.length === 0) {
       Toast.info('未偵測到明顯文字區塊');
       return false;
@@ -83,8 +86,13 @@ export class VectorOverlayModal {
     this.engine.clear();
     this.engine.addTextItems(detected);
 
+    const ocrReadCount = detected.filter((d) => d.ocrConfidence !== undefined).length;
+    const message = ocrReadCount > 0
+      ? `✨ 已自動偵測 ${detected.length} 處文字區域，其中 ${ocrReadCount} 處成功辨識文字——請逐一確認/修正後再套用`
+      : `✨ 已自動偵測 ${detected.length} 處文字區域——OCR 未能可靠辨識內容，請逐一輸入實際文字後再套用`;
+
     SoundEffects.sliderTick();
-    Toast.info(`✨ 已自動偵測 ${detected.length} 處文字區域——系統不會讀取文字內容，請逐一確認/輸入實際文字後再套用`);
+    Toast.info(message);
     if (applyImmediately) {
       this.open(); // items are already non-empty, so this just shows the modal + renders once
     } else {
@@ -213,12 +221,12 @@ export class VectorOverlayModal {
 
     // One-Click Auto-Detect and Apply
     this.modalEl.querySelector('#btnAutoDetectAndApply')?.addEventListener('click', () => {
-      this.autoDetectFromCurrentState(true);
+      void this.autoDetectFromCurrentState(true);
     });
 
     // Auto-Detect Only
     this.modalEl.querySelector('#btnAutoDetectOnly')?.addEventListener('click', () => {
-      this.autoDetectFromCurrentState(false);
+      void this.autoDetectFromCurrentState(false);
     });
 
     // Clear All

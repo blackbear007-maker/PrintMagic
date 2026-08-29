@@ -91,13 +91,17 @@
 | **YuNet**（`docker/zero-dce/`） | 真實開源模型（Apache-2.0/MIT），透過 OpenCV 內建的 `cv2.FaceDetectorYN` 載入，不需額外套件（沿用既有的 opencv-python-headless）。權重（~0.23MB）為可自動下載的 Git-LFS Release 資產。**已用真實下載的權重檔驗證**：對合成人臉測試圖成功偵測 1 張臉，信心分數 84.2% | 人臉偵測（`/api/ai/detect-face`），回傳座標 JSON（非圖片），開箱即用 |
 | **ICC 真實色彩管理**（`docker/zero-dce/`） | 不是模型，是 Pillow 的 `ImageCms` 模組本來就內建的 LittleCMS（已驗證 Pillow 10.3.0 內建 lcms2 2.16，`requirements.txt` 無需新增任何套件）。需要使用者自行上傳自己印刷廠的 CMYK ICC 描述檔（`.icc`/`.icm`）——本專案刻意不內建/散布任何具名描述檔（FOGRA／SWOP／GRACoL 等），因為查證 ICC 官方描述檔登錄庫後發現這些檔案本身「未經書面同意不得散布、出售或更改」。**已用真實 CMYK 描述檔驗證**：軟打樣色彩位移可測量（測試漸層平均 RGB 差異 19.83），逐像素總墨量（TAC）數值合理（最高 212.2%、平均 135.6%） | 真實 ICC 軟打樣＋TAC（`/api/ai/icc-soft-proof`），需同時提供來源圖與使用者自己的 CMYK 描述檔 |
 
-⚠️ **OCR（Tesseract）已於 2026-08-26 移除**：查證後發現它從未被任何 UI 功能實際呼叫過（純死碼），而它原本想解決的問題——讀取 AI 繪圖產生的亂碼假文字——OCR 本來就解不了，因為那些筆畫通常根本不是任何文字系統的真實字元，就算讀出結果也毫無參考價值。實際可行的做法是定位文字區域＋由使用者自己輸入正確文字，見下方「文字防糊」工具。
+⚠️ **OCR（Tesseract）已於 2026-08-26 移除**：查證後發現它從未被任何 UI 功能實際呼叫過（純死碼），而它原本想解決的問題——讀取 AI 繪圖產生的亂碼假文字——OCR 本來就解不了，因為那些筆畫通常根本不是任何文字系統的真實字元，就算讀出結果也毫無參考價值。**2026-08-29：OCR 以完全不同的形式重新加入**——不是伺服器容器，是 100% 本機的 `tesseract.js`（Apache-2.0），而且刻意只用於一個不同、定義明確的問題：讀取「真實印刷/翻拍但解析度不高或有點模糊」的文字（掃描名片、拍照標籤），不是拿來讀 AI 幻覺假字。詳見下方「文字防糊」工具。
 
 ⚠️ **DehazeFormer-T（去霧模型）已於 2026-08-26 加入、2026-08-27 評估後移除**：模型本身真實可用（權重驗證通過，真實推論讓對比度從 0.0245 提升到 0.0763），移除原因不是技術問題，而是需求評估——去霧只對戶外霧霾遠景照片有幫助，跟本站證件照/名片/貼紙/社群圖等典型使用情境重疊度低，也不是印刷特化能力（跟通用修圖軟體處理邏輯相同）。同一天再進一步確認印前處理根本不需要這個功能，連本機備援演算法（`ContrastDehazeFilter`，經典 Dark Channel Prior 公式）也一併移除——去霧從此在本站完全不存在，不是「換成本機版本」而是整個功能拿掉。
 
 ⚠️ **ARNIQA（無參考影像品質評分模型）已於 2026-08-29 評估後移除**：模型本身真實可用、已正確接上前端主流程且上線運作一段時間，移除原因同樣不是技術問題，而是重新檢視後發現它的訓練依據（KonIQ-10k 等一般網路照片的人類主觀評分）量的是「照片在螢幕上好不好看」，跟 GFPGAN/DDColor 當初被判定「與印前處理定位不符」是同一個問題，詳見 `docs/SPEC.md` 的評估紀錄。同日進一步確認：ARNIQA 的本機備援 `PixelStatQualityAssessor` 其實跟既有的 `PrintScoreCalculator` 重疊——兩者各自對同一張圖重新掃一次全圖，各自算銳利度與對比度，而 `PrintScoreCalculator` 用真正的 Sobel 邊緣偵測與 P5/P95 動態範圍百分位，本來就是同一組訊號更準確的版本，因此 `PixelStatQualityAssessor` 已一併刪除。品質評分功能現在合併進 `PrintScoreCalculator` 唯一的 7 因子印前評分，處理前後的分數對比顯示在比較滑桿中。
 
 VTracer/Real-ESRGAN/Retinexformer/LaMa/rembg 離線或未就緒時，系統會自動退回下方的本機決定性演算法，並在結果標籤上誠實標示「本機」而非假冒雲端模型名稱。YuNet（人臉偵測）是唯一沒有本機備援的功能——本專案沒有現成的本機人臉偵測演算法，離線時就是誠實回報不可用，而不是假造一個「本機演算法」來冒充。ICC 真實色彩管理離線、或使用者未上傳描述檔時，軟打樣會退回既有的 `CmykEngine.simulatePrintProof()` 近似模擬——這個退回並非「真實 ICC 運算的本機版本」，只是既有的手刻公式近似值，兩者不應混為一談。
+
+### 📖 本機 OCR（`free-ocr-client.ts`，真實訓練模型，但不是 Docker 服務）
+
+跟上方「自建服務」表格裡的模型不同——不是打 `/api/*` 到自建 Docker 容器，是真正在瀏覽器裡跑 WASM。`tesseract.js`／`tesseract.js-core`（Apache-2.0，naptha 團隊維護）+ 官方 `tesseract-ocr/tessdata_fast` 語言資料（同樣 Apache-2.0），全部自己 host 在 `public/tesseract/`（連 tesseract.js 預設的 jsDelivr CDN 都沒用），同時載入英文與繁體中文兩種語言。用於「文字清晰防糊」浮層工具（`vector-overlay-modal.ts`）的一鍵自動偵測：找到疑似文字的區域後，先嘗試真的讀出文字內容，讀出來的信心分數若不夠高就退回讓使用者自己輸入——不管哪種情況，套用前都一定要人工確認/修正，OCR 只提供起點，不會直接把辨識結果當最終印刷內容套用。已用真實瀏覽器測試驗證：合成海報圖「GRAND OPENING」/「SPECIAL SALE」正確辨識（信心分數 77%／95%），繁體中文「限量特別版」正確辨識（93%）。誠實揭露：`tessdata_fast` 犧牲了一些準確度換取檔案更小更快，中文辨識準確度也預期明顯低於英文，不應假設兩者一樣可靠。
 
 ### 🧮 決定性演算法（前端 TypeScript，非神經網路）
 以下模組過去用 SOTA 論文名稱命名，現已改用描述實際技術的名稱，程式邏輯本身沒有變動：
@@ -213,7 +217,7 @@ npm run build
 
 ## 📄 開源授權條款 (License)
 
-本專案基於 **MIT License** 授權開源。真實整合的開源工具遵循其原作者授權：VTracer（MIT）、Real-ESRGAN（BSD-3-Clause）、Retinexformer（MIT）、LaMa（Apache-2.0）。Retinexformer 的權重檔案需自行從作者發布的連結手動下載，現況見上方引擎組成說明。
+本專案基於 **MIT License** 授權開源。真實整合的開源工具遵循其原作者授權：VTracer（MIT）、Real-ESRGAN（BSD-3-Clause）、Retinexformer（MIT）、LaMa（Apache-2.0）、tesseract.js／tesseract.js-core（Apache-2.0）、tesseract-ocr/tessdata_fast 語言資料（Apache-2.0）。Retinexformer 的權重檔案需自行從作者發布的連結手動下載，現況見上方引擎組成說明。
 
 ---
 
