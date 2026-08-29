@@ -95,7 +95,7 @@
 
 ⚠️ **DehazeFormer-T（去霧模型）已於 2026-08-26 加入、2026-08-27 評估後移除**：模型本身真實可用（權重驗證通過，真實推論讓對比度從 0.0245 提升到 0.0763），移除原因不是技術問題，而是需求評估——去霧只對戶外霧霾遠景照片有幫助，跟本站證件照/名片/貼紙/社群圖等典型使用情境重疊度低，也不是印刷特化能力（跟通用修圖軟體處理邏輯相同）。同一天再進一步確認印前處理根本不需要這個功能，連本機備援演算法（`ContrastDehazeFilter`，經典 Dark Channel Prior 公式）也一併移除——去霧從此在本站完全不存在，不是「換成本機版本」而是整個功能拿掉。
 
-⚠️ **ARNIQA（無參考影像品質評分模型）已於 2026-08-29 評估後移除**：模型本身真實可用、已正確接上前端主流程且上線運作一段時間，移除原因同樣不是技術問題，而是重新檢視後發現它的訓練依據（KonIQ-10k 等一般網路照片的人類主觀評分）量的是「照片在螢幕上好不好看」，跟 GFPGAN/DDColor 當初被判定「與印前處理定位不符」是同一個問題，詳見 `docs/SPEC.md` 的評估紀錄。品質評分功能改回純本機的 `PixelStatQualityAssessor` 啟發式評分，不再嘗試任何雲端模型。
+⚠️ **ARNIQA（無參考影像品質評分模型）已於 2026-08-29 評估後移除**：模型本身真實可用、已正確接上前端主流程且上線運作一段時間，移除原因同樣不是技術問題，而是重新檢視後發現它的訓練依據（KonIQ-10k 等一般網路照片的人類主觀評分）量的是「照片在螢幕上好不好看」，跟 GFPGAN/DDColor 當初被判定「與印前處理定位不符」是同一個問題，詳見 `docs/SPEC.md` 的評估紀錄。同日進一步確認：ARNIQA 的本機備援 `PixelStatQualityAssessor` 其實跟既有的 `PrintScoreCalculator` 重疊——兩者各自對同一張圖重新掃一次全圖，各自算銳利度與對比度，而 `PrintScoreCalculator` 用真正的 Sobel 邊緣偵測與 P5/P95 動態範圍百分位，本來就是同一組訊號更準確的版本，因此 `PixelStatQualityAssessor` 已一併刪除。品質評分功能現在合併進 `PrintScoreCalculator` 唯一的 7 因子印前評分，處理前後的分數對比顯示在比較滑桿中。
 
 VTracer/Real-ESRGAN/Retinexformer/LaMa/rembg 離線或未就緒時，系統會自動退回下方的本機決定性演算法，並在結果標籤上誠實標示「本機」而非假冒雲端模型名稱。YuNet（人臉偵測）是唯一沒有本機備援的功能——本專案沒有現成的本機人臉偵測演算法，離線時就是誠實回報不可用，而不是假造一個「本機演算法」來冒充。ICC 真實色彩管理離線、或使用者未上傳描述檔時，軟打樣會退回既有的 `CmykEngine.simulatePrintProof()` 近似模擬——這個退回並非「真實 ICC 運算的本機版本」，只是既有的手刻公式近似值，兩者不應混為一談。
 
@@ -105,7 +105,6 @@ VTracer/Real-ESRGAN/Retinexformer/LaMa/rembg 離線或未就緒時，系統會�
 | 現在的名稱 | 實際技術 | 曾經借用的模型名 |
 | :--- | :--- | :--- |
 | `EdgeAwareUpscaler` | 雙線性插值 + 局部梯度銳化 | RealESRGAN |
-| `PixelStatQualityAssessor` | 亮度/梯度/飽和度統計 | CLIP-IQA+ |
 | `ColorRegionSelector` | 顏色距離 flood-fill 選取 | SAM 2.1 / MobileSAM |
 | `EdgeContourDetector` | Sobel 式梯度 + 非極大值抑制 | TEED |
 | `SharpenDeblurFilter` | 固定 5×5 反卷積核 | Stripformer / Restormer |

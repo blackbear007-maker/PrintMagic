@@ -56,7 +56,6 @@ import { workerClient } from './workers/worker-client';
 import { ShadowLift } from './core/shadow-lift';
 import { HandShadowBalancer } from './core/hand-shadow-balancer';
 import { AntiBandingFilter } from './core/anti-banding';
-import { PixelStatQualityAssessor } from './core/pixel-stat-quality-assessor';
 import { PantoneMatcher } from './core/pantone-matcher';
 import { BarcodeVerifier } from './core/barcode-verifier';
 import { ColorBlindnessSimulator, type CvdType } from './core/color-blindness-simulator';
@@ -1657,7 +1656,6 @@ class App {
         preset
       );
       const scoreResult = PrintScoreCalculator.calculate(stats, preset, inkAnalysis);
-      const iqaReport = PixelStatQualityAssessor.assess(processedImgData);
       const dominantPantones = PantoneMatcher.extractDominantSpotColors(processedImgData, 3);
       const barcodeReport = BarcodeVerifier.verifyImage(processedImgData, 300);
 
@@ -1668,9 +1666,6 @@ class App {
       if (barcodeReport.hasBarcode && !barcodeReport.isLegible) {
         scoreResult.issues.push(...barcodeReport.issues);
         scoreResult.recommendations.push(...barcodeReport.recommendations);
-      }
-      if (iqaReport.score >= 80) {
-        scoreResult.recommendations.push(`📊 印刷品質評分：${iqaReport.score}/100 (${iqaReport.grade} 級商業標準)`);
       }
 
       // Moiré risk preflight (見 src/core/moire-risk-predictor.ts) — wrapped locally so a failure

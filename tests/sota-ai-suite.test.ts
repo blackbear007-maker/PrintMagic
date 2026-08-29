@@ -6,7 +6,6 @@ import { TextZoneDetector } from '../src/core/text-zone-detector';
 import { ColorRegionSelector } from '../src/core/color-region-selector';
 import { CurvedPageFlattener } from '../src/core/curved-page-flattener';
 import { EdgeContourDetector } from '../src/core/edge-contour-detector';
-import { PixelStatQualityAssessor } from '../src/core/pixel-stat-quality-assessor';
 
 describe('Deterministic Pre-Press Algorithm Suite (本機決定性演算法陣列，非 AI 模型)', () => {
   const createMockImageData = (w: number, h: number, r = 180, g = 180, b = 180, a = 255): ImageData => {
@@ -147,16 +146,5 @@ describe('Deterministic Pre-Press Algorithm Suite (本機決定性演算法陣�
     expect(res.edgePixelCount).toBeGreaterThan(0);
     expect(res.continuousClosedLoops).toBeGreaterThanOrEqual(1);
     expect(res.edgeComplexityScore).toBeGreaterThan(0);
-  });
-
-  // 8. Pixel-Statistics Quality Assessor (not CLIP, no vision-language model involved)
-  it('8. PixelStatQualityAssessor: should score technical clarity and commercial aesthetics', () => {
-    const img = createMockImageData(60, 60, 120, 140, 160);
-    const res = PixelStatQualityAssessor.assess(img);
-
-    expect(res.score).toBeGreaterThan(50);
-    expect(res.technicalClarityScore).toBeGreaterThan(50);
-    expect(res.aestheticQualityScore).toBeGreaterThan(50);
-    expect(['EXCELLENT', 'GOOD', 'FAIR', 'POOR']).toContain(res.grade);
   });
 });

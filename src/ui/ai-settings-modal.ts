@@ -36,8 +36,11 @@ import { NetworkGuard } from '../services/network-guard';
  * ——技術可行，但與印前處理定位不符或成本過高，詳見 docs/SPEC.md 的評估紀錄。
  * ARNIQA（無參考影像品質評分）曾於 2026-08-25 加入並真實上線運作，2026-08-29 評估後移除——
  * 訓練依據是一般網路照片的人類主觀評分，量的是「照片好不好看」而非「印刷會不會出錯」，跟
- * GFPGAN/DDColor 是同一類定位問題，詳見 docs/SPEC.md 的評估紀錄。品質評分功能現在是純本機的
- * PixelStatQualityAssessor 啟發式評分。
+ * GFPGAN/DDColor 是同一類定位問題，詳見 docs/SPEC.md 的評估紀錄。ARNIQA 的本機備援
+ * PixelStatQualityAssessor 同日一併移除——拿掉 ARNIQA 後才發現它其實跟 PrintScoreCalculator
+ * 重疊：兩者各自重新掃一次全圖算銳利度與對比度，而 PrintScoreCalculator 用真正的 Sobel 邊緣偵測
+ * 與 P5/P95 動態範圍百分位，本來就是同一組訊號更準確的版本。現在全站只剩一個評分：
+ * PrintScoreCalculator 的 7 因子印前評分，在比較滑桿（compare-slider.ts）呈現原圖 vs 處理後對比。
  * OCR（Tesseract）已於 2026-08-26 移除——查證後發現它從未被任何 UI 功能實際呼叫，而它原本
  * 想解決的問題（讀取 AI 繪圖產生的亂碼假文字）OCR 本來就解不了，因為那些筆畫通常根本不是真實字元。
  */

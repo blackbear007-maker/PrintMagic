@@ -8,7 +8,6 @@ import { ColorRegionSelector } from '../src/core/color-region-selector';
 import { EdgeAwareUpscaler } from '../src/core/edge-aware-upscaler';
 import { EdgeContourDetector } from '../src/core/edge-contour-detector';
 import { CurvedPageFlattener } from '../src/core/curved-page-flattener';
-import { PixelStatQualityAssessor } from '../src/core/pixel-stat-quality-assessor';
 import { HandShadowBalancer } from '../src/core/hand-shadow-balancer';
 import { EdgeChokeMatting } from '../src/core/edge-choke-matting';
 import { ZeroDceEnhancer } from '../src/core/zero-dce-enhancer';
@@ -84,9 +83,6 @@ describe('Deterministic Local Pre-Press Algorithm Suite', () => {
   // ─── Remaining deterministic algorithms ──────────────────────────────────
   it('should verify the remaining local algorithms in the suite', () => {
     const img = createMockImageData(40, 40);
-
-    const qualityScore = PixelStatQualityAssessor.assess(img);
-    expect(qualityScore.score).toBeGreaterThan(0);
 
     const deshadow = HandShadowBalancer.deshadow(img);
     expect(deshadow.width).toBe(40);

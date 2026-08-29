@@ -1,5 +1,4 @@
 import { describe, it, expect } from 'vitest';
-import { PixelStatQualityAssessor } from '../src/core/pixel-stat-quality-assessor';
 import { HandShadowBalancer } from '../src/core/hand-shadow-balancer';
 import { ObjectEraser } from '../src/core/object-eraser';
 import { DEFAULT_PIPELINE_OPTIONS } from '../src/types';
@@ -29,23 +28,6 @@ describe('Unified PyTorch AI & Automated Pre-Press Pipeline (全自動啟用驗�
     expect(DEFAULT_PIPELINE_OPTIONS.enableVectorOverlay).toBe(true);
     expect(DEFAULT_PIPELINE_OPTIONS.enableAntiBanding).toBe(true);
     expect(DEFAULT_PIPELINE_OPTIONS.enableDeshadow).toBe(true);
-  });
-
-  it('should evaluate image sharpness, noise, and score using PixelStatQualityAssessor', () => {
-    const img = createMockImageData(60, 60, 150, 150, 150);
-    // Draw some high frequency edges
-    for (let i = 0; i < 60; i++) {
-      const idx = (i * 60 + i) * 4;
-      img.data[idx] = 20;
-      img.data[idx + 1] = 20;
-      img.data[idx + 2] = 20;
-    }
-
-    const report = PixelStatQualityAssessor.assess(img);
-    expect(report.score).toBeGreaterThan(0);
-    expect(report.score).toBeLessThanOrEqual(100);
-    expect(['EXCELLENT', 'GOOD', 'FAIR', 'POOR']).toContain(report.grade);
-    expect(report.recommendations).toBeDefined();
   });
 
   it('should normalize non-uniform illumination gradient with HandShadowBalancer', () => {
@@ -97,15 +79,11 @@ describe('Unified PyTorch AI & Automated Pre-Press Pipeline (全自動啟用驗�
     img = AntiBandingFilter.apply(img, 0.65);
     expect(img).toBeDefined();
 
-    // 3. Auto Pixel-Stat Quality Assessment
-    const qualityReport = PixelStatQualityAssessor.assess(img);
-    expect(qualityReport.score).toBeGreaterThan(0);
-
-    // 4. Auto Pantone
+    // 3. Auto Pantone
     const pantones = PantoneMatcher.extractDominantSpotColors(img, 2);
     expect(pantones.length).toBeGreaterThan(0);
 
-    // 5. Auto Barcode Verify
+    // 4. Auto Barcode Verify
     const barcode = BarcodeVerifier.verifyImage(img, 300);
     expect(typeof barcode.isLegible).toBe('boolean');
   });

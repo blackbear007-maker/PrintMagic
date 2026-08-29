@@ -28,8 +28,11 @@ trained weights, Apache-2.0, WACV 2024), but its training basis (KonIQ-10k/SPAQ/
 human perceptual ratings of general web/consumer photos) measures "does this look good on a
 screen," not "will this print correctly" — the same category GFPGAN/DDColor were rejected for, not
 a print-specific capability the way TAC/bleed/ICC are. See docs/SPEC.md's rejected-models section
-for the full writeup. Quality scoring now runs entirely on the frontend's local
-PixelStatQualityAssessor heuristic; this endpoint no longer exists.
+for the full writeup. Its local fallback, PixelStatQualityAssessor, was removed the same day too
+once its overlap with the frontend's PrintScoreCalculator became obvious (both independently
+re-scanned the image for sharpness/contrast that PrintScoreCalculator already computed more
+accurately). Quality scoring is now entirely PrintScoreCalculator's 7-factor print-readiness
+score; this endpoint no longer exists.
 
 ⚠️ /icc/soft-proof (added 2026-08-27) is NOT a trained model — it's real ICC color management via
 Pillow's `ImageCms` module, which already wraps LittleCMS (verified 2026-08-27: Pillow 10.3.0

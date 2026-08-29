@@ -43,8 +43,14 @@
  * removed 2026-08-29 after evaluation: it worked correctly, but its training basis (KonIQ-10k and
  * similar general-photo human-perception datasets) measures "does this look good on a screen," not
  * "will this print correctly" — the same category GFPGAN/DDColor were rejected for. See
- * docs/SPEC.md's rejected-models section. Quality scoring now runs entirely on the local
- * PixelStatQualityAssessor heuristic; no cloud call is attempted for it anymore.
+ * docs/SPEC.md's rejected-models section. ARNIQA's local fallback, PixelStatQualityAssessor, was
+ * itself removed the same day once ARNIQA's removal made its overlap with PrintScoreCalculator
+ * obvious: both independently re-derived sharpness (gradient-based) and contrast/dynamic-range
+ * (luminance-distribution-based) from a second full-image pixel scan, and PrintScoreCalculator's
+ * own Sobel-based edgeScore and P5/P95-percentile contrast measurement were already the more
+ * accurate version of the same signals, already computed once per image. There is now exactly one
+ * quality/readiness score in this app — PrintScoreCalculator's 7-factor print-readiness score,
+ * shown as an original-vs-processed comparison in the UI (src/ui/compare-slider.ts).
  */
 export class AiEngineService {
   private static readonly BASE_URL = process.env.ZERO_DCE_URL || process.env.AI_ENGINE_URL || 'http://127.0.0.1:8082';

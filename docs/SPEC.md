@@ -20,7 +20,7 @@
 | :--- | :--- | :---: | :---: | :--- |
 | **`printmagic`** | Node.js 22 (Alpine) + Vite SSR | `3000` | **256 MB** | 主應用入口、UI 渲染、合版拼版算力、印前 PDF 出機檔壓製（非通過驗證的 PDF/X-1a，見第 5 節）。 |
 | **`vtracer`** | Rust 1.78 (Distroless) | `8080` | **128 MB** | 真實 VTracer 向量化引擎（點陣轉 SVG）。「Kurbo 2mm 刀模幾何運算」實際跑在主應用內的 `src/core/kurbo-geometry.ts`（純 TypeScript），不在這個容器裡；「OxiPNG 無損壓縮」查無實作，本服務不做 PNG 壓縮，已移除該說法。 |
-| **`zero-dce`** | Python 3.12 + PyTorch 2.3+ (CPU) + ONNX Runtime | `8082` | **4096 MB** | 承載 5 個模型：**Real-ESRGAN**（4x 放大，真實 BSD-3-Clause 訓練權重）、**Retinexformer**（低光提亮，真實 MIT 訓練權重，已用真實下載的 `LOL_v2_real.pth` 驗證推論成功，取代原本從未訓練過的 Zero-DCE++；權重因無自動下載網址已直接提交進 git，見 `docker/zero-dce/weights/README.md`）、**LaMa**（物件／浮水印移除，真實 Apache-2.0 TorchScript 權重，建置時自動下載，已驗證推論成功）、**rembg u2netp**（去背，2026-08-27 新增，真實 MIT 訓練權重，建置時自動下載，已驗證推論成功）、**YuNet**（人臉偵測，2026-08-27 新增，真實 Apache-2.0/MIT ONNX 權重，建置時自動下載，已驗證推論成功）。⚠️ **DehazeFormer-T**（去霧）曾於 2026-08-26 以同等規格真實整合驗證通過，但 2026-08-27 評估後移除，見 §1.1 評估紀錄——去霧功能（含本機備援演算法）已於同日完全移除，本站不再提供去霧功能。⚠️ **ARNIQA**（品質評分）曾以同等規格真實整合並上線運作，但 2026-08-29 評估後移除，見 §1.1 評估紀錄——品質評分功能改回純本機的 `PixelStatQualityAssessor` 啟發式評分，不再嘗試任何雲端模型。RAM 上限數字尚未針對這兩次移除重新量測，見 `docker-compose.yml` 內附的過時提醒。 |
+| **`zero-dce`** | Python 3.12 + PyTorch 2.3+ (CPU) + ONNX Runtime | `8082` | **4096 MB** | 承載 5 個模型：**Real-ESRGAN**（4x 放大，真實 BSD-3-Clause 訓練權重）、**Retinexformer**（低光提亮，真實 MIT 訓練權重，已用真實下載的 `LOL_v2_real.pth` 驗證推論成功，取代原本從未訓練過的 Zero-DCE++；權重因無自動下載網址已直接提交進 git，見 `docker/zero-dce/weights/README.md`）、**LaMa**（物件／浮水印移除，真實 Apache-2.0 TorchScript 權重，建置時自動下載，已驗證推論成功）、**rembg u2netp**（去背，2026-08-27 新增，真實 MIT 訓練權重，建置時自動下載，已驗證推論成功）、**YuNet**（人臉偵測，2026-08-27 新增，真實 Apache-2.0/MIT ONNX 權重，建置時自動下載，已驗證推論成功）。⚠️ **DehazeFormer-T**（去霧）曾於 2026-08-26 以同等規格真實整合驗證通過，但 2026-08-27 評估後移除，見 §1.1 評估紀錄——去霧功能（含本機備援演算法）已於同日完全移除，本站不再提供去霧功能。⚠️ **ARNIQA**（品質評分）曾以同等規格真實整合並上線運作，但 2026-08-29 評估後移除，見 §1.1 評估紀錄——品質評分功能整合進既有的 `PrintScoreCalculator`（見 1.3 節），不再是獨立分數，也不再嘗試任何雲端模型。RAM 上限數字尚未針對這兩次移除重新量測，見 `docker-compose.yml` 內附的過時提醒。 |
 
 ⚠️ **`tesseract`（OCR）容器已於 2026-08-26 移除**：查證後發現從未被任何 UI 功能實際呼叫（純死碼），且它原本想解決的問題——讀取 AI 繪圖產生的亂碼假文字——OCR 本來就解不了，那些筆畫通常不是任何文字系統的真實字元。
 
@@ -79,7 +79,9 @@
 2. **跟既有的 `PrintScoreCalculator` 定位重疊，卻量的是較不相關的軸線**：本站早就有一套「原圖 vs 處理後」評分對比機制（`PrintScoreCalculator`，量 DPI/油墨量 TAC/色域這些真正跟印刷輸出掛勾的指標，在 Step 1 與 Step 4 分別對原圖與處理後圖片各跑一次，並在完成提示裡顯示分數差值）。ARNIQA 的分數只是「畫質觀感」的錦上添花參考，不是印前判斷依據，卻用了跟核心印前診斷同等的呈現方式（分數/等級），容易讓使用者誤以為兩者同等重要。
 3. **診斷不改圖，關聯性仍是常識推論，不是校準過的印刷指標**：唯一比 GFPGAN/DDColor 站得住腳的地方是 ARNIQA 純診斷、不修改圖片內容，而且模糊/雜訊/壓縮痕跡這類技術缺陷確實會反映在印刷成品上（源圖模糊，印出來也模糊）——但這個關聯是「爛照片印出來也爛」的常識性推論，模型本身從未針對印刷輸出校準過，不足以構成「印刷特化能力」（對照 rembg 解決貼紙邊緣去背、YuNet 解決證件照合規裁切這類真正印刷特定的需求）。
 
-**移除範圍**：`docker/zero-dce/server.py` 的模型載入、`_imagenet_normalize`、`/quality` 端點與其路由分派；`docker/zero-dce/Dockerfile` 的 ARNIQA 權重預熱步驟；`server/services/ai-engine-service.ts` 的 `processQuality()`；`server/routes/api.ts` 的 `/ai/quality` 路由；前端的 `FreeQualityClient`（`src/services/free-quality-client.ts`）與其測試整個刪除，`main.ts` 的 Step 4 診斷改成直接呼叫本機的 `PixelStatQualityAssessor.assess()`，不再嘗試任何雲端模型——品質評分功能本身沒有消失，只是回到純本機演算法，跟 DehazeFormer-T 移除時「保留本機備援、拿掉 AI 優先層」是同一種收斂方式，不是整個功能砍掉。
+**移除範圍**：`docker/zero-dce/server.py` 的模型載入、`_imagenet_normalize`、`/quality` 端點與其路由分派；`docker/zero-dce/Dockerfile` 的 ARNIQA 權重預熱步驟；`server/services/ai-engine-service.ts` 的 `processQuality()`；`server/routes/api.ts` 的 `/ai/quality` 路由；前端的 `FreeQualityClient`（`src/services/free-quality-client.ts`）與其測試整個刪除，`main.ts` 的 Step 4 診斷改成直接呼叫本機的 `PixelStatQualityAssessor.assess()`，不再嘗試任何雲端模型。
+
+**後續（同日）：`PixelStatQualityAssessor` 本身也整合進 `PrintScoreCalculator`，不再是獨立模組**——拿掉 ARNIQA 之後才發現，`PixelStatQualityAssessor`（原本只是 ARNIQA 打不到網路時的本機備援）跟 `PrintScoreCalculator`（見 1.3 節，`main.ts` 每次處理都會呼叫、結果就是畫面上顯示的印前總分）其實在算同一組東西：兩者都各自對同一張圖重新掃一次全圖像素，各自算「銳利度」與「對比/動態範圍」——`PrintScoreCalculator.analyzePixels()` 用真正的 Sobel 3×3 邊緣偵測算 `edgeScore`、用 P5/P95 直方圖百分位算真實動態範圍，`PixelStatQualityAssessor` 只是用更粗糙的一階差分與高頻像素比例重算一次同樣的訊號——多一次全圖掃描，只為了在建議清單多加一行「📊 印刷品質評分」，資訊上是重複的。`PixelStatQualityAssessor.ts` 與其在 `tests/ai-pipeline-auto.test.ts`／`tests/all-19-models.test.ts`／`tests/sota-ai-suite.test.ts` 裡的測試區塊已整個刪除，`main.ts` 不再呼叫它。**現在全站只剩一個評分——`PrintScoreCalculator` 的 7 因子印前評分**，使用者上傳圖片、套用處理後，可以在比較滑桿（`src/ui/compare-slider.ts`，`btnToggleCompare` 觸發）看到原圖與處理後的總分及各因子分數對比，不需要額外的第二個「品質評分」。跟 DehazeFormer-T 移除時「保留本機備援、拿掉 AI 優先層」不同，這次連本機備援本身都因為重複而合併掉了。
 
 **未來可能重新評估的情境**：若能找到或訓練一個真正針對「印刷輸出品質」（而非「螢幕觀感品質」）校準的無參考評分模型——例如以掃描/打樣後的實體印刷品當 ground truth，而非人眼螢幕評分——屆時的定位會跟 rembg/YuNet 一樣站得住腳，值得重新評估。單純把現在的 ARNIQA 加回來則不會，因為它從未針對印刷場景校準過，這一點離線化或本機化都無法改變。
 
@@ -113,7 +115,7 @@
 
 ## 2. 印前演算法陣列 (Pre-Press Algorithm Matrix)
 
-跑在 Docker 微服務裡、真正接上訓練權重推論的模型是 **VTracer**（向量化）、**Real-ESRGAN**（放大）、**Retinexformer**（低光提亮，取代原本從未訓練過的 Zero-DCE++）、**LaMa**（物件／浮水印移除，權重自動下載）、**rembg**（去背，u2netp session，權重自動下載）、**YuNet**（人臉偵測，權重自動下載）（見 1.1 節）。**DehazeFormer-T**（去霧）曾以同等規格真實整合並驗證推論成功，但 2026-08-27 評估後連同本機備援演算法一併完全移除；**ARNIQA**（品質評分）曾真實整合並上線運作，但 2026-08-29 評估後移除——兩者詳見 1.1 節評估紀錄。品質評分功能現在是純本機的 `PixelStatQualityAssessor` 啟發式評分（見下方清單），不再嘗試任何雲端模型。以下全部是 `src/core/` 或 `src/engines/` 裡實際存在的決定性演算法（無 AI 模型、無框架依賴、無授權條款可標——這些都是純 TypeScript 數學運算，不是打包發布的第三方模型），依功能分類：
+跑在 Docker 微服務裡、真正接上訓練權重推論的模型是 **VTracer**（向量化）、**Real-ESRGAN**（放大）、**Retinexformer**（低光提亮，取代原本從未訓練過的 Zero-DCE++）、**LaMa**（物件／浮水印移除，權重自動下載）、**rembg**（去背，u2netp session，權重自動下載）、**YuNet**（人臉偵測，權重自動下載）（見 1.1 節）。**DehazeFormer-T**（去霧）曾以同等規格真實整合並驗證推論成功，但 2026-08-27 評估後連同本機備援演算法一併完全移除；**ARNIQA**（品質評分）曾真實整合並上線運作，但 2026-08-29 評估後移除——兩者詳見 1.1 節評估紀錄。品質評分功能已整合進 `PrintScoreCalculator`（見 1.3 節），`PixelStatQualityAssessor` 這個原本的本機備援模組因為跟它重疊，已同日一併刪除，不再是獨立分數。以下全部是 `src/core/` 或 `src/engines/` 裡實際存在的決定性演算法（無 AI 模型、無框架依賴、無授權條款可標——這些都是純 TypeScript 數學運算，不是打包發布的第三方模型），依功能分類：
 
 ### 2.1 放大與清晰化
 - **`edge-aware-upscaler.ts`**：雙線性插值 + 局部梯度邊緣強化。用於相片、包裝設計放大。
