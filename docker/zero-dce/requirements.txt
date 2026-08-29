@@ -15,9 +15,6 @@ realesrgan==0.3.0
 basicsr==1.4.2
 opencv-python-headless==4.10.0.84
 
-# ARNIQA (quality assessment) — loaded via torch.hub, no extra pip package needed beyond torch/
-# torchvision above.
-
 # LaMa (inpaint) — the checkpoint is a TorchScript-traced export (torch.jit.load), so it needs
 # no architecture class or extra package at all beyond torch/numpy/Pillow already above.
 

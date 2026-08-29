@@ -16,7 +16,7 @@
  * unexpected keys across 122 tensors, and real inference on a test image correctly brightened it.
  * See docker/zero-dce/server.py's header comment for full details.
  *
- * All six methods below (processLowLight, processUpscale, processQuality,
+ * The five methods below (processLowLight, processUpscale,
  * processInpaint, processMatting, processDetectFace) now proxy to genuinely trained real models
  * when their weight files are present on the server side. Retinexformer has
  * no automatable download URL, so a human sourced its weight file manually once (2026-08-26)
@@ -24,7 +24,7 @@
  * this service from the git repo, not local disk, so a gitignored weight file would never have
  * actually reached the deployed container. If that file is ever removed without a replacement,
  * the service reports 503 honestly rather than running untrained/random weights. LaMa
- * (processInpaint), added 2026-08-26, is auto-downloaded at build time like Real-ESRGAN/ARNIQA —
+ * (processInpaint), added 2026-08-26, is auto-downloaded at build time like Real-ESRGAN —
  * verified with a real downloaded checkpoint that it cleanly removes a solid-color test region
  * (i.e. object/watermark removal). rembg/u2netp (processMatting) and YuNet (processDetectFace),
  * both added 2026-08-27, run on ONNX Runtime/OpenCV's DNN backend rather than PyTorch — verified
@@ -38,6 +38,13 @@
  * section. The local ContrastDehazeFilter fallback was removed the same day too, once it became
  * clear pre-press processing doesn't need dehaze at all — there is no dehaze feature left in this
  * app, client-side or otherwise.
+ *
+ * ⚠️ processQuality (ARNIQA) was added 2026-08-25, genuinely wired into the main pipeline, and
+ * removed 2026-08-29 after evaluation: it worked correctly, but its training basis (KonIQ-10k and
+ * similar general-photo human-perception datasets) measures "does this look good on a screen," not
+ * "will this print correctly" — the same category GFPGAN/DDColor were rejected for. See
+ * docs/SPEC.md's rejected-models section. Quality scoring now runs entirely on the local
+ * PixelStatQualityAssessor heuristic; no cloud call is attempted for it anymore.
  */
 export class AiEngineService {
   private static readonly BASE_URL = process.env.ZERO_DCE_URL || process.env.AI_ENGINE_URL || 'http://127.0.0.1:8082';
@@ -105,25 +112,6 @@ export class AiEngineService {
       return { success: false, error: `Real-ESRGAN service returned HTTP ${status}` };
     } catch (err: any) {
       return { success: false, error: err?.message || 'Real-ESRGAN service unavailable' };
-    }
-  }
-
-  /**
-   * ARNIQA no-reference quality score — real trained weights (Apache-2.0). Returns a 0-1 score,
-   * higher = better perceived quality, per the koniq10k regressor.
-   */
-  public static async processQuality(imageDataUrl: string): Promise<{ success: boolean; score?: number; engine?: string; error?: string }> {
-    try {
-      const { ok, status, data } = await this.postImage('/quality', imageDataUrl, 10000);
-      if (ok && data?.success && typeof data.score === 'number') {
-        return { success: true, score: data.score, engine: 'ARNIQA (自建微服務)' };
-      }
-      if (status === 503) {
-        return { success: false, error: data?.error || 'ARNIQA service unavailable' };
-      }
-      return { success: false, error: `ARNIQA service returned HTTP ${status}` };
-    } catch (err: any) {
-      return { success: false, error: err?.message || 'ARNIQA service unavailable' };
     }
   }
 

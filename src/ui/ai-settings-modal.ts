@@ -9,8 +9,8 @@ import { NetworkGuard } from '../services/network-guard';
  * 這裡曾經是一個模擬 24+ 個雲端 AI 供應商配額/品質路由的儀表板（進度條、額度百分比、自動切換徽章），
  * 但沒有一行程式碼真的呼叫過那些供應商 —— 全部是本機模擬的假帳本。已整個移除，改成如實呈現：
  * 2 個自建服務容器（VTracer、PyTorch 視覺服務）+ 一律會用到的本機決定性演算法。
- * 誠實現況（2026-08-27）：VTracer 是真正能建置、運作的服務。PyTorch/ONNX 視覺服務容器裡實際跑
- * 6 個模型：Real-ESRGAN、ARNIQA、LaMa、rembg、YuNet（真實訓練權重，建置時自動下載）、Retinexformer
+ * 誠實現況（2026-08-29）：VTracer 是真正能建置、運作的服務。PyTorch/ONNX 視覺服務容器裡實際跑
+ * 5 個模型：Real-ESRGAN、LaMa、rembg、YuNet（真實訓練權重，建置時自動下載）、Retinexformer
  * （真實訓練權重，作者無自動下載網址，2026-08-26 已手動下載並直接提交進 git——因為
  * Railway 是從 git 建置這個服務，只存在本機的權重檔案永遠不會真正部署上去，見
  * docker/zero-dce/weights/README.md）。
@@ -34,6 +34,10 @@ import { NetworkGuard } from '../services/network-guard';
  * 已驗證：用一份真實 CMYK 描述檔實測，軟打樣色彩確實產生可測量位移，逐像素總墨量（TAC）數值也合理。
  * 曾評估過的 GFPGAN（人像修復）、DDColor（老照片上色）、Florence-2（浮水印自動定位）皆決定不採用
  * ——技術可行，但與印前處理定位不符或成本過高，詳見 docs/SPEC.md 的評估紀錄。
+ * ARNIQA（無參考影像品質評分）曾於 2026-08-25 加入並真實上線運作，2026-08-29 評估後移除——
+ * 訓練依據是一般網路照片的人類主觀評分，量的是「照片好不好看」而非「印刷會不會出錯」，跟
+ * GFPGAN/DDColor 是同一類定位問題，詳見 docs/SPEC.md 的評估紀錄。品質評分功能現在是純本機的
+ * PixelStatQualityAssessor 啟發式評分。
  * OCR（Tesseract）已於 2026-08-26 移除——查證後發現它從未被任何 UI 功能實際呼叫，而它原本
  * 想解決的問題（讀取 AI 繪圖產生的亂碼假文字）OCR 本來就解不了，因為那些筆畫通常根本不是真實字元。
  */
@@ -66,11 +70,6 @@ export class AiSettingsModal {
         icon: '🔍',
         name: 'Real-ESRGAN 4x 超解析度放大',
         desc: '真實訓練權重（BSD-3-Clause），開箱即用。離線時自動退回本機邊緣強化演算法。'
-      },
-      {
-        icon: '📊',
-        name: 'ARNIQA 影像品質評估',
-        desc: '真實訓練權重（Apache-2.0，WACV 2024），開箱即用。離線時自動退回本機像素統計評估。'
       },
       {
         icon: '☀️',

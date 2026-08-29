@@ -56,7 +56,7 @@ import { workerClient } from './workers/worker-client';
 import { ShadowLift } from './core/shadow-lift';
 import { HandShadowBalancer } from './core/hand-shadow-balancer';
 import { AntiBandingFilter } from './core/anti-banding';
-import { FreeQualityClient } from './services/free-quality-client';
+import { PixelStatQualityAssessor } from './core/pixel-stat-quality-assessor';
 import { PantoneMatcher } from './core/pantone-matcher';
 import { BarcodeVerifier } from './core/barcode-verifier';
 import { ColorBlindnessSimulator, type CvdType } from './core/color-blindness-simulator';
@@ -1657,7 +1657,7 @@ class App {
         preset
       );
       const scoreResult = PrintScoreCalculator.calculate(stats, preset, inkAnalysis);
-      const iqaReport = await FreeQualityClient.assess(processedImgData);
+      const iqaReport = PixelStatQualityAssessor.assess(processedImgData);
       const dominantPantones = PantoneMatcher.extractDominantSpotColors(processedImgData, 3);
       const barcodeReport = BarcodeVerifier.verifyImage(processedImgData, 300);
 

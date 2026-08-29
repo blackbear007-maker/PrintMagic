@@ -1,11 +1,11 @@
 # ─── PyTorch CPU Vision Microservice ──────────────────────────────────────
-# Hosts 6 trained models plus 1 stateless color-management engine: Retinexformer (low-light, real
+# Hosts 5 trained models plus 1 stateless color-management engine: Retinexformer (low-light, real
 # trained weights if sourced — replaced the old untrained Zero-DCE++ 2026-08-26, see server.py's
-# honesty note), Real-ESRGAN compact (upscale), ARNIQA (quality
-# assessment), LaMa (object/watermark removal) — all four on PyTorch — plus rembg/u2netp
+# honesty note), Real-ESRGAN compact (upscale),
+# LaMa (object/watermark removal) — all three on PyTorch — plus rembg/u2netp
 # (background matting) and YuNet (face detection), both added 2026-08-27 and both running on ONNX
 # Runtime/OpenCV's DNN backend instead of PyTorch, since neither had a good small PyTorch-native
-# option. The 7th route, /icc/soft-proof (added 2026-08-27), is NOT a trained model and needs no
+# option. The 6th route, /icc/soft-proof (added 2026-08-27), is NOT a trained model and needs no
 # weight file — it's real ICC color management via Pillow's ImageCms, which already bundles
 # LittleCMS (verified: Pillow==10.3.0 above resolves to a build with lcms2 2.16 linked in), so
 # nothing further needs adding to this Dockerfile for it. A 7th model, DehazeFormer-T (dehaze),
@@ -94,7 +94,7 @@ RUN curl -fsSL -o weights/face_detection_yunet_2023mar.onnx \
 # github.com/danielgatis/rembg (MIT). Deliberately creates a session for the `u2netp` model by
 # name — never rembg's own DEFAULT session (`bria-rmbg`), which carries a separate non-commercial
 # license — verified 2026-08-27 against rembg's own session registry. U2NET_HOME is pinned to a
-# path under /app (matching the ARNIQA TORCH_HOME pattern below) so the downloaded weight lands
+# path under /app so the downloaded weight lands
 # somewhere the non-root `zerodce` user (created further down) can actually read, and so it's
 # baked into this image layer rather than re-downloaded on first request in production.
 ENV U2NET_HOME=/app/.u2net
@@ -108,21 +108,10 @@ RUN python -c "from rembg import new_session; new_session('u2netp')"
 # (503) rather than crashing or running unverified weights if one isn't there.
 COPY weights/ ./weights/
 
-# ─── ARNIQA weights + code cache, pre-warmed at build time (real GitHub Releases, no auth) ────
-ENV TORCH_HOME=/app/.torch_cache
-RUN python -c "\
-import torch; \
-torch.hub.load(repo_or_dir='miccunifi/ARNIQA', source='github', model='ARNIQA', regressor_dataset='koniq10k')" \
-    && rm -f /app/.torch_cache/hub/checkpoints/resnet50-*.pth
-# The rm above deletes the incidental ImageNet-pretrained ResNet50 weights that
-# torchvision.models.resnet50(weights=...) downloads while constructing ARNIQA's encoder — they
-# get immediately overwritten by ARNIQA's own trained encoder state_dict on the very next line of
-# hubconf.py, so the file is genuinely dead weight (~100MB) if left in the image layer.
-
 # Copy server code (weights/models already staged above)
 COPY server.py ./
 
-# Non-root user (create before chown so weights/.torch_cache are readable)
+# Non-root user (create before chown so weights/ is readable)
 RUN useradd -m -u 1001 zerodce && chown -R zerodce:zerodce /app
 USER zerodce
 

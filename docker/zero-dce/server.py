@@ -1,11 +1,11 @@
 """
 PyTorch CPU Vision Microservice
 
-Hosts 6 trained models plus 1 stateless color-management engine, sharing one process — see
+Hosts 5 trained models plus 1 stateless color-management engine, sharing one process — see
 docker/zero-dce/Dockerfile's header comment for why they're all in this one container/service
 (kept under the pre-existing `zero-dce` name rather than a broader rename, to avoid touching
-docker-compose.yml/railway.toml/ZERO_DCE_URL wiring in a single pass). Four of the six trained
-models (Retinexformer, Real-ESRGAN, ARNIQA, LaMa) run on PyTorch; the other two
+docker-compose.yml/railway.toml/ZERO_DCE_URL wiring in a single pass). Three of the five trained
+models (Retinexformer, Real-ESRGAN, LaMa) run on PyTorch; the other two
 (rembg/u2netp, YuNet) run on ONNX Runtime instead — a second, separate inference runtime, added
 2026-08-27 specifically because real background matting and real face detection had no good
 PyTorch-native option at this size, and both ship as pre-converted ONNX weights upstream.
@@ -21,6 +21,15 @@ generic photo editor handles it equally well. Not worth keeping a dedicated mode
 the local ContrastDehazeFilter algorithm (src/core/contrast-dehaze-filter.ts, a classical dark-
 channel-prior scattering inversion) still covers this feature client-side. See docs/SPEC.md's
 rejected-models section for the full writeup.
+
+⚠️ ARNIQA (/quality, no-reference image quality score) was added 2026-08-25, genuinely wired into
+the frontend's main pipeline, and removed 2026-08-29 after evaluation: it worked correctly (real
+trained weights, Apache-2.0, WACV 2024), but its training basis (KonIQ-10k/SPAQ/CLIVE/KADID10k —
+human perceptual ratings of general web/consumer photos) measures "does this look good on a
+screen," not "will this print correctly" — the same category GFPGAN/DDColor were rejected for, not
+a print-specific capability the way TAC/bleed/ICC are. See docs/SPEC.md's rejected-models section
+for the full writeup. Quality scoring now runs entirely on the frontend's local
+PixelStatQualityAssessor heuristic; this endpoint no longer exists.
 
 ⚠️ /icc/soft-proof (added 2026-08-27) is NOT a trained model — it's real ICC color management via
 Pillow's `ImageCms` module, which already wraps LittleCMS (verified 2026-08-27: Pillow 10.3.0
@@ -50,14 +59,14 @@ luminance). Same graceful-missing pattern applies if this file is ever removed w
 replacement: no weight file at build time -> /enhance honestly reports 503, not a crash or fake
 success.
 
-All 4 models here (Retinexformer, Real-ESRGAN, ARNIQA, LaMa) are genuinely
+All 3 models here (Retinexformer, Real-ESRGAN, LaMa) are genuinely
 trained, real pretrained-weight models when their weight files are present. Provenance for each
-is documented at its loading site below. Real-ESRGAN, ARNIQA, and LaMa's weights are fetched
+is documented at its loading site below. Real-ESRGAN and LaMa's weights are fetched
 automatically at Docker build time (stable direct-download URLs); Retinexformer has no automatable
 download URL, so a human sourced it manually once (2026-08-26) and the resulting file was
 committed directly to git (see weights/README.md and the `.gitignore` exception for it) — Railway
 builds this service from the git repo, not local disk, so a gitignored weight downloaded only
-locally would never actually reach the deployed container. All 4
+locally would never actually reach the deployed container. All 3
 have now been verified in an isolated local venv (not
 the actual Docker image itself, which this repo has no way to build in the environment these
 changes were authored in) with a real downloaded checkpoint each — `strict=True` state_dict loads
@@ -73,7 +82,6 @@ Endpoints:
   POST /enhance     -> Retinexformer low-light (real trained weights if sourced, MIT — 503 if the
                        weight file wasn't manually placed at build time, see weights/README.md)
   POST /upscale     -> Real-ESRGAN compact x4v3 (real trained weights, BSD-3-Clause)
-  POST /quality     -> ARNIQA no-reference quality score (real trained weights, Apache-2.0)
   POST /inpaint     -> LaMa object/watermark removal (real trained weights, Apache-2.0)
   POST /matting     -> rembg (u2netp session, real trained weights, MIT) background removal.
                        Deliberately pins the session to `u2netp` and never rembg's own default
@@ -119,7 +127,7 @@ MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 # Measured, not guessed (see git history / PR notes for the actual test run): all 3 endpoints
 # scale memory with input pixel count, since none of them downsample before running inference.
 # /upscale gets a stricter cap since its 4x output multiplies the effect on top of that.
-MAX_INPUT_PIXELS = 2000 * 2000  # ~4MP, applies to /enhance, /quality
+MAX_INPUT_PIXELS = 2000 * 2000  # ~4MP, applies to /enhance, /matting, /detect-face
 MAX_UPSCALE_INPUT_PIXELS = 1200 * 1200  # ~1.44MP, applies to /upscale only
 
 # Set thread limits to prevent CPU thrashing & cost spikes
@@ -203,31 +211,14 @@ except Exception as e:
     print(f"[Real-ESRGAN] Failed to load — /upscale will report unavailable. Error: {e}")
 
 
-# ─── ARNIQA — real trained weights via torch.hub, Apache-2.0 ──────────────────────────────────
-# github.com/miccunifi/ARNIQA. Pre-warmed into TORCH_HOME at Docker build time (see Dockerfile),
-# so this call hits the local torch.hub cache at container startup rather than the network.
-#
-# ⚠️ If a future model here ever vendors its own architecture package, do NOT name it `models/`
-# — verified by actually running this locally when DehazeFormer-T (since removed, see docs/
-# SPEC.md's rejected-models section) briefly did exactly that: ARNIQA's torch.hub-loaded code
-# below does `from models.resnet import ResNet`, and a same-named local `models/` package in this
-# working directory silently shadows it, breaking ARNIQA's import with `ModuleNotFoundError: No
-# module named 'models.resnet'`. Caught by an actual test run, not theory.
-arniqa_model = None
-try:
-    arniqa_model = torch.hub.load(
-        repo_or_dir='miccunifi/ARNIQA', source='github', model='ARNIQA',
-        regressor_dataset='koniq10k'
-    )
-    arniqa_model.eval()
-    print("[ARNIQA] Loaded — /quality ready")
-except Exception as e:
-    print(f"[ARNIQA] Failed to load — /quality will report unavailable. Error: {e}")
-
-_imagenet_normalize = transforms.Normalize(
-    mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
-)
-
+# ⚠️ If a model added here ever vendors its own architecture package via torch.hub, do NOT name a
+# local package `models/` — verified by actually running this locally when DehazeFormer-T (since
+# removed, see docs/SPEC.md's rejected-models section) briefly did exactly that while ARNIQA (also
+# since removed, same section) was loaded via `torch.hub.load()`: ARNIQA's torch.hub-loaded code
+# did `from models.resnet import ResNet`, and the same-named local `models/` package in this
+# working directory silently shadowed it, breaking the import with `ModuleNotFoundError: No module
+# named 'models.resnet'`. Caught by an actual test run, not theory — kept here since it'll bite the
+# next torch.hub-loaded model added to this file regardless of which model triggered it originally.
 
 # ─── LaMa — real trained weights, Apache-2.0 ───────────────────────────────────────────────────
 # github.com/advimman/lama (Samsung Research). The official repo only ships a Hydra/OmegaConf-
@@ -356,7 +347,6 @@ class VisionHandler(BaseHTTPRequestHandler):
                 'models': {
                     'enhance': 'ready' if retinexformer_model is not None else 'unavailable (weights not sourced, see weights/README.md)',
                     'upscale': 'ready' if realesrgan_upsampler is not None else 'unavailable',
-                    'quality': 'ready' if arniqa_model is not None else 'unavailable',
                     'inpaint': 'ready' if lama_model is not None else 'unavailable',
                     'matting': 'ready' if rembg_session is not None else 'unavailable',
                     'detectFace': 'ready' if yunet_detector is not None else 'unavailable',
@@ -372,9 +362,8 @@ class VisionHandler(BaseHTTPRequestHandler):
         Measured, not guessed: running the real endpoints end-to-end (see git history / PR notes
         for the actual numbers) showed they all scale memory with input pixel count, not just
         /upscale — Retinexformer processes at native resolution with no downsampling (only
-        reflect-padded to a small factor), and ARNIQA's preprocessing only halves it once
-        (`scale_factor=0.5`). `max_pixels` lets /upscale pass a stricter cap than the others,
-        since its 4x output multiplies the effect.
+        reflect-padded to a small factor). `max_pixels` lets /upscale pass a stricter cap than the
+        others, since its 4x output multiplies the effect.
         """
         content_type = self.headers.get('Content-Type', '')
         content_length = int(self.headers.get('Content-Length', 0))
@@ -404,8 +393,6 @@ class VisionHandler(BaseHTTPRequestHandler):
                 self._handle_enhance(start_time)
             elif self.path == '/upscale':
                 self._handle_upscale(start_time)
-            elif self.path == '/quality':
-                self._handle_quality(start_time)
             elif self.path == '/inpaint':
                 self._handle_inpaint(start_time)
             elif self.path == '/matting':
@@ -417,7 +404,7 @@ class VisionHandler(BaseHTTPRequestHandler):
             else:
                 self._send_json(404, {
                     'error': f'No route for {self.path}. '
-                             'Implemented: /enhance, /upscale, /quality, /inpaint, '
+                             'Implemented: /enhance, /upscale, /inpaint, '
                              '/matting, /detect-face, /icc/soft-proof.'
                 })
         except ValueError as e:
@@ -460,27 +447,6 @@ class VisionHandler(BaseHTTPRequestHandler):
         output_bgr, _ = realesrgan_upsampler.enhance(img_bgr, outscale=4)
         out_img = Image.fromarray(output_bgr[:, :, ::-1])  # BGR -> RGB
         self._send_image_response(out_img, start_time)
-
-    def _handle_quality(self, start_time):
-        if arniqa_model is None:
-            self._send_json(503, {'success': False, 'available': False, 'error': 'ARNIQA failed to load at startup'})
-            return
-        img = self._read_image()
-        to_tensor = transforms.ToTensor()
-        img_tensor = _imagenet_normalize(to_tensor(img)).unsqueeze(0)
-        img_ds = torch.nn.functional.interpolate(
-            img_tensor, scale_factor=0.5, mode='bilinear', align_corners=False
-        )
-        with torch.no_grad():
-            score = arniqa_model(img_tensor, img_ds, return_embedding=False, scale_score=True)
-        elapsed_ms = int((time.time() - start_time) * 1000)
-        self._send_json(200, {
-            'success': True,
-            'score': float(score.item() if hasattr(score, 'item') else score),
-            'scoreRange': '0-1 (higher = better perceived quality)',
-            'model': 'ARNIQA (koniq10k regressor)',
-            'elapsed_ms': elapsed_ms
-        })
 
     def _handle_inpaint(self, start_time):
         if lama_model is None:

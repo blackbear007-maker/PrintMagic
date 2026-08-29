@@ -80,12 +80,11 @@
 
 早期版本的說明文件把每一個影像處理函式都貼上一個知名 SOTA 論文名字（SAM 2.1、CLIP-IQA+、RealESRGAN、BiRefNet、DehazeFormer……），並宣稱整合「19 款開源商用 AI 模型」。這不準確——本專案沒有內嵌任何 ONNX / TensorFlow.js / WASM 推論引擎，前端從未載入過模型權重檔。以下是誠實的拆分：
 
-### ✅ 自建服務（2 個 Docker 容器，共 8 項功能）
+### ✅ 自建服務（2 個 Docker 容器，共 7 項功能）
 | 服務 | 是什麼 | 用途 |
 | :--- | :--- | :--- |
 | **VTracer**（`docker/vtracer/`） | 真實開源 Rust 向量化工具。⚠️ 2026-08-25 前 Dockerfile 引用了從未存在過的 `Cargo.toml`/`src/`，建置必定失敗；已修正為安裝真正發布的 `vtracer` crate + Python 包裝層 | 點陣轉 SVG 向量（`/api/vectorize`） |
 | **Real-ESRGAN**（`docker/zero-dce/`） | 真實開源模型，官方發布的 `realesr-general-x4v3` 訓練權重（BSD-3-Clause），開箱即用 | 4x 超解析度放大（`/api/ai/upscale`） |
-| **ARNIQA**（`docker/zero-dce/`） | 真實開源模型，官方發布的訓練權重（Apache-2.0，WACV 2024），開箱即用 | 無參考影像品質評分（`/api/ai/quality`） |
 | **Retinexformer**（`docker/zero-dce/`） | 真實開源模型（MIT，ICCV 2023）。2026-08-26 取代原本從未載入訓練權重的 Zero-DCE++——權重同樣只能從 Google Drive/百度網盤手動下載，但已下載並提交進 git（`docker/zero-dce/weights/LOL_v2_real.pth`，原因同上：Railway 從 git 建置）。**已用真實下載的權重檔驗證**：`strict=True` 完整載入 122 個張量、零缺漏零多餘，真實推論成功讓測試圖片從平均亮度 0.082 提升到 0.399 | 低光照片提亮（`/api/ai/lowlight`），開箱即用 |
 | **LaMa**（`docker/zero-dce/`） | 真實開源模型（Apache-2.0，Samsung Research）。TorchScript 匯出的 `big-lama.pt`，有可自動下載的 GitHub Release 網址，建置時自動下載，開箱即用。**已用真實下載的權重檔驗證**：`torch.jit.load()` 成功，真實推論在模擬「浮水印」色塊測試圖上完全移除目標色塊（移除區域內 0% 殘留原色），並修正了上游 `simple-lama-inpainting` 套件遺漏「輸出裁切回原始尺寸」的錯誤 | 物件／浮水印移除（`/api/ai/inpaint`），需同時提供來源圖與遮罩圖 |
 | **rembg**（`docker/zero-dce/`） | 真實開源模型（MIT），固定使用 `u2netp` session（刻意不用 rembg 預設 session，因為那可能解析到非商用授權的模型）。權重（~4.6MB）由 rembg 自行於建置時自動下載。**已用真實下載的權重檔驗證**：在有紋理漸層背景的合成測試圖上，主體中心 alpha 254/255（近乎完全不透明）、四角 alpha 0/255（完全透明），確認能處理現有色鍵去背無法處理的非單一色背景 | 髮絲級去背（`/api/ai/matting`），開箱即用 |
@@ -96,7 +95,9 @@
 
 ⚠️ **DehazeFormer-T（去霧模型）已於 2026-08-26 加入、2026-08-27 評估後移除**：模型本身真實可用（權重驗證通過，真實推論讓對比度從 0.0245 提升到 0.0763），移除原因不是技術問題，而是需求評估——去霧只對戶外霧霾遠景照片有幫助，跟本站證件照/名片/貼紙/社群圖等典型使用情境重疊度低，也不是印刷特化能力（跟通用修圖軟體處理邏輯相同）。同一天再進一步確認印前處理根本不需要這個功能，連本機備援演算法（`ContrastDehazeFilter`，經典 Dark Channel Prior 公式）也一併移除——去霧從此在本站完全不存在，不是「換成本機版本」而是整個功能拿掉。
 
-VTracer/Real-ESRGAN/ARNIQA/Retinexformer/LaMa/rembg 離線或未就緒時，系統會自動退回下方的本機決定性演算法，並在結果標籤上誠實標示「本機」而非假冒雲端模型名稱。YuNet（人臉偵測）是唯一沒有本機備援的功能——本專案沒有現成的本機人臉偵測演算法，離線時就是誠實回報不可用，而不是假造一個「本機演算法」來冒充。ICC 真實色彩管理離線、或使用者未上傳描述檔時，軟打樣會退回既有的 `CmykEngine.simulatePrintProof()` 近似模擬——這個退回並非「真實 ICC 運算的本機版本」，只是既有的手刻公式近似值，兩者不應混為一談。
+⚠️ **ARNIQA（無參考影像品質評分模型）已於 2026-08-29 評估後移除**：模型本身真實可用、已正確接上前端主流程且上線運作一段時間，移除原因同樣不是技術問題，而是重新檢視後發現它的訓練依據（KonIQ-10k 等一般網路照片的人類主觀評分）量的是「照片在螢幕上好不好看」，跟 GFPGAN/DDColor 當初被判定「與印前處理定位不符」是同一個問題，詳見 `docs/SPEC.md` 的評估紀錄。品質評分功能改回純本機的 `PixelStatQualityAssessor` 啟發式評分，不再嘗試任何雲端模型。
+
+VTracer/Real-ESRGAN/Retinexformer/LaMa/rembg 離線或未就緒時，系統會自動退回下方的本機決定性演算法，並在結果標籤上誠實標示「本機」而非假冒雲端模型名稱。YuNet（人臉偵測）是唯一沒有本機備援的功能——本專案沒有現成的本機人臉偵測演算法，離線時就是誠實回報不可用，而不是假造一個「本機演算法」來冒充。ICC 真實色彩管理離線、或使用者未上傳描述檔時，軟打樣會退回既有的 `CmykEngine.simulatePrintProof()` 近似模擬——這個退回並非「真實 ICC 運算的本機版本」，只是既有的手刻公式近似值，兩者不應混為一談。
 
 ### 🧮 決定性演算法（前端 TypeScript，非神經網路）
 以下模組過去用 SOTA 論文名稱命名，現已改用描述實際技術的名稱，程式邏輯本身沒有變動：
@@ -213,7 +214,7 @@ npm run build
 
 ## 📄 開源授權條款 (License)
 
-本專案基於 **MIT License** 授權開源。真實整合的開源工具遵循其原作者授權：VTracer（MIT）、Real-ESRGAN（BSD-3-Clause）、ARNIQA（Apache-2.0）、Retinexformer（MIT）、LaMa（Apache-2.0）。Retinexformer 的權重檔案需自行從作者發布的連結手動下載，現況見上方引擎組成說明。
+本專案基於 **MIT License** 授權開源。真實整合的開源工具遵循其原作者授權：VTracer（MIT）、Real-ESRGAN（BSD-3-Clause）、Retinexformer（MIT）、LaMa（Apache-2.0）。Retinexformer 的權重檔案需自行從作者發布的連結手動下載，現況見上方引擎組成說明。
 
 ---
 

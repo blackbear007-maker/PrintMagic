@@ -18,6 +18,14 @@
 #     LOWER than these numbers now (one fewer model resident), so treat this whole block as a
 #     conservative upper bound, not current data, until it's actually re-measured.
 #
+#  ⚠️ STALE NOTICE (2026-08-29): ARNIQA was also evaluated and removed (see docs/SPEC.md's
+#     rejected-models section — its training basis measures general screen-viewing photo quality,
+#     not print-readiness, the same category GFPGAN/DDColor were rejected for). This is a SECOND
+#     model fewer than the "7 models" the figures below were measured with (on top of the
+#     DehazeFormer-T removal noted above) — real current RAM/cost should be lower still. Quality
+#     scoring now runs entirely on the frontend's local PixelStatQualityAssessor heuristic; no
+#     network call happens for it anymore.
+#
 #  Monthly cost estimate (Railway, ACTUAL usage-based billing — corrected 2026-08-26, updated for
 #  the 7-model container 2026-08-27, since made stale by DehazeFormer-T's removal — see notice above):
 #  ⚠️ Railway does NOT bill the `memory`/`cpus` numbers below — those are just OOM-kill / throttle
@@ -45,9 +53,10 @@
 #
 #  ⚠️ `zero-dce`'s RAM limit is 4096M as of 2026-08-27 (raised from 3072M once rembg/u2netp and
 #     YuNet were added as the 6th/7th models — see docker/zero-dce/server.py's header comment;
-#     DehazeFormer-T was the 3rd model added but was later evaluated and removed the same day, see
-#     the stale notice above — current models: Retinexformer, Real-ESRGAN, ARNIQA, LaMa, rembg,
-#     YuNet — the last two run on ONNX Runtime/OpenCV's DNN backend rather than PyTorch, a second
+#     DehazeFormer-T was the 3rd model added but was later evaluated and removed the same day, and
+#     ARNIQA was evaluated and removed 2026-08-29 — see both stale notices above — current models:
+#     Retinexformer, Real-ESRGAN, LaMa, rembg, YuNet — the last two run on ONNX Runtime/OpenCV's
+#     DNN backend rather than PyTorch, a second
 #     inference runtime sharing this same process). This limit is just the OOM ceiling, not the billed amount — the real cost
 #     estimate above comes from ACTUALLY building the full dependency set (including rembg's ~4.6MB
 #     u2netp.onnx and YuNet's ~0.23MB ONNX weight) in an isolated venv, running the real server.py
@@ -187,7 +196,7 @@ services:
     networks:
       - printmagic-net
 
-  # ── PyTorch/ONNX CPU Vision Microservice (Retinexformer / Real-ESRGAN / ARNIQA / LaMa / rembg / YuNet) ──
+  # ── PyTorch/ONNX CPU Vision Microservice (Retinexformer / Real-ESRGAN / LaMa / rembg / YuNet) ──
   zero-dce:
     build:
       context: ./docker/zero-dce
