@@ -82,7 +82,12 @@
     </header>
 
     <!-- Preset Selection Bar -->
-    <nav class="pm-preset-bar">
+    <!-- 2026-08-30 修正：這個列原本永遠顯示，包含還沒上傳任何圖片的初始畫面——但這時候規格
+         選擇（A4 經典海報等）並非使用者的決定，只是寫死的初始值，容易讓人誤以為系統已經替
+         使用者「決定」了印刷規格。上傳圖片後系統會依圖片尺寸自動判斷最適合的規格
+         （detectBestPreset()），因此改成跟主要工作區（studioWorkspace）同步顯示：
+         有圖片才出現，此處先預設 display:none 避免 JS 執行前的畫面閃爍。 -->
+    <nav class="pm-preset-bar" id="presetSelectionBar" style="display: none;">
       <div class="pm-preset-bar-inner">
         <!-- 1. Simple Mode: Single Interactive Apple Capsule Pill + Dropdown Selector -->
         <div class="pm-simple-preset-bar" id="simplePresetBar">

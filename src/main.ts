@@ -99,6 +99,7 @@ class App {
   // DOM references
   private dropZoneContainer = document.getElementById('dropZoneContainer')!;
   private studioWorkspace = document.getElementById('studioWorkspace')!;
+  private presetSelectionBar = document.getElementById('presetSelectionBar')!;
   private btnModeSimple = document.getElementById('btnModeSimple');
   private btnModeAdvanced = document.getElementById('btnModeAdvanced');
   private btnNewArtwork = document.getElementById('btnNewArtwork')!;
@@ -1347,6 +1348,7 @@ class App {
       this.dropZoneContainer.style.display = hasImage ? 'none' : 'block';
       this.studioWorkspace.style.display = hasImage ? 'grid' : 'none';
       this.btnNewArtwork.style.display = hasImage ? 'inline-flex' : 'none';
+      this.presetSelectionBar.style.display = hasImage ? 'block' : 'none';
 
       // 3. Processing Overlay
       this.processingOverlay.style.display = state.isProcessing ? 'flex' : 'none';
