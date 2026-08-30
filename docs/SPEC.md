@@ -1,7 +1,7 @@
 # PrintMagic Studio 3.1 系統產品規格說明書 (System & Product SPEC)
 
 > **版本**：v3.1.0-Release  
-> **最後更新日期**：2026-08-29  
+> **最後更新日期**：2026-08-30  
 > **系統定位**：全自動商業印前修復與出機工作站 (AI Pre-Press Engine & Multi-Format Exporter)  
 > **核心哲學**：100% 自由開源商用架構 · 0 外部收費 API 依賴 · 新手無腦一鍵出機 · 商業合規舉證  
 
@@ -18,6 +18,14 @@
 > ⚠️ **揭露的行為變更（2026-08-29，非純效能等價，有真實輸出差異）**：`curved-page-flattener.ts` 的取樣從最近鄰改為雙線性，去彎曲後的邊緣更平滑但也更模糊一點點。`ai-matting.ts`／`edge-choke-matting.ts` 的背景色取樣從單一角落像素改成 5×5 區塊平均，不怕單一雜訊/JPEG 壓縮痕跡像素誤導整體背景色估計，用真實測試驗證：故意汙染角落單一像素後，兩種取樣方式的背景分類結果差異在容忍範圍內。`perspective-rectifier.ts` 新增退化/近共線四邊形驗證，在角點幾乎共線或邊長趨近 0 時直接丟出明確錯誤，而不是讓 `solveGaussian()` 在近乎奇異矩陣上靜默算出亂碼透視結果。
 
 品質評分（ARNIQA 移除、`PixelStatQualityAssessor` 併入 `PrintScoreCalculator`）與本機 OCR（`free-ocr-client.ts` 新增）另有專屬章節，見 §1.1 與 §2.8.1。
+
+> ⚠️ **誠實性附註（2026-08-30）——一功能完整實作卻無法被使用者觸及，直到本次才發現**：使用者要求對「未觸及模組」「邊緣情境」「UI 互動層」全面稽核後，逐一修正 15 項真實 bug（3 個核心演算法方向錯誤——`bleed-expander.ts` 接縫混合公式方向顛倒、`imposition-engine.ts` 旋轉版位只換算尺寸沒真的旋轉畫布、`dpi-calculator.ts` 社群預設寫死正方形目標尺寸；11 項 UI 互動層 bug——重複綁定監聽器（`dropzone.ts`／`paper-3d.ts`／`export-modal.ts`）、未追蹤的延遲關閉計時器導致快速重開被誤關（`mockup-modal.ts`／`nearby-shops-modal.ts`／`ruler-calibration.ts`／`spec-modal.ts`／`direct-print-modal.ts`）、GPS 定位與去背請求缺乏重入防護、`loupe.ts` 的 CSS class 對不到任何樣式規則（放大鏡完全無樣式）且徽章宣稱「20x」實際是 10x、`laser-scan.ts` 批次處理時動畫互相打斷、雙指縮放放開一指後單指平移失效、校準滑桿上限低於 Retina 220 PPI 預設所需值、文字檢查彈窗在瀏覽器快取圖片時讀到錯誤縮放比例；4 項防禦性修正——OCR 掃描無逾時保護、透視校正的退化四邊形檢查被 NaN 繞過、向量化演算法的 `maxDist=0` 會造成真正的無窮迴圈、`ImageData` 工廠函式對 0/負值寬高沒有驗證，遮蔽了測試環境與正式環境的行為差異）。過程中額外發現一項比上述任何一項都更根本的問題：
+>
+> **`DirectPrintModal`（比價四大台灣合版印刷廠並打包送印工單的完整功能，見下方 §1.3 新增項）本身沒有任何程式邏輯錯誤——`onDirectPrintClick` 回呼、`bindEvents()` 監聽器全部正確接線——但兩種介面模式（簡易／進階）的 `diagnostic-card.ts` 樣板都從未真的渲染出對應的觸發按鈕。實機瀏覽器測試證實：`document.getElementById('btnOpenDirectPrint')`、`btnSimpleDirectPrint`、`document.querySelector('.btn-diag-direct-print')` 在成功完成一次完整處理流程後，全部回傳 not-found。這個功能自從被建置以來，沒有任何使用者能夠實際打開它。**更值得記錄的是：這個功能最早的 commit 訊息是 `feat(moat): implement Taiwan commercial print shop instant pricing and direct order dispatch pipeline`——開發者自己在當時就把它定位為「護城河」功能，但接線這最後一步從未完成，多久沒被發現已無法考證。已於 `diagnostic-card.ts` 的簡易與進階模式樣板補上 `.btn-diag-direct-print` 按鈕，接上既有的、原本就正確的回呼邏輯；同時移除 `main.ts` 裡兩處對應但從未匹配到任何真實元素的死綁定（`getElementById('btnOpenDirectPrint'/'btnSimpleDirectPrint')`）。**這個案例的教訓，寫在這裡是為了不要再犯：功能是否「存在」不能只看程式邏輯是否正確接線，必須連同「使用者介面上是否真的有一個可以按的東西」一起驗證——本文件與 README 先前從未提及這個功能，正是因為它從沒被記錄過，才會在无声中失蹤這麼久也沒人發現。**
+>
+> 同一輪稽核也發現並修正了一個範圍更大的資料不一致：伺服器端 `server/services/icc-service.ts` 原本獨立維護 4 個「ICC 色彩描述檔」（id：`japan-color-2001`／`fogra-39`／`us-swop-v2`／`pso-coated-v3`），跟使用者介面上實際能選擇的 `src/core/icc-profiles.ts`（id：`japan-color-2001-coated`／`iso-coated-v2-fogra39`／`gracol-2006-coated`／`japan-color-2001-uncoated`）幾乎完全對不上——只有「Japan Color 2001（塗布）」剛好同為 350% TAC 而巧合一致，FOGRA39 一邊寫 300%、一邊寫 330%，其餘兩筆更是完全不同的標準。這條路徑（`CloudClient.exportPdfx()`／`getIccProfiles()`／伺服器端 `/api/preflight`）目前同樣沒有任何按鈕會呼叫到，屬於尚未串接的功能，尚未造成使用者能感知到的錯誤結果，但如果哪天真的接上「送印前 PDF/X-1a 雲端合規檢查」，伺服器端驗證的會是使用者選不到的另一份清單。已將伺服器端與 `CloudClient` 離線備援清單的 id／數字全部改成與前端一致，前端的 4 個設定檔現在是唯一權威來源。
+>
+> 最後，稽核順帶發現 `main.ts` 的 `App` 類別身兼「26 個獨立 UI 元件組裝根」與「印前優化管線業務邏輯擁有者」兩種角色（51 條邊的最高連結節點）——已把 `runOptimizationPipeline()`／`runAutoTextInspection()`／`runBatchOptimizeAll()`／`runBatchExportAllPdf()` 抽出成獨立的 `src/core/pipeline-orchestrator.ts`（`PipelineOrchestrator` 類別），`App` 保留純粹的組裝根角色。以上全部異動已通過 `tsc --noEmit` 與 315 項單元測試（含 500 輪壓力測試）驗證。
 
 ---
 
@@ -120,6 +128,7 @@
 - **`foil-simulator.ts` (亮金/玫瑰金/局部光 3D 擬真與獨立黑版分離)**：即時反光模擬並自動生成 100% K100 菲林鋅版遮罩。
 - **`imposition-engine.ts` (A4/A3 智慧合版拼模)**：多模自動排滿大版，大幅節省實體合版印刷費。
 - **`engines/pdf-exporter.ts` (印前 PDF 壓製)**：內嵌向量角線、十字規矩線、出血框，見第 5 節關於 PDF/X-1a 合規現況的誠實說明。
+- **`print-pricing.ts` / `order-package.ts` / `direct-print-modal.ts`（送印估價與比價，2026-08-30 補上觸發按鈕）**：比對台灣 4 間合版印刷廠（健豪、卡之屋、經典數位、藍格）的紙材／數量／估算報價，一鍵打包送印工單 ZIP。⚠️ 誠實澄清：報價是固定基礎費率 × 手調乘數算出的**合成估算值**，不是任何廠商真實價目表或即時 API 拉取的報價，程式碼自己的文件註解已明確標註這一點。功能邏輯本身早就存在且正確，但直到 2026-08-30 才發現、修正兩種介面模式都從未渲染出真正的觸發按鈕——詳見文件頂端 2026-08-30 誠實性附註。
 
 ---
 

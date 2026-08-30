@@ -7,7 +7,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.5-blue)](https://www.typescriptlang.org/)
 [![Vite](https://img.shields.io/badge/Vite-6.4-purple)](https://vitejs.dev/)
 [![Docker Microservices](https://img.shields.io/badge/Docker-2%20Containers-blue)](./docker-compose.yml)
-[![Tests](https://img.shields.io/badge/Tests-255%2F255%20Passed-brightgreen)](./tests)
+[![Tests](https://img.shields.io/badge/Tests-315%2F315%20Passed-brightgreen)](./tests)
 [![SPEC](https://img.shields.io/badge/System%20SPEC-v3.1.0-orange)](./docs/SPEC.md)
 
 ---
@@ -51,6 +51,7 @@
 - **`Barcode-Verifier`**（條碼/QR 印前可讀性預檢）：對比度與實體尺寸啟發式檢查——這是預檢工具，不是解碼器，無法確認條碼本身正確，只能檢查印刷可讀性風險。
 - **`Imposition-Engine`**（A4/A3 智慧合版拼模）：多模自動排滿大版，節省合版印刷費。
 - **`PDF/X-1a 出機壓製`**（零退件標準出機檔）：內嵌向量角線、十字規矩線、出血框與 CMYK 描述檔。
+- **`送印估價與比價`**（比對台灣 4 間合版印刷廠並打包送印工單 ZIP）：報價是合成估算值，非即時廠商 API，詳見 [docs/SPEC.md](./docs/SPEC.md)。⚠️ 2026-08-30 前，這個功能完整存在但兩種介面模式都缺少實際觸發按鈕，使用者完全無法打開——已修正並補上按鈕，詳見 SPEC.md 對應的誠實性附註。
 
 ---
 
@@ -197,13 +198,13 @@ cd PrintMagic
 # 安裝依賴
 npm install
 
-# 啟動本機開發伺服器 (預設 Port 5173)
+# 啟動本機開發伺服器 (預設 Port 3000)
 npm run dev
 ```
 
 ### 3. 單元測試與建置
 ```bash
-# 執行測試套件 (222 項單元測試)
+# 執行測試套件 (315 項單元測試)
 npm run test
 
 # 執行 TypeScript 類型檢查
