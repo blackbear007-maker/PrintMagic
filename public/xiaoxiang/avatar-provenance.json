@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-18T11:36:32.380Z",
+  "generatedAt": "2026-09-18T12:08:29.022Z",
   "provider": "Google Cloud Vertex AI",
   "project": "gen-lang-client-0435924395",
   "preferredModel": "gemini-3.1-flash-lite-image",
@@ -44,10 +44,10 @@
     },
     "think-blink": {
       "file": "public/xiaoxiang/think-blink.webp",
-      "status": "pending",
+      "status": "existing",
       "model": null,
-      "bytes": null,
-      "sha256": null
+      "bytes": 94540,
+      "sha256": "a26293d4702b5426d401e7fe004e6e109c0015561f9fd2709b8c190b7580e069"
     },
     "thumbs": {
       "file": "public/xiaoxiang/thumbs.webp",
@@ -58,24 +58,24 @@
     },
     "thumbs-blink": {
       "file": "public/xiaoxiang/thumbs-blink.webp",
-      "status": "pending",
-      "model": null,
-      "bytes": null,
-      "sha256": null
+      "status": "generated",
+      "model": "gemini-3.1-flash-lite-image",
+      "bytes": 91202,
+      "sha256": "ced0b8fe6a5a13882f706dbb9924f346c74026ebbd2b11792250c5e87a083149"
     },
     "cheer": {
       "file": "public/xiaoxiang/cheer.webp",
-      "status": "pending",
-      "model": null,
-      "bytes": null,
-      "sha256": null
+      "status": "generated",
+      "model": "gemini-3.1-flash-lite-image",
+      "bytes": 91422,
+      "sha256": "67d844d20202a038d9c42a0d373610895a8dda090d7b4aebea8b0be30d1a281e"
     },
     "cheer-blink": {
       "file": "public/xiaoxiang/cheer-blink.webp",
-      "status": "pending",
-      "model": null,
-      "bytes": null,
-      "sha256": null
+      "status": "generated",
+      "model": "gemini-3.1-flash-lite-image",
+      "bytes": 90540,
+      "sha256": "7a1f9b8cdb3226daa3f7cc535ec43cfe707b07448ed933ed9b9949b4d54ae8e3"
     }
   }
 }
