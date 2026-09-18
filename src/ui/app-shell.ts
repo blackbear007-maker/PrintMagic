@@ -12,6 +12,7 @@ export const APP_SHELL_HTML = `
   <header class="pm-header">
     <div class="pm-header-inner">
       <div class="pm-brand" style="display: flex; align-items: center; gap: 8px;">
+        <img src="brand/logo-mark-64.png" alt="" aria-hidden="true" class="pm-brand-mark" width="32" height="32" style="width: 32px; height: 32px; flex-shrink: 0;" />
         <div style="display: flex; flex-direction: column; line-height: 1.15;">
           <span class="pm-logo-text" style="font-size: 1.05rem; font-weight: 800; background: linear-gradient(135deg, #1d1d1f 0%, #6c63ff 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">印象魔法</span>
           <span style="font-size: 0.62rem; color: var(--pm-text-muted); font-weight: 600; letter-spacing: 0.02em;">專業印前影像優化 · 助手小象為您守護</span>
