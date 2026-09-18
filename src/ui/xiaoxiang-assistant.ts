@@ -103,10 +103,9 @@ export class XiaoxiangAssistant {
           </div>
         </div>
 
-        <!-- Xiaoxiang Avatar (Right Side) -->
+        <!-- Xiaoxiang Avatar (shown on the left via CSS order) -->
         <div id="xiangAvatar" class="pm-xiang-avatar-wrap" title="小象（印前助手）">
           <img id="xiangFace" src="${LEGACY_XIAOXIANG_AVATAR}" data-avatar-state="idle" alt="小象" class="pm-xiang-avatar-img" />
-          <span class="pm-xiang-status-dot" title="小象在線守護印刷品質"></span>
         </div>
       </div>
     `;

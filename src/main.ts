@@ -2,6 +2,7 @@ import './styles/index.css';
 import './styles/studio.css';
 import './styles/components.css';
 
+import { mountAppShell } from './ui/app-shell';
 import { store, type AppState } from './ui/state';
 import { DropZone, type LoadedImageResult } from './ui/dropzone';
 import { DiagnosticCard } from './ui/diagnostic-card';
@@ -1771,6 +1772,7 @@ function cleanupLegacyServiceWorkers(): void {
 
 // Bootstrap with readyState check to ensure execution regardless of module load timing
 function bootstrapApp(): void {
+  mountAppShell();
   cleanupLegacyServiceWorkers();
   new App();
 }
