@@ -41,7 +41,7 @@ export interface FaceDetectionResult {
 
 export class FreeFaceDetectClient {
   public static async detect(imageData: ImageData): Promise<FaceDetectionResult> {
-    if (NetworkGuard.isPrivacyShieldActive()) {
+    if (!NetworkGuard.isRemoteAllowed()) {
       return { available: false, faces: [], engine: '100% 本機模式已開啟，人臉偵測功能離線不可用' };
     }
 
@@ -58,13 +58,17 @@ export class FreeFaceDetectClient {
 
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), 10000);
-      const res = await fetch('/api/ai/detect-face', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image_base64: dataUrl }),
-        signal: controller.signal
-      });
-      clearTimeout(timer);
+      let res: Response;
+      try {
+        res = await fetch('/api/ai/detect-face', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image_base64: dataUrl }),
+          signal: controller.signal
+        });
+      } finally {
+        clearTimeout(timer);
+      }
 
       if (!res.ok) return null;
       const data = await res.json();

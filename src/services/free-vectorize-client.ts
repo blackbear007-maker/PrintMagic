@@ -48,7 +48,7 @@ export class FreeVectorizeClient {
     }
 
     // 1. Privacy Shield: skip the self-hosted service entirely, never send the image anywhere
-    if (NetworkGuard.isPrivacyShieldActive()) {
+    if (!NetworkGuard.isRemoteAllowed()) {
       const svg = AiVectorizer.traceToSvg(imageData, colorsCount, smoothTolerance);
       return {
         svg,

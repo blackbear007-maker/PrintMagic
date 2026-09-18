@@ -112,6 +112,10 @@ export class MultiFormatExporter {
     const jpgDataUrl = this.convertToJpeg(imgData, 0.98);
     folder.file(`${baseName}_300DPI.jpg`, jpgDataUrl.split(',')[1], { base64: true });
 
+    // 3b. Print-ready PDF (含出血/角線，與 PDF 匯出同一份繪製邏輯)
+    const pdfBlob = await PdfExporter.generatePdfBlob(dataUrl, state.currentPreset);
+    folder.file(`${baseName}_print.pdf`, pdfBlob);
+
     // 4. SVG Dieline Layer
     const svgContent = this.generateCutlineSvg(state);
     folder.file(`${baseName}_刀模層_Magenta.svg`, svgContent);
@@ -138,11 +142,12 @@ ${inkLine}
 1. ${baseName}_300DPI.tif        -> 300 DPI 工業級無損 TIFF 點陣檔 (分色輸出首選)
 2. ${baseName}_300DPI.png        -> 300 DPI 高清透明通道 PNG (貼紙/立牌預覽)
 3. ${baseName}_300DPI.jpg        -> 300 DPI 高畫質 JPEG
-4. ${baseName}_刀模層_Magenta.svg -> 100% 洋紅 2mm 向量割字激光刀模線
-5. Readme_印前檢驗報告.txt      -> 本檢查清單
+4. ${baseName}_print.pdf         -> 送印 PDF（RGB，含出血與印刷標記）
+5. ${baseName}_刀模層_Magenta.svg -> 100% 洋紅 2mm 向量割字激光刀模線
+6. Readme_印前檢驗報告.txt      -> 本檢查清單
 
 【印刷廠師傅出機指引】
-• 本套件已依 1:1 實體尺寸內建 3mm 物理出血與安全框，請直接以 100% 比例出機，切勿任意縮放。
+• ${preset.bleedMm > 0 ? `成品規格含單邊 ${preset.bleedMm}mm 出血（見上方含出血總尺寸）` : '此規格無出血'}；點陣檔為處理後原圖，請直接以 100% 比例出機，切勿任意縮放。
 • 刀模線請套用 Spot Magenta (洋紅專色) 進行激光切割或鋼刀壓痕。
 ════════════════════════════════════════════════════════════════════════════`;
     folder.file('Readme_印前檢驗報告.txt', reportText);
@@ -176,7 +181,7 @@ ${inkLine}
 <svg xmlns="http://www.w3.org/2000/svg" width="${totalW}mm" height="${totalH}mm" viewBox="0 0 ${totalW} ${totalH}">
   <!-- 100% Magenta 印刷裁切刀模線 -->
   <rect x="${bleed}" y="${bleed}" width="${preset.widthMm}" height="${preset.heightMm}" fill="none" stroke="#FF00FF" stroke-width="0.25mm" stroke-dasharray="2,1" />
-  <!-- 外圍 3mm 出血框 -->
+  <!-- 外圍 ${bleed}mm 出血框 -->
   <rect x="0" y="0" width="${totalW}" height="${totalH}" fill="none" stroke="#00FFFF" stroke-width="0.15mm" />
 </svg>`;
   }

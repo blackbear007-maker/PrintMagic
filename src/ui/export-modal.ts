@@ -60,7 +60,7 @@ export class ExportModal {
               </div>
               <div style="font-weight: 700; font-size: 0.92rem; color: var(--pm-text-primary);">標準印刷 PDF (.pdf)</div>
               <div style="font-size: 0.72rem; color: var(--pm-text-muted); line-height: 1.3;">
-                內嵌 3mm 出血、裁切標記與對位規矩線（RGB 內容，印刷廠仍需自行做 CMYK 分色）。
+                依規格內嵌出血、裁切標記與對位規矩線（RGB 內容，印刷廠仍需自行做 CMYK 分色）。
               </div>
             </button>
 
@@ -128,7 +128,7 @@ export class ExportModal {
           <!-- Spec Footer -->
           <div style="background: rgba(0,0,0,0.02); border: 1px solid var(--pm-border-subtle); border-radius: 8px; padding: 10px 12px; font-size: 0.73rem; color: var(--pm-text-secondary); display: flex; justify-content: space-between; align-items: center;">
             <div>
-              <strong>目前檔案規格：</strong>${preset.nameZh} (${preset.widthMm} × ${preset.heightMm} mm · 含 3mm 出血)
+              <strong>目前檔案規格：</strong>${preset.nameZh} (${preset.widthMm} × ${preset.heightMm} mm · ${preset.bleedMm > 0 ? `含 ${preset.bleedMm}mm 出血` : '無出血（數位用途）'})
             </div>
             <div style="font-family: monospace; color: var(--pm-text-muted);">${baseName}</div>
           </div>

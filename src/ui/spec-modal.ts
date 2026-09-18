@@ -41,7 +41,7 @@ export class SpecModal {
 ■ 建議紙材：${paperName}
 ■ 檔案備註：已通過 PrintMagic 本機自動預檢（非第三方獨立驗證）`;
 
-    const bossMsgText = `老闆您好！我要印【${currentPreset.nameZh}】（成品淨尺寸 ${currentPreset.widthMm}×${currentPreset.heightMm} mm），紙材使用【${paperName}】。檔案為標準 PDF 格式，已內建 3mm 出血與 CMYK 安全墨量，請直接安排標準出機，感謝您！`;
+    const bossMsgText = `老闆您好！我要印【${currentPreset.nameZh}】（成品淨尺寸 ${currentPreset.widthMm}×${currentPreset.heightMm} mm），紙材使用【${paperName}】。檔案為標準 PDF 格式，已內建${bleed > 0 ? ` ${bleed}mm 出血與` : '（無出血）與'} CMYK 安全墨量，請直接安排標準出機，感謝您！`;
 
     this.modalEl.innerHTML = `
       <div class="pm-modal-dialog pm-spec-dialog" style="max-width: 580px;">

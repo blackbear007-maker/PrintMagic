@@ -1,9 +1,12 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { FreeMattingClient } from '../src/services/free-matting-client';
 import { NetworkGuard } from '../src/services/network-guard';
+import { store } from '../src/ui/state';
 
 describe('FreeMattingClient (rembg u2netp 微服務與本機顏色距離去背雙通道)', () => {
   beforeEach(() => {
+    // Service path only runs in 自建服務 (cloud) engine mode; local mode never uploads.
+    store.setState({ engineMode: 'cloud' });
     vi.restoreAllMocks();
     let storeMock: Record<string, string> = {};
 

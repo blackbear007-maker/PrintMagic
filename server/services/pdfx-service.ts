@@ -145,7 +145,7 @@ export class PdfxService {
     pdf.setFontSize(6);
     pdf.setTextColor(80, 80, 80);
 
-    const slugLine1 = `PrintMagic Pre-Press PDF (RGB content, not a validated PDF/X file) | ${preset.nameZh} (${trimWidthMm}×${trimHeightMm}mm) | Bleed: ${bleedMm}mm | Reference profile: ${icc.name} (${icc.standard})`;
+    const slugLine1 = `PrintMagic Pre-Press PDF (RGB content, not a validated PDF/X file) | ${preset.id} (${trimWidthMm}×${trimHeightMm}mm) | Bleed: ${bleedMm}mm | Reference profile: ${icc.name} (${icc.standard})`;
     const slugLine2 = `Source artwork SHA-256: ${sha256} | Generated: ${timestamp} UTC`;
 
     pdf.text(slugLine1, trimX, pageTotalHeightMm - outerMarginMm / 2 + 1);

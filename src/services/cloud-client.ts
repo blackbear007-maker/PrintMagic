@@ -19,7 +19,10 @@ export interface CloudIccProfile {
 }
 
 export class CloudClient {
-  private static baseUrl = 'http://localhost:3001/api';
+  // 與其他 /api client 一致走同源；寫死 http://localhost:3001 在部署環境會打到使用者本機且被 mixed-content 擋下。
+  // 需要指向別的主機時用 VITE_CLOUD_API_BASE 覆寫。
+  private static baseUrl: string =
+    ((import.meta as unknown as { env?: Record<string, string | undefined> }).env?.VITE_CLOUD_API_BASE) ?? '/api';
 
   /**
    * Check if industrial cloud backend is alive
@@ -30,12 +33,18 @@ export class CloudClient {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 2500);
 
-      const res = await fetch(`${this.baseUrl}/health`, {
-        signal: controller.signal
-      });
-      clearTimeout(timeoutId);
+      let res: Response;
+      try {
+        res = await fetch(`${this.baseUrl}/health`, {
+          signal: controller.signal
+        });
+      } finally {
+        clearTimeout(timeoutId);
+      }
 
-      if (res.ok) {
+      // 同源 /api 在沒有後端的靜態部署或 Vite dev 會被 SPA fallback 回 200 的 index.html，必須確認真的是 JSON。
+      const isJson = (res.headers.get('content-type') || '').includes('application/json');
+      if (res.ok && isJson) {
         store.setState({ cloudStatus: 'online' });
         return true;
       }
@@ -140,7 +149,8 @@ export class CloudClient {
         document.body.appendChild(a);
         a.click();
         a.remove();
-        URL.revokeObjectURL(url);
+        // 部分瀏覽器 (Safari) 非同步開始下載，延後釋放避免下載失敗
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
 
         Toast.success(`✓ 印前工業 PDF 已輸出！(內容 SHA-256: ${checksum.slice(0, 12)}…)`);
         return;

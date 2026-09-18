@@ -7,7 +7,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.5-blue)](https://www.typescriptlang.org/)
 [![Vite](https://img.shields.io/badge/Vite-6.4-purple)](https://vitejs.dev/)
 [![Docker Microservices](https://img.shields.io/badge/Docker-2%20Containers-blue)](./docker-compose.yml)
-[![Tests](https://img.shields.io/badge/Tests-315%2F315%20Passed-brightgreen)](./tests)
+[![Tests](https://img.shields.io/badge/Tests-vitest-brightgreen)](./tests)
 [![SPEC](https://img.shields.io/badge/System%20SPEC-v3.1.0-orange)](./docs/SPEC.md)
 
 ---
@@ -44,13 +44,13 @@
 ### 🖼️ 2. 相片與生活輸出剛需
 - **`Passport-Proportion-Aligner`**（2 吋護照大頭照頭頂自動校準）：精確定位台灣與國際 2 吋大頭照官方頭部比例。
 
-### 🖨️ 3. 工業級印前物理與色彩安全（印刷廠零退件保證）
+### 🖨️ 3. 工業級印前物理與色彩安全
 - **`Bleed-Expander`**（3mm 智慧出血背景生長）：鏡像外推演算法，杜絕裁切白邊與文字切除。
 - **`CMYK-Engine / GCR-Gray`**（控墨防死黑、軟打樣、省墨）：物理減法混色預測 + 總墨量 TAC ≤ 300% 限制（2026-08-28 修正 GCR 與 TAC 計算錯誤，詳見 SPEC.md）。
 - **`Foil-Simulator`**（亮金/玫瑰金/局部光 3D 擬真與獨立黑版分離）：即時反光模擬並自動生成 K100 菲林鋅版遮罩。
 - **`Barcode-Verifier`**（條碼/QR 印前可讀性預檢）：對比度與實體尺寸啟發式檢查——這是預檢工具，不是解碼器，無法確認條碼本身正確，只能檢查印刷可讀性風險。
 - **`Imposition-Engine`**（A4/A3 智慧合版拼模）：多模自動排滿大版，節省合版印刷費。
-- **`PDF/X-1a 出機壓製`**（零退件標準出機檔）：內嵌向量角線、十字規矩線、出血框與 CMYK 描述檔。
+- **`印刷用 PDF (RGB)`**：內嵌向量角線、十字規矩線與出血框；內容為 RGB，非經驗證的 PDF/X 檔，CMYK / PDF/X 印前轉換仍需由印刷廠自行處理。
 - **`送印估價與比價`**（比對台灣 4 間合版印刷廠並打包送印工單 ZIP）：報價是合成估算值，非即時廠商 API，詳見 [docs/SPEC.md](./docs/SPEC.md)。⚠️ 2026-08-30 前，這個功能完整存在但兩種介面模式都缺少實際觸發按鈕，使用者完全無法打開——已修正並補上按鈕，詳見 SPEC.md 對應的誠實性附註。
 
 ---
@@ -69,7 +69,7 @@
 │ 7. 🌓 暗部階調防死黑 (Lift)   │ 8. 🛡️ 總墨量 TAC ≤300% 壓制   │ 9. 🎯 純黑 K100 向量轉曲      │
 │   • Lab 亮度軸曲線提升         │   • GCR 灰版替代               │   • 文字/條碼防偏移銳化         │
 ├───────────────────────────────┴───────────────────────────────┴───────────────────────────────┤
-│ 10. ✅ PDF/X-1a 出機壓製：內嵌向量角線、十字規矩線、出血框與 CMYK 描述檔                          │
+│ 10. ✅ 印刷用 PDF (RGB)：內嵌向量角線、十字規矩線、出血框（CMYK/PDF-X 轉換由印刷廠處理）          │
 └───────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -168,7 +168,7 @@ Port 自真實開源專案 [`6o6o/fft-descreen`](https://github.com/6o6o/fft-des
 ```
                         【PrintMagic 多格式商業出機中心】
 ┌─────────────────────────────┬─────────────────────────────┬─────────────────────────────┐
-│ 📄 PDF/X-1a (300 DPI)       │ 🖨️ 工業級無損 TIFF (300 DPI)│ 📥 高清透明 PNG (300 DPI)   │
+│ 📄 印刷用 PDF (RGB, 300 DPI)│ 🖨️ 工業級無損 TIFF (300 DPI)│ 📥 高清透明 PNG (300 DPI)   │
 │   • 3mm 出血 + 向量裁切標記 │   • Tag 282/283 二進位分色  │   • 保留 8-bit Alpha 通道   │
 ├─────────────────────────────┼─────────────────────────────┼─────────────────────────────┤
 │ 🖼️ 最高畫質 JPG (300 DPI)   │ ✂️ 向量刀模與白墨 SVG       │ 📦 印刷廠出機全套包 (.zip)  │
@@ -204,7 +204,7 @@ npm run dev
 
 ### 3. 單元測試與建置
 ```bash
-# 執行測試套件 (315 項單元測試)
+# 執行測試套件
 npm run test
 
 # 執行 TypeScript 類型檢查

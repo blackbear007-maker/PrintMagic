@@ -281,6 +281,9 @@ export class CanvasZoomController {
   }
 
   private updateTransform(): void {
+    // 讓共用同一元素 transform 的 Paper3DController 知道目前在放大中，別覆寫
+    if (this.scale > 1) this.sheet.dataset.zoomed = '1';
+    else delete this.sheet.dataset.zoomed;
     if (this.scale > 1) {
       this.sheet.style.transform = `translate3d(${this.posX}px, ${this.posY}px, 0) scale(${this.scale})`;
     } else {

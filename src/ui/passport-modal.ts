@@ -46,7 +46,9 @@ export class PassportModal {
       paperRecommendation = '銅版上亮膜貼紙 (防潑水耐磨)';
     }
 
-    const specPhrase = `老闆您好，這是已做好 3mm 出血與 300DPI 純黑向量字的標準印刷 PDF (${preset.nameZh} ${sizeText})，請直接出機即可！`;
+    // 依實際規格組字：出血與 DPI 由預設決定；PDF 內容是 RGB 影像（非向量字、非 CMYK）
+    const bleedPart = preset.bleedMm > 0 ? `已做好 ${preset.bleedMm}mm 出血、` : '無出血、';
+    const specPhrase = `老闆您好，這是${bleedPart}${preset.targetDpi}DPI 影像的 RGB 印刷 PDF (${preset.nameZh} ${sizeText})，如需 CMYK 請協助轉檔，謝謝！`;
 
     this.modalEl.innerHTML = `
       <div class="pm-modal-dialog pm-overlay-dialog" style="max-width: 520px; border: 1px solid rgba(0, 113, 227, 0.25); box-shadow: 0 20px 48px rgba(0, 0, 0, 0.15);">

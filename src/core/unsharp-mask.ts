@@ -27,6 +27,8 @@ export class UnsharpMask {
   private static readonly NOISE_WIN = 4;
   // Noise threshold below which USM amount is suppressed
   private static readonly NOISE_VAR_LOW = 0.0003;
+  /** Approx. sRGB code values per CIE L* unit (100 L* ↔ 255 levels) */
+  private static readonly LSTAR_TO_SRGB = 2.55;
   private static readonly NOISE_VAR_HIGH = 0.004;
 
   // ─────────────────────────────────────────────────────────
@@ -97,9 +99,10 @@ export class UnsharpMask {
       const edgeWeight = Math.min(1.2, absDiff / 15);
       const effectiveAmount = amount * (0.8 + 0.4 * edgeWeight) * noiseFactor;
 
-      // Soft-clamp gain to suppress ringing (Overshoot ≤ 15 Lab units)
+      // Soft-clamp gain to suppress ringing (overshoot ≤ 15 L* units, ≤ 22.5 hard cap), then
+      // convert L* → sRGB code values (1 L* ≈ 2.55 levels at mid-tones) before adding to RGB.
       const rawGain = diff * effectiveAmount;
-      const gain = this.softClamp(rawGain, 15);
+      const gain = this.softClamp(rawGain, 15) * this.LSTAR_TO_SRGB;
 
       dst[pi]     = Math.min(255, Math.max(0, Math.round(src[pi]     + gain)));
       dst[pi + 1] = Math.min(255, Math.max(0, Math.round(src[pi + 1] + gain)));
@@ -238,16 +241,21 @@ export class UnsharpMask {
       for (let x = 0; x < width; x++) row[x] = channel[base + x];
 
       const fwd = new Float32Array(width);
-      fwd[0] = B * row[0];
-      if (width > 1) fwd[1] = B * row[1] + b1 * fwd[0];
-      if (width > 2) fwd[2] = B * row[2] + b1 * fwd[1] + b2 * fwd[0];
+      // Replicate-border steady state: samples before the start are taken as row[0]
+      // (zero initial conditions darkened the blur near edges → bright USM frame).
+      const f0 = row[0];
+      fwd[0] = B * row[0] + (b1 + b2 + b3) * f0;
+      if (width > 1) fwd[1] = B * row[1] + b1 * fwd[0] + (b2 + b3) * f0;
+      if (width > 2) fwd[2] = B * row[2] + b1 * fwd[1] + b2 * fwd[0] + b3 * f0;
       for (let x = 3; x < width; x++) {
         fwd[x] = B * row[x] + b1 * fwd[x-1] + b2 * fwd[x-2] + b3 * fwd[x-3];
       }
       const bwd = new Float32Array(width);
-      bwd[width-1] = B * fwd[width-1];
-      if (width > 1) bwd[width-2] = B * fwd[width-2] + b1 * bwd[width-1];
-      if (width > 2) bwd[width-3] = B * fwd[width-3] + b1 * bwd[width-2] + b2 * bwd[width-1];
+      // Same steady-state init at the far end: samples past the end are taken as fwd[end]
+      const bEnd = fwd[width-1];
+      bwd[width-1] = B * fwd[width-1] + (b1 + b2 + b3) * bEnd;
+      if (width > 1) bwd[width-2] = B * fwd[width-2] + b1 * bwd[width-1] + (b2 + b3) * bEnd;
+      if (width > 2) bwd[width-3] = B * fwd[width-3] + b1 * bwd[width-2] + b2 * bwd[width-1] + b3 * bEnd;
       for (let x = width-4; x >= 0; x--) {
         bwd[x] = B * fwd[x] + b1 * bwd[x+1] + b2 * bwd[x+2] + b3 * bwd[x+3];
       }
@@ -260,16 +268,21 @@ export class UnsharpMask {
       for (let y = 0; y < height; y++) col[y] = out[y * width + x];
 
       const fwd = new Float32Array(height);
-      fwd[0] = B * col[0];
-      if (height > 1) fwd[1] = B * col[1] + b1 * fwd[0];
-      if (height > 2) fwd[2] = B * col[2] + b1 * fwd[1] + b2 * fwd[0];
+      // Replicate-border steady state: samples before the start are taken as col[0]
+      // (zero initial conditions darkened the blur near edges → bright USM frame).
+      const f0 = col[0];
+      fwd[0] = B * col[0] + (b1 + b2 + b3) * f0;
+      if (height > 1) fwd[1] = B * col[1] + b1 * fwd[0] + (b2 + b3) * f0;
+      if (height > 2) fwd[2] = B * col[2] + b1 * fwd[1] + b2 * fwd[0] + b3 * f0;
       for (let y = 3; y < height; y++) {
         fwd[y] = B * col[y] + b1 * fwd[y-1] + b2 * fwd[y-2] + b3 * fwd[y-3];
       }
       const bwd = new Float32Array(height);
-      bwd[height-1] = B * fwd[height-1];
-      if (height > 1) bwd[height-2] = B * fwd[height-2] + b1 * bwd[height-1];
-      if (height > 2) bwd[height-3] = B * fwd[height-3] + b1 * bwd[height-2] + b2 * bwd[height-1];
+      // Same steady-state init at the far end: samples past the end are taken as fwd[end]
+      const bEnd = fwd[height-1];
+      bwd[height-1] = B * fwd[height-1] + (b1 + b2 + b3) * bEnd;
+      if (height > 1) bwd[height-2] = B * fwd[height-2] + b1 * bwd[height-1] + (b2 + b3) * bEnd;
+      if (height > 2) bwd[height-3] = B * fwd[height-3] + b1 * bwd[height-2] + b2 * bwd[height-1] + b3 * bEnd;
       for (let y = height-4; y >= 0; y--) {
         bwd[y] = B * fwd[y] + b1 * bwd[y+1] + b2 * bwd[y+2] + b3 * bwd[y+3];
       }

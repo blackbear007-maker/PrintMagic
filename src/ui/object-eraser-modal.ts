@@ -42,6 +42,7 @@ export class ObjectEraserModal {
     // ⚠️ 2026-08-29 修正：每次 open() 換一個新的 session token，讓「關閉視窗時仍在跑的
     // 去背請求」在事後 resolve 時能偵測到自己已經過期，不會把結果寫進新 session 的狀態。
     this.sessionToken++;
+    this.isProcessing = false;
     this.currentSrcImageData = srcImageData;
     this.currentResultImageData = null;
     this.isComparing = false;
@@ -308,7 +309,7 @@ export class ObjectEraserModal {
 
       try {
         const startTime = performance.now();
-        const inpaintResult = await FreeInpaintingClient.eraseObject(this.currentSrcImageData, maskImageData);
+        const inpaintResult = await FreeInpaintingClient.eraseObject(this.currentResultImageData ?? this.currentSrcImageData, maskImageData);
         const inpainted = inpaintResult.imageData;
         const elapsed = Math.round(performance.now() - startTime);
 
@@ -327,12 +328,15 @@ export class ObjectEraserModal {
 
         SoundEffects.purityChime();
         Toast.success(`✨ 物件消除完成 (${elapsed}ms · ${inpaintResult.modelUsed})！可長按「查看原圖」進行對比。`);
+      } catch (err) {
+        if (requestToken === this.sessionToken) Toast.error('物件消除失敗：' + (err as Error).message);
       } finally {
+        // 只有仍屬於目前 session 的請求才能解除 isProcessing，避免舊請求清掉新請求的旗標
         if (requestToken === this.sessionToken) {
           if (loadingEl) loadingEl.style.display = 'none';
           if (btnRunInpaint) (btnRunInpaint as HTMLButtonElement).disabled = false;
+          this.isProcessing = false;
         }
-        this.isProcessing = false;
       }
     });
 

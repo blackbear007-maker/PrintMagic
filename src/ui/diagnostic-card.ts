@@ -63,6 +63,10 @@ export class DiagnosticCard {
     const { breakdown, issues, recommendations } = scoreResult;
     const initialBreakdown = originalScoreResult ? originalScoreResult.breakdown : breakdown;
 
+    // 出血依實際規格（部分預設為 1.5 / 2 / 0 mm），且出血是在匯出 PDF 時才加上
+    const bleedMm = currentPreset.bleedMm ?? 0;
+    const bleedText = bleedMm > 0 ? `${bleedMm}mm 出血` : '此規格無出血';
+
     // Millimeter dimensions
     const physicalSizeText = currentPreset.widthMm > 0
       ? `${currentPreset.widthMm} × ${currentPreset.heightMm} mm`
@@ -167,9 +171,9 @@ export class DiagnosticCard {
                 <span class="pm-chip-icon">🌟</span>
                 <span class="pm-chip-text"><strong>${finalDpi} DPI</strong> 超解析補齊</span>
               </div>
-              <div class="pm-defense-chip" title="已適配 ${currentPreset.nameZh} 3mm 出血外推防裁切">
+              <div class="pm-defense-chip" title="${bleedMm > 0 ? `${currentPreset.nameZh} 匯出 PDF 時加上 ${bleedMm}mm 出血` : `${currentPreset.nameZh} 此規格無出血`}">
                 <span class="pm-chip-icon">📐</span>
-                <span class="pm-chip-text"><strong>3mm</strong> 出血防白邊</span>
+                <span class="pm-chip-text">${bleedMm > 0 ? `<strong>${bleedMm}mm</strong> 出血防白邊` : '<strong>無出血</strong> 數位用途'}</span>
               </div>
               <div class="pm-defense-chip" title="抹除手機拍畫時的手部黑影與光照不均">
                 <span class="pm-chip-icon">☀️</span>
@@ -252,7 +256,7 @@ export class DiagnosticCard {
               <div class="pm-weighted-section">
                 <div class="pm-metrics-grid">
                   ${this.renderWeightedRow('解析度適配', '35%', initialBreakdown.resolution, breakdown.resolution, 'Lanczos-3 重採樣補足 300 DPI')}
-                  ${this.renderWeightedRow('長寬比契合', '15%', initialBreakdown.aspectRatio, breakdown.aspectRatio, '3mm 出血與安全框裁切保護')}
+                  ${this.renderWeightedRow('長寬比契合', '15%', initialBreakdown.aspectRatio, breakdown.aspectRatio, `${bleedText}與安全框裁切保護`)}
                   ${this.renderWeightedRow('總墨量安全', '10%', initialBreakdown.inkSafety, breakdown.inkSafety, 'TAC ≤300% 防吸墨背印沾黏')}
                   ${this.renderWeightedRow('微細邊緣銳度', '10%', initialBreakdown.sharpness, breakdown.sharpness, 'USM 印刷微細邊緣銳化補償')}
                   ${this.renderWeightedRow('亮部與暗階', '10%', initialBreakdown.brightness, breakdown.brightness, '階調校正防止印刷暗沉')}
@@ -260,7 +264,7 @@ export class DiagnosticCard {
                   ${this.renderWeightedRow('反差與層次', '10%', initialBreakdown.contrast, breakdown.contrast, '動態對比度增強')}
                 </div>
               </div>
-              ${this.renderDiagnostics(issues, recommendations, appliedScale)}
+              ${this.renderDiagnostics(issues, recommendations, appliedScale, bleedMm)}
             </div>
           </div>
         </div>
@@ -361,11 +365,11 @@ export class DiagnosticCard {
                     <span class="pm-safety-tile-name">出血與防裁切</span>
                   </div>
                   <span class="pm-safety-badge ${breakdown.aspectRatio >= 90 ? 'pm-badge-pass' : 'pm-badge-warn'}">
-                    ✓ 安全防切 · ${breakdown.aspectRatio}分
+                    ${breakdown.aspectRatio >= 90 ? '✓ 安全防切' : '⚠ 需檢查裁切'} · ${breakdown.aspectRatio}分
                   </span>
                 </div>
                 <div class="pm-safety-tile-desc">
-                  已自動外推 <strong>3mm 標準出血</strong>，裁切偏差保證不露白邊
+                  ${bleedMm > 0 ? `匯出 PDF 時會加上 <strong>${bleedMm}mm 出血</strong>，降低裁切偏差露白邊的風險` : '此規格無出血（數位用途）'}
                 </div>
               </div>
 
@@ -407,7 +411,7 @@ export class DiagnosticCard {
               <div class="pm-auto-summary-title">⚡ 系統已自動完成印前安全處理</div>
               <div class="pm-auto-tags">
                 <span class="pm-auto-tag">✓ 補足 ${finalDpi} DPI</span>
-                <span class="pm-auto-tag">✓ 3mm 標準出血</span>
+                ${bleedMm > 0 ? `<span class="pm-auto-tag">✓ 匯出含 ${bleedMm}mm 出血</span>` : ''}
                 <span class="pm-auto-tag">✓ TAC 控墨安全</span>
                 <span class="pm-auto-tag">✓ USM 微細銳化</span>
               </div>
@@ -432,7 +436,7 @@ export class DiagnosticCard {
               <div class="pm-weighted-section">
                 <div class="pm-metrics-grid">
                   ${this.renderWeightedRow('解析度適配', '35%', initialBreakdown.resolution, breakdown.resolution, 'Lanczos-3 重採樣補足 300 DPI')}
-                  ${this.renderWeightedRow('長寬比契合', '15%', initialBreakdown.aspectRatio, breakdown.aspectRatio, '3mm 出血與安全框裁切保護')}
+                  ${this.renderWeightedRow('長寬比契合', '15%', initialBreakdown.aspectRatio, breakdown.aspectRatio, `${bleedText}與安全框裁切保護`)}
                   ${this.renderWeightedRow('總墨量安全', '10%', initialBreakdown.inkSafety, breakdown.inkSafety, 'TAC ≤300% 防吸墨背印沾黏')}
                   ${this.renderWeightedRow('微細邊緣銳度', '10%', initialBreakdown.sharpness, breakdown.sharpness, 'USM 印刷微細邊緣銳化補償')}
                   ${this.renderWeightedRow('亮部與暗階', '10%', initialBreakdown.brightness, breakdown.brightness, '階調校正防止印刷暗沉')}
@@ -553,7 +557,8 @@ export class DiagnosticCard {
   private renderDiagnostics(
     issues: string[],
     recommendations: string[],
-    appliedScale: number
+    appliedScale: number,
+    bleedMm = 0
   ): string {
     const autoActions: string[] = [];
 
@@ -562,7 +567,7 @@ export class DiagnosticCard {
     }
     autoActions.push('✓ 已套用 USM 微細邊緣銳化補償');
     autoActions.push('✓ 已檢測並壓制總墨量 TAC ≤ 300% 避免印刷背印');
-    autoActions.push('✓ 已自動計算 3mm 標準出血與安全裁切框');
+    if (bleedMm > 0) autoActions.push(`✓ 匯出 PDF 時會加上 ${bleedMm}mm 出血與安全裁切框`);
 
     const autoActionsHtml = autoActions
       .map((act) => `<li class="pm-auto-act-item">${act}</li>`)

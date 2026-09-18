@@ -18,8 +18,6 @@ import { NetworkGuard } from './network-guard';
  *    doesn't come back successfully.
  */
 export class FreeInpaintingClient {
-  private static readonly cache = new Map<string, ImageData>();
-
   /**
    * Erase unwanted objects/watermarks from image using mask
    */
@@ -27,21 +25,14 @@ export class FreeInpaintingClient {
     sourceImageData: ImageData,
     maskImageData: ImageData
   ): Promise<{ imageData: ImageData; isCloud: boolean; modelUsed: string }> {
-    const cacheKey = `${sourceImageData.width}x${sourceImageData.height}_${sourceImageData.data[0]}_${sourceImageData.data[100]}`;
-    if (this.cache.has(cacheKey)) {
-      return { imageData: this.cache.get(cacheKey)!, isCloud: false, modelUsed: '快取結果' };
-    }
-
-    if (!NetworkGuard.isPrivacyShieldActive()) {
+    if (NetworkGuard.isRemoteAllowed()) {
       const cloudResult = await this.tryLama(sourceImageData, maskImageData);
       if (cloudResult) {
-        this.cache.set(cacheKey, cloudResult.imageData);
         return cloudResult;
       }
     }
 
     const localResult = ObjectEraser.inpaint(sourceImageData, maskImageData);
-    this.cache.set(cacheKey, localResult);
     return {
       imageData: localResult,
       isCloud: false,
@@ -60,13 +51,17 @@ export class FreeInpaintingClient {
 
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), 20000);
-      const res = await fetch('/api/ai/inpaint', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image_base64: imageDataUrl, mask_base64: maskDataUrl }),
-        signal: controller.signal
-      });
-      clearTimeout(timer);
+      let res: Response;
+      try {
+        res = await fetch('/api/ai/inpaint', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image_base64: imageDataUrl, mask_base64: maskDataUrl }),
+          signal: controller.signal
+        });
+      } finally {
+        clearTimeout(timer);
+      }
 
       if (!res.ok) return null;
       const data = await res.json();

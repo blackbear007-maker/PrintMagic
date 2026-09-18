@@ -53,6 +53,11 @@ export class ImpositionModal {
     const itemHMm = preset.heightMm > 0 ? preset.heightMm : 54;
 
     this.layout = ImpositionEngine.calculateLayout(itemWMm, itemHMm, this.sheetPreset);
+    if (this.layout.totalCells === 0) {
+      this.currentCanvas = null;
+      Toast.error('尺寸超出可印範圍，無法在此紙張拼版');
+      return;
+    }
 
     const items: ImageData[] = [];
     if (!this.isRepeatSingle && state.batchItems.length > 1) {
@@ -200,7 +205,8 @@ export class ImpositionModal {
         document.body.appendChild(link);
         link.click();
         link.remove();
-        URL.revokeObjectURL(url);
+        // Delay revoke so the browser has time to start the download.
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
 
         Toast.success(`✓ ${this.layout.sheetPreset} 拼模標準 PDF 已下載完成！`);
       } catch (err: any) {

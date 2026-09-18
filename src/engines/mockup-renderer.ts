@@ -196,8 +196,10 @@ export class MockupRenderer {
     ctx.restore();
 
     // 3. Print / Postcard placement with 3D slant angle
-    const targetW = 900;
-    const targetH = (targetW / artImg.naturalWidth) * artImg.naturalHeight;
+    // 等比縮放到 900x900 內，避免直式長圖超出 1280px 畫布
+    const deskScale = Math.min(900 / artImg.naturalWidth, 900 / artImg.naturalHeight);
+    const targetW = artImg.naturalWidth * deskScale;
+    const targetH = artImg.naturalHeight * deskScale;
     const posX = (w - targetW) / 2 + 40;
     const posY = (h - targetH) / 2;
 
@@ -265,8 +267,10 @@ export class MockupRenderer {
     }
 
     // 2. Thick Card Stock in Center
-    const cardW = 760;
-    const cardH = (cardW / artImg.naturalWidth) * artImg.naturalHeight;
+    // 等比縮放到 760x1000 內，保留手部與旋轉的空間
+    const cardScale = Math.min(760 / artImg.naturalWidth, 1000 / artImg.naturalHeight);
+    const cardW = artImg.naturalWidth * cardScale;
+    const cardH = artImg.naturalHeight * cardScale;
     const cardX = (w - cardW) / 2 - 20;
     const cardY = (h - cardH) / 2;
 

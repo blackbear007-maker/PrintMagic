@@ -1,11 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { AiUpscaleClient, AI_MODELS } from '../src/services/ai-upscale-client';
 import { NetworkGuard } from '../src/services/network-guard';
+import { store } from '../src/ui/state';
 
 describe('AiUpscaleClient (self-hosted Real-ESRGAN / local edge-aware fallback)', () => {
   let storeMock: Record<string, string> = {};
 
   beforeEach(() => {
+    // Service path only runs in 自建服務 (cloud) engine mode; local mode never uploads.
+    store.setState({ engineMode: 'cloud' });
     vi.restoreAllMocks();
     storeMock = {};
 
@@ -59,6 +62,33 @@ describe('AiUpscaleClient (self-hosted Real-ESRGAN / local edge-aware fallback)'
     expect(result.model).toBe('4x 通用放大');
   });
 
+  it('reports the real Real-ESRGAN scale relative to the original, not a fixed 4x, when the upload was downscaled', async () => {
+    // @ts-ignore
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ success: true, dataUrl: 'data:image/png;base64,realesrgan_output_big' })
+    } as any);
+    // 原圖 3000px，上傳縮到 1200px，服務輸出 4800px -> 實際 1.6x
+    // @ts-ignore
+    global.Image = class {
+      public onload: any = null;
+      public naturalWidth = 3000;
+      public naturalHeight = 3000;
+      set src(_val: string) {
+        setTimeout(() => this.onload && this.onload(), 5);
+      }
+    } as any;
+    // @ts-ignore
+    (global.document.createElement('canvas') as any).getContext('2d').getImageData
+      .mockReturnValue({ width: 4800, height: 4800, data: new Uint8ClampedArray(4) });
+
+    const result = await AiUpscaleClient.upscale('data:image/png;base64,big_original_for_scale_check', 'general-4x');
+    expect(result.success).toBe(true);
+    expect(result.model).toContain('Real-ESRGAN');
+    expect(result.scale).toBe(1.6);
+  });
+
   it('should use the self-hosted Real-ESRGAN service and label the result honestly when it succeeds', async () => {
     // @ts-ignore
     global.fetch = vi.fn().mockResolvedValue({
@@ -70,6 +100,11 @@ describe('AiUpscaleClient (self-hosted Real-ESRGAN / local edge-aware fallback)'
         engine: 'Real-ESRGAN compact x4v3 (自建微服務)'
       })
     } as any);
+
+    // 服務回傳 8px 寬、原圖 2px 寬 -> 實際倍率 4
+    // @ts-ignore
+    (global.document.createElement('canvas') as any).getContext('2d').getImageData
+      .mockReturnValue({ width: 8, height: 8, data: new Uint8ClampedArray(256) });
 
     const dummyDataUrl = 'data:image/png;base64,unique_cloud_upscale_input';
     const result = await AiUpscaleClient.upscale(dummyDataUrl, 'general-4x');

@@ -150,10 +150,11 @@ export class LanczosResizer {
           if (weight === 0) continue;
 
           const idx = (y * srcWidth + sx) * 4;
-          const linR = toLinear[srcData[idx]];
-          const linG = toLinear[srcData[idx + 1]];
-          const linB = toLinear[srcData[idx + 2]];
           const pa = srcData[idx + 3] / 255;
+          // Premultiply by alpha so colour hidden under transparent pixels can't bleed into edges
+          const linR = toLinear[srcData[idx]] * pa;
+          const linG = toLinear[srcData[idx + 1]] * pa;
+          const linB = toLinear[srcData[idx + 2]] * pa;
 
           // Local min/max for linear anti-ringing
           if (linR < minR) minR = linR;
@@ -234,11 +235,18 @@ export class LanczosResizer {
         const clampedG = Math.min(maxG, Math.max(minG, rawG));
         const clampedB = Math.min(maxB, Math.max(minB, rawB));
 
+        // Un-premultiply (tmp holds alpha-premultiplied linear RGB)
+        const aOut = Math.min(1, Math.max(0, a / norm));
+        const inv = aOut > 0 ? 1 / aOut : 0;
+        const outR = Math.min(1, clampedR * inv);
+        const outG = Math.min(1, clampedG * inv);
+        const outB = Math.min(1, clampedB * inv);
+
         // Final conversion from Linear-Radiance back to sRGB [0, 255]
-        out[dstIdx]     = this.linearToSRgb(clampedR);
-        out[dstIdx + 1] = this.linearToSRgb(clampedG);
-        out[dstIdx + 2] = this.linearToSRgb(clampedB);
-        out[dstIdx + 3] = Math.min(255, Math.max(0, Math.round((a / norm) * 255)));
+        out[dstIdx]     = this.linearToSRgb(outR);
+        out[dstIdx + 1] = this.linearToSRgb(outG);
+        out[dstIdx + 2] = this.linearToSRgb(outB);
+        out[dstIdx + 3] = Math.round(aOut * 255);
       }
     }
 

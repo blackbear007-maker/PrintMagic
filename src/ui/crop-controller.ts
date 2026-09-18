@@ -5,7 +5,6 @@ import type { CropAnchor } from '../types';
 import { SmartCropClient } from '../services/smart-crop-client';
 import type { DetectedFace } from '../services/free-face-detect-client';
 import { FaceSafetyChecker } from '../core/face-safety-checker';
-import { DpiCalculator } from '../core/dpi-calculator';
 
 /**
  * Smart Focal Crop & Visual Alignment Controller
@@ -139,7 +138,10 @@ export class CropController {
     if (faces.length === 0) return;
 
     const preset = store.getState().currentPreset;
-    const safeMarginPx = DpiCalculator.mmToPx(preset.safeMarginMm || 5, preset.targetDpi);
+    // Use the image's actual pixel density (px per mm of the finished size), not the preset target DPI,
+    // since imageWidth is the real cropped image — same fix as main.ts.
+    const pxPerMm = preset.widthMm > 0 ? imageWidth / preset.widthMm : preset.targetDpi / 25.4;
+    const safeMarginPx = (preset.safeMarginMm || 5) * pxPerMm;
 
     let worst: ReturnType<typeof FaceSafetyChecker.checkFaceMargin> | null = null;
     for (const face of faces) {

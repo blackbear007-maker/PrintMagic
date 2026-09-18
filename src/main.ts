@@ -20,7 +20,6 @@ import { CropController } from './ui/crop-controller';
 import { CloudClient } from './services/cloud-client';
 import { Toast } from './ui/toast';
 import { SoundEffects } from './core/sound-effects';
-import { DpiCalculator } from './core/dpi-calculator';
 import { CmykEngine } from './core/cmyk-engine';
 import { getPresetById, detectBestPreset } from './core/presets';
 import { SampleArtworks } from './services/sample-artworks';
@@ -141,13 +140,18 @@ class App {
 
   // Preset & Paper buttons
   private presetButtons = document.querySelectorAll<HTMLButtonElement>('.pm-preset-btn');
-  private paperButtons = document.querySelectorAll<HTMLButtonElement>('.pm-paper-btn');
+  private paperButtons = document.querySelectorAll<HTMLButtonElement>('.pm-paper-btn[data-paper]');
 
   // Cache of view variations
   private heatmapDataUrl: string | null = null;
   private softProofDataUrl: string | null = null;
   private cvdPreviewDataUrl: string | null = null;
   private cvdPreviewCachedType: CvdType | null = null;
+  private lastPreviewSource: ImageData | null = null;
+  // 手動套用文字疊加時的底圖（疊加前）與產出，用來避免重複疊印
+  private overlayBase: { base: ImageData; output: ImageData } | null = null;
+  // 已補過出血的 processedImageData（避免重複外擴）
+  private bleedAppliedTo: ImageData | null = null;
 
   // User-uploaded CMYK ICC profile (session-only, in-memory) — see free-icc-client.ts
   private uploadedIccProfile: { bytes: ArrayBuffer; name: string } | null = null;
@@ -159,12 +163,7 @@ class App {
       this.vectorOverlayEngine,
       this.doubleSidedManager,
       this.xiangAssistant,
-      () => {
-        this.heatmapDataUrl = null;
-        this.softProofDataUrl = null;
-        this.cvdPreviewDataUrl = null;
-        this.cvdPreviewCachedType = null;
-      }
+      () => this.invalidatePreviewCaches()
     );
     this.bindEvents();
     this.subscribeState();
@@ -176,13 +175,21 @@ class App {
     void CloudClient.checkHealth();
   }
 
+  /** 任何直接改寫 processedImageData 的操作都要呼叫，避免熱力圖/軟打樣/色盲預覽顯示編輯前的舊圖。 */
+  private invalidatePreviewCaches(): void {
+    this.heatmapDataUrl = null;
+    this.softProofDataUrl = null;
+    this.cvdPreviewDataUrl = null;
+    this.cvdPreviewCachedType = null;
+  }
+
   private initServiceWorker(): void {
     if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
       navigator.serviceWorker
         .register('./sw.js')
         .then(() => {
           const offlineEl = document.getElementById('offlineStatusText');
-          if (offlineEl) offlineEl.textContent = '100% 離線可用';
+          if (offlineEl) offlineEl.textContent = '支援離線使用';
         })
         .catch((err) => {
           console.log('SW registration skipped or error:', err);
@@ -193,12 +200,12 @@ class App {
     window.addEventListener('offline', () => {
       const offlineEl = document.getElementById('offlineStatusText');
       if (offlineEl) offlineEl.textContent = '無網路 (離線極速運作中)';
-      Toast.info('📱 目前處於離線狀態：本機 8x 放大、文字檢查與 PDF 輸出仍 100% 正常可用！');
+      Toast.info('📱 目前處於離線狀態：本機放大與 PDF 輸出仍可使用，需要自建服務的功能會退回本機演算法');
     });
 
     window.addEventListener('online', () => {
       const offlineEl = document.getElementById('offlineStatusText');
-      if (offlineEl) offlineEl.textContent = '100% 離線可用 (在線)';
+      if (offlineEl) offlineEl.textContent = '在線';
       Toast.success('🌐 網路連線已恢復！');
     });
   }
@@ -346,7 +353,7 @@ class App {
       } else {
         store.setEngineMode('local');
         store.setState({ aiUpscaleMode: 'local' });
-        Toast.info('🖥️ 已切換至【100% 離線本機模式】：零連網、零資料上傳、極速隱私！');
+        Toast.info('🖥️ 已切換至【本機模式】：所有處理改用本機演算法，圖片不會上傳。臉部偵測與 ICC 精準軟打樣需要自建服務，本機模式下改用近似演算法或停用。');
       }
     });
 
@@ -370,7 +377,7 @@ class App {
         if (next === 'cloud-ai') {
           Toast.info('⚡ 已啟動【邊緣強化放大引擎】模式！');
         } else {
-          Toast.info('⚡ 已切換回【本機 8x 金字塔超解析度】模式！');
+          Toast.info('⚡ 已切換回【本機 Lanczos 金字塔放大】模式！');
         }
       }
 
@@ -424,10 +431,10 @@ class App {
     // Reset / New Artwork
     this.btnNewArtwork.addEventListener('click', () => {
       store.reset();
-      this.heatmapDataUrl = null;
-      this.softProofDataUrl = null;
-      this.cvdPreviewDataUrl = null;
-      this.cvdPreviewCachedType = null;
+      this.invalidatePreviewCaches();
+      // 雙面背面與文字疊加屬於上一張作品，不能帶進下一張
+      this.doubleSidedManager.clearBackImage();
+      this.vectorOverlayEngine.clear();
       this.loupe.setImageData(null);
       this.loupe.setEnabled(false);
       Toast.info('已重置畫布，請拖入新圖片');
@@ -507,7 +514,7 @@ class App {
 
             // 🪪 2 吋證件照：自動用 YuNet 抓臉置中裁切成 35×45mm 比例（真實像素裁切，
             // 不是只改 CSS 預覽的九宮格錨點——輸出的 PDF 才會真的反映這個裁切）
-            if (presetId === 'id-photo') {
+            if (presetId === 'id-photo' && store.getState().currentPreset.id === 'id-photo') {
               await this.applyIdPhotoCrop();
             }
           }
@@ -576,12 +583,18 @@ class App {
 
       if (!state.showHeatmap) {
         if (!this.heatmapDataUrl) {
+          const src = state.processedImageData;
           // Use the same active-ICC-profile TAC limit the actual ink-clamping step applies
           // (see Step 3's honesty note), so the heatmap's warning threshold matches reality.
-          const heatmap = await workerClient.generateHeatmap(
-            state.processedImageData,
-            iccProfileEngine.getActiveProfile().maxTac
-          );
+          let heatmap: ImageData;
+          try {
+            heatmap = await workerClient.generateHeatmap(src, iccProfileEngine.getActiveProfile().maxTac);
+          } catch (err: any) {
+            Toast.error(`熱力圖產生失敗：${err?.message || '未知錯誤'}`);
+            return;
+          }
+          // 等待期間圖片已被換掉 → 丟棄過期結果
+          if (store.getState().processedImageData !== src) return;
           this.heatmapDataUrl = this.imageDataToDataUrl(heatmap);
         }
       }
@@ -604,7 +617,16 @@ class App {
       if (!state.showSoftProof && !this.softProofDataUrl) {
         if (this.uploadedIccProfile) {
           Toast.info('🖨️ 正在以您上傳的 ICC 描述檔進行真實色彩管理運算...');
-          const result = await FreeIccClient.softProof(state.processedImageData, this.uploadedIccProfile.bytes);
+          const src = state.processedImageData;
+          let result: Awaited<ReturnType<typeof FreeIccClient.softProof>>;
+          try {
+            result = await FreeIccClient.softProof(src, this.uploadedIccProfile.bytes);
+          } catch (err: any) {
+            Toast.error(`軟打樣失敗：${err?.message || '未知錯誤'}`);
+            return;
+          }
+          // 等待期間圖片已被換掉 → 丟棄過期結果
+          if (store.getState().processedImageData !== src) return;
           if (result.available && result.dataUrl) {
             this.softProofDataUrl = result.dataUrl;
             const tacMsg = result.tac ? `（真實總墨量 TAC：最高 ${result.tac.maxPercent}%，平均 ${result.tac.meanPercent}%）` : '';
@@ -792,8 +814,26 @@ class App {
     // Backside Quick Prompt Click
     document.getElementById('btnPromptAddBack')?.addEventListener('click', () => {
       document.getElementById('btnSideBack')?.click();
-      this.xiangAssistant?.say('切換至【背面】。你可以拖曳背面圖片進來，或點【載入公版】直接使用設計好的背面！', 5000);
+      this.xiangAssistant?.say('切換至【背面】。在背面分頁拖入單張圖片即會設為背面，或點【載入公版】直接使用設計好的背面！', 5000);
     });
+
+    // ☀️ Opt-in phone-photo illumination flattening (HandShadowBalancer), default off
+    const chkDeshadow = document.getElementById('chkEnableDeshadow') as HTMLInputElement | null;
+    if (chkDeshadow) {
+      chkDeshadow.checked = store.getState().pipelineOptions.enableDeshadow === true;
+      store.subscribe((s) => {
+        const on = s.pipelineOptions.enableDeshadow === true;
+        if (chkDeshadow.checked !== on) chkDeshadow.checked = on;
+      });
+      chkDeshadow.addEventListener('change', () => {
+        store.setPipelineOption('enableDeshadow', chkDeshadow.checked);
+        SoundEffects.sliderTick();
+        const s = store.getState();
+        if (s.originalImageData) {
+          void this.pipeline.runOptimizationPipeline(s.originalImageData);
+        }
+      });
+    }
 
     // International ICC Profile Selector
     document.getElementById('selectIccProfile')?.addEventListener('change', (e) => {
@@ -818,19 +858,31 @@ class App {
         return;
       }
 
-      SoundEffects.laserScan();
-      Toast.info('🖼️ 正在透過 AI 生成式外擴演算法補齊 3mm 邊界出血區...');
+      const bleedMm = state.currentPreset.bleedMm;
+      if (!(bleedMm > 0)) {
+        Toast.info('此尺寸不需要出血，無需外擴');
+        return;
+      }
+      if (this.bleedAppliedTo && this.bleedAppliedTo === state.processedImageData) {
+        Toast.info(`已補過 ${bleedMm}mm 出血，不再重複外擴`);
+        return;
+      }
 
-      const result = BleedExpander.expandBleed(imgData, state.currentPreset, 3);
+      SoundEffects.laserScan();
+      Toast.info(`🖼️ 正在以鏡像外推＋接縫融合補齊 ${bleedMm}mm 邊界出血區...`);
+
+      const result = BleedExpander.expandBleed(imgData, state.currentPreset, bleedMm);
+      this.invalidatePreviewCaches();
       store.setState({
         processedImageData: result.imageData,
         processedDataUrl: result.dataUrl,
         processedWidth: result.width,
         processedHeight: result.height
       });
+      this.bleedAppliedTo = result.imageData;
       this.mainPreviewImg.src = result.dataUrl;
       SoundEffects.purityChime();
-      Toast.success('✓ AI 3mm 出血已自動補齊！核心主體 100% 完整保留在安全區內！');
+      Toast.success(`✓ ${bleedMm}mm 出血已補齊（鏡像外推，非生成式 AI）`);
     });
 
     // ✂️ 髮絲級 AI 模切貼紙去背（自建 rembg/u2netp 優先，離線時自動退回本機顏色距離去背）
@@ -846,6 +898,9 @@ class App {
       Toast.info('✂️ 正在進行去背處理...');
 
       const result = await FreeMattingClient.removeBackground(imgData);
+      const cur = store.getState();
+      if ((cur.processedImageData || cur.originalImageData) !== imgData) return;
+      this.invalidatePreviewCaches();
       store.setState({
         processedImageData: result.imageData,
         processedDataUrl: result.dataUrl
@@ -896,20 +951,6 @@ class App {
       this.objectEraserModal.open(imgData);
     });
 
-    // Open AI Text & Typo Inspection Modal
-    const openTextInspector = async () => {
-      const state = store.getState();
-      const imgData = state.processedImageData || state.originalImageData;
-      const dataUrl = state.processedDataUrl || state.originalDataUrl;
-      if (!imgData || !dataUrl) {
-        Toast.error('請先上傳圖片');
-        return;
-      }
-      const result = await TextInspector.inspectImage(imgData);
-      this.textInspectionModal.open(result, dataUrl);
-    };
-    document.getElementById('btnOpenTextInspect')?.addEventListener('click', () => void openTextInspector());
-    document.getElementById('btnOpenTextInspectHeader')?.addEventListener('click', () => void openTextInspector());
 
     // Floating Canvas Score Pill Click -> Scroll smoothly to Diagnostic Card
     document.getElementById('canvasScorePill')?.addEventListener('click', () => {
@@ -950,11 +991,16 @@ class App {
 
       try {
         const result = await workerClient.descreen(imgData);
+        // 等待期間已換圖 → 丟棄過期結果
+        const cur = store.getState();
+        if ((cur.processedImageData || cur.originalImageData) !== imgData) return;
+        const resultUrl = this.imageDataToDataUrl(result);
+        this.invalidatePreviewCaches();
         store.setState({
           processedImageData: result,
-          processedDataUrl: this.imageDataToDataUrl(result)
+          processedDataUrl: resultUrl
         });
-        this.mainPreviewImg.src = this.imageDataToDataUrl(result);
+        this.mainPreviewImg.src = resultUrl;
         SoundEffects.purityChime();
         Toast.success('✓ 去網紋完成（本機 FFT 陷波濾波）。若原圖沒有明顯網紋/摩爾紋，效果可能不明顯。');
       } catch (err: any) {
@@ -976,11 +1022,16 @@ class App {
 
       try {
         const result = await workerClient.deblock(imgData);
+        // 等待期間已換圖 → 丟棄過期結果
+        const cur = store.getState();
+        if ((cur.processedImageData || cur.originalImageData) !== imgData) return;
+        const resultUrl = this.imageDataToDataUrl(result);
+        this.invalidatePreviewCaches();
         store.setState({
           processedImageData: result,
-          processedDataUrl: this.imageDataToDataUrl(result)
+          processedDataUrl: resultUrl
         });
-        this.mainPreviewImg.src = this.imageDataToDataUrl(result);
+        this.mainPreviewImg.src = resultUrl;
         SoundEffects.purityChime();
         Toast.success('✓ 去區塊完成。若原圖沒有明顯 JPEG 壓縮網格痕跡，效果可能不明顯。');
       } catch (err: any) {
@@ -1030,7 +1081,8 @@ class App {
         if (ds.hasBack && ds.backDataUrl) {
           Toast.info('📄 正在生成 2 頁標準【雙面合版 PDF】(Page 1 正面 + Page 2 背面)...');
           const pdfBlob = await DoubleSidedManager.exportDoubleSidedPdf(
-            ds.frontDataUrl || state.processedDataUrl,
+            // 一律以目前畫面上的成品為正面（ds.frontDataUrl 不會跟著就地編輯/切換批次項目更新）
+            state.processedDataUrl,
             ds.backDataUrl,
             state.currentPreset
           );
@@ -1078,7 +1130,7 @@ class App {
       Toast.success('✓ 300 DPI 高解析度 PNG 已下載！');
     });
 
-    // Export SVG (Potrace Vector)
+    // Export SVG (local straight-line polygon tracer)
     this.btnExportSvg.addEventListener('click', () => {
       const state = store.getState();
       if (!state.processedImageData) {
@@ -1088,7 +1140,7 @@ class App {
 
       try {
         SoundEffects.shutterClick();
-        Toast.info('🔄 正在以 Potrace 演算法生成無失真向量路徑...');
+        Toast.info('🔄 正在本機描邊生成 SVG 向量輪廓（直線多邊形）...');
         const svg = VectorTracer.traceToSvg(state.processedImageData);
         const blob = new Blob([svg], { type: 'image/svg+xml' });
         const url = URL.createObjectURL(blob);
@@ -1157,6 +1209,8 @@ class App {
 
     // 📷 Camera Direct Capture (Document Scanner)
     const cameraInput = document.getElementById('cameraInput') as HTMLInputElement | null;
+    // cameraInput 位於 #dropZone 內；程式化 click 會冒泡到 DropZone 並額外開啟一般相簿選擇器
+    cameraInput?.addEventListener('click', (e) => e.stopPropagation());
     document.getElementById('btnPickCamera')?.addEventListener('click', (e) => {
       e.stopPropagation();
       if (cameraInput) {
@@ -1325,24 +1379,24 @@ class App {
         if (engineDot) {
           engineDot.style.backgroundColor = state.cloudStatus === 'online' ? '#34c759' : '#ff9500';
         }
-        if (btnToggleAiUpscale) btnToggleAiUpscale.title = '點擊切換 ⚡ 本機 8x 放大 與 🔬 邊緣強化 4x 放大演算法';
+        if (btnToggleAiUpscale) btnToggleAiUpscale.title = '點擊切換 ⚡ 本機放大 與 🔬 自建服務放大（倍率依目標 DPI 決定）';
         if (state.aiUpscaleMode === 'cloud-ai') {
           if (aiUpscaleIcon) aiUpscaleIcon.textContent = '🔬';
-          if (aiUpscaleText) aiUpscaleText.textContent = '邊緣強化 4x';
+          if (aiUpscaleText) aiUpscaleText.textContent = '服務放大';
         } else {
           if (aiUpscaleIcon) aiUpscaleIcon.textContent = '⚡';
-          if (aiUpscaleText) aiUpscaleText.textContent = '本機 8x 放大';
+          if (aiUpscaleText) aiUpscaleText.textContent = '本機放大';
         }
       } else {
         if (this.engineStatusText) {
-          this.engineStatusText.textContent = '🖥️ 本機極速 (100% 離線)';
+          this.engineStatusText.textContent = '🖥️ 本機極速';
         }
         if (engineDot) {
           engineDot.style.backgroundColor = '#0071e3';
         }
-        if (btnToggleAiUpscale) btnToggleAiUpscale.title = '點擊切換為 🔬 邊緣強化 4x 放大演算法';
+        if (btnToggleAiUpscale) btnToggleAiUpscale.title = '點擊切換為 🔬 自建服務放大（倍率依目標 DPI 決定）';
         if (aiUpscaleIcon) aiUpscaleIcon.textContent = '⚡';
-        if (aiUpscaleText) aiUpscaleText.textContent = '本機 8x 放大';
+        if (aiUpscaleText) aiUpscaleText.textContent = '本機放大';
       }
 
       // 2. Switch View Containers
@@ -1379,6 +1433,11 @@ class App {
       }
 
       // 5. Update Main Preview Image
+      // processedImageData 被換掉（切換批次項目等）→ 預覽快取一律作廢
+      if (state.processedImageData !== this.lastPreviewSource) {
+        this.lastPreviewSource = state.processedImageData;
+        this.invalidatePreviewCaches();
+      }
       if (!state.isComparing && state.processedDataUrl) {
         if (state.showHeatmap && this.heatmapDataUrl) {
           this.mainPreviewImg.src = this.heatmapDataUrl;
@@ -1389,6 +1448,9 @@ class App {
         } else {
           this.mainPreviewImg.src = state.processedDataUrl;
         }
+      } else if (!state.isComparing && state.originalDataUrl) {
+        // 尚未處理的批次項目：至少顯示它自己的原圖，不要殘留上一張
+        this.mainPreviewImg.src = state.originalDataUrl;
       }
 
       // 6. 1:1 Physical Scale Override
@@ -1446,6 +1508,25 @@ class App {
   private async handleImagesUploaded(results: LoadedImageResult[]): Promise<void> {
     SoundEffects.paperDrop();
 
+    // 在【背面】分頁拖入單張圖片 → 設為背面，不動正面與批次
+    if (results.length === 1 && this.doubleSidedManager.getState().activeSide === 'back' && store.getState().originalImageData) {
+      const res = results[0];
+      const c = document.createElement('canvas');
+      c.width = res.img.naturalWidth;
+      c.height = res.img.naturalHeight;
+      const cctx = c.getContext('2d')!;
+      cctx.drawImage(res.img, 0, 0);
+      this.doubleSidedManager.setBackImage(res.dataUrl, cctx.getImageData(0, 0, c.width, c.height));
+      this.mainPreviewImg.src = res.dataUrl;
+      Toast.success('📇 已將此圖片設為【背面】設計');
+      return;
+    }
+
+    // 新上傳：清掉上一批留下的背面，避免舊背面被帶進新 PDF
+    this.doubleSidedManager.clearBackImage();
+    document.getElementById('btnSideFront')?.classList.add('active');
+    document.getElementById('btnSideBack')?.classList.remove('active');
+
     const batchItems: BatchItem[] = results.map((res) => {
       const canvas = document.createElement('canvas');
       canvas.width = res.img.naturalWidth;
@@ -1479,14 +1560,16 @@ class App {
 
     // Auto-match ICC Profile by preset material/category
     const iccSelect = document.getElementById('selectIccProfile') as HTMLSelectElement | null;
-    if (autoPreset.category === 'art' || autoPreset.id === 'postcard') {
-      if (iccSelect) iccSelect.value = 'japan-color-2001-uncoated';
-    } else {
-      if (iccSelect) iccSelect.value = 'japan-color-2001-coated';
-    }
+    const autoIcc: IccProfileId =
+      autoPreset.category === 'art' || autoPreset.id === 'postcard' ? 'japan-color-2001-uncoated' : 'japan-color-2001-coated';
+    if (iccSelect) iccSelect.value = autoIcc;
+    // 程式設定 .value 不會觸發 change，必須同步引擎，否則 TAC 限制仍用舊描述檔
+    iccProfileEngine.setProfile(autoIcc);
+    this.heatmapDataUrl = null;
 
-    // Auto-configure Double-Sided pairing if 2 images uploaded
-    if (batchItems.length >= 2) {
+    // Auto-configure Double-Sided pairing only when exactly 2 images are uploaded together
+    // (3 張以上視為一般批次，不自動綁背面)
+    if (batchItems.length === 2) {
       const backItem = batchItems[1];
       this.doubleSidedManager.setBackImage(backItem.originalDataUrl, backItem.originalImageData);
       Toast.info(`✨ 偵測到 2 張作品，已自動為您綁定為【正面 + 背面】雙面合版印刷！`);
@@ -1537,16 +1620,37 @@ class App {
       this.textInspectionModal.open(state.textInspectionResult, dataUrl);
     } else {
       Toast.info('📝 正在進行 AI 智慧文字辨識與錯字檢查...');
-      const result = await TextInspector.inspectImage(imgData);
-      store.setTextInspectionResult(result);
-      this.textInspectionModal.open(result, dataUrl);
+      try {
+        const result = await TextInspector.inspectImage(imgData);
+        // 等待期間已換圖 → 不要把舊結果寫進新圖
+        const cur = store.getState();
+        if ((cur.processedImageData || cur.originalImageData) !== imgData) return;
+        store.setTextInspectionResult(result);
+        this.textInspectionModal.open(result, dataUrl);
+      } catch (err: any) {
+        Toast.error(`文字檢查失敗：${err?.message || '未知錯誤'}`);
+      }
     }
   }
 
   private async renderVectorOverlayOnCanvas(): Promise<void> {
     const state = store.getState();
-    const baseImgData = state.processedImageData || state.originalImageData;
-    if (!baseImgData) return;
+    // 管線 Step 3.5 會套用目前的文字/Logo 疊加：從原圖重跑，確保只蓋「目前這一份」，
+    // 刪除或修改過的舊文字不會殘留、也不會重複疊印。
+    if (state.originalImageData && state.pipelineOptions.enableVectorOverlay) {
+      const presetId = state.currentPreset.id;
+      await this.pipeline.runOptimizationPipeline(state.originalImageData);
+      if (presetId === 'id-photo' && store.getState().currentPreset.id === 'id-photo') {
+        await this.applyIdPhotoCrop();
+      }
+      return;
+    }
+
+    // 管線未啟用疊加：畫在「疊加前」的底圖上，而不是已蓋過舊文字的成品上
+    const current = state.processedImageData || state.originalImageData;
+    if (!current) return;
+    const baseImgData =
+      this.overlayBase && this.overlayBase.output === current ? this.overlayBase.base : current;
 
     const canvas = document.createElement('canvas');
     canvas.width = baseImgData.width;
@@ -1560,6 +1664,8 @@ class App {
     const updatedDataUrl = canvas.toDataURL('image/png');
     const updatedImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
+    this.overlayBase = { base: baseImgData, output: updatedImageData };
+    this.invalidatePreviewCaches();
     store.setState({
       processedDataUrl: updatedDataUrl,
       processedImageData: updatedImageData
@@ -1618,6 +1724,10 @@ class App {
       const cropped = IdPhotoCropper.applyCrop(sourceForCrop, crop);
       const dataUrl = this.imageDataToDataUrl(cropped);
 
+      // 偵測期間已換圖或換規格 → 丟棄
+      const cur = store.getState();
+      if ((cur.processedImageData || cur.originalImageData) !== imgData || cur.currentPreset.id !== 'id-photo') return;
+      this.invalidatePreviewCaches();
       store.setState({ processedImageData: cropped, processedDataUrl: dataUrl });
       this.mainPreviewImg.src = dataUrl;
       Toast.success(message!);
@@ -1639,7 +1749,9 @@ class App {
       // above rather than re-running levelFace() a second time.
       if (leveledFace && crop) {
         const preset = state.currentPreset;
-        const safeMarginPx = DpiCalculator.mmToPx(preset.safeMarginMm || 5, preset.targetDpi);
+        // 以裁切後影像的實際像素密度換算（裁切結果對應整張 preset.widthMm），而非假設已達目標 DPI
+        const pxPerMm = preset.widthMm > 0 ? cropped.width / preset.widthMm : preset.targetDpi / 25.4;
+        const safeMarginPx = (preset.safeMarginMm || 5) * pxPerMm;
         const faceInCropSpace: DetectedFace = {
           box: {
             x: leveledFace.box.x - crop.x,
@@ -1764,6 +1876,9 @@ function cleanupLegacyServiceWorkers(): void {
   if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
     navigator.serviceWorker.getRegistrations().then((registrations) => {
       for (const registration of registrations) {
+        // 保留本 App 自己的 sw.js（initServiceWorker 會註冊它），只移除舊版/其他 worker
+        const scriptURL = (registration.active ?? registration.waiting ?? registration.installing)?.scriptURL || '';
+        if (scriptURL.endsWith('/sw.js')) continue;
         registration.unregister().catch(() => {});
       }
     }).catch(() => {});

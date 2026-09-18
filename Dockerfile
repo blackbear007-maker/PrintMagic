@@ -25,6 +25,9 @@ RUN npm ci --omit=dev && npm install -g tsx
 
 COPY --from=builder /app/dist ./dist
 COPY server ./server
+# server/services/prepress-toolkit.ts imports ../../src/core/* at runtime via tsx
+COPY src ./src
+COPY tsconfig.json ./
 COPY public ./public
 
 # Non-root user

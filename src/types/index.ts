@@ -184,7 +184,7 @@ export const DEFAULT_PIPELINE_OPTIONS: PipelineOptions = {
   enableColorProofing: true,
   enableVectorOverlay: true,
   enableAntiBanding: true,
-  enableDeshadow: true
+  enableDeshadow: false
 };
 
 export interface OptimizationOptions {

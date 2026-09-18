@@ -194,7 +194,7 @@ export class IdPhotoCropper {
 
     // If the ideal crop would exceed the source image, scale it down to fit (keeping the 35:45
     // aspect ratio) rather than producing an out-of-bounds crop — this means the estimated head
-    // ratio will end up smaller than intended for very tightly-cropped or low-res source photos.
+    // ratio will end up LARGER than intended (the real head size does not shrink with the crop) for very tightly-cropped or low-res source photos.
     const maxWidthScale = sourceWidth / cropWidth;
     const maxHeightScale = sourceHeight / cropHeight;
     const fitScale = Math.min(1, maxWidthScale, maxHeightScale);
@@ -202,10 +202,10 @@ export class IdPhotoCropper {
     cropHeight *= fitScale;
 
     const faceCenterX = fx + fw / 2;
-    const estimatedCrownY = fy - estimatedCrownOffset * fitScale;
+    const estimatedCrownY = fy - estimatedCrownOffset;
 
-    const headZoneHeight = estimatedHeadHeight * fitScale;
-    const leftoverSpace = cropHeight - headZoneHeight;
+    const headZoneHeight = estimatedHeadHeight;
+    const leftoverSpace = Math.max(0, cropHeight - headZoneHeight);
     const topMargin = leftoverSpace * TOP_MARGIN_SHARE;
 
     let cropX = faceCenterX - cropWidth / 2;

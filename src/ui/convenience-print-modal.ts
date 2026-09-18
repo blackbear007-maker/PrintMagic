@@ -221,7 +221,8 @@ export class ConveniencePrintModal {
         document.body.appendChild(link);
         link.click();
         link.remove();
-        URL.revokeObjectURL(url);
+        // Delay revoke so the browser has time to start the download.
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
 
         Toast.success(`✓ ${currentSpec.storeName} 專用圖檔下載完成！`);
       } catch (err: any) {

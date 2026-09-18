@@ -108,4 +108,20 @@ describe('ObjectEraser (AI Inpainting & Object Removal Engine)', () => {
     expect(Math.abs(inpainted.data[midP] - inpainted.data[midP + 1])).toBeLessThanOrEqual(15);
     expect(Math.abs(inpainted.data[midP + 1] - inpainted.data[midP + 2])).toBeLessThanOrEqual(15);
   });
+  it('never blends the erased object back into pixels the user actually painted (feather band)', () => {
+    const width = 40, height = 40;
+    const src = createMockImageData(width, height, [30, 200, 50, 255]);
+    const mask = createMockImageData(width, height, [0, 0, 0, 0]);
+    for (let y = 15; y < 25; y++) {
+      for (let x = 15; x < 25; x++) {
+        const p = (y * width + x) * 4;
+        src.data[p] = 0; src.data[p + 1] = 0; src.data[p + 2] = 0;
+        mask.data[p] = 255; mask.data[p + 1] = 255; mask.data[p + 2] = 255; mask.data[p + 3] = 255;
+      }
+    }
+    const result = ObjectEraser.inpaint(src, mask);
+    // Edge pixel of the painted area: must be close to the green background, not darkened by the black object
+    const p = (15 * width + 15) * 4;
+    expect(result.data[p + 1]).toBeGreaterThan(180);
+  });
 });

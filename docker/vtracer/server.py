@@ -26,6 +26,8 @@ import json
 from pathlib import Path
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import cgi
+import math
+from urllib.parse import urlsplit, parse_qs
 
 
 MAX_UPLOAD_BYTES = 4 * 1024 * 1024  # 4 MB hard cap
@@ -61,7 +63,10 @@ class VTracerHandler(BaseHTTPRequestHandler):
             self.send_json(404, {'error': 'Not Found'})
 
     def do_POST(self):
-        if self.path != '/vectorize':
+        # The Node proxy sends colors/tolerance as query params, so route on the path only.
+        url = urlsplit(self.path)
+        query = parse_qs(url.query)
+        if url.path != '/vectorize':
             self.send_json(404, {'error': 'Not Found'})
             return
 
@@ -88,12 +93,19 @@ class VTracerHandler(BaseHTTPRequestHandler):
             return
 
         image_data = form['image'].file.read()
-        colors = int(form.getvalue('colors', '8'))
-        tolerance = float(form.getvalue('tolerance', '1.5'))
+        try:
+            colors = int(form.getvalue('colors') or query.get('colors', ['8'])[0])
+            tolerance = float(form.getvalue('tolerance') or query.get('tolerance', ['1.5'])[0])
+        except ValueError:
+            self.send_json(400, {'error': 'colors must be an integer and tolerance a number'})
+            return
 
-        # Clamp params
+        # Clamp params, then map onto options the vtracer CLI actually accepts: it has no
+        # --num_colors (color_precision is 1-8 significant bits) and segment_length must be 3.5-10.
         colors = max(1, min(32, colors))
         tolerance = max(0.1, min(5.0, tolerance))
+        color_precision = max(1, min(8, round(math.log2(colors)) + 1))
+        segment_length = max(3.5, min(10.0, 3.5 + tolerance * 1.3))
 
         with tempfile.TemporaryDirectory() as tmpdir:
             in_path = Path(tmpdir) / 'input.png'
@@ -108,11 +120,10 @@ class VTracerHandler(BaseHTTPRequestHandler):
                     '--input', str(in_path),
                     '--output', str(out_path),
                     '--colormode', 'color',
-                    '--num_colors', str(colors),
                     '--path_precision', '2',
                     '--filter_speckle', '4',
-                    '--color_precision', '6',
-                    '--segment_length', str(tolerance),
+                    '--color_precision', str(color_precision),
+                    '--segment_length', str(segment_length),
                 ],
                 capture_output=True,
                 timeout=30

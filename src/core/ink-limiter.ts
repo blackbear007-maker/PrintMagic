@@ -17,6 +17,8 @@ import { createImageData, createBlankImageData } from './image-data-factory';
  */
 export class InkLimiter {
   public static readonly DEFAULT_TAC_LIMIT = 300; // 300% industry safe standard
+  /** Highest TAC CmykEngine.rgbToCmyk() can return for any 8-bit RGB input (pure R/G) */
+  static readonly MAX_REACHABLE_TAC = 200;
 
   // ──────────────────────────────────────────────────────────
   // TAC Analysis
@@ -34,7 +36,13 @@ export class InkLimiter {
   // 機制會變成永遠不會觸發的死功能——用一個新的「安靜的不安全」換掉舊的「吵鬧的假警報」，並不是真正
   // 的修正。
   //
-  // 因此改為直接呼叫 `CmykEngine.rgbToCmyk()`——本站實際輸出分色真正會用的那套「可調式局部 GCR」公式
+  // ⚠️ 2026-09 更正：後來改用的 `CmykEngine.rgbToCmyk()`（可調式局部 GCR）實測對所有 8-bit RGB
+  // 輸入的 TAC 上限「同樣」是 200%（純紅/純綠），純黑只有約 116%。也就是說上面擔心的問題並沒有被解決：
+  // 在預設 300% 上限下 `hasOverflow` 永遠為 false、`clampInk` 不會改動任何像素、熱力圖不會出現熱區。
+  // 這套機制目前只有在使用者把上限調到 200% 以下時才會作用。要讓它在 300% 真正有意義，需要換成
+  // 會產生高 TAC 的分色模型（例如有限 GCR 的印刷/ICC 分色），那是分色模型層級的改動，不在此處處理。
+  //
+  // 仍直接呼叫 `CmykEngine.rgbToCmyk()`——本站實際輸出分色真正會用的那套「可調式局部 GCR」公式
   // ——確保這裡回報的 TAC 數字，就是這張圖片實際送印時真正會用到的墨量，而不是另一套脫節的理論假設。
   // 兩個檔案從此用同一套真相來源，不會再對同一個像素算出不同答案。
   // ──────────────────────────────────────────────────────────
@@ -231,8 +239,10 @@ export class InkLimiter {
       const totalInk = (cmyk.c + cmyk.m + cmyk.y + cmyk.k) * 100;
 
       if (totalInk > threshold) {
-        // Severity gradient: threshold→400%
-        const severity = Math.min(1, (totalInk - threshold) / (400 - threshold));
+        // Severity gradient: threshold→MAX_REACHABLE_TAC (this separation never exceeds 200%;
+        // keep a non-zero span if the threshold is set at/above that ceiling)
+        const span = Math.max(1, this.MAX_REACHABLE_TAC - threshold);
+        const severity = Math.min(1, (totalInk - threshold) / span);
         // Hot zone: luminous red-orange to deep crimson
         dst[i]     = 255;
         dst[i + 1] = Math.round(60 * (1 - severity));   // G fades to near 0

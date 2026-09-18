@@ -86,8 +86,8 @@ export class AiUpscaleClient {
    */
   private static computeHash(str: string, modelId: string): string {
     let hash = 5381;
-    const len = Math.min(str.length, 10000); // sample first 10k chars for speed
-    for (let i = 0; i < len; i += 16) {
+    // 走完整字串：只取樣前 10k 字元會讓同長度、後段不同的圖撞 key，回傳錯誤的快取結果
+    for (let i = 0; i < str.length; i++) {
       hash = ((hash << 5) + hash) + str.charCodeAt(i);
       hash |= 0;
     }
@@ -155,7 +155,7 @@ export class AiUpscaleClient {
       };
     }
 
-    if (!NetworkGuard.isPrivacyShieldActive()) {
+    if (NetworkGuard.isRemoteAllowed()) {
       const cloudResult = await this.tryRealEsrgan(sourceDataUrl);
       if (cloudResult) {
         this.cacheResult(cacheKey, cloudResult);
@@ -202,28 +202,52 @@ export class AiUpscaleClient {
 
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), 20000);
-      const res = await fetch('/api/ai/upscale', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image_base64: payload }),
-        signal: controller.signal
-      });
-      clearTimeout(timer);
+      let res: Response;
+      try {
+        res = await fetch('/api/ai/upscale', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image_base64: payload }),
+          signal: controller.signal
+        });
+      } finally {
+        clearTimeout(timer);
+      }
 
       if (!res.ok) return null;
       const data = await res.json();
       if (!data.success || !data.dataUrl) return null;
 
       const imageData = await this.dataUrlToImageData(data.dataUrl);
+      // 上傳前已縮到 ≤1200px，實際倍率要相對「原圖」寬度計算，不能固定回報 4
+      const originalWidth = await this.getImageWidth(sourceDataUrl);
+      const scale = originalWidth > 0
+        ? Math.round((imageData.width / originalWidth) * 100) / 100
+        : 4;
       return {
         success: true,
         dataUrl: data.dataUrl,
         imageData,
         model: 'Real-ESRGAN compact x4v3 (自建服務)',
-        scale: 4
+        scale
       };
     } catch {
       return null;
+    }
+  }
+
+  private static async getImageWidth(dataUrl: string): Promise<number> {
+    if (typeof Image === 'undefined') return 0;
+    try {
+      const img = new Image();
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = () => reject(new Error('Image load failed'));
+        img.src = dataUrl;
+      });
+      return img.naturalWidth;
+    } catch {
+      return 0;
     }
   }
 

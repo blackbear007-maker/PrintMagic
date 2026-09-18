@@ -41,7 +41,7 @@ export interface IccSoftProofResult {
 
 export class FreeIccClient {
   public static async softProof(imageData: ImageData, iccProfileBytes: ArrayBuffer): Promise<IccSoftProofResult> {
-    if (NetworkGuard.isPrivacyShieldActive()) {
+    if (!NetworkGuard.isRemoteAllowed()) {
       return {
         available: false,
         engine: '100% 本機模式已開啟，真實 ICC 校色不可用（改用近似色彩模擬）'

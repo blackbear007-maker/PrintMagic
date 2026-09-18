@@ -34,7 +34,18 @@ export class DielineModal {
     }
 
     SoundEffects.sliderTick();
-    this.currentOutput = DielineEngine.generateLayers(imgData);
+    // 依影像實際物理尺寸換算 px/mm，讓標示的 0.2mm 內縮 / 2mm 外擴名實相符
+    // （引擎預設 3px / 24px 只在剛好 300 DPI 時才成立）
+    const preset = state.currentPreset;
+    const dpi = state.dpiAnalysis?.currentDpi;
+    const pxPerMm = preset && preset.widthMm > 0
+      ? imgData.width / preset.widthMm
+      : (dpi && dpi > 0 ? dpi : 300) / 25.4;
+    this.currentOutput = DielineEngine.generateLayers(
+      imgData,
+      Math.max(1, Math.round(0.2 * pxPerMm)),
+      Math.max(1, Math.round(2 * pxPerMm))
+    );
     this.render();
     this.modalEl.style.display = 'flex';
   }

@@ -28,14 +28,16 @@ export class TiffExporter {
     // Header (8 bytes) + Image Data + IFD Offset Table
     // Little Endian (II)
     const headerSize = 8;
-    const ifdOffset = headerSize + imageByteLength;
+    // TIFF 6.0 要求 IFD 與外部值落在偶數 (word) 位址；像素數為奇數時補 1 個 0 byte
+    const pad = imageByteLength & 1;
+    const ifdOffset = headerSize + imageByteLength + pad;
 
     // Number of directory entries: 12 entries
     const numDirEntries = 12;
     const ifdSize = 2 + numDirEntries * 12 + 4; // 2 count + entries + 4 next IFD offset
     const extraDataSize = 8 + 8 + 6; // XRes (8B), YRes (8B), BitsPerSample (6B)
 
-    const totalBufferSize = headerSize + imageByteLength + ifdSize + extraDataSize;
+    const totalBufferSize = headerSize + imageByteLength + pad + ifdSize + extraDataSize;
     const buffer = new ArrayBuffer(totalBufferSize);
     const view = new DataView(buffer);
     const uint8 = new Uint8Array(buffer);

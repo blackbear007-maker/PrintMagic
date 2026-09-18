@@ -132,6 +132,9 @@ MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 # /upscale gets a stricter cap since its 4x output multiplies the effect on top of that.
 MAX_INPUT_PIXELS = 2000 * 2000  # ~4MP, applies to /enhance, /matting, /detect-face
 MAX_UPSCALE_INPUT_PIXELS = 1200 * 1200  # ~1.44MP, applies to /upscale only
+# Backstop: Pillow raises DecompressionBombError above 2x this. Endpoints check the header size
+# (Image.open is lazy) before .convert() so oversize images are rejected without a full decode.
+Image.MAX_IMAGE_PIXELS = MAX_INPUT_PIXELS
 
 # Set thread limits to prevent CPU thrashing & cost spikes
 torch.set_num_threads(2)
@@ -380,13 +383,13 @@ class VisionHandler(BaseHTTPRequestHandler):
         )
         if 'image' not in form:
             raise ValueError('Missing required form field: "image"')
-        img = Image.open(form['image'].file).convert('RGB')
+        img = Image.open(form['image'].file)
         if img.width * img.height > max_pixels:
             raise ValueError(
                 f'Image too large ({img.width}x{img.height} = {img.width * img.height / 1e6:.1f}MP, '
                 f'max {max_pixels / 1e6:.1f}MP). Use the local deterministic fallback for larger images.'
             )
-        return img
+        return img.convert('RGB')
 
     def do_POST(self):
         start_time = time.time()
@@ -470,8 +473,8 @@ class VisionHandler(BaseHTTPRequestHandler):
         if 'mask' not in form:
             raise ValueError('Missing required form field: "mask" (white/opaque = region to remove)')
 
-        img = Image.open(form['image'].file).convert('RGB')
-        mask = Image.open(form['mask'].file).convert('L')
+        img = Image.open(form['image'].file)
+        mask = Image.open(form['mask'].file)
         if img.width * img.height > MAX_INPUT_PIXELS:
             raise ValueError(
                 f'Image too large ({img.width}x{img.height} = {img.width * img.height / 1e6:.1f}MP, '
@@ -479,6 +482,8 @@ class VisionHandler(BaseHTTPRequestHandler):
             )
         if mask.size != img.size:
             raise ValueError(f'Mask size {mask.size} must match image size {img.size}')
+        img = img.convert('RGB')
+        mask = mask.convert('L')
 
         orig_w, orig_h = img.size
         img_arr = np.transpose(np.array(img), (2, 0, 1)).astype('float32') / 255.0
@@ -563,12 +568,13 @@ class VisionHandler(BaseHTTPRequestHandler):
                 'does not bundle or assume any specific press profile.'
             )
 
-        img = Image.open(form['image'].file).convert('RGB')
+        img = Image.open(form['image'].file)
         if img.width * img.height > MAX_INPUT_PIXELS:
             raise ValueError(
                 f'Image too large ({img.width}x{img.height} = {img.width * img.height / 1e6:.1f}MP, '
                 f'max {MAX_INPUT_PIXELS / 1e6:.1f}MP). Use the local deterministic fallback for larger images.'
             )
+        img = img.convert('RGB')
 
         profile_bytes = form['icc_profile'].file.read()
         try:

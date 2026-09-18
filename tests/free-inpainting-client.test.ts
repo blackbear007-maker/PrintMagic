@@ -1,9 +1,12 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { FreeInpaintingClient } from '../src/services/free-inpainting-client';
 import { NetworkGuard } from '../src/services/network-guard';
+import { store } from '../src/ui/state';
 
 describe('FreeInpaintingClient (LaMa 微服務與本機 Navier-Stokes 畫布修復雙通道)', () => {
   beforeEach(() => {
+    // Service path only runs in 自建服務 (cloud) engine mode; local mode never uploads.
+    store.setState({ engineMode: 'cloud' });
     vi.restoreAllMocks();
     let storeMock: Record<string, string> = {};
 

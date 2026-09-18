@@ -1,9 +1,12 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { FreeIccClient } from '../src/services/free-icc-client';
 import { NetworkGuard } from '../src/services/network-guard';
+import { store } from '../src/ui/state';
 
 describe('FreeIccClient (real LittleCMS 微服務，無本機備援)', () => {
   beforeEach(() => {
+    // Service path only runs in 自建服務 (cloud) engine mode; local mode never uploads.
+    store.setState({ engineMode: 'cloud' });
     vi.restoreAllMocks();
     let storeMock: Record<string, string> = {};
 

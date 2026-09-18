@@ -30,7 +30,7 @@ export const APP_SHELL_HTML = `
 
       <div class="pm-header-actions">
         <!-- Dual-Engine Switcher: Local Offline vs Cloud Industrial (Advanced Only) -->
-        <button id="btnToggleEngine" class="pm-tool-btn pm-advanced-only pm-engine-pill" style="background: rgba(0, 113, 227, 0.08); color: var(--pm-accent-blue); border-color: rgba(0, 113, 227, 0.25); font-weight: 700;" title="點擊切換 🖥️ 100% 離線本機極速模式 與 ⚡ 自建服務模式 (自建向量化 / 低光提亮服務，離線時自動退回本機演算法)">
+        <button id="btnToggleEngine" class="pm-tool-btn pm-advanced-only pm-engine-pill" style="background: rgba(0, 113, 227, 0.08); color: var(--pm-accent-blue); border-color: rgba(0, 113, 227, 0.25); font-weight: 700;" title="點擊切換 🖥️ 本機模式 與 ⚡ 自建服務模式 (自建向量化 / 低光提亮服務，離線時自動退回本機演算法)">
           <span id="engineStatusDot" class="pm-engine-dot" style="display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #0071e3; margin-right: 2px;"></span>
           <span id="engineStatusText">🖥️ 本機極速 (離線)</span>
         </button>
@@ -42,9 +42,9 @@ export const APP_SHELL_HTML = `
 
         <!-- AI Super-Resolution Neural Reconstructor Toggle (Advanced Only) -->
         <div class="pm-advanced-only" style="display: inline-flex; align-items: center; gap: 4px;">
-          <button id="btnToggleAiUpscale" class="pm-tool-btn" title="點擊切換 ⚡ 本機 8x 金字塔超解析度 (0.1s) 與 🔬 邊緣強化 4x 放大演算法 (決定性演算法，非神經網路)">
+          <button id="btnToggleAiUpscale" class="pm-tool-btn" title="點擊切換 ⚡ 本機 Lanczos 金字塔放大 與 🔬 自建服務放大（倍率依目標 DPI 自動決定，服務無法使用時退回本機）">
             <span id="aiUpscaleIcon">⚡</span>
-            <span id="aiUpscaleText">本機 8x 放大</span>
+            <span id="aiUpscaleText">本機放大</span>
           </button>
           <button id="btnOpenAiSettings" class="pm-tool-btn" style="padding: 6px 8px;" title="設定放大演算法與自建服務">
             <span>⚙️</span>
@@ -254,6 +254,12 @@ export const APP_SHELL_HTML = `
               </select>
             </div>
 
+            <!-- Opt-in illumination flattening for phone photos of artwork (default off) -->
+            <label class="pm-foil-selector" for="chkEnableDeshadow" style="cursor: pointer; gap: 4px;" title="拍攝紙本/畫作時的光照不均與手影均勻化。一般數位圖檔請勿開啟，會壓平原本刻意的明暗">
+              <input type="checkbox" id="chkEnableDeshadow" />
+              <span style="font-size: 0.72rem; font-weight: 600; color: var(--pm-text-primary);">☀️ 手機翻拍光照均勻化</span>
+            </label>
+
             <!-- 3D Luxury Foil & Spot UV Craft Selector -->
             <div class="pm-foil-selector">
               <span class="pm-paper-label">工藝：</span>
@@ -275,7 +281,7 @@ export const APP_SHELL_HTML = `
               <button id="btnToggleCvdPreview" class="pm-tool-btn" title="色盲/色覺辨識障礙預覽：模擬紅綠色盲(protanopia/deuteranopia)、藍黃色盲(tritanopia)使用者實際看到的顏色，檢查設計是否過度依賴顏色分辨（Machado 2009 生理模型）">
                 <span id="cvdPreviewIcon">🌈</span> <span id="cvdPreviewLabel">色盲預覽</span>
               </button>
-              <button id="btnToggleHeatmap" class="pm-tool-btn" title="檢視 TAC 總墨量超過 300% 之危險溢墨區域">
+              <button id="btnToggleHeatmap" class="pm-tool-btn" title="檢視總墨量 (TAC) 超過目前色彩描述檔上限之溢墨區域">
                 <span>🎨</span> 溢墨熱力
               </button>
               <button id="btnFlipBack" class="pm-tool-btn" title="翻轉查看紙張背面規格標記">
@@ -457,7 +463,7 @@ export const APP_SHELL_HTML = `
                 <span class="pm-dock-icon">📥</span>
                 <span class="pm-dock-name">下載 PNG</span>
               </button>
-              <button id="btnExportSvg" class="pm-dock-btn" title="以 Potrace 演算法轉為無失真向量 SVG">
+              <button id="btnExportSvg" class="pm-dock-btn" title="本機描邊轉為 SVG 向量（直線多邊形輪廓，適合色塊/線稿；照片細節會被簡化）">
                 <span class="pm-dock-icon">⬡</span>
                 <span class="pm-dock-name">向量 SVG</span>
               </button>
@@ -479,7 +485,7 @@ export const APP_SHELL_HTML = `
 
   <!-- Studio Footer -->
   <footer class="pm-footer">
-    【印象魔法】PrintMagic &nbsp;·&nbsp; 印前助手「小象」為您守護輸出品質 &nbsp;|&nbsp; 本機優先 · 可一鍵切換 100% 離線模式
+    【印象魔法】PrintMagic &nbsp;·&nbsp; 印前助手「小象」為您守護輸出品質 &nbsp;|&nbsp; 本機優先 · 可切換為僅使用本機演算法
   </footer>
 </div>
 `;

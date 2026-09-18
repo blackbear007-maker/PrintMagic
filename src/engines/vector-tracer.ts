@@ -1,6 +1,7 @@
 /**
- * Native Vector Tracer Engine (Potrace Algorithm in TypeScript)
- * Converts raster pixel images to crisp, infinite-resolution vector SVG paths without external dependencies.
+ * Native Vector Tracer Engine (pixel-edge contour tracing + Ramer-Douglas-Peucker simplification)
+ * Converts raster pixel images to straight-line polygon SVG paths (no Potrace curve fitting / Bezier smoothing)
+ * without external dependencies. Very small holes (~1px) may collapse during simplification.
  * Hardened with flat TypedArrays, bounds safety, and iterative non-recursive path simplification.
  */
 
@@ -108,7 +109,8 @@ export class VectorTracer {
         const vhIdx = y * (w + 1) + x;
         if (curr && !above && visitedH[vhIdx] === 0) {
           const contour = this.traceContour(bm, x, y, w, h, visitedH, visitedV);
-          if (contour.points.length >= 3) {
+          // 未閉合（理論上不會發生）就丟棄，不輸出被截斷的錯誤形狀
+          if (contour.closed && contour.points.length >= 3) {
             paths.push(contour);
           }
         }
@@ -135,7 +137,9 @@ export class VectorTracer {
     let dir = 0; // 0: East, 1: South, 2: West, 3: North
     const points: Point[] = [{ x, y }];
 
-    const maxSteps = Math.min(w * h * 2, 50000);
+    // 上限取整張圖的像素邊總數，真正的輪廓不可能超過；舊版 50000 會截斷長輪廓並以直線硬閉合
+    const maxSteps = 4 * (w + 1) * (h + 1) + 4;
+    let closedLoop = false;
     let steps = 0;
 
     while (steps++ < maxSteps) {
@@ -186,6 +190,7 @@ export class VectorTracer {
       points.push({ x, y });
 
       if (x === startX && y === startY) {
+        closedLoop = true;
         break;
       }
     }
@@ -195,7 +200,7 @@ export class VectorTracer {
 
     return {
       points: simplified,
-      closed: true
+      closed: closedLoop
     };
   }
 

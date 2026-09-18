@@ -162,7 +162,7 @@ class StateStore {
       enableColorProofing: true,
       enableVectorOverlay: true,
       enableAntiBanding: true,
-      enableDeshadow: true
+      enableDeshadow: false
     }
   };
 
@@ -368,7 +368,11 @@ class StateStore {
       inkAnalysis: item.inkAnalysis || null,
       scoreResult: item.scoreResult || null,
       appliedScale: item.appliedScale || 1,
-      cropAnchor: item.cropOffset?.anchor || 'center'
+      cropAnchor: item.cropOffset?.anchor || 'center',
+      // 文字檢查結果與統計屬於上一張作品，切換後不可沿用
+      textInspectionResult: null,
+      originalStats: null,
+      processedStats: null
     });
   }
 
@@ -426,7 +430,8 @@ class StateStore {
       processingStep: '',
       appliedScale: 1,
       is1to1Scale: false,
-      cropAnchor: 'center'
+      cropAnchor: 'center',
+      textInspectionResult: null
     });
   }
 }

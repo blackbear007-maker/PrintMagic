@@ -101,7 +101,7 @@ export class Paper3DController {
 
   private bindTiltEvents(): void {
     this.stageContainer.addEventListener('mousemove', (e: MouseEvent) => {
-      if (this.isFlipped) return;
+      if (this.isFlipped || this.isZoomed()) return;
 
       const rect = this.canvasSheet.getBoundingClientRect();
       const centerX = rect.left + rect.width / 2;
@@ -123,14 +123,23 @@ export class Paper3DController {
     });
 
     this.stageContainer.addEventListener('mouseleave', () => {
-      if (!this.isFlipped) {
+      if (!this.isFlipped && !this.isZoomed()) {
         this.canvasSheet.style.transform = 'perspective(1200px) rotateX(0deg) rotateY(0deg) scale(1)';
         this.specularLayer.style.opacity = '0';
       }
     });
   }
 
+  /**
+   * CanvasZoomController 與本控制器共用 #canvasSheet 的 transform；
+   * 放大中（canvas-zoom 會標記 data-zoomed="1"）時不覆寫，避免把縮放/平移洗掉。
+   */
+  private isZoomed(): boolean {
+    return this.canvasSheet.dataset.zoomed === '1';
+  }
+
   public flip(): void {
+    if (this.isZoomed()) return;
     this.isFlipped = !this.isFlipped;
     SoundEffects.paperDrop();
 

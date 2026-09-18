@@ -69,10 +69,10 @@ export class CompareSlider {
                 <span class="pm-tag-title">📷 原始原圖</span>
                 <span class="pm-tag-desc">低解析 / 未校色</span>
               </div>
-              <div class="pm-compare-tag pm-compare-tag-after" title="右側畫面：8x Lanczos-3 超解析 + USM 銳化 + TAC 300% 控墨">
+              <div class="pm-compare-tag pm-compare-tag-after" title="右側畫面：處理後結果">
                 <span class="pm-tag-dot pm-dot-after"></span>
                 <span class="pm-tag-title">✨ 印刷準備優化</span>
-                <span class="pm-tag-desc">300 DPI / TAC 墨量防護</span>
+                <span class="pm-tag-desc">處理後</span>
               </div>
             </div>
 
@@ -147,10 +147,22 @@ export class CompareSlider {
     this.beforeImg.src = beforeSrc;
     this.afterImg.src = afterSrc;
     this.setPosition(50);
+    this.updateAfterTag(afterDpi, afterInk);
 
     if (beforeScore && afterScore) {
       this.renderMetricsBreakdown(beforeScore, afterScore, beforeDpi, afterDpi, beforeInk, afterInk);
     }
+  }
+
+  /** 依實際分析值更新右側標籤，不寫死倍率 / DPI / TAC */
+  private updateAfterTag(afterDpi?: DpiAnalysis, afterInk?: InkAnalysis): void {
+    if (!this.afterTag) return;
+    const parts: string[] = [];
+    if (afterDpi) parts.push(`${afterDpi.currentDpi} DPI`);
+    if (afterInk) parts.push(`TAC ${afterInk.maxTotalInk}%`);
+    const desc = this.afterTag.querySelector('.pm-tag-desc');
+    if (desc) desc.textContent = parts.length ? parts.join(' / ') : '處理後';
+    this.afterTag.title = parts.length ? `右側畫面：處理後結果（${parts.join('、')}）` : '右側畫面：處理後結果';
   }
 
   private renderMetricsBreakdown(
@@ -188,7 +200,7 @@ export class CompareSlider {
         beforeVal: Math.round(b.resolution),
         afterVal: Math.round(a.resolution),
         beforeSub: beforeDpi ? `${beforeDpi.currentDpi} DPI` : '',
-        afterSub: afterDpi ? `${afterDpi.currentDpi} DPI (達標)` : '300 DPI'
+        afterSub: afterDpi ? `${afterDpi.currentDpi} DPI ${afterDpi.currentDpi >= afterDpi.targetDpi ? '(達標)' : '(未達標)'}` : '—'
       },
       {
         id: 'inkSafety',
@@ -198,7 +210,7 @@ export class CompareSlider {
         beforeVal: Math.round(b.inkSafety),
         afterVal: Math.round(a.inkSafety),
         beforeSub: beforeInk ? `${beforeInk.maxTotalInk}%` : '',
-        afterSub: afterInk ? `${afterInk.limitThreshold}% 安全` : '300% 安全'
+        afterSub: afterInk ? `${afterInk.maxTotalInk}% ${afterInk.maxTotalInk <= afterInk.limitThreshold ? '安全' : `(超過 ${afterInk.limitThreshold}%)`}` : '—'
       },
       {
         id: 'aspectRatio',
@@ -321,12 +333,20 @@ export class CompareSlider {
     // Touch Events
     wrapper.addEventListener('touchstart', startDrag, { passive: true });
     window.addEventListener('touchend', stopDrag);
+    window.addEventListener('touchcancel', stopDrag);
     window.addEventListener('touchmove', onMove, { passive: true });
   }
 
   private updatePositionFromEvent(e: MouseEvent | TouchEvent, wrapper: HTMLElement): void {
     const rect = wrapper.getBoundingClientRect();
-    const clientX = 'touches' in e ? e.touches[0].clientX : (e as MouseEvent).clientX;
+    let clientX: number;
+    if ('touches' in e) {
+      const t = e.touches[0] ?? e.changedTouches[0];
+      if (!t) return;
+      clientX = t.clientX;
+    } else {
+      clientX = e.clientX;
+    }
     const offsetX = clientX - rect.left;
     let percent = (offsetX / rect.width) * 100;
     percent = Math.max(0, Math.min(100, percent));

@@ -57,7 +57,7 @@ export class ExifMetadataSniffer {
     // 1. Camera Make / Model Detection
     const cameraMap: Record<string, string> = {
       'iphone': 'Apple iPhone',
-      'apple': 'Apple Camera',
+      // 不放裸 'apple'：macOS ICC profile（Apple Computer）也會命中
       'canon': 'Canon EOS',
       'nikon': 'Nikon DSLR',
       'sony': 'Sony Alpha',
@@ -123,7 +123,8 @@ export class ExifMetadataSniffer {
       }
     }
 
-    const isCamera = !!cameraFound || lowerStr.includes('exif') || lowerStr.includes('focal');
+    // 只有比對到相機廠牌才算相機照片；任何 JPEG 都有 'Exif' 字樣，不能當依據
+    const isCamera = !!cameraFound;
     const isIllustration = !!illustrationFound;
     const isAi = !!aiFound;
     const isVector = !!vectorFound;

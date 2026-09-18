@@ -1,11 +1,14 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { FreeLowlightClient } from '../src/services/free-lowlight-client';
 import { NetworkGuard } from '../src/services/network-guard';
+import { store } from '../src/ui/state';
 
 describe('FreeLowlightClient (Retinexformer 微服務與本機曲線估計雙通道)', () => {
   let storeMock: Record<string, string> = {};
 
   beforeEach(() => {
+    // Service path only runs in 自建服務 (cloud) engine mode; local mode never uploads.
+    store.setState({ engineMode: 'cloud' });
     vi.restoreAllMocks();
     storeMock = {};
 

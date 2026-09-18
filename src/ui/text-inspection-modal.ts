@@ -194,7 +194,7 @@ export class TextInspectionModal {
         ${reg.typoReason ? `
           <div class="pm-text-card-issue">
             <span class="pm-issue-icon">⚠️</span>
-            <span class="pm-issue-text">${reg.typoReason}</span>
+            <span class="pm-issue-text">${this.escapeHtml(reg.typoReason)}</span>
           </div>
         ` : ''}
 
@@ -346,8 +346,12 @@ export class TextInspectionModal {
   }
 
   private escapeHtml(text: string): string {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+    // 需一併跳脫引號：結果會被放進 title / data-text 等雙引號屬性
+    return String(text)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   }
 }

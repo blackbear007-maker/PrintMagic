@@ -1,4 +1,5 @@
-# Railway service configuration for Zero-DCE++ Low-Light Enhancement
+# Railway service configuration for the multi-model AI service (Retinexformer, Real-ESRGAN, LaMa,
+# rembg, YuNet). Keeps the legacy "zero-dce" directory/service name.
 # https://docs.railway.app/reference/config-as-code
 
 [build]
@@ -9,7 +10,8 @@ dockerfilePath = "docker/zero-dce/Dockerfile"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3
 
-# Memory ceiling: 640MB. CPU-only PyTorch model (no GPU billing).
+# Memory: set the Railway limit to match docker-compose.yml (4096M); measured ~837MB idle and
+# ~2.26GB peak (see the notes there). CPU-only PyTorch (no GPU billing).
 [[deploy.healthchecks]]
 type = "HTTP"
 path = "/health"

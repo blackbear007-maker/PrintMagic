@@ -25,17 +25,18 @@ export class SharpenDeblurFilter {
     const dstImageData: ImageData = createImageData(dstBuffer, w, h);
     const dst = dstImageData.data;
 
-    // Fixed 5x5 sharpening deconvolution kernel (suppresses ringing halos)
+    // Fixed 5x5 sharpening deconvolution kernel (sums to 1 so flat areas keep their tone)
     const kernel5x5 = [
       -0.01, -0.02, -0.04, -0.02, -0.01,
       -0.02, -0.05, -0.12, -0.05, -0.02,
-      -0.04, -0.12,  2.08, -0.12, -0.04,
+      -0.04, -0.12,  2.04, -0.12, -0.04,
       -0.02, -0.05, -0.12, -0.05, -0.02,
       -0.01, -0.02, -0.04, -0.02, -0.01
     ];
 
-    for (let y = 2; y < h - 2; y++) {
-      for (let x = 2; x < w - 2; x++) {
+    // Every pixel is written; neighbours outside the image are clamped to the nearest edge pixel
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
         const centerIdx = (y * w + x) * 4;
 
         let accR = 0, accG = 0, accB = 0;
@@ -43,7 +44,9 @@ export class SharpenDeblurFilter {
 
         for (let dy = -2; dy <= 2; dy++) {
           for (let dx = -2; dx <= 2; dx++) {
-            const pIdx = ((y + dy) * w + (x + dx)) * 4;
+            const sy = Math.min(h - 1, Math.max(0, y + dy));
+            const sx = Math.min(w - 1, Math.max(0, x + dx));
+            const pIdx = (sy * w + sx) * 4;
             const k = kernel5x5[kIdx++];
 
             accR += src[pIdx] * k;

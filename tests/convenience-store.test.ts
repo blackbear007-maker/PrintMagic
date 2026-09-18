@@ -8,8 +8,8 @@ describe('ConvenienceStoreEngine (7-11 ibon & FamilyMart FamiPort)', () => {
     const spec = CONVENIENCE_STORE_SPECS.find((s) => s.id === '711-photo-4x6')!;
     expect(spec).toBeDefined();
     expect(spec.store).toBe('7-11');
-    expect(spec.widthMm).toBe(100);
-    expect(spec.heightMm).toBe(148);
+    expect(spec.widthMm).toBe(101.6);
+    expect(spec.heightMm).toBe(152.4);
     expect(spec.priceNTD).toBe(6);
     expect(spec.nonPrintableMarginMm).toBe(2);
     expect(spec.uploadUrl).toContain('ibon.com.tw');

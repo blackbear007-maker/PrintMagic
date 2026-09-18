@@ -270,6 +270,9 @@ export class ObjectEraser {
       }
 
       for (let i = 0; i < width * height; i++) {
+        // 使用者實際塗抹的區域一律用修補結果，絕不混回原圖（原圖在此仍含被消除的物件）；
+        // 羽化只作用於膨脹外圈（dilatedMask=1 且原始 mask=0）
+        if (mask[i] === 1) continue;
         const d = dist[i];
         if (d > featherRadius) continue;
         // t=0 at boundary (d=0) → use original; t=1 deep in hole → use inpainted

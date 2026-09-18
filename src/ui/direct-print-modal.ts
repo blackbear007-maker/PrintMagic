@@ -345,7 +345,8 @@ export class DirectPrintModal {
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      // Delay revoke so the browser has time to start the download.
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
 
       SoundEffects.purityChime();
       Toast.success(`✓ 已成功下載【${quoteSnapshot.shopName}】專屬送印封包 (${packageResult.zipFilename})！內含標準 PDF 與 PrintPass 檢驗護照。`);

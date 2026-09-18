@@ -76,7 +76,8 @@ export class ImpositionCalculator {
     const count2 = cols2 * rows2;
 
     const isRotatedBetter = count2 > count1;
-    const bestCount = Math.max(1, isRotatedBetter ? count2 : count1);
+    // 兩方向都放不下時 bestCount 為 0（不再假裝一張印 1 件）
+    const bestCount = isRotatedBetter ? count2 : count1;
     const bestCols = isRotatedBetter ? cols2 : cols1;
     const bestRows = isRotatedBetter ? rows2 : rows1;
 
@@ -87,7 +88,7 @@ export class ImpositionCalculator {
 
     // Estimated Cost Savings (compared to single-sheet print runs)
     const savingPercent = bestCount > 1 ? Math.min(85, Math.round((1 - 1 / bestCount) * 100)) : 0;
-    const totalSheetsNeeded = Math.ceil(1000 / bestCount);
+    const totalSheetsNeeded = bestCount > 0 ? Math.ceil(1000 / bestCount) : Infinity;
 
     return {
       sheet,

@@ -75,7 +75,7 @@ export class AiEngineService {
         body: formData,
         signal: controller.signal
       });
-      const data = res.ok || res.status === 503 ? await res.json().catch(() => undefined) : undefined;
+      const data = res.ok || res.status === 503 || res.status === 400 ? await res.json().catch(() => undefined) : undefined;
       return { ok: res.ok, status: res.status, data };
     } finally {
       clearTimeout(timer);
@@ -89,33 +89,33 @@ export class AiEngineService {
    */
   public static async processLowLight(imageDataUrl: string): Promise<{ success: boolean; dataUrl?: string; engine?: string; error?: string }> {
     try {
-      const { ok, status, data } = await this.postImage('/enhance', imageDataUrl, 10000);
+      const { ok, status, data } = await this.postImage('/enhance', imageDataUrl, 45000);
       if (ok && data?.success && data.image_base64) {
         return { success: true, dataUrl: data.image_base64, engine: 'Retinexformer (自建微服務)' };
       }
       if (status === 503) {
         return { success: false, error: data?.error || 'Retinexformer weights not sourced' };
       }
-      return { success: false, error: `Retinexformer service returned HTTP ${status}` };
+      return { success: false, error: data?.error || `Retinexformer service returned HTTP ${status}` };
     } catch (err: any) {
       return { success: false, error: err?.message || 'Retinexformer service unavailable' };
     }
   }
 
   /**
-   * Real-ESRGAN compact (x4v3) upscale — real trained weights (BSD-3-Clause). 20s timeout since
+   * Real-ESRGAN compact (x4v3) upscale — real trained weights (BSD-3-Clause). 40s timeout since
    * super-resolution is slower than the other three endpoints on CPU.
    */
   public static async processUpscale(imageDataUrl: string): Promise<{ success: boolean; dataUrl?: string; engine?: string; error?: string }> {
     try {
-      const { ok, status, data } = await this.postImage('/upscale', imageDataUrl, 20000);
+      const { ok, status, data } = await this.postImage('/upscale', imageDataUrl, 40000);
       if (ok && data?.success && data.image_base64) {
         return { success: true, dataUrl: data.image_base64, engine: 'Real-ESRGAN compact x4v3 (自建微服務)' };
       }
       if (status === 503) {
         return { success: false, error: data?.error || 'Real-ESRGAN service unavailable' };
       }
-      return { success: false, error: `Real-ESRGAN service returned HTTP ${status}` };
+      return { success: false, error: data?.error || `Real-ESRGAN service returned HTTP ${status}` };
     } catch (err: any) {
       return { success: false, error: err?.message || 'Real-ESRGAN service unavailable' };
     }
@@ -139,14 +139,14 @@ export class AiEngineService {
       formData.append('mask', new Blob([toBuffer(maskDataUrl)], { type: 'image/png' }), 'mask.png');
 
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 20000);
+      const timer = setTimeout(() => controller.abort(), 50000);
       let res: Response;
       try {
         res = await fetch(`${this.BASE_URL}/inpaint`, { method: 'POST', body: formData, signal: controller.signal });
       } finally {
         clearTimeout(timer);
       }
-      const data = res.ok || res.status === 503 ? await res.json().catch(() => undefined) : undefined;
+      const data = res.ok || res.status === 503 || res.status === 400 ? await res.json().catch(() => undefined) : undefined;
 
       if (res.ok && data?.success && data.image_base64) {
         return { success: true, dataUrl: data.image_base64, engine: 'LaMa (自建微服務)' };
@@ -154,7 +154,7 @@ export class AiEngineService {
       if (res.status === 503) {
         return { success: false, error: data?.error || 'LaMa weights not sourced' };
       }
-      return { success: false, error: `LaMa service returned HTTP ${res.status}` };
+      return { success: false, error: data?.error || `LaMa service returned HTTP ${res.status}` };
     } catch (err: any) {
       return { success: false, error: err?.message || 'LaMa service unavailable' };
     }
@@ -174,7 +174,7 @@ export class AiEngineService {
       if (status === 503) {
         return { success: false, error: data?.error || 'rembg service unavailable' };
       }
-      return { success: false, error: `rembg service returned HTTP ${status}` };
+      return { success: false, error: data?.error || `rembg service returned HTTP ${status}` };
     } catch (err: any) {
       return { success: false, error: err?.message || 'rembg service unavailable' };
     }
@@ -200,7 +200,7 @@ export class AiEngineService {
       } finally {
         clearTimeout(timer);
       }
-      const data = res.ok || res.status === 503 ? await res.json().catch(() => undefined) : undefined;
+      const data = res.ok || res.status === 503 || res.status === 400 ? await res.json().catch(() => undefined) : undefined;
 
       if (res.ok && data?.success) {
         return {
@@ -214,7 +214,7 @@ export class AiEngineService {
       if (res.status === 503) {
         return { success: false, error: data?.error || 'YuNet weights not present' };
       }
-      return { success: false, error: `YuNet service returned HTTP ${res.status}` };
+      return { success: false, error: data?.error || `YuNet service returned HTTP ${res.status}` };
     } catch (err: any) {
       return { success: false, error: err?.message || 'YuNet service unavailable' };
     }

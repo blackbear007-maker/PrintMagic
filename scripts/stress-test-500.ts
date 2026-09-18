@@ -225,7 +225,7 @@ function generate500TestCases() {
 
 export async function run500StressTests() {
   console.log('════════════════════════════════════════════════════════════════════════════');
-  console.log('🚀 PrintMagic Studio 3.1 Pro — 500-Run Multi-Paradigm Extreme Stress Suite');
+  console.log('🚀 PrintMagic Studio 3.1 Pro — 500-Run Multi-Paradigm Extreme Stress Suite (post score from simulated inputs)');
   console.log('════════════════════════════════════════════════════════════════════════════\n');
 
   const testCases = generate500TestCases();
@@ -269,6 +269,7 @@ export async function run500StressTests() {
     const preScoreResult = PrintScoreCalculator.calculate(preStats, preset, preInk);
 
     // 3. Auto-process pipeline simulation
+    // NOTE: simulated inputs — no real upscale / TAC limiter runs; postScore reflects hand-built postStats.
     let processedWidth = tc.width;
     let processedHeight = tc.height;
     let appliedScale = 1;
@@ -344,10 +345,10 @@ export async function run500StressTests() {
   console.log('════════════════════════════════════════════════════════════════════════════');
 
   const allAnomalies = results.flatMap(r => r.anomalies);
-  const avgPre = (results.reduce((s, r) => s + r.preScore, 0) / 500).toFixed(1);
-  const avgPost = (results.reduce((s, r) => s + r.postScore, 0) / 500).toFixed(1);
-  const avgDelta = (results.reduce((s, r) => s + r.scoreDelta, 0) / 500).toFixed(1);
-  const avgTime = (results.reduce((s, r) => s + r.totalTimeMs, 0) / 500).toFixed(1);
+  const avgPre = (results.reduce((s, r) => s + r.preScore, 0) / results.length).toFixed(1);
+  const avgPost = (results.reduce((s, r) => s + r.postScore, 0) / results.length).toFixed(1);
+  const avgDelta = (results.reduce((s, r) => s + r.scoreDelta, 0) / results.length).toFixed(1);
+  const avgTime = (results.reduce((s, r) => s + r.totalTimeMs, 0) / results.length).toFixed(1);
   const maxTime = Math.max(...results.map(r => r.totalTimeMs)).toFixed(1);
   const minTime = Math.min(...results.map(r => r.totalTimeMs)).toFixed(1);
 
@@ -356,17 +357,19 @@ export async function run500StressTests() {
   const between75_88After = results.filter(r => r.postScore >= 75 && r.postScore < 88);
   const above88After = results.filter(r => r.postScore >= 88);
 
-  console.log(`• 測試總輪數：500 / 500 輪全部完成`);
+  const passed = results.filter((r) => r.anomalies.length === 0).length;
+  if (allAnomalies.length > 0) process.exitCode = 1;
+  console.log(`• 測試總輪數：${passed} / ${results.length} 輪無異常`);
   console.log(`• 異常錯誤 (Anomalies)：${allAnomalies.length} 個`);
-  console.log(`• 平均原圖評分：${avgPre} 分 ➔ 平均優化後評分：${avgPost} 分 (平均提升 +${avgDelta} 分)`);
+  console.log(`• 平均原圖評分：${avgPre} 分 ➔ 平均模擬後評分：${avgPost} 分 (平均差值 +${avgDelta} 分，後處理輸入為模擬值，未經實際驗證)`);
   console.log(`• 單張平均耗時：${avgTime} ms (最快 ${minTime} ms / 最慢 ${maxTime} ms)`);
-  console.log(`• 優化後分佈：`);
-  console.log(`  ├─ 🔴 低於 75 分：${below75After.length} 筆 (${((below75After.length/500)*100).toFixed(1)}%)`);
-  console.log(`  ├─ 🟡 75~87 分：${between75_88After.length} 筆 (${((between75_88After.length/500)*100).toFixed(1)}%)`);
-  console.log(`  └─ 🟢 88 分以上：${above88After.length} 筆 (${((above88After.length/500)*100).toFixed(1)}%)`);
+  console.log(`• 模擬後分佈：`);
+  console.log(`  ├─ 🔴 低於 75 分：${below75After.length} 筆 (${((below75After.length/results.length)*100).toFixed(1)}%)`);
+  console.log(`  ├─ 🟡 75~87 分：${between75_88After.length} 筆 (${((between75_88After.length/results.length)*100).toFixed(1)}%)`);
+  console.log(`  └─ 🟢 88 分以上：${above88After.length} 筆 (${((above88After.length/results.length)*100).toFixed(1)}%)`);
 
   if (below75After.length > 0) {
-    console.log('\n⚠️ 優化後仍低於 75 分的案例：');
+    console.log('\n⚠️ 模擬後仍低於 75 分的案例：');
     for (const r of below75After) {
       console.log(`   • Run ${r.runIndex}: ${r.typeName} [${r.width}x${r.height}] -> ${r.presetName} => ${r.postScore}分`);
     }

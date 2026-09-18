@@ -18,7 +18,7 @@ export class DielineEngine {
    */
   public static generateLayers(
     sourceImageData: ImageData,
-    chokePx = 3, // ~0.25mm at 300 DPI
+    chokePx = 3, // fallback only: 3px ≈ 0.25mm at 300 DPI; dieline-modal passes round(0.2mm × image px/mm)
     bleedOffsetPx = 24 // ~2.0mm at 300 DPI
   ): DielineOutput {
     const { width: w, height: h, data } = sourceImageData;
@@ -42,7 +42,7 @@ export class DielineEngine {
 
     const hasTransparency = transparentCount > 100;
 
-    // 2. Generate White Ink Layer with Morphological Erosion (0.2mm Choke)
+    // 2. Generate White Ink Layer with Morphological Erosion (chokePx radius, square element)
     const whiteInkMask = this.erode(alphaMask, w, h, chokePx);
 
     // 3. Generate Cut Contour Mask with Morphological Dilation (2mm Offset)

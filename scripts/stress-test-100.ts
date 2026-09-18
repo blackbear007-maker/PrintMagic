@@ -240,7 +240,7 @@ function generate100TestCases(): TestCase100[] {
 
 export async function run100StressTests() {
   console.log('════════════════════════════════════════════════════════════════════════════');
-  console.log('🚀 PrintMagic Studio 3.1 Pro — 100-Run Multi-Paradigm Stress Benchmark Suite');
+  console.log('🚀 PrintMagic Studio 3.1 Pro — 100-Run Multi-Paradigm Stress Benchmark Suite (post score from simulated inputs)');
   console.log('════════════════════════════════════════════════════════════════════════════\n');
 
   const testCases = generate100TestCases();
@@ -291,6 +291,8 @@ export async function run100StressTests() {
     const preScoreResult = PrintScoreCalculator.calculate(preStats, preset, preInk);
 
     // 3. Auto-Processing Pipeline Simulation
+    // NOTE: simulated post-processing inputs — no real upscale / TAC limiter runs here; postStats and
+    //    clampedInk are hand-constructed, so postScore only reflects the scorer on those assumed inputs.
     let processedWidth = tc.width;
     let processedHeight = tc.height;
     let appliedScale = 1;
@@ -380,14 +382,14 @@ export async function run100StressTests() {
   console.log('📊 100 次多範式測試效能與品質統計彙整 (Aggregated Benchmark Metrics)');
   console.log('════════════════════════════════════════════════════════════════════════════');
 
-  const avgPreScore = (results.reduce((s, r) => s + r.preScore, 0) / 100).toFixed(1);
-  const avgPostScore = (results.reduce((s, r) => s + r.postScore, 0) / 100).toFixed(1);
-  const avgDelta = (results.reduce((s, r) => s + r.scoreDelta, 0) / 100).toFixed(1);
+  const avgPreScore = (results.reduce((s, r) => s + r.preScore, 0) / results.length).toFixed(1);
+  const avgPostScore = (results.reduce((s, r) => s + r.postScore, 0) / results.length).toFixed(1);
+  const avgDelta = (results.reduce((s, r) => s + r.scoreDelta, 0) / results.length).toFixed(1);
 
-  const avgTotalTime = (results.reduce((s, r) => s + r.totalTimeMs, 0) / 100).toFixed(1);
-  const avgPixTime = (results.reduce((s, r) => s + r.pixelAnalysisMs, 0) / 100).toFixed(2);
-  const avgCmykTime = (results.reduce((s, r) => s + r.cmykGamutMs, 0) / 100).toFixed(2);
-  const avgPdfxTime = (results.reduce((s, r) => s + r.pdfxMs, 0) / 100).toFixed(2);
+  const avgTotalTime = (results.reduce((s, r) => s + r.totalTimeMs, 0) / results.length).toFixed(1);
+  const avgPixTime = (results.reduce((s, r) => s + r.pixelAnalysisMs, 0) / results.length).toFixed(2);
+  const avgCmykTime = (results.reduce((s, r) => s + r.cmykGamutMs, 0) / results.length).toFixed(2);
+  const avgPdfxTime = (results.reduce((s, r) => s + r.pdfxMs, 0) / results.length).toFixed(2);
 
   const maxTotalTime = Math.max(...results.map((r) => r.totalTimeMs)).toFixed(1);
   const minTotalTime = Math.min(...results.map((r) => r.totalTimeMs)).toFixed(1);
@@ -395,9 +397,12 @@ export async function run100StressTests() {
   const allAnomalies = results.flatMap((r) => r.anomalies);
   const allWarnings = results.flatMap((r) => r.warnings);
 
-  console.log(`• 測試總輪數：100 / 100 輪全部順利完成 (100% 通過)`);
-  console.log(`• 平均原圖評分：${avgPreScore} 分 ➔ 平均優化後評分：${avgPostScore} 分 (平均提升 +${avgDelta} 分)`);
-  console.log(`• 異常錯誤 (Anomalies)：${allAnomalies.length} 個 (0 錯誤 / 0 NaN)`);
+  const passed = results.filter((r) => r.anomalies.length === 0).length;
+  const passPct = results.length > 0 ? ((passed / results.length) * 100).toFixed(1) : '0.0';
+  if (allAnomalies.length > 0) process.exitCode = 1;
+  console.log(`• 測試總輪數：${passed} / ${results.length} 輪無異常 (${passPct}% 通過)`);
+  console.log(`• 平均原圖評分：${avgPreScore} 分 ➔ 平均模擬後評分：${avgPostScore} 分 (平均差值 +${avgDelta} 分，後處理輸入為模擬值，未經實際驗證)`);
+  console.log(`• 異常錯誤 (Anomalies)：${allAnomalies.length} 個`);
   console.log(`• 平均總耗時：${avgTotalTime} ms (最快 ${minTotalTime} ms / 最慢 ${maxTotalTime} ms)`);
   console.log(`  ├─ 像素統計與 DPI 分析：${avgPixTime} ms`);
   console.log(`  ├─ LUT CMYK 色域與溢墨分析：${avgCmykTime} ms`);

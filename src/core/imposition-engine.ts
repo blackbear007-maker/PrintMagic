@@ -41,13 +41,14 @@ export class ImpositionEngine {
     const printableH = sheetH - marginMm * 2;
 
     // Normal orientation test
-    const colsNormal = Math.max(1, Math.floor((printableW + gapMm) / (itemWidthMm + gapMm)));
-    const rowsNormal = Math.max(1, Math.floor((printableH + gapMm) / (itemHeightMm + gapMm)));
+    // 不再 clamp 到 1：放不下就是 0，避免不合的方向被選中而畫出紙張外
+    const colsNormal = Math.floor((printableW + gapMm) / (itemWidthMm + gapMm));
+    const rowsNormal = Math.floor((printableH + gapMm) / (itemHeightMm + gapMm));
     const totalNormal = colsNormal * rowsNormal;
 
     // Rotated 90 deg test
-    const colsRotated = Math.max(1, Math.floor((printableW + gapMm) / (itemHeightMm + gapMm)));
-    const rowsRotated = Math.max(1, Math.floor((printableH + gapMm) / (itemWidthMm + gapMm)));
+    const colsRotated = Math.floor((printableW + gapMm) / (itemHeightMm + gapMm));
+    const rowsRotated = Math.floor((printableH + gapMm) / (itemWidthMm + gapMm));
     const totalRotated = colsRotated * rowsRotated;
 
     let cols: number;
@@ -68,6 +69,7 @@ export class ImpositionEngine {
       cellH = itemHeightMm;
     }
 
+    // totalCells === 0 代表尺寸超出可印範圍（兩個方向都放不下），呼叫端應提示而非出圖
     const totalCells = cols * rows;
 
     // Calculate cost savings compared to printing single separate copies

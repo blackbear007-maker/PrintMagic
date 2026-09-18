@@ -7,12 +7,33 @@ import type { CropAnchor, PrintPreset } from '../types';
  * and registration targets. Print shops still need to run their own standard pre-press conversion.
  */
 export class PdfExporter {
+  /**
+   * 下載 PDF；與 generatePdfBlob 共用同一份繪製邏輯（buildPdf），避免兩條路徑輸出不一致
+   */
   public static async export(
     imageDataUrl: string,
     preset: PrintPreset,
     filename?: string,
     _cropAnchor: CropAnchor = 'center'
   ): Promise<Blob> {
+    const pdf = this.buildPdf(imageDataUrl, preset);
+    const saveName = filename || `PrintMagic_${preset.id}_${Date.now()}.pdf`;
+    pdf.save(saveName);
+    return pdf.output('blob');
+  }
+
+  /**
+   * Generate PDF Blob without triggering auto-download (for ZIP packaging)
+   */
+  public static async generatePdfBlob(
+    imageDataUrl: string,
+    preset: PrintPreset,
+    _cropAnchor: CropAnchor = 'center'
+  ): Promise<Blob> {
+    return this.buildPdf(imageDataUrl, preset).output('blob');
+  }
+
+  private static buildPdf(imageDataUrl: string, preset: PrintPreset): jsPDF {
     const bleedMm = preset.bleedMm || 0;
     const trimWidthMm = preset.widthMm > 0 ? preset.widthMm : 210;
     const trimHeightMm = preset.heightMm > 0 ? preset.heightMm : 297;
@@ -64,7 +85,8 @@ export class PdfExporter {
       pdf.setDrawColor(0, 0, 0); // Registration Black
 
       const markLen = 6; // 6mm mark length
-      const markOffset = 1.5; // 1.5mm offset from trim line
+      // 角線需從出血外緣再退 1.5mm，才不會畫進出血區的圖面上
+      const markOffset = bleedMm + 1.5;
 
       // Top-Left Corner
       pdf.line(trimX - markOffset - markLen, trimY, trimX - markOffset, trimY); // horizontal
@@ -98,7 +120,7 @@ export class PdfExporter {
       for (const pos of targetPositions) {
         pdf.circle(pos.x, pos.y, 2);
         pdf.line(pos.x - 3.5, pos.y, pos.x + 3.5, pos.y);
-        pdf.line(pos.x - 3.5, pos.y, pos.x + 3.5, pos.y);
+        pdf.line(pos.x, pos.y - 3.5, pos.x, pos.y + 3.5);
       }
     }
 
@@ -131,128 +153,7 @@ export class PdfExporter {
     const metaText = `PrintMagic v3.1 | ${preset.nameZh} (${trimWidthMm}×${trimHeightMm}mm) | Bleed: ${bleedMm}mm | ${preset.targetDpi} DPI | Date: ${dateStr}`;
     pdf.text(metaText, trimX, pageTotalHeightMm - outerMarginMm / 2 + 2);
 
-    // Save and Trigger Download
-    const saveName = filename || `PrintMagic_${preset.id}_${Date.now()}.pdf`;
-    pdf.save(saveName);
-
-    return pdf.output('blob');
-  }
-
-  /**
-   * Generate PDF Blob without triggering auto-download (for ZIP packaging)
-   */
-  public static async generatePdfBlob(
-    imageDataUrl: string,
-    preset: PrintPreset,
-    _cropAnchor: CropAnchor = 'center'
-  ): Promise<Blob> {
-    const bleedMm = preset.bleedMm || 0;
-    const trimWidthMm = preset.widthMm > 0 ? preset.widthMm : 210;
-    const trimHeightMm = preset.heightMm > 0 ? preset.heightMm : 297;
-
-    const outerMarginMm = preset.cropMarks ? 12 : 0;
-    const pageTotalWidthMm = trimWidthMm + (bleedMm + outerMarginMm) * 2;
-    const pageTotalHeightMm = trimHeightMm + (bleedMm + outerMarginMm) * 2;
-
-    const orientation = trimWidthMm > trimHeightMm ? 'landscape' : 'portrait';
-
-    const pdf = new jsPDF({
-      orientation,
-      unit: 'mm',
-      format: [pageTotalWidthMm, pageTotalHeightMm]
-    });
-
-    const contentX = outerMarginMm;
-    const contentY = outerMarginMm;
-    const contentWidth = trimWidthMm + bleedMm * 2;
-    const contentHeight = trimHeightMm + bleedMm * 2;
-
-    // 0. Auto White Ink Underlay (for transparent stickers/clear prints to prevent see-through)
-    if (preset.id === 'sticker') {
-      pdf.setFillColor(255, 255, 255);
-      pdf.rect(contentX, contentY, contentWidth, contentHeight, 'F');
-    }
-
-    // 1. Draw Image
-    pdf.addImage(
-      imageDataUrl,
-      'PNG',
-      contentX,
-      contentY,
-      contentWidth,
-      contentHeight,
-      undefined,
-      'FAST'
-    );
-
-    const trimX = outerMarginMm + bleedMm;
-    const trimY = outerMarginMm + bleedMm;
-
-    // 2. Draw 0.1mm Vector Crop Marks
-    if (preset.cropMarks) {
-      pdf.setLineWidth(0.1);
-      pdf.setDrawColor(0, 0, 0);
-
-      const markLen = 6;
-      const markOffset = 1.5;
-
-      pdf.line(trimX - markOffset - markLen, trimY, trimX - markOffset, trimY);
-      pdf.line(trimX, trimY - markOffset - markLen, trimX, trimY - markOffset);
-
-      pdf.line(trimX + trimWidthMm + markOffset, trimY, trimX + trimWidthMm + markOffset + markLen, trimY);
-      pdf.line(trimX + trimWidthMm, trimY - markOffset - markLen, trimX + trimWidthMm, trimY - markOffset);
-
-      pdf.line(trimX - markOffset - markLen, trimY + trimHeightMm, trimX - markOffset, trimY + trimHeightMm);
-      pdf.line(trimX, trimY + trimHeightMm + markOffset, trimX, trimY + trimHeightMm + markOffset + markLen);
-
-      pdf.line(trimX + trimWidthMm + markOffset, trimY + trimHeightMm, trimX + trimWidthMm + markOffset + markLen, trimY + trimHeightMm);
-      pdf.line(trimX + trimWidthMm, trimY + trimHeightMm + markOffset, trimX + trimWidthMm, trimY + trimHeightMm + markOffset + markLen);
-    }
-
-    // 3. Draw Registration Targets
-    if (preset.registrationMarks) {
-      pdf.setLineWidth(0.1);
-      pdf.setDrawColor(0, 0, 0);
-
-      const targetPositions = [
-        { x: trimX + trimWidthMm / 2, y: outerMarginMm / 2 },
-        { x: trimX + trimWidthMm / 2, y: pageTotalHeightMm - outerMarginMm / 2 },
-        { x: outerMarginMm / 2, y: trimY + trimHeightMm / 2 },
-        { x: pageTotalWidthMm - outerMarginMm / 2, y: trimY + trimHeightMm / 2 }
-      ];
-
-      for (const pos of targetPositions) {
-        pdf.circle(pos.x, pos.y, 2);
-        pdf.line(pos.x - 3.5, pos.y, pos.x + 3.5, pos.y);
-      }
-    }
-
-    // 4. Draw Color Bars
-    if (preset.colorBars) {
-      const barY = outerMarginMm / 2 - 1.5;
-      const barSize = 3;
-      const colors = [
-        { name: 'C', r: 0, g: 174, b: 239 },
-        { name: 'M', r: 236, g: 0, b: 140 },
-        { name: 'Y', r: 255, g: 242, b: 0 },
-        { name: 'K', r: 35, g: 31, b: 32 }
-      ];
-
-      const startX = trimX + 5;
-      colors.forEach((c, idx) => {
-        pdf.setFillColor(c.r, c.g, c.b);
-        pdf.rect(startX + idx * (barSize + 0.5), barY, barSize, barSize, 'F');
-      });
-    }
-
-    // 5. Pre-press Metadata Slug
-    pdf.setFontSize(6);
-    pdf.setTextColor(100, 100, 100);
-    const dateStr = new Date().toISOString().split('T')[0];
-    const metaText = `PrintMagic v3.1 | ${preset.nameZh} (${trimWidthMm}×${trimHeightMm}mm) | Bleed: ${bleedMm}mm | ${preset.targetDpi} DPI | Date: ${dateStr}`;
-    pdf.text(metaText, trimX, pageTotalHeightMm - outerMarginMm / 2 + 2);
-
-    return pdf.output('blob');
+    return pdf;
   }
 
   /**

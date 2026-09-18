@@ -38,10 +38,10 @@ export const CONVENIENCE_STORE_SPECS: ConveniencePrintSpec[] = [
     store: '7-11',
     storeName: '7-ELEVEN ibon',
     paperType: '4×6 專用全彩相片紙',
-    widthMm: 100,
-    heightMm: 148,
-    widthPx300Dpi: 1181,
-    heightPx300Dpi: 1748,
+    widthMm: 101.6,
+    heightMm: 152.4,
+    widthPx300Dpi: 1200,
+    heightPx300Dpi: 1800,
     priceNTD: 6,
     nonPrintableMarginMm: 2,
     description: '日本進口高磅數相紙，光澤亮麗，不易褪色。適合明信片、照片、卡片。',
@@ -83,10 +83,10 @@ export const CONVENIENCE_STORE_SPECS: ConveniencePrintSpec[] = [
     store: 'familymart',
     storeName: '全家 FamiPort',
     paperType: '4×6 寫真相片貼紙',
-    widthMm: 100,
-    heightMm: 148,
-    widthPx300Dpi: 1181,
-    heightPx300Dpi: 1748,
+    widthMm: 101.6,
+    heightMm: 152.4,
+    widthPx300Dpi: 1200,
+    heightPx300Dpi: 1800,
     priceNTD: 20,
     nonPrintableMarginMm: 2,
     description: '背膠撕開即可黏貼的相片貼紙，色彩鮮明，抗刮耐磨。',
@@ -98,10 +98,10 @@ export const CONVENIENCE_STORE_SPECS: ConveniencePrintSpec[] = [
     store: 'familymart',
     storeName: '全家 FamiPort',
     paperType: '4×6 寫真相片紙',
-    widthMm: 100,
-    heightMm: 148,
-    widthPx300Dpi: 1181,
-    heightPx300Dpi: 1748,
+    widthMm: 101.6,
+    heightMm: 152.4,
+    widthPx300Dpi: 1200,
+    heightPx300Dpi: 1800,
     priceNTD: 6,
     nonPrintableMarginMm: 2,
     description: '高畫質亮面寫真相紙，隨印隨拿。',
@@ -193,10 +193,11 @@ export class ConvenienceStoreEngine {
     spec: ConveniencePrintSpec
   ): Promise<Blob> {
     const canvas = await this.generatePrintReadyCanvas(sourceImageData, spec);
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       canvas.toBlob(
         (blob) => {
-          resolve(blob!);
+          if (blob) resolve(blob);
+          else reject(new Error('無法產生列印檔（記憶體不足或畫布過大）'));
         },
         'image/jpeg',
         0.98

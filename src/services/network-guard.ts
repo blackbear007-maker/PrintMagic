@@ -11,6 +11,8 @@
  * There is no third-party cloud API involved either way — "self-hosted" here means the server you
  * (or whoever operates this deployment) run, not an external vendor.
  */
+import { store } from '../ui/state';
+
 export class NetworkGuard {
   private static readonly STORAGE_PRIVACY_KEY = 'printmagic_privacy_shield_active';
 
@@ -22,6 +24,21 @@ export class NetworkGuard {
       return localStorage.getItem(this.STORAGE_PRIVACY_KEY) === 'true';
     }
     return false;
+  }
+
+  /**
+   * Single gate for every client that would send user image data to a self-hosted `/api/*`
+   * service. Returns false when the engine switch is on 本機極速 (engineMode === 'local') OR the
+   * Privacy Shield is active — in either case callers must use their local fallback and never
+   * upload. Cloud mode with the shield off behaves exactly as before (try service, fall back).
+   */
+  public static isRemoteAllowed(): boolean {
+    if (this.isPrivacyShieldActive()) return false;
+    try {
+      return store.getState().engineMode === 'cloud';
+    } catch {
+      return false;
+    }
   }
 
   /**

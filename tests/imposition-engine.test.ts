@@ -17,6 +17,16 @@ describe('ImpositionEngine (Gang-Run Imposition for A4/A3)', () => {
     expect(layout.costSavingsPercent).toBeGreaterThan(80);
   });
 
+  it('does not pick a rotated layout that overflows the sheet (100x250mm on A4)', () => {
+    const layout = ImpositionEngine.calculateLayout(100, 250, 'A4');
+    expect(layout.totalCells).toBe(1);
+    expect(layout.cols * layout.cellWidthMm).toBeLessThanOrEqual(layout.sheetWidthMm);
+  });
+
+  it('reports 0 cells when the item fits in neither orientation', () => {
+    expect(ImpositionEngine.calculateLayout(400, 500, 'A4').totalCells).toBe(0);
+  });
+
   it('should calculate optimal layout for 148x100mm postcards on A3', () => {
     const layout = ImpositionEngine.calculateLayout(148, 100, 'A3');
     expect(layout.sheetPreset).toBe('A3');

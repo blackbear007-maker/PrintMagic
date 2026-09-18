@@ -65,6 +65,12 @@ describe('IdPhotoCropper (35x45mm 證件照裁切估算，非官方測量)', () 
       expect(crop.height).toBeLessThanOrEqual(500);
     });
 
+    it('reports a larger (not fixed 75%) head ratio when the crop had to be shrunk to fit', () => {
+      const face = makeFace(100, 100, 300, 350);
+      const result = IdPhotoCropper.computeCrop(face, 500, 500);
+      expect(result!.estimatedHeadRatioPercent).toBeGreaterThan(75);
+    });
+
     it('always includes the honesty caveat in its note', () => {
       const face = makeFace(400, 300, 200, 250);
       const result = IdPhotoCropper.computeCrop(face, 1200, 1200);

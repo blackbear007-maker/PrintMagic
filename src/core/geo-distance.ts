@@ -90,8 +90,9 @@ export class GeoDistanceEngine {
    * Generate 100% Free Google Maps Turn-by-Turn Navigation URL
    */
   public static getNavigationUrl(lat: number, lng: number, shopName: string): string {
-    const encodedName = encodeURIComponent(shopName);
-    return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&destination_place_id=${encodedName}`;
+    // destination_place_id 只接受 Google Place ID（ChIJ...），不能放店名；僅用座標導航
+    void shopName;
+    return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
   }
 
   /**

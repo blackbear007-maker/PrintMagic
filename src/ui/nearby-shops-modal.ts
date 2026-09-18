@@ -223,14 +223,22 @@ export class NearbyShopsModal {
         const totalW = preset.widthMm + preset.bleedMm * 2;
         const totalH = preset.heightMm + preset.bleedMm * 2;
         const shopName = btn.dataset.shopName || '印刷廠';
+        // TAC 為實測最高值（不是已套用的上限）；未分析時不假造 300%
+        const ink = state.inkAnalysis;
+        const tacText = ink
+          ? `實測最高 TAC ${ink.maxTotalInk}%${ink.maxTotalInk <= ink.limitThreshold ? `（未超過 ${ink.limitThreshold}% 上限）` : `（超過 ${ink.limitThreshold}% 上限，請印刷廠確認）`}`
+          : '未分析';
+        const cropText = preset.cropMarks && preset.bleedMm > 0
+          ? '已內嵌 0.1mm 標準向量角線、CMYK 密度條與十字套準'
+          : '無';
 
         const copyText = `【PrintMagic 送印規格單 — 指定廠商：${shopName}】
 ■ 輸出項目：${preset.nameZh}
 ■ 成品淨尺寸：${preset.widthMm} × ${preset.heightMm} mm
 ■ 含出血尺寸：${totalW} × ${totalH} mm (單邊 ${preset.bleedMm}mm 出血)
 ■ 實體解析度：${state.dpiAnalysis?.currentDpi || preset.targetDpi} DPI 實體渲染
-■ 總墨量 TAC：${state.inkAnalysis?.maxTotalInk || 300}% (已套用安全壓制防溢)
-■ 裁切標記：已內嵌 0.1mm 標準向量角線、CMYK 密度條與十字套準
+■ 總墨量 TAC：${tacText}
+■ 裁切標記：${cropText}
 ■ 建議紙材：${preset.recommendedPaper}
 ■ 備註：已通過 PrintMagic 本機自動檢查（非第三方獨立驗證）`;
 

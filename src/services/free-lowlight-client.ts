@@ -24,7 +24,7 @@ export interface LowLightResult {
 
 export class FreeLowlightClient {
   public static async enhance(imageData: ImageData): Promise<LowLightResult> {
-    if (!NetworkGuard.isPrivacyShieldActive()) {
+    if (NetworkGuard.isRemoteAllowed()) {
       const cloudResult = await this.tryRetinexformer(imageData);
       if (cloudResult) return cloudResult;
     }
@@ -44,13 +44,17 @@ export class FreeLowlightClient {
 
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), 15000);
-      const res = await fetch('/api/ai/lowlight', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image_base64: dataUrl }),
-        signal: controller.signal
-      });
-      clearTimeout(timer);
+      let res: Response;
+      try {
+        res = await fetch('/api/ai/lowlight', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image_base64: dataUrl }),
+          signal: controller.signal
+        });
+      } finally {
+        clearTimeout(timer);
+      }
 
       if (!res.ok) return null;
       const data = await res.json();

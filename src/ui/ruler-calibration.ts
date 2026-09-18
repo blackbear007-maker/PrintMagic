@@ -117,7 +117,10 @@ export class RulerCalibrationModal {
     this.modalEl.querySelectorAll<HTMLButtonElement>('.pm-calib-p-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
         const ppi = parseFloat(btn.dataset.ppi || '96');
-        this.cardWidthPx = Math.round((RulerCalibrationModal.CARD_WIDTH_MM / 25.4) * ppi);
+        // 預設值是實體（裝置像素）PPI，但卡片寬度與儲存的 screenPpi 都是 CSS px/inch，
+        // 需除以 devicePixelRatio（系統縮放）換算，否則高 DPI 螢幕會放大 DPR 倍。
+        const dpr = window.devicePixelRatio || 1;
+        this.cardWidthPx = Math.round((RulerCalibrationModal.CARD_WIDTH_MM / 25.4) * ppi / dpr);
         this.sliderEl.value = String(this.cardWidthPx);
         this.updateCardWidth();
         SoundEffects.sliderTick();

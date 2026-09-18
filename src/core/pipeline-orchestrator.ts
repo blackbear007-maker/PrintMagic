@@ -44,6 +44,17 @@ export class PipelineOrchestrator {
     private resetPreviewCaches: () => void
   ) {}
 
+  /**
+   * Monotonic run token. Every call to runOptimizationPipeline takes a new generation; a run that
+   * is superseded (new upload, preset/toggle change, batch item switch) discards its results
+   * instead of writing them into the store, and only the latest run may clear isProcessing.
+   */
+  private runGeneration = 0;
+
+  private isStale(gen: number): boolean {
+    return gen !== this.runGeneration;
+  }
+
   private imageDataToDataUrl(imageData: ImageData): string {
     const canvas = document.createElement('canvas');
     canvas.width = imageData.width;
@@ -57,6 +68,7 @@ export class PipelineOrchestrator {
     const state = store.getState();
     const preset = state.currentPreset;
     const activeId = state.activeBatchId;
+    const gen = ++this.runGeneration;
 
     this.resetPreviewCaches();
 
@@ -81,6 +93,7 @@ export class PipelineOrchestrator {
       );
       const { stats: originalStats, inkAnalysis: originalInkAnalysis } = await workerClient.analyze(srcImageData);
       const originalScoreResult = PrintScoreCalculator.calculate(originalStats, preset, originalInkAnalysis);
+      if (this.isStale(gen)) return this.abandonRun(activeId);
 
       store.setState({
         originalStats,
@@ -93,50 +106,63 @@ export class PipelineOrchestrator {
       let appliedScale = 1;
       const opts = state.pipelineOptions;
 
-      // Step 1: Super-Resolution Upscaling (AI Neural Reconstructor vs Local 8x Pyramid)
+      const setStep = (processingStep: string) => {
+        if (!this.isStale(gen)) store.setState({ processingStep });
+      };
+
+      // Step 1: Super-Resolution Upscaling (cloud edge-enhance vs local Lanczos pyramid, scale from DPI analysis)
       if (opts.enableUpscale && originalDpiAnalysis.needsUpscale && originalDpiAnalysis.scaleFactor > 1) {
-        appliedScale = originalDpiAnalysis.scaleFactor;
+        const targetScale = originalDpiAnalysis.scaleFactor;
 
         const isCloudAiAllowed = state.engineMode === 'cloud' && state.aiUpscaleMode === 'cloud-ai';
 
         if (isCloudAiAllowed) {
           const srcDataUrl = state.originalDataUrl || this.imageDataToDataUrl(srcImageData);
 
-          store.setState({
-            processingStep: '2/4 正在執行邊緣強化 4x 放大演算法...'
-          });
+          setStep('2/4 正在執行邊緣強化放大演算法...');
           const aiResult = await AiUpscaleClient.upscale(srcDataUrl);
+          if (this.isStale(gen)) return this.abandonRun(activeId);
 
           if (aiResult.success && aiResult.imageData) {
             processedImgData = aiResult.imageData;
-            appliedScale = aiResult.scale || 4;
-            Toast.success('⚡ 邊緣強化 4x 放大完成！');
+            // The service may return less than the DPI-derived target (its own scale cap, or the
+            // payload was downscaled before upload). Top up with Lanczos so the output really
+            // reaches the target width instead of silently under-delivering.
+            const targetWidth = Math.round(srcImageData.width * targetScale);
+            if (processedImgData.width < targetWidth) {
+              setStep('2/4 正在以 Lanczos 補足放大倍率...');
+              processedImgData = await workerClient.lanczos(processedImgData, targetWidth / processedImgData.width);
+            }
           } else {
-            // Graceful automatic fallback to local Lanczos-3 8x pyramid engine
-            store.setState({
-              processingStep: `2/4 正在啟用本機 ${appliedScale}x 金字塔超解析度放大 (0 延遲備援)...`
-            });
-            processedImgData = await workerClient.lanczos(srcImageData, appliedScale);
-            Toast.info('⚡ 已無縫啟用本機 8x 金字塔超解析度引擎！');
+            // Graceful automatic fallback to local Lanczos-3 pyramid engine (at the DPI-derived scale)
+            setStep('2/4 正在啟用本機金字塔超解析度放大 (備援)...');
+            processedImgData = await workerClient.lanczos(srcImageData, targetScale);
+            if (!this.isStale(gen)) Toast.info('⚡ 雲端放大無法使用，已改用本機 Lanczos 金字塔放大');
           }
         } else {
-          // Strictly 100% Local Engine (Zero Network Calls)
-          store.setState({
-            processingStep: `2/4 正在執行 ${appliedScale}x 本機金字塔超解析度放大 (100% 離線防護)...`
-          });
-          processedImgData = await workerClient.lanczos(srcImageData, appliedScale);
+          // Local engine only (no network call for upscaling)
+          setStep('2/4 正在執行本機金字塔超解析度放大...');
+          processedImgData = await workerClient.lanczos(srcImageData, targetScale);
+        }
+        if (this.isStale(gen)) return this.abandonRun(activeId);
+        appliedScale = processedImgData.width / srcImageData.width;
+        if (isCloudAiAllowed) {
+          Toast.success(`⚡ 放大完成（實際 ${Number(appliedScale.toFixed(2))}x）`);
         }
 
         // Apply scene-aware algorithmic post-enhancement (deterministic filters, not neural models)
         const scene = SceneClassifier.classifyImage(processedImgData);
         if (scene.category === 'anime') {
-          processedImgData = LineArtUpscaler.upscaleAnime(processedImgData, 1 as 2);
-        } else if (scene.category === 'portrait') {
-          const res = EdgeAwareUpscaler.upscale(processedImgData, 2, 0.4);
-          processedImgData = res.upscaledImageData;
-        } else if (scene.category === 'landscape') {
-          const res = EdgeAwareUpscaler.upscale(processedImgData, 2, 0.6);
-          processedImgData = res.upscaledImageData;
+          processedImgData = LineArtUpscaler.upscaleAnime(processedImgData, 1);
+        } else if (scene.category === 'portrait' || scene.category === 'landscape') {
+          // EdgeAwareUpscaler always doubles the size. Only run it when the result still fits the
+          // same 6000px memory cap DpiCalculator applies, and keep appliedScale truthful.
+          const MAX_SAFE_DIM = 6000;
+          if (Math.max(processedImgData.width, processedImgData.height) * 2 <= MAX_SAFE_DIM) {
+            const res = EdgeAwareUpscaler.upscale(processedImgData, 2, scene.category === 'portrait' ? 0.4 : 0.6);
+            processedImgData = res.upscaledImageData;
+            appliedScale = processedImgData.width / srcImageData.width;
+          }
         }
 
         // Apply low-light dynamic range boost if scene has low-light or shadow traits
@@ -144,11 +170,14 @@ export class PipelineOrchestrator {
         if (scene.detectedTraits.some((t: string) => t.includes('暗') || t.includes('曝光') || t.includes('黑'))) {
           const lowlightResult = await FreeLowlightClient.enhance(processedImgData);
           processedImgData = lowlightResult.imageData;
+          if (this.isStale(gen)) return this.abandonRun(activeId);
         }
+        appliedScale = processedImgData.width / srcImageData.width;
       }
 
       // Step 1.5: Auto Deshadow & Illumination Field Normalization (手機拍照光照均勻化)
-      if (opts.enableDeshadow !== false) {
+      // Opt-in only (default off): it flattens intentional lighting on normal artwork.
+      if (opts.enableDeshadow === true) {
         processedImgData = HandShadowBalancer.deshadow(processedImgData, 0.70);
       }
 
@@ -159,10 +188,9 @@ export class PipelineOrchestrator {
 
       // Step 2: Pre-press Unsharp Mask Sharpening
       if (opts.enableSharpening) {
-        store.setState({
-          processingStep: '3/4 正在套用印刷微細邊緣銳化補償 (USM)...'
-        });
+        setStep('3/4 正在套用印刷微細邊緣銳化補償 (USM)...');
         processedImgData = await workerClient.unsharp(processedImgData, 1.5, 1, 3);
+        if (this.isStale(gen)) return this.abandonRun(activeId);
       }
 
       // Step 2.5: Pre-press Shadow Tone Recovery (暗部階調防死黑補償)
@@ -180,11 +208,10 @@ export class PipelineOrchestrator {
       // 已改成讀取目前選取描述檔真正的 `maxTac`。
       if (opts.enableInkLimiting) {
         const activeMaxTac = iccProfileEngine.getActiveProfile().maxTac;
-        store.setState({
-          processingStep: `4/4 正在檢測並修正總墨量 TAC 限制 (${activeMaxTac}%)...`
-        });
+        setStep(`4/4 正在檢測並修正總墨量 TAC 限制 (${activeMaxTac}%)...`);
         const clampResult = await workerClient.clampInk(processedImgData, activeMaxTac);
         processedImgData = clampResult.imageData;
+        if (this.isStale(gen)) return this.abandonRun(activeId);
       }
 
       // Step 3.5: User-Configured Vector Text Overlay (僅在用戶手動編輯或確認後套用，絕不自動覆蓋假浮水印文字)
@@ -201,6 +228,7 @@ export class PipelineOrchestrator {
         ctx.putImageData(processedImgData, 0, 0);
         await this.vectorOverlayEngine.renderOverlay(ctx, canvas.width, canvas.height);
         processedImgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        if (this.isStale(gen)) return this.abandonRun(activeId);
       }
 
       // Step 4: Post-Processing Comprehensive Diagnostic & Scientific Quality Evaluation
@@ -210,6 +238,7 @@ export class PipelineOrchestrator {
         processedImgData.height,
         preset
       );
+      if (this.isStale(gen)) return this.abandonRun(activeId);
       const scoreResult = PrintScoreCalculator.calculate(stats, preset, inkAnalysis);
       const dominantPantones = PantoneMatcher.extractDominantSpotColors(processedImgData, 3);
       const barcodeReport = BarcodeVerifier.verifyImage(processedImgData, 300);
@@ -289,8 +318,9 @@ export class PipelineOrchestrator {
       const deltaStr = delta > 0 ? ` (+${delta}分提升)` : '';
       Toast.success(`✓ 印刷優化完成！原圖 ${originalScoreResult.score}分 ➔ 優化後 ${scoreResult.score}分${deltaStr}`);
 
-      // Auto-trigger background AI Text Inspection
-      void this.runAutoTextInspection(srcImageData);
+      // Auto-trigger background AI Text Inspection on the final processed pixels, so the boxes it
+      // returns are in the same coordinate space as the processed preview they're drawn on.
+      void this.runAutoTextInspection(processedImgData, gen);
 
       // Smart Contextual Action Hints (Learnability & Proactivity)
       if (stats.transparentRatio > 0.03) {
@@ -299,6 +329,7 @@ export class PipelineOrchestrator {
         }, 1200);
       }
     } catch (err: any) {
+      if (this.isStale(gen)) return this.abandonRun(activeId);
       console.error('Optimization pipeline error:', err);
       store.setState({ isProcessing: false, processingStep: '' });
       if (activeId) {
@@ -308,9 +339,20 @@ export class PipelineOrchestrator {
     }
   }
 
-  public async runAutoTextInspection(imgData: ImageData): Promise<void> {
+  /** A superseded run leaves the store to the newer run; just un-stick its own batch item. */
+  private abandonRun(activeId: string | null | undefined): void {
+    if (!activeId) return;
+    const s = store.getState();
+    const item = s.batchItems.find((b) => b.id === activeId);
+    if (item && item.status === 'processing' && s.activeBatchId !== activeId) {
+      store.updateBatchItem(activeId, { status: 'idle' });
+    }
+  }
+
+  public async runAutoTextInspection(imgData: ImageData, gen: number = this.runGeneration): Promise<void> {
     try {
       const inspectResult = await TextInspector.inspectImage(imgData);
+      if (this.isStale(gen)) return;
       store.setTextInspectionResult(inspectResult);
       if (inspectResult.typoCount > 0) {
         this.xiangAssistant?.say(`⚠️ AI 文字檢查：發現 ${inspectResult.typoCount} 處文字疑似拼寫或邊緣發虛，點擊【🔤 文字清晰】可一鍵自動修復！`, 6000);

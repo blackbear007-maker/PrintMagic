@@ -3,6 +3,9 @@ import type { PrintPreset } from '../types';
 import type { AppState } from '../ui/state';
 import type { PrintQuoteResult } from './print-pricing';
 
+/** 合版印刷總墨量安全上限 (%) */
+const TAC_LIMIT = 300;
+
 export interface OrderPackageResult {
   zipBlob: Blob;
   zipFilename: string;
@@ -38,9 +41,23 @@ export class OrderPackageGenerator {
     quote: PrintQuoteResult
   ): string {
     const preset = state.currentPreset;
-    const dpi = state.dpiAnalysis?.currentDpi || preset.targetDpi;
-    const tac = state.inkAnalysis?.maxTotalInk || 300;
-    const score = state.scoreResult?.score || 95;
+    // 不再以預設值冒充檢測結果：沒跑過分析就明確標示「未檢測」
+    const dpi = state.dpiAnalysis?.currentDpi ?? null;
+    const tac = state.inkAnalysis?.maxTotalInk ?? null;
+    const score = state.scoreResult?.score ?? null;
+    const dpiLine = dpi == null
+      ? '[—] 實體輸出解析度：未檢測'
+      : dpi >= 300
+        ? `[✓] 實體輸出解析度：${dpi} DPI (達商業 300 DPI 門檻)`
+        : `[!] 實體輸出解析度：${dpi} DPI (低於商業 300 DPI 門檻，可能出現像素鋸齒)`;
+    const tacLine = tac == null
+      ? '[—] 總墨量 (TAC)：未檢測'
+      : tac <= TAC_LIMIT
+        ? `[✓] 總墨量 (TAC)：最高 ${tac}% (未超過合版安全上限 ${TAC_LIMIT}%)`
+        : `[!] 總墨量 (TAC)：最高 ${tac}% (超過合版安全上限 ${TAC_LIMIT}%，有沾黏風險)`;
+    const marksLine = preset.cropMarks || preset.colorBars || preset.registrationMarks
+      ? `[✓] 印刷標記：${[preset.cropMarks && '裁切角線', preset.colorBars && '四色濃度條', preset.registrationMarks && '十字套準規'].filter(Boolean).join('、')}（PDF 輸出時加入）`
+      : '[—] 印刷標記：此規格不加裁切/套準標記';
     const totalW = preset.widthMm + preset.bleedMm * 2;
     const totalH = preset.heightMm + preset.bleedMm * 2;
     const nowStr = new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
@@ -51,7 +68,7 @@ export class OrderPackageGenerator {
 產生系統：PrintMagic Studio 3.1 Pro（本機自動檢查，非第三方獨立驗證）
 產生時間：${nowStr} (台北時間)
 指定印刷廠：${quote.shopName}
-印前檢查分數：${score} / 100 分（尺寸/出血/DPI/墨量已檢查；顏色仍為 RGB，印刷廠仍須執行 CMYK 分色）
+印前檢查分數：${score == null ? '未檢測' : `${score} / 100 分`}（尺寸/出血/DPI/墨量已檢查；顏色仍為 RGB，印刷廠仍須執行 CMYK 分色）
 
 ─────────────────────────────────────────────────────────────
 【一、 印刷工單規格確認】
@@ -67,11 +84,10 @@ export class OrderPackageGenerator {
 ─────────────────────────────────────────────────────────────
 【二、 工業級印前技術指標驗證】
 ─────────────────────────────────────────────────────────────
-[✓] 實體輸出解析度：${dpi} DPI (超越商業 300 DPI 門檻，無像素鋸齒)
-[✓] 總墨量防護 (TAC)：最高 ${tac}% (嚴格低於合版安全上限 300%，100% 防沾黏)
+${dpiLine}
+${tacLine}
 [!] 色彩空間：檔案為 RGB，尚未做 CMYK 分色（請印刷廠依標準流程轉換，建議參考 Japan Color 2001 Coated）
-[✓] 裁切標記：已內嵌 0.1mm 標準向量角線、四色濃度條與十字套準規
-[✓] 階調補償：暗部階調提亮補償 (Shadow Lift) + 螢光溢色感知映射 (Perceptual Gamut)
+${marksLine}
 
 ─────────────────────────────────────────────────────────────
 【三、 給印刷廠師傅 / 審檔人員的備註說明】
@@ -96,15 +112,19 @@ PrintMagic Studio · 讓每一張 AI 創作，完美化為實體藝術品。
     const preset = state.currentPreset;
     const totalW = preset.widthMm + preset.bleedMm * 2;
     const totalH = preset.heightMm + preset.bleedMm * 2;
+    const dpi = state.dpiAnalysis?.currentDpi;
+    const tac = state.inkAnalysis?.maxTotalInk;
+    const dpiText = dpi == null ? '未檢測' : `${dpi} DPI`;
+    const tacText = tac == null ? '未檢測' : `${tac}%${tac <= TAC_LIMIT ? '' : `（超過 ${TAC_LIMIT}% 上限）`}`;
 
     return `【PrintMagic 送印工單備註 — 指定廠商：${quote.shopName}】
 ■ 輸出項目：${preset.nameZh}
 ■ 成品尺寸：${preset.widthMm} × ${preset.heightMm} mm (含出血 ${totalW}×${totalH} mm)
 ■ 紙材規格：${quote.paperName}
 ■ 印製數量：${quote.quantity} 張
-■ 實體解析度：${state.dpiAnalysis?.currentDpi || preset.targetDpi} DPI 實體渲染
-■ 總墨量 TAC：${state.inkAnalysis?.maxTotalInk || 300}% (已通過防溢墨壓制)
-■ 裁切標記：已內嵌標準出血角線與十字套準標記
+■ 實體解析度：${dpiText}
+■ 總墨量 TAC：${tacText}
+■ 裁切標記：${preset.cropMarks ? '含出血角線' : '無'}${preset.registrationMarks ? '、十字套準標記' : ''}
 ■ 色彩狀態：RGB（尚未做 CMYK 分色，請印刷廠依標準流程處理）`;
   }
 

@@ -25,7 +25,7 @@ export interface MattingResult {
 
 export class FreeMattingClient {
   public static async removeBackground(imageData: ImageData): Promise<MattingResult> {
-    if (!NetworkGuard.isPrivacyShieldActive()) {
+    if (NetworkGuard.isRemoteAllowed()) {
       const cloudResult = await this.tryRembg(imageData);
       if (cloudResult) return cloudResult;
     }
@@ -46,13 +46,17 @@ export class FreeMattingClient {
 
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), 15000);
-      const res = await fetch('/api/ai/matting', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image_base64: dataUrl }),
-        signal: controller.signal
-      });
-      clearTimeout(timer);
+      let res: Response;
+      try {
+        res = await fetch('/api/ai/matting', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image_base64: dataUrl }),
+          signal: controller.signal
+        });
+      } finally {
+        clearTimeout(timer);
+      }
 
       if (!res.ok) return null;
       const data = await res.json();

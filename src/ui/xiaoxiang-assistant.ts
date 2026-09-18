@@ -27,10 +27,10 @@ export class XiaoxiangAssistant {
     // 2026-08-30 修正：原本說「點下面選海報、明信片或貼紙」，但畫面下方其實只有相簿/拍照/
     // 剪貼簿三個上傳按鈕，沒有任何規格選擇（規格選擇列現在也已改成上傳後才出現，見 main.ts
     // presetSelectionBar 的顯示邏輯）——這句話對不上實際畫面，已改成準確描述真正存在的選項。
-    welcome: '丟一張圖進來吧。直接拖進畫面、手機拍照，或貼上剪貼簿裡的圖，我都幫你算好 3mm 出血了；規格不合適的話，上傳後隨時能換。',
-    processing: '正在跑 8x 金字塔超解析度與 CMYK 控墨... 稍等一下，馬上就好。',
+    welcome: '丟一張圖進來吧。直接拖進畫面、手機拍照，或貼上剪貼簿裡的圖，我都會依版型幫你算好出血；規格不合適的話，上傳後隨時能換。',
+    processing: '正在依目標 DPI 放大並做 CMYK 控墨... 稍等一下，馬上就好。',
     ready: '搞定了！300 DPI 補齊了，總墨量也幫你壓在 300% 內。直接點下載 PDF，印刷廠老闆挑不出毛病。',
-    simpleMode: '切到【簡易模式】了。無腦直出，該有的 8x 放大、3mm 智慧出血與文字防糊我都在背景做好了。',
+    simpleMode: '切到【簡易模式】了。無腦直出，該有的 DPI 補齊放大、依版型出血與文字防糊我都在背景做好了。',
     advancedMode: '切到【進階模式】了。專業製版、紙材、ICC 軟打樣和燙金工藝都在上面，想調什麼自己開。',
     localEngine: '100% 離線本機模式，照片完全不連網，商業作品放心用。',
     cloudEngine: '自建服務引擎連線中，支援自建向量化 / 低光提亮服務。',
@@ -51,12 +51,12 @@ export class XiaoxiangAssistant {
     foilHolo: '雷射全息七彩箔開了。轉動角度有彩虹霓虹光譜，做動漫周邊最吸睛。',
     softProofOn: '開啟【CMYK 軟打樣】了。這就是實體四色油墨印出來的真實感，暗部會稍微沉穩一點。',
     softProofOff: '回到螢幕 RGB 鮮豔光色。',
-    safeZoneOn: '開啟【3mm 出血線與安全框】。外圈是裁切出血保護，綠框以內重要文字保證切不到。',
+    safeZoneOn: '開啟【出血線與安全框】。外圈是裁切出血保護，綠框以內重要文字保證切不到。',
     safeZoneOff: '關閉輔助框線，檢視純淨畫面。',
     heatmapOn: '開啟【總墨量溢墨熱力圖】。油墨較重區域一目了然，系統已幫你自動控墨壓制在 300% 內。',
     heatmapOff: '關閉溢墨熱力圖。',
     loupeOn: '開啟【20x 玫瑰網點顯微鏡】。滑鼠移上去能看到實體印刷機的 CMYK 角度排列網點。',
-    compareOn: '開啟【原圖對比】。左邊是原圖，右邊是 8x 超解析補齊 300 DPI 後的細節，拉一下就知道差在哪。',
+    compareOn: '開啟【原圖對比】。左邊是原圖，右邊是放大補齊目標 DPI 後的細節，拉一下就知道差在哪。',
     imposition: '開啟【智慧拼模工具】。把多模排進一張 A4/A3 大紙，合版印刷依模數而定，最高可省逾 8 成費用。',
     idPhotoBatchHint: '證件照裁好了。要洗一整批的話，上面「🧩 智慧拼模」按鈕可以自動把這張排滿整張 A4/A3，一次印好幾十張，不用一張一張分開印。',
     dieline: '開啟【貼紙刀模與白墨產生器】。透明貼紙如果沒打白墨會透光，我已經幫你做好 0.2mm 內縮白墨與洋紅刀模線。',
@@ -194,7 +194,7 @@ export class XiaoxiangAssistant {
     this.xiangSay.style.opacity = '0';
     setTimeout(() => {
       if (this.xiangSay) {
-        this.xiangSay.innerHTML = text;
+        this.xiangSay.textContent = text;
         this.xiangSay.style.opacity = '1';
       }
     }, 120);

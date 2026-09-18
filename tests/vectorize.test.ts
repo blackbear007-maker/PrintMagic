@@ -1,11 +1,14 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { FreeVectorizeClient } from '../src/services/free-vectorize-client';
 import { NetworkGuard } from '../src/services/network-guard';
+import { store } from '../src/ui/state';
 
 describe('FreeVectorizeClient (VTracer Rust 微服務與本機三次貝茲曲線雙通道)', () => {
   let storeMock: Record<string, string> = {};
 
   beforeEach(() => {
+    // 遠端服務只在自建服務模式啟用（本機模式不上傳圖片）
+    store.setState({ engineMode: 'cloud' });
     vi.restoreAllMocks();
     storeMock = {};
 
