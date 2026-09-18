@@ -1,6 +1,8 @@
 {
-  "generatedAt": "2026-09-18T12:08:29.022Z",
+  "generatedAt": "2026-09-18T12:56:41.728Z",
   "provider": "Google Cloud Vertex AI",
+  "deliveryFormat": "RGBA WebP with transparent background",
+  "backgroundTreatment": "background-extraction edit; preserve character silhouette and expression",
   "project": "gen-lang-client-0435924395",
   "preferredModel": "gemini-3.1-flash-lite-image",
   "fallbackModel": "gemini-2.5-flash-image",
@@ -11,71 +13,71 @@
       "file": "public/xiaoxiang/idle.webp",
       "status": "existing",
       "model": null,
-      "bytes": 93042,
-      "sha256": "420ef296a1a5136905b22a922c4ebb7130b1b33167cf2c781292f8e7c3df1d45"
+      "bytes": 201900,
+      "sha256": "aa3685c7c7921fc9ddfbbb622907c75fdcd7940928156dcfdd70736b239a2bde"
     },
     "idle-blink": {
       "file": "public/xiaoxiang/idle-blink.webp",
       "status": "existing",
       "model": null,
-      "bytes": 91000,
-      "sha256": "84e210cc5d1754e5f2cdad00b882282e7c77a5ce8b338c8d733204591c7cd82b"
+      "bytes": 196162,
+      "sha256": "bbcb8479c988b676c15a5fd344df61aaa26dfef2933cee23cd6288e17f26c08f"
     },
     "hello": {
       "file": "public/xiaoxiang/hello.webp",
       "status": "existing",
       "model": null,
-      "bytes": 90526,
-      "sha256": "c2f73bc99c2d4a7b3e7c4f073e4d5e342cf094584105a076bf712f89c604178f"
+      "bytes": 181334,
+      "sha256": "202469b4522ca5774e2961dfa68dc0584e130c48ef6d87d0a38e86dcc9d75895"
     },
     "hello-blink": {
       "file": "public/xiaoxiang/hello-blink.webp",
       "status": "existing",
       "model": null,
-      "bytes": 73084,
-      "sha256": "78eb917ecd7fc641fa4185206f413c1d9b28c7b23a182398ecf0d1703ddbec31"
+      "bytes": 252236,
+      "sha256": "49fc0364b140b9eba2686d5edf1c6c31a2cb9147a1d56ee1ffb387dfba491df0"
     },
     "think": {
       "file": "public/xiaoxiang/think.webp",
       "status": "existing",
       "model": null,
-      "bytes": 94796,
-      "sha256": "c19def14ae1872165dbdfa1405b4f976315b106ca01b2e9394681e01c1900b6f"
+      "bytes": 225080,
+      "sha256": "da62db1a847a106cd17568a109ed5dd5e416a7547b4f64bd8ce0f29417631257"
     },
     "think-blink": {
       "file": "public/xiaoxiang/think-blink.webp",
       "status": "existing",
       "model": null,
-      "bytes": 94540,
-      "sha256": "a26293d4702b5426d401e7fe004e6e109c0015561f9fd2709b8c190b7580e069"
+      "bytes": 194236,
+      "sha256": "b0df7c06e76dc47e862dcb591ad6dadfb671faa2c61fcb7c9de9c2ee2103e68e"
     },
     "thumbs": {
       "file": "public/xiaoxiang/thumbs.webp",
       "status": "existing",
       "model": null,
-      "bytes": 89228,
-      "sha256": "91595194091d14ce1e5f064317dac9f7a25e1d6e2be0fa61a51949857b1b5515"
+      "bytes": 187300,
+      "sha256": "8075fa12798f1e4ed8fb76ba7b7d9b16373d3025cc3b261fc18745ae5684789b"
     },
     "thumbs-blink": {
       "file": "public/xiaoxiang/thumbs-blink.webp",
-      "status": "generated",
-      "model": "gemini-3.1-flash-lite-image",
-      "bytes": 91202,
-      "sha256": "ced0b8fe6a5a13882f706dbb9924f346c74026ebbd2b11792250c5e87a083149"
+      "status": "existing",
+      "model": null,
+      "bytes": 188930,
+      "sha256": "3f06d360b9e6c2b49767461b81a922930d38d91dbb40a50b26d72c83b1d9175b"
     },
     "cheer": {
       "file": "public/xiaoxiang/cheer.webp",
-      "status": "generated",
-      "model": "gemini-3.1-flash-lite-image",
-      "bytes": 91422,
-      "sha256": "67d844d20202a038d9c42a0d373610895a8dda090d7b4aebea8b0be30d1a281e"
+      "status": "existing",
+      "model": null,
+      "bytes": 204512,
+      "sha256": "66f450d097911846337b2a9d4b551457c565f8a4c6363ceced92d0515fe58552"
     },
     "cheer-blink": {
       "file": "public/xiaoxiang/cheer-blink.webp",
-      "status": "generated",
-      "model": "gemini-3.1-flash-lite-image",
-      "bytes": 90540,
-      "sha256": "7a1f9b8cdb3226daa3f7cc535ec43cfe707b07448ed933ed9b9949b4d54ae8e3"
+      "status": "existing",
+      "model": null,
+      "bytes": 199420,
+      "sha256": "9ccb2f6f4f33ec1eaae2ade454931ec9d403f0d698ed9c6874f43f5b191eb248"
     }
   }
 }

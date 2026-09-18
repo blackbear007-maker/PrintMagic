@@ -153,7 +153,7 @@ import sys
 
 source, target = sys.argv[1], sys.argv[2]
 with Image.open(source) as image:
-    image.convert('RGB').save(target, 'WEBP', quality=92, method=6)
+    image.convert('RGBA').save(target, 'WEBP', quality=92, method=6)
 `;
 
 async function convertToWebp(bytes, output) {
@@ -201,6 +201,8 @@ async function writeProvenance({ project, modelByAsset, statuses }) {
   await fs.writeFile(PROVENANCE_PATH, `${JSON.stringify({
     generatedAt: new Date().toISOString(),
     provider: 'Google Cloud Vertex AI',
+    deliveryFormat: 'RGBA WebP with transparent background',
+    backgroundTreatment: 'background-extraction edit; preserve character silhouette and expression',
     project,
     preferredModel: MODELS[0],
     fallbackModel: MODELS[1],

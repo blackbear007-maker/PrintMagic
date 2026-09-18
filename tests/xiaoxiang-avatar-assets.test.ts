@@ -20,6 +20,7 @@ describe('Xiaoxiang generated avatar assets', () => {
     expect(source).toMatch(/avatar-provenance\.json/);
     expect(source).toMatch(/gemini-3\.1-flash-lite-image/);
     expect(source).toMatch(/gemini-2\.5-flash-image/);
+    expect(source).toMatch(/convert\('RGBA'\)/);
   });
 
   it('keeps the legacy avatar available as fallback', async () => {
