@@ -1,17 +1,29 @@
 // PrintMagic Studio PWA Offline Service Worker
-const CACHE_NAME = 'printmagic-v3.2.0-offline';
+const CACHE_NAME = 'printmagic-v3.3.0-offline';
 
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './manifest.json',
-  './xiaoxiang.jpg'
+  './xiaoxiang.jpg',
+  './xiaoxiang/idle.webp',
+  './xiaoxiang/idle-blink.webp',
+  './xiaoxiang/hello.webp',
+  './xiaoxiang/hello-blink.webp',
+  './xiaoxiang/think.webp',
+  './xiaoxiang/think-blink.webp',
+  './xiaoxiang/thumbs.webp',
+  './xiaoxiang/thumbs-blink.webp',
+  './xiaoxiang/cheer.webp',
+  './xiaoxiang/cheer-blink.webp'
 ];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE);
+      // Some Google-generated expressions may arrive in a later quota window.
+      // Missing optional assets must not prevent the PWA shell from installing.
+      return Promise.all(ASSETS_TO_CACHE.map((asset) => cache.add(asset).catch(() => undefined)));
     }).then(() => self.skipWaiting())
   );
 });

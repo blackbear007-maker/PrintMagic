@@ -1,5 +1,11 @@
 import { store, type AppState } from './state';
 import { SoundEffects } from '../core/sound-effects';
+import {
+  LEGACY_XIAOXIANG_AVATAR,
+  avatarAssetPath,
+  fallbackAvatarAssetPath,
+  type XiaoxiangAvatarState,
+} from './xiaoxiang-avatar';
 
 /**
  * 🐘 小象對白與陪伴助手系統
@@ -9,7 +15,12 @@ export class XiaoxiangAssistant {
   private container: HTMLElement;
   private xiangSay: HTMLElement | null = null;
   private xiangAvatar: HTMLElement | null = null;
+  private xiangFace: HTMLImageElement | null = null;
   private timeoutId: any = null;
+  private avatarTimer: ReturnType<typeof setTimeout> | null = null;
+  private avatarToken = 0;
+  private avatarState: XiaoxiangAvatarState = 'idle';
+  private readonly loadedAvatarAssets = new Set<string>([LEGACY_XIAOXIANG_AVATAR]);
 
   // Default lines by context
   public static readonly LINES = {
@@ -69,6 +80,7 @@ export class XiaoxiangAssistant {
     this.container = el;
     this.render();
     this.bindEvents();
+    this.setAvatarState('idle');
     this.subscribeState();
   }
 
@@ -93,7 +105,7 @@ export class XiaoxiangAssistant {
 
         <!-- Xiaoxiang Avatar (Right Side) -->
         <div id="xiangAvatar" class="pm-xiang-avatar-wrap" title="小象（印前助手）">
-          <img id="xiangFace" src="xiaoxiang.jpg" alt="小象" class="pm-xiang-avatar-img" />
+          <img id="xiangFace" src="${LEGACY_XIAOXIANG_AVATAR}" data-avatar-state="idle" alt="小象" class="pm-xiang-avatar-img" />
           <span class="pm-xiang-status-dot" title="小象在線守護印刷品質"></span>
         </div>
       </div>
@@ -101,6 +113,7 @@ export class XiaoxiangAssistant {
 
     this.xiangSay = this.container.querySelector('#xiangSay');
     this.xiangAvatar = this.container.querySelector('#xiangAvatar');
+    this.xiangFace = this.container.querySelector<HTMLImageElement>('#xiangFace');
   }
 
   private bindEvents(): void {
@@ -110,8 +123,68 @@ export class XiaoxiangAssistant {
 
     this.xiangAvatar?.addEventListener('click', () => {
       SoundEffects.purityChime();
+      this.setAvatarState('hello');
       this.sayRandomBanter();
     });
+  }
+
+  /** Set the expressive state while gracefully falling back during staged asset delivery. */
+  public setAvatarState(state: XiaoxiangAvatarState): void {
+    this.avatarState = state;
+    this.avatarToken += 1;
+    const token = this.avatarToken;
+    if (this.avatarTimer) clearTimeout(this.avatarTimer);
+    this.applyAvatarAsset(state, false, token);
+
+    const reducedMotion = typeof window !== 'undefined'
+      && typeof window.matchMedia === 'function'
+      && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reducedMotion) return;
+
+    const delay = 2600 + Math.floor(Math.random() * 2000);
+    this.avatarTimer = setTimeout(() => {
+      if (token !== this.avatarToken) return;
+      this.applyAvatarAsset(state, true, token);
+      this.avatarTimer = setTimeout(() => {
+        if (token !== this.avatarToken) return;
+        this.applyAvatarAsset(state, false, token);
+        this.setNextBlink(token);
+      }, 280);
+    }, delay);
+  }
+
+  private setNextBlink(token: number): void {
+    if (token !== this.avatarToken) return;
+    this.avatarTimer = setTimeout(() => {
+      if (token !== this.avatarToken) return;
+      this.applyAvatarAsset(this.avatarState, true, token);
+      this.avatarTimer = setTimeout(() => {
+        if (token !== this.avatarToken) return;
+        this.applyAvatarAsset(this.avatarState, false, token);
+        this.setNextBlink(token);
+      }, 280);
+    }, 2600 + Math.floor(Math.random() * 2000));
+  }
+
+  private applyAvatarAsset(state: XiaoxiangAvatarState, blink: boolean, token: number): void {
+    if (!this.xiangFace || token !== this.avatarToken) return;
+    const preferred = avatarAssetPath(state, blink);
+    const loader = new Image();
+    loader.onload = () => {
+      this.loadedAvatarAssets.add(preferred);
+      if (token !== this.avatarToken || !this.xiangFace) return;
+      this.xiangFace.src = preferred;
+      this.xiangFace.dataset.avatarState = state;
+      this.xiangFace.dataset.avatarBlink = blink ? 'true' : 'false';
+    };
+    loader.onerror = () => {
+      this.loadedAvatarAssets.delete(preferred);
+      if (token !== this.avatarToken || !this.xiangFace) return;
+      this.xiangFace.src = fallbackAvatarAssetPath(state, blink, this.loadedAvatarAssets);
+      this.xiangFace.dataset.avatarState = state;
+      this.xiangFace.dataset.avatarBlink = blink ? 'true' : 'false';
+    };
+    loader.src = preferred;
   }
 
   /**
@@ -166,18 +239,22 @@ export class XiaoxiangAssistant {
       // 1. Image upload state change
       if (hasImage && !prevHasImage) {
         prevHasImage = true;
+        this.setAvatarState('think');
         this.say('收到圖了！正在自動解析尺寸並計算最佳印刷品質...', 3000);
       } else if (!hasImage && prevHasImage) {
         prevHasImage = false;
+        this.setAvatarState('idle');
         this.say(XiaoxiangAssistant.LINES.welcome, 0);
       }
 
       // 2. Processing state change
       if (state.isProcessing && !prevProcessing) {
         prevProcessing = true;
+        this.setAvatarState('think');
         this.say(XiaoxiangAssistant.LINES.processing, 0);
       } else if (!state.isProcessing && prevProcessing) {
         prevProcessing = false;
+        this.setAvatarState('thumbs');
         this.say(XiaoxiangAssistant.LINES.ready, 0);
       }
 

@@ -1,0 +1,81 @@
+{
+  "generatedAt": "2026-09-18T11:36:32.380Z",
+  "provider": "Google Cloud Vertex AI",
+  "project": "gen-lang-client-0435924395",
+  "preferredModel": "gemini-3.1-flash-lite-image",
+  "fallbackModel": "gemini-2.5-flash-image",
+  "characterReference": "../bike-training/小象/小象.png",
+  "characterLock": "the exact same young adult male Xiao-Xiang character from the supplied reference images, approximately 28 to 32 years old, clean smooth youthful face, no wrinkles, no stubble, no aged facial proportions, blond high samurai bun with neat sides, calm reliable slightly lazy personality, refined anime game character proportions, mist-blue knit sweater with visible soft knit texture and khaki casual trousers, completely ordinary everyday streetwear, premium polished 2D character illustration matching the youthful high-finish style of the DownStairs companion apps, crisp dark linework, restrained cel shading, natural warm skin tones. no sunglasses, no eyeglasses, no hat, no backpack, no shoulder bag, no jewelry, no badge, no cycling jersey, no cycling shorts, no bicycle, no helmet, no sportswear, no gym uniform, no gym equipment, no logo, no brand, no readable text, no watermark, no interface, no extra person, no extra limbs, no duplicated hands.",
+  "assets": {
+    "idle": {
+      "file": "public/xiaoxiang/idle.webp",
+      "status": "existing",
+      "model": null,
+      "bytes": 93042,
+      "sha256": "420ef296a1a5136905b22a922c4ebb7130b1b33167cf2c781292f8e7c3df1d45"
+    },
+    "idle-blink": {
+      "file": "public/xiaoxiang/idle-blink.webp",
+      "status": "existing",
+      "model": null,
+      "bytes": 91000,
+      "sha256": "84e210cc5d1754e5f2cdad00b882282e7c77a5ce8b338c8d733204591c7cd82b"
+    },
+    "hello": {
+      "file": "public/xiaoxiang/hello.webp",
+      "status": "existing",
+      "model": null,
+      "bytes": 90526,
+      "sha256": "c2f73bc99c2d4a7b3e7c4f073e4d5e342cf094584105a076bf712f89c604178f"
+    },
+    "hello-blink": {
+      "file": "public/xiaoxiang/hello-blink.webp",
+      "status": "existing",
+      "model": null,
+      "bytes": 73084,
+      "sha256": "78eb917ecd7fc641fa4185206f413c1d9b28c7b23a182398ecf0d1703ddbec31"
+    },
+    "think": {
+      "file": "public/xiaoxiang/think.webp",
+      "status": "existing",
+      "model": null,
+      "bytes": 94796,
+      "sha256": "c19def14ae1872165dbdfa1405b4f976315b106ca01b2e9394681e01c1900b6f"
+    },
+    "think-blink": {
+      "file": "public/xiaoxiang/think-blink.webp",
+      "status": "pending",
+      "model": null,
+      "bytes": null,
+      "sha256": null
+    },
+    "thumbs": {
+      "file": "public/xiaoxiang/thumbs.webp",
+      "status": "existing",
+      "model": null,
+      "bytes": 89228,
+      "sha256": "91595194091d14ce1e5f064317dac9f7a25e1d6e2be0fa61a51949857b1b5515"
+    },
+    "thumbs-blink": {
+      "file": "public/xiaoxiang/thumbs-blink.webp",
+      "status": "pending",
+      "model": null,
+      "bytes": null,
+      "sha256": null
+    },
+    "cheer": {
+      "file": "public/xiaoxiang/cheer.webp",
+      "status": "pending",
+      "model": null,
+      "bytes": null,
+      "sha256": null
+    },
+    "cheer-blink": {
+      "file": "public/xiaoxiang/cheer-blink.webp",
+      "status": "pending",
+      "model": null,
+      "bytes": null,
+      "sha256": null
+    }
+  }
+}
