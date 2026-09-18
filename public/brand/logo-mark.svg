@@ -1,0 +1,13 @@
+<!-- PrintMagic 印象魔法 brand mark (concept 6B): elephant head drawn as a monoline letter P, with tusk and trunk.
+     Print rules: stroke 50u (~9.6% of mark height), every gap >= 40u, tusk tip >= 32u round. Spot color: #3c1e8c. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="205 220 600 600" width="600" height="600">
+  <title>PrintMagic mark</title>
+  <g fill="none" stroke="#3c1e8c" stroke-width="50">
+    <path d="M333 505 L333 412 A127 127 0 0 1 460 285 L600 285 A153.5 153.5 0 0 1 600 592 L488 592"/>
+    <path d="M470 285 C555 285 590 335 590 410 C590 468 548 503 488 505 L488 779" stroke-linejoin="round"/>
+    <path d="M333 640 L333 690 Q333 755 415 755"/>
+  </g>
+  <path d="M400 545 Q336 604 264 526" fill="none" stroke="#3c1e8c" stroke-width="32" stroke-linecap="round"/>
+  <circle cx="398" cy="545" r="22" fill="#3c1e8c"/>
+  <circle cx="431" cy="404" r="30" fill="#3c1e8c"/>
+</svg>
