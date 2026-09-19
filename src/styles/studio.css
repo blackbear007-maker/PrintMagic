@@ -353,6 +353,45 @@
   transition: all var(--pm-anim-fast) ease;
 }
 
+/* Header gear dropdown: collapses the 檢查文字/放大/管線自訂/新手指南/螢幕校準 row of buttons
+   that used to sit directly in the header bar behind a single icon. */
+.pm-header-settings-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 200px;
+  background: var(--pm-bg-surface, #ffffff);
+  border: 1px solid var(--pm-border-subtle);
+  border-radius: var(--pm-radius-md, 10px);
+  box-shadow: var(--pm-shadow-lg, 0 12px 32px rgba(0, 0, 0, 0.14));
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  z-index: 200;
+}
+
+.pm-header-settings-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 7px 10px;
+  border-radius: var(--pm-radius-xs);
+  background: transparent;
+  border: none;
+  color: var(--pm-text-primary);
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--pm-anim-fast) ease;
+}
+
+.pm-header-settings-row:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
 /* AI-generated ink-line header icons (public/icons/header/*.webp) replacing inline emoji */
 .pm-icon-img {
   width: 15px;
@@ -603,13 +642,24 @@
 }
 
 .pm-header-inner {
-  max-width: 1440px;
+  /* Matches .pm-landing-container's max-width, and (unlike it) carries no horizontal padding of
+     its own, so the brand mark's left edge always lines up exactly with the dropzone's left
+     border, regardless of viewport width (see components.css) — the two boxes are algebraically
+     centered the same way even though one nests one level deeper than the other. */
+  max-width: 820px;
   height: 100%;
   margin: 0 auto;
-  padding: 0 24px;
-  display: flex;
+  padding: 0;
+  display: grid;
+  /* Equal 1fr side columns (not auto) so the middle mode-switch column sits at the true visual
+     center even though the brand mark and the header-actions cluster are different widths. */
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  justify-content: space-between;
+  gap: 12px;
+}
+
+.pm-header-inner > .pm-header-actions {
+  justify-self: end;
 }
 
 .pm-brand {

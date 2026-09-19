@@ -37,33 +37,39 @@ export const APP_SHELL_HTML = `
           <span id="engineStatusText">本機基本功能 (離線)</span>
         </button>
 
-        <!-- Text Inspection Quick Action (Advanced Only) -->
-        <button id="btnOpenTextInspectHeader" class="pm-tool-btn pm-advanced-only" style="background: rgba(52, 199, 89, 0.08); color: #248a3d; border-color: rgba(52, 199, 89, 0.25); font-weight: 600;" title="自動檢測圖片中的文字拼寫與 AI 繪圖偽字亂碼">
-          <img src="icons/header/text-inspect.webp" alt="" class="pm-icon-img" /> 檢查文字
-        </button>
-
-        <!-- AI Super-Resolution Neural Reconstructor Toggle (Advanced Only) -->
-        <div class="pm-advanced-only" style="display: inline-flex; align-items: center; gap: 4px;">
-          <button id="btnToggleAiUpscale" class="pm-tool-btn" title="點擊切換 本機 Lanczos 金字塔放大 與 自建服務放大（倍率依目標 DPI 自動決定，服務無法使用時退回本機）">
-            <img id="aiUpscaleIcon" src="icons/header/upscale-local.webp" alt="" class="pm-icon-img" />
-            <span id="aiUpscaleText">本機放大</span>
-          </button>
-          <button id="btnOpenAiSettings" class="pm-tool-btn" style="padding: 6px 8px;" title="設定放大演算法與自建服務">
+        <!-- Consolidated Settings: everything below collapses behind one gear icon (Advanced Only) -->
+        <div class="pm-header-settings-wrapper pm-advanced-only" style="position: relative;">
+          <button id="btnOpenHeaderSettings" class="pm-tool-btn" style="padding: 6px 8px;" title="更多設定：文字檢查、放大引擎、管線自訂、新手指南、螢幕校準">
             <img src="icons/header/mode-advanced.webp" alt="" class="pm-icon-img" />
           </button>
-          <button id="btnOpenPipelineMatrix" class="pm-tool-btn" style="padding: 6px 10px; background: rgba(88, 86, 214, 0.08); color: #4b2aa8; border-color: rgba(88, 86, 214, 0.25);" title="專家級印前管線開關：自由自訂 AI 放大、銳化、控墨與階調處理 (測試版免費開放)">
-            <img src="icons/header/pipeline-matrix.webp" alt="" class="pm-icon-img" /> <span style="font-size: 0.76rem; font-weight: 700;">管線自訂</span>
-          </button>
+          <div id="headerSettingsPanel" class="pm-header-settings-panel" style="display: none;">
+            <button id="btnOpenTextInspectHeader" class="pm-header-settings-row" title="自動檢測圖片中的文字拼寫與 AI 繪圖偽字亂碼">
+              <img src="icons/header/text-inspect.webp" alt="" class="pm-icon-img" /> 檢查文字
+            </button>
+
+            <div class="pm-header-settings-row" style="justify-content: space-between;">
+              <button id="btnToggleAiUpscale" class="pm-tool-btn" style="flex: 1;" title="點擊切換 本機 Lanczos 金字塔放大 與 自建服務放大（倍率依目標 DPI 自動決定，服務無法使用時退回本機）">
+                <img id="aiUpscaleIcon" src="icons/header/upscale-local.webp" alt="" class="pm-icon-img" />
+                <span id="aiUpscaleText">本機放大</span>
+              </button>
+              <button id="btnOpenAiSettings" class="pm-tool-btn" style="padding: 6px 8px;" title="設定放大演算法與自建服務">
+                <img src="icons/header/mode-advanced.webp" alt="" class="pm-icon-img" />
+              </button>
+            </div>
+
+            <button id="btnOpenPipelineMatrix" class="pm-header-settings-row" title="專家級印前管線開關：自由自訂 AI 放大、銳化、控墨與階調處理 (測試版免費開放)">
+              <img src="icons/header/pipeline-matrix.webp" alt="" class="pm-icon-img" /> 管線自訂
+            </button>
+
+            <button id="btnOpenGuide" class="pm-header-settings-row" title="查看 30 秒 3 步速成指南">
+              <img src="icons/header/guide.webp" alt="" class="pm-icon-img" /> 新手指南
+            </button>
+
+            <button id="btnOpenCalibration" class="pm-header-settings-row" title="拿一張信用卡貼在螢幕上校準 1:1 真實物理尺寸 PPI">
+              <img src="icons/header/calibration.webp" alt="" class="pm-icon-img" /> 螢幕校準
+            </button>
+          </div>
         </div>
-
-        <button id="btnOpenGuide" class="pm-tool-btn pm-advanced-only" style="background: rgba(60, 30, 140, 0.08); color: var(--pm-accent-blue); font-weight: 600; border-color: rgba(60, 30, 140, 0.2);" title="查看 30 秒 3 步速成指南">
-          <img src="icons/header/guide.webp" alt="" class="pm-icon-img" /> 新手指南
-        </button>
-
-        <button id="btnOpenCalibration" class="pm-tool-btn pm-advanced-only" title="拿一張信用卡貼在螢幕上校準 1:1 真實物理尺寸 PPI">
-          <img src="icons/header/calibration.webp" alt="" class="pm-icon-img" /> 螢幕校準
-        </button>
-
 
         <button id="btnNewArtwork" class="pm-btn pm-btn-ghost" style="display: none; padding: 5px 12px; font-size: 0.78rem; font-weight: 600;">
           <span>＋ 更換圖片</span>

@@ -517,6 +517,32 @@ class App {
       }
     });
 
+    // Header Settings Gear: collapses 檢查文字/放大/管線自訂/新手指南/螢幕校準 into one dropdown
+    const btnOpenHeaderSettings = document.getElementById('btnOpenHeaderSettings');
+    const headerSettingsPanel = document.getElementById('headerSettingsPanel');
+    btnOpenHeaderSettings?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (headerSettingsPanel) {
+        const isHidden = headerSettingsPanel.style.display === 'none' || !headerSettingsPanel.style.display;
+        headerSettingsPanel.style.display = isHidden ? 'flex' : 'none';
+        SoundEffects.sliderTick();
+      }
+    });
+    // Any action row inside the panel closes it, so choosing an item feels like a menu selection
+    headerSettingsPanel?.addEventListener('click', (e) => {
+      const target = e.target as HTMLElement;
+      if (target.closest('button') && headerSettingsPanel) {
+        headerSettingsPanel.style.display = 'none';
+      }
+    });
+    document.addEventListener('click', (e) => {
+      if (headerSettingsPanel && headerSettingsPanel.style.display === 'flex') {
+        if (!headerSettingsPanel.contains(e.target as Node) && e.target !== btnOpenHeaderSettings) {
+          headerSettingsPanel.style.display = 'none';
+        }
+      }
+    });
+
     // Preset Selection (handles both Simple dropdown and Advanced tab bar)
     this.presetButtons.forEach((btn) => {
       btn.addEventListener('click', async () => {
