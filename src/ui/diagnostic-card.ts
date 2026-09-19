@@ -223,7 +223,7 @@ export class DiagnosticCard {
 
           <!-- 4. Big Action Buttons -->
           <div class="pm-diag-hero-actions">
-            <button class="pm-btn pm-btn-primary pm-btn-lg btn-diag-export-pdf" style="font-size: 0.95rem; font-weight: 700; width: 100%; box-shadow: 0 4px 14px rgba(0, 113, 227, 0.35);" title="一鍵下載最高畫質標準印刷 PDF">
+            <button class="pm-btn pm-btn-primary pm-btn-lg btn-diag-export-pdf" style="font-size: 0.95rem; font-weight: 700; width: 100%; box-shadow: 0 4px 14px rgba(60, 30, 140, 0.35);" title="一鍵下載最高畫質標準印刷 PDF">
               <span>🌟</span> 一鍵下載標準印刷檔 (PDF)
             </button>
             <!-- 2026-08-29 補上：DirectPrintModal（比價四大印刷廠 + 打包送印工單）原本已經接好
@@ -320,7 +320,7 @@ export class DiagnosticCard {
 
           <!-- 3. Key Hero Action Buttons (Standard PDF & High-Res PNG & Pipeline Customizer) -->
           <div class="pm-diag-hero-actions">
-            <button class="pm-btn pm-btn-primary pm-btn-lg btn-diag-export-pdf" style="width: 100%; font-weight: 700; box-shadow: 0 4px 14px rgba(0, 113, 227, 0.35);" title="下載含裁切十字、色條與出血之標準印刷 PDF">
+            <button class="pm-btn pm-btn-primary pm-btn-lg btn-diag-export-pdf" style="width: 100%; font-weight: 700; box-shadow: 0 4px 14px rgba(60, 30, 140, 0.35);" title="下載含裁切十字、色條與出血之標準印刷 PDF">
               <span>📄</span> 下載標準印刷 PDF (含出血)
             </button>
             <!-- 2026-08-29 補上：見 Simple 模式樣板同段落註解，DirectPrintModal 入口按鈕原本兩種
@@ -332,7 +332,7 @@ export class DiagnosticCard {
               <button class="pm-btn pm-btn-secondary pm-btn-md btn-diag-export-png" title="下載 300 DPI 高解析度 PNG 影像檔">
                 <span>📥</span> 下載高清 PNG
               </button>
-              <button class="pm-btn pm-btn-secondary pm-btn-md btn-diag-open-pipeline" style="background: rgba(88, 86, 214, 0.08); color: #5856d6; border-color: rgba(88, 86, 214, 0.25);" title="🎛️ 專家管線自訂：逐項開關自訂放大、銳化、控墨與階調處理 (本機決定性演算法，測試版免費開放)">
+              <button class="pm-btn pm-btn-secondary pm-btn-md btn-diag-open-pipeline" style="background: rgba(88, 86, 214, 0.08); color: #4b2aa8; border-color: rgba(88, 86, 214, 0.25);" title="🎛️ 專家管線自訂：逐項開關自訂放大、銳化、控墨與階調處理 (本機決定性演算法，測試版免費開放)">
                 <span>🎛️</span> 專家管線自訂
               </button>
             </div>

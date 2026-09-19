@@ -1,0 +1,400 @@
+/* ============================================================
+   印象魔法 — 「紙與油墨」主題層 (Paper & Ink)
+   最後載入，覆寫 index/studio/components 的設計基準值與主要元件外觀。
+   概念：整個工作室是一張印刷打樣紙——米白棉紙紋底、深紫專色油墨、
+   裁切線與套準標記當裝飾，標題用襯線字，介面文字維持清爽無襯線。
+   ============================================================ */
+
+:root {
+  /* ── 紙 ── */
+  --paper: #f6f2ea;
+  --paper-raised: #fbf9f4;
+  --paper-sunk: #efe9dd;
+  --paper-edge: rgba(60, 40, 20, 0.12);
+  --paper-edge-strong: rgba(60, 40, 20, 0.22);
+
+  /* ── 油墨 ── */
+  --ink: #221b2e;
+  --ink-2: #5a5263;
+  --ink-3: #8c8494;
+  --spot: #3c1e8c;          /* LOGO 專色 */
+  --spot-deep: #2e1670;
+  --spot-wash: rgba(60, 30, 140, 0.07);
+  --spot-wash-2: rgba(60, 30, 140, 0.13);
+  --vermilion: #b8432b;     /* 印章朱紅，只用在極少數強調 */
+
+  --pm-font-serif: 'Noto Serif TC', 'Songti TC', 'PMingLiU', 'MingLiU', serif;
+  --pm-font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Noto Sans TC', 'Microsoft JhengHei', sans-serif;
+
+  /* ── 對應到既有設計基準值 ── */
+  --pm-bg-canvas: var(--paper);
+  --pm-bg-mesh: var(--paper);
+  --pm-bg-surface: var(--paper-raised);
+  --pm-bg-surface-elevated: var(--paper-raised);
+  --pm-bg-surface-hover: rgba(60, 40, 20, 0.04);
+  --pm-bg-surface-active: rgba(60, 40, 20, 0.08);
+  --pm-bg-surface-glass: rgba(251, 249, 244, 0.86);
+  --pm-bg-stage-lightbox: #e8e1d3;
+
+  --pm-border-subtle: var(--paper-edge);
+  --pm-border-light: rgba(60, 40, 20, 0.07);
+  --pm-border-active: var(--paper-edge-strong);
+  --pm-border-focus: var(--spot);
+
+  --pm-text-primary: var(--ink);
+  --pm-text-secondary: var(--ink-2);
+  --pm-text-muted: var(--ink-3);
+
+  --pm-accent-blue: var(--spot);
+  --pm-accent-blue-hover: var(--spot-deep);
+  --pm-accent-blue-bg: var(--spot-wash);
+  --pm-accent-blue-glow: rgba(60, 30, 140, 0.18);
+  --pm-accent-purple: #6b5a8e;
+  --pm-accent-purple-bg: var(--spot-wash);
+  --pm-status-info: var(--spot);
+
+  /* 紙的陰影：偏暖、貼近、柔和，像紙張疊在桌上 */
+  --pm-shadow-xs: 0 1px 0 rgba(60, 40, 20, 0.06);
+  --pm-shadow-sm: 0 1px 2px rgba(60, 40, 20, 0.08), 0 0 0 1px rgba(60, 40, 20, 0.05);
+  --pm-shadow-md: 0 2px 4px rgba(60, 40, 20, 0.06), 0 8px 24px -8px rgba(60, 40, 20, 0.16);
+  --pm-shadow-lg: 0 2px 6px rgba(60, 40, 20, 0.06), 0 18px 40px -16px rgba(60, 40, 20, 0.24);
+  --pm-shadow-sheet: 0 4px 10px rgba(60, 40, 20, 0.08), 0 30px 60px -20px rgba(60, 40, 20, 0.3);
+  --pm-shadow-glow-blue: 0 0 0 3px var(--spot-wash-2);
+
+  --pm-radius-md: 10px;
+  --pm-radius-lg: 14px;
+  --pm-radius-xl: 18px;
+  --pm-radius-2xl: 22px;
+}
+
+/* ── 紙面底 ── */
+html, body {
+  background-color: var(--paper);
+  background-image: url('/textures/paper.webp');
+  background-size: 512px 512px;
+  color: var(--ink);
+  font-family: var(--pm-font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection { background: rgba(60, 30, 140, 0.18); }
+
+:focus-visible {
+  outline: 2px solid var(--spot);
+  outline-offset: 2px;
+}
+
+/* ── 頁首：像印刷品的刊頭 ── */
+.pm-header {
+  background: rgba(246, 242, 234, 0.82) !important;
+  backdrop-filter: saturate(1.1) blur(14px);
+  -webkit-backdrop-filter: saturate(1.1) blur(14px);
+  border-bottom: 1px solid var(--paper-edge) !important;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset;
+}
+
+.pm-brand .pm-logo-text {
+  font-family: var(--pm-font-serif);
+  font-weight: 700 !important;
+  letter-spacing: 0.06em;
+  background: none !important;
+  -webkit-text-fill-color: var(--ink) !important;
+  color: var(--ink) !important;
+  font-size: 1.12rem !important;
+}
+
+.pm-brand-mark {
+  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.7));
+}
+
+/* 模式切換：像兩顆並排的活字 */
+.pm-mode-switch-wrapper {
+  background: var(--paper-sunk) !important;
+  border: 1px solid var(--paper-edge) !important;
+  box-shadow: inset 0 1px 2px rgba(60, 40, 20, 0.08) !important;
+}
+.pm-mode-btn { color: var(--ink-2) !important; }
+.pm-mode-btn.active {
+  background: var(--paper-raised) !important;
+  color: var(--spot) !important;
+  box-shadow: 0 1px 2px rgba(60, 40, 20, 0.14), 0 0 0 1px var(--paper-edge) !important;
+}
+
+/* ── 按鈕 ── */
+.pm-tool-btn,
+.pm-sound-btn,
+.pm-dropzone-sub-btn,
+.pm-btn-secondary,
+.pm-btn-ghost {
+  background: var(--paper-raised) !important;
+  color: var(--ink) !important;
+  border: 1px solid var(--paper-edge) !important;
+  box-shadow: 0 1px 0 rgba(60, 40, 20, 0.05) !important;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+.pm-tool-btn:hover,
+.pm-sound-btn:hover,
+.pm-dropzone-sub-btn:hover,
+.pm-btn-secondary:hover,
+.pm-btn-ghost:hover {
+  background: #fff !important;
+  border-color: var(--paper-edge-strong) !important;
+  color: var(--spot) !important;
+}
+.pm-tool-btn.active {
+  background: var(--spot-wash) !important;
+  border-color: rgba(60, 30, 140, 0.3) !important;
+  color: var(--spot) !important;
+}
+
+/* 主要行動：整塊專色油墨，微微的凸版壓印感 */
+.pm-dropzone-cta-btn,
+.pm-btn-primary {
+  background: var(--spot) !important;
+  color: #fbf9f4 !important;
+  border: none !important;
+  border-radius: 999px !important;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.18) inset, 0 -2px 0 rgba(0, 0, 0, 0.18) inset,
+              0 6px 16px -6px rgba(60, 30, 140, 0.55) !important;
+  letter-spacing: 0.04em;
+}
+.pm-dropzone-cta-btn:hover,
+.pm-btn-primary:hover { background: var(--spot-deep) !important; transform: translateY(-1px); }
+
+/* ── 首頁：上傳區是一張「打樣紙」 ── */
+.pm-landing-container { position: relative; }
+
+.pm-dropzone {
+  background-color: var(--paper-raised) !important;
+  background-image: url('/textures/ink-wash.webp'), url('/textures/paper.webp') !important;
+  background-size: 62% auto, 512px 512px !important;
+  background-position: top right, 0 0 !important;
+  background-repeat: no-repeat, repeat !important;
+  border: 1px solid var(--paper-edge) !important;
+  border-radius: 6px !important;
+  box-shadow: var(--pm-shadow-sheet) !important;
+  padding: 64px 40px 52px !important;
+  overflow: visible !important;
+}
+.pm-dropzone::before { display: none !important; }
+
+/* 四角裁切線（純 CSS，永遠清晰） */
+.pm-dropzone::after {
+  content: '';
+  position: absolute;
+  inset: -14px;
+  pointer-events: none;
+  --m: rgba(34, 27, 46, 0.55);
+  background:
+    linear-gradient(var(--m), var(--m)) 0 14px / 10px 1px no-repeat,
+    linear-gradient(var(--m), var(--m)) 14px 0 / 1px 10px no-repeat,
+    linear-gradient(var(--m), var(--m)) 100% 14px / 10px 1px no-repeat,
+    linear-gradient(var(--m), var(--m)) calc(100% - 14px) 0 / 1px 10px no-repeat,
+    linear-gradient(var(--m), var(--m)) 0 calc(100% - 14px) / 10px 1px no-repeat,
+    linear-gradient(var(--m), var(--m)) 14px 100% / 1px 10px no-repeat,
+    linear-gradient(var(--m), var(--m)) 100% calc(100% - 14px) / 10px 1px no-repeat,
+    linear-gradient(var(--m), var(--m)) calc(100% - 14px) 100% / 1px 10px no-repeat;
+}
+
+.pm-dropzone:hover,
+.pm-dropzone.pm-dropzone-dragover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(60, 40, 20, 0.08), 0 40px 70px -24px rgba(60, 40, 20, 0.34) !important;
+}
+.pm-dropzone.pm-dropzone-dragover { outline: 2px dashed var(--spot); outline-offset: 6px; }
+
+.pm-dropzone-eyebrow {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--spot);
+  margin-bottom: 14px;
+}
+
+.pm-dropzone-icon {
+  background: var(--paper-raised) !important;
+  color: var(--spot) !important;
+  border: 1px solid var(--paper-edge) !important;
+  box-shadow: 0 1px 2px rgba(60, 40, 20, 0.1) !important;
+  border-radius: 50% !important;
+}
+
+.pm-dropzone-title {
+  font-family: var(--pm-font-serif) !important;
+  font-weight: 700 !important;
+  font-size: clamp(1.45rem, 3.4vw, 2.1rem) !important;
+  line-height: 1.35 !important;
+  letter-spacing: 0.04em;
+  color: var(--ink) !important;
+  max-width: 18em;
+}
+
+.pm-dropzone-subtitle {
+  color: var(--ink-2);
+  font-size: 0.92rem;
+  line-height: 1.7;
+  margin: 10px auto 4px;
+  max-width: 30em;
+}
+
+.pm-dropzone-feature-badge {
+  background: transparent !important;
+  color: var(--ink-2) !important;
+  border: 1px solid var(--paper-edge-strong) !important;
+  border-radius: 3px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.02em;
+}
+
+/* ── 卡片、工作區 ── */
+.pm-card,
+.pm-preset-bar,
+.pm-view-toolbar {
+  background-color: var(--paper-raised) !important;
+  border-color: var(--paper-edge) !important;
+}
+.pm-card {
+  border: 1px solid var(--paper-edge) !important;
+  box-shadow: var(--pm-shadow-md) !important;
+  border-radius: 12px !important;
+}
+.pm-preset-btn.active,
+.pm-paper-btn.active {
+  background: var(--spot) !important;
+  color: #fbf9f4 !important;
+  border-color: var(--spot) !important;
+}
+.pm-preset-btn:not(.active):hover,
+.pm-paper-btn:not(.active):hover {
+  background: var(--spot-wash) !important;
+  color: var(--spot) !important;
+}
+
+/* 舞台燈箱：像看稿桌 */
+.pm-stage-view {
+  background-color: #e6dfd1 !important;
+  background-image: radial-gradient(rgba(60, 40, 20, 0.08) 1px, transparent 1px) !important;
+  background-size: 18px 18px !important;
+}
+
+/* ── 小象對話框：一張便條紙 ── */
+.pm-xiang-card {
+  background: var(--paper-raised) !important;
+  border: 1px solid var(--paper-edge) !important;
+  border-radius: 4px 14px 14px 14px !important;
+  box-shadow: var(--pm-shadow-md) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+.pm-xiang-card.breath { animation: none !important; }
+.pm-xiang-name { font-family: var(--pm-font-serif); color: var(--ink) !important; letter-spacing: 0.08em; }
+.pm-xiang-badge {
+  background: transparent !important;
+  color: var(--spot) !important;
+  border: 1px solid rgba(60, 30, 140, 0.3);
+  border-radius: 3px !important;
+}
+.pm-xiang-act-btn {
+  background: var(--paper) !important;
+  border: 1px solid var(--paper-edge) !important;
+  color: var(--ink) !important;
+}
+.pm-xiang-act-btn:hover { color: var(--spot) !important; border-color: rgba(60, 30, 140, 0.35) !important; }
+.pm-xiang-say { color: var(--ink) !important; }
+.pm-xiang-say strong { color: var(--spot) !important; }
+
+/* ── 視窗 ── */
+.pm-modal-dialog,
+.pm-modal-lg {
+  background-color: var(--paper-raised) !important;
+  background-image: url('/textures/paper.webp') !important;
+  background-size: 512px 512px !important;
+  border: 1px solid var(--paper-edge) !important;
+  box-shadow: var(--pm-shadow-sheet) !important;
+}
+.pm-modal-overlay,
+.pm-modal-backdrop {
+  background: rgba(34, 27, 46, 0.38) !important;
+  backdrop-filter: blur(3px);
+}
+.pm-modal-title {
+  font-family: var(--pm-font-serif);
+  letter-spacing: 0.04em;
+}
+
+/* ── 頁尾：印刷品的版權頁 ── */
+.pm-footer {
+  font-size: 0.72rem !important;
+  letter-spacing: 0.06em;
+  color: var(--ink-3) !important;
+  border-top: 1px solid var(--paper-edge) !important;
+  background: transparent !important;
+}
+
+/* ── 表單 ── */
+.pm-select-field,
+select,
+input[type='text'],
+input[type='number'] {
+  background-color: var(--paper-raised) !important;
+  border: 1px solid var(--paper-edge) !important;
+  color: var(--ink) !important;
+}
+input[type='checkbox'],
+input[type='radio'],
+input[type='range'] { accent-color: var(--spot); }
+
+@media (prefers-reduced-motion: reduce) {
+  .pm-dropzone,
+  .pm-dropzone-cta-btn,
+  .pm-tool-btn { transition: none !important; transform: none !important; }
+}
+
+/* ── 排版細節 ── */
+.pm-tool-btn,
+.pm-mode-btn,
+.pm-dropzone-sub-btn,
+.pm-dropzone-feature-badge { white-space: nowrap; }
+
+.pm-xiang-say { text-wrap: pretty; }
+/* 中文詞組不斷行：寬度不足時在詞組之間換行，而不是把「印刷」拆開 */
+.pm-nobr { display: inline-block; }
+.pm-dropzone-title { max-width: none !important; }
+.pm-dropzone-subtitle { max-width: 40em; }
+
+@media (max-width: 1100px) {
+  /* 頁首空間不足時收起副標，讓工具按鈕維持單行 */
+  .pm-brand > div > span:not(.pm-logo-text) { display: none; }
+}
+
+/* 送印（工坊）按鈕：朱紅印泥色，與深紫主按鈕區隔但同屬油墨色系 */
+.pm-btn-artisan {
+  background: var(--vermilion) !important;
+  background-image: none !important;
+  color: #fbf9f4 !important;
+  border: none !important;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.16) inset, 0 -2px 0 rgba(0, 0, 0, 0.16) inset,
+              0 6px 14px -6px rgba(184, 67, 43, 0.5) !important;
+}
+.pm-btn-artisan:hover { background: #9e3622 !important; }
+
+/* ── 手機版 ── */
+.pm-brand .pm-logo-text { white-space: nowrap; }
+.pm-brand { flex-shrink: 0; }
+
+@media (max-width: 640px) {
+  /* 頁首工具列改成可橫向滑動，不擠壓品牌名 */
+  .pm-header-actions {
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-mask-image: linear-gradient(90deg, #000 85%, transparent);
+    mask-image: linear-gradient(90deg, #000 85%, transparent);
+    min-width: 0;
+  }
+  .pm-header-actions::-webkit-scrollbar { display: none; }
+
+  .pm-dropzone { padding: 44px 20px 36px !important; }
+  .pm-dropzone-title { font-size: 1.3rem !important; letter-spacing: 0.02em; }
+  .pm-dropzone-eyebrow { letter-spacing: 0.2em; font-size: 0.62rem; }
+}

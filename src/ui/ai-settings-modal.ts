@@ -118,7 +118,7 @@ export class AiSettingsModal {
 
         <div class="pm-modal-body" style="padding: 16px 20px; max-height: 76vh; overflow-y: auto; display: flex; flex-direction: column; gap: 14px;">
           <!-- Privacy Shield -->
-          <div style="background: ${isPrivacyShieldActive ? 'linear-gradient(135deg, rgba(88,86,214,0.12) 0%, rgba(0,113,227,0.08) 100%)' : 'rgba(0,0,0,0.02)'}; border: 1.5px solid ${isPrivacyShieldActive ? 'var(--pm-accent-purple, #5856d6)' : 'var(--pm-border-subtle)'}; border-radius: 12px; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s ease;">
+          <div style="background: ${isPrivacyShieldActive ? 'linear-gradient(135deg, rgba(88,86,214,0.12) 0%, rgba(60,30,140,0.08) 100%)' : 'rgba(0,0,0,0.02)'}; border: 1.5px solid ${isPrivacyShieldActive ? 'var(--pm-accent-purple, #4b2aa8)' : 'var(--pm-border-subtle)'}; border-radius: 12px; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s ease;">
             <div style="display: flex; align-items: center; gap: 10px;">
               <span style="font-size: 1.4rem;">🔒</span>
               <div>

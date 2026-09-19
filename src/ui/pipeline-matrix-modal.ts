@@ -116,13 +116,13 @@ export class PipelineMatrixModal {
               .map((item) => {
                 const isChecked = opts[item.key];
                 return `
-                <div class="pm-pipeline-switch-card" data-key="${item.key}" style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: #ffffff; border: 1.5px solid ${isChecked ? 'rgba(0, 113, 227, 0.4)' : 'var(--pm-border-subtle)'}; border-radius: 12px; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);">
+                <div class="pm-pipeline-switch-card" data-key="${item.key}" style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: #ffffff; border: 1.5px solid ${isChecked ? 'rgba(60, 30, 140, 0.4)' : 'var(--pm-border-subtle)'}; border-radius: 12px; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);">
                   <div style="display: flex; align-items: flex-start; gap: 12px; flex: 1; padding-right: 12px;">
                     <span style="font-size: 1.3rem; line-height: 1;">${item.icon}</span>
                     <div>
                       <div style="display: flex; align-items: center; gap: 8px;">
                         <span style="font-size: 0.88rem; font-weight: 700; color: var(--pm-text-primary);">${item.title}</span>
-                        <span style="font-size: 0.68rem; font-weight: 600; padding: 2px 6px; border-radius: 4px; background: ${isChecked ? 'rgba(0, 113, 227, 0.1)' : '#f0f0f2'}; color: ${isChecked ? '#0071e3' : 'var(--pm-text-muted)'};">
+                        <span style="font-size: 0.68rem; font-weight: 600; padding: 2px 6px; border-radius: 4px; background: ${isChecked ? 'rgba(60, 30, 140, 0.1)' : '#f0f0f2'}; color: ${isChecked ? '#3c1e8c' : 'var(--pm-text-muted)'};">
                           ${isChecked ? item.defaultHint : item.offHint}
                         </span>
                       </div>

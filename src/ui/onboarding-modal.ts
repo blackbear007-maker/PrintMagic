@@ -21,7 +21,7 @@ export class OnboardingModal {
       <div class="pm-modal-dialog" style="max-width: 620px;">
         <div class="pm-modal-header" style="border-bottom: none; padding-bottom: 0;">
           <div style="display: flex; align-items: center; gap: 10px;">
-            <img src="xiaoxiang.jpg" alt="小象" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid #8B7FA8; box-shadow: 0 2px 8px rgba(108, 99, 255, 0.3); flex-shrink: 0;" />
+            <img src="xiaoxiang/idle.webp" alt="小象" style="width: 52px; height: 52px; object-fit: contain; object-position: center bottom; flex-shrink: 0;" />
             <div>
               <h3 class="pm-modal-title" style="font-size: 1.22rem; font-weight: 800;">
                 小象陪您 30 秒上手【印象魔法】
@@ -39,7 +39,7 @@ export class OnboardingModal {
           <div style="display: flex; flex-direction: column; gap: 16px;">
             <!-- Step 1 -->
             <div style="display: flex; gap: 16px; padding: 16px; background: var(--pm-bg-secondary); border: 1px solid var(--pm-border-subtle); border-radius: 14px;">
-              <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(0, 113, 227, 0.1); color: var(--pm-accent-blue); display: flex; align-items: center; justify-content: center; font-size: 1.3rem; font-weight: 800; flex-shrink: 0;">
+              <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(60, 30, 140, 0.1); color: var(--pm-accent-blue); display: flex; align-items: center; justify-content: center; font-size: 1.3rem; font-weight: 800; flex-shrink: 0;">
                 1
               </div>
               <div>
@@ -47,7 +47,7 @@ export class OnboardingModal {
                   📸 選擇相片、拍照掃描或貼上剪貼簿
                 </h4>
                 <p style="font-size: 0.8rem; color: var(--pm-text-secondary); margin: 0; line-height: 1.45;">
-                  直接將照片拖入畫面或用手機相機掃描匯入，點選<strong>「貼紙 / 海報 / 明信片 / 名片」</strong>自動適配印刷尺寸與 3mm 出血。
+                  直接將照片拖入畫面或用手機相機掃描匯入，點選<strong>「貼紙 / 海報 / 明信片 / 名片」</strong>自動適配印刷尺寸，並依版型加上出血。
                 </p>
               </div>
             </div>
@@ -86,7 +86,7 @@ export class OnboardingModal {
 
         <div class="pm-modal-footer" style="justify-content: space-between;">
           <span style="font-size: 0.76rem; color: var(--pm-text-muted);">
-            💡 支援 100% 離線隱私保護，商業作品不聯網
+            💡 預設在本機處理，圖片不會上傳；需要 AI 服務時再切換到自建服務模式
           </span>
           <button class="pm-btn pm-btn-primary" id="btnStartNow" style="padding: 8px 24px;">
             開始創作 ➔

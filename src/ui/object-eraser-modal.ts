@@ -124,7 +124,7 @@ export class ObjectEraserModal {
         <!-- Footer -->
         <div class="pm-modal-footer">
           <button class="pm-btn pm-btn-ghost" id="btnCancelEraser">取消</button>
-          <button class="pm-btn pm-btn-primary" id="btnApplyEraser" disabled style="box-shadow: 0 4px 12px rgba(0, 113, 227, 0.28);">
+          <button class="pm-btn pm-btn-primary" id="btnApplyEraser" disabled style="box-shadow: 0 4px 12px rgba(60, 30, 140, 0.28);">
             <span>🌟</span> 套用並更新印刷檔
           </button>
         </div>

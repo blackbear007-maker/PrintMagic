@@ -38,7 +38,7 @@ export class PricingModal {
           <!-- 3-Column Feature Overview Grid -->
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px;">
             <!-- Column 1: AI Superpowers -->
-            <div style="background: rgba(0, 113, 227, 0.04); border: 1.5px solid rgba(0, 113, 227, 0.2); border-radius: 16px; padding: 22px 18px; display: flex; flex-direction: column; justify-content: space-between;">
+            <div style="background: rgba(60, 30, 140, 0.04); border: 1.5px solid rgba(60, 30, 140, 0.2); border-radius: 16px; padding: 22px 18px; display: flex; flex-direction: column; justify-content: space-between;">
               <div>
                 <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
                   <span style="font-size: 1.4rem;">✨</span>
@@ -52,7 +52,7 @@ export class PricingModal {
                   <li style="display: flex; gap: 8px;"><span style="color: #34c759; font-weight: 700;">✓</span><span><strong>AI 錯字與亂碼檢查</strong>：智能校正</span></li>
                 </ul>
               </div>
-              <div style="margin-top: 18px; padding-top: 12px; border-top: 1px solid rgba(0, 113, 227, 0.1); font-size: 0.74rem; color: #0071e3; font-weight: 600;">
+              <div style="margin-top: 18px; padding-top: 12px; border-top: 1px solid rgba(60, 30, 140, 0.1); font-size: 0.74rem; color: #3c1e8c; font-weight: 600;">
                 🎁 測試版免費無限制使用
               </div>
             </div>
@@ -72,7 +72,7 @@ export class PricingModal {
                   <li style="display: flex; gap: 8px;"><span style="color: #34c759; font-weight: 700;">✓</span><span><strong>3D 燙金與局部光物理渲染</strong></span></li>
                 </ul>
               </div>
-              <div style="margin-top: 18px; padding-top: 12px; border-top: 1px solid rgba(88, 86, 214, 0.1); font-size: 0.74rem; color: #5856d6; font-weight: 600;">
+              <div style="margin-top: 18px; padding-top: 12px; border-top: 1px solid rgba(88, 86, 214, 0.1); font-size: 0.74rem; color: #4b2aa8; font-weight: 600;">
                 🎁 測試版免費無限制使用
               </div>
             </div>

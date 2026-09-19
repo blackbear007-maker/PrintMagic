@@ -14,7 +14,7 @@ export const APP_SHELL_HTML = `
       <div class="pm-brand" style="display: flex; align-items: center; gap: 8px;">
         <img src="brand/logo-mark.svg" alt="" aria-hidden="true" class="pm-brand-mark" width="32" height="32" style="width: 32px; height: 32px; flex-shrink: 0;" />
         <div style="display: flex; flex-direction: column; line-height: 1.15;">
-          <span class="pm-logo-text" style="font-size: 1.05rem; font-weight: 800; background: linear-gradient(135deg, #1d1d1f 0%, #6c63ff 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">印象魔法</span>
+          <span class="pm-logo-text" style="font-size: 1.05rem; font-weight: 800; background: linear-gradient(135deg, #1d1d1f 0%, #4b2aa8 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">印象魔法</span>
           <span style="font-size: 0.62rem; color: var(--pm-text-muted); font-weight: 600; letter-spacing: 0.02em;">專業印前影像優化 · 助手小象為您守護</span>
         </div>
       </div>
@@ -31,8 +31,8 @@ export const APP_SHELL_HTML = `
 
       <div class="pm-header-actions">
         <!-- Dual-Engine Switcher: Local Offline vs Cloud Industrial (Advanced Only) -->
-        <button id="btnToggleEngine" class="pm-tool-btn pm-advanced-only pm-engine-pill" style="background: rgba(0, 113, 227, 0.08); color: var(--pm-accent-blue); border-color: rgba(0, 113, 227, 0.25); font-weight: 700;" title="點擊切換 🖥️ 本機模式 與 ⚡ 自建服務模式 (自建向量化 / 低光提亮服務，離線時自動退回本機演算法)">
-          <span id="engineStatusDot" class="pm-engine-dot" style="display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #0071e3; margin-right: 2px;"></span>
+        <button id="btnToggleEngine" class="pm-tool-btn pm-advanced-only pm-engine-pill" style="background: rgba(60, 30, 140, 0.08); color: var(--pm-accent-blue); border-color: rgba(60, 30, 140, 0.25); font-weight: 700;" title="點擊切換 🖥️ 本機模式 與 ⚡ 自建服務模式 (自建向量化 / 低光提亮服務，離線時自動退回本機演算法)">
+          <span id="engineStatusDot" class="pm-engine-dot" style="display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #3c1e8c; margin-right: 2px;"></span>
           <span id="engineStatusText">🖥️ 本機極速 (離線)</span>
         </button>
 
@@ -50,12 +50,12 @@ export const APP_SHELL_HTML = `
           <button id="btnOpenAiSettings" class="pm-tool-btn" style="padding: 6px 8px;" title="設定放大演算法與自建服務">
             <span>⚙️</span>
           </button>
-          <button id="btnOpenPipelineMatrix" class="pm-tool-btn" style="padding: 6px 10px; background: rgba(88, 86, 214, 0.08); color: #5856d6; border-color: rgba(88, 86, 214, 0.25);" title="🎛️ 專家級印前管線開關：自由自訂 AI 放大、銳化、控墨與階調處理 (測試版免費開放)">
+          <button id="btnOpenPipelineMatrix" class="pm-tool-btn" style="padding: 6px 10px; background: rgba(88, 86, 214, 0.08); color: #4b2aa8; border-color: rgba(88, 86, 214, 0.25);" title="🎛️ 專家級印前管線開關：自由自訂 AI 放大、銳化、控墨與階調處理 (測試版免費開放)">
             <span>🎛️</span> <span style="font-size: 0.76rem; font-weight: 700;">管線自訂</span>
           </button>
         </div>
 
-        <button id="btnOpenGuide" class="pm-tool-btn pm-advanced-only" style="background: rgba(0, 113, 227, 0.08); color: var(--pm-accent-blue); font-weight: 600; border-color: rgba(0, 113, 227, 0.2);" title="查看 30 秒 3 步速成指南">
+        <button id="btnOpenGuide" class="pm-tool-btn pm-advanced-only" style="background: rgba(60, 30, 140, 0.08); color: var(--pm-accent-blue); font-weight: 600; border-color: rgba(60, 30, 140, 0.2);" title="查看 30 秒 3 步速成指南">
           <span>💡</span> 新手指南
         </button>
 
@@ -160,10 +160,12 @@ export const APP_SHELL_HTML = `
             <line x1="12" y1="3" x2="12" y2="15"></line>
           </svg>
         </div>
-        <h2 class="pm-dropzone-title">輕點選擇相片，瞬間變成完美印刷品</h2>
+        <div class="pm-dropzone-eyebrow">Pre-press Studio · 印前工作室</div>
+        <h2 class="pm-dropzone-title"><span class="pm-nobr">把任何一張圖，</span><span class="pm-nobr">變成印刷廠能直接出機的檔案</span></h2>
+        <p class="pm-dropzone-subtitle"><span class="pm-nobr">拖進來、拍一張或貼上剪貼簿。</span><span class="pm-nobr">尺寸、解析度、出血與墨量，交給印象魔法。</span></p>
         <div class="pm-dropzone-feature-row">
           <span class="pm-dropzone-feature-badge blue">🖨️ 300 DPI 超高畫質</span>
-          <span class="pm-dropzone-feature-badge green">✓ 3mm 出血防裁切</span>
+          <span class="pm-dropzone-feature-badge green">✓ 依版型自動出血</span>
           <span class="pm-dropzone-feature-badge purple">🔒 本機優先處理</span>
           <span class="pm-dropzone-feature-badge">💧 智慧墨量安全</span>
         </div>
@@ -201,7 +203,7 @@ export const APP_SHELL_HTML = `
               <button id="btnOpenTextInspect" class="pm-tool-btn pm-advanced-only" style="background: rgba(52, 199, 89, 0.08); color: #248a3d; border-color: rgba(52, 199, 89, 0.25); font-weight: 600;" title="自動辨識圖中文字，檢查 AI 繪圖常見的英文拼寫錯誤與怪異亂碼">
                 <span>📝</span> 檢查文字
               </button>
-              <button id="btnOpenVectorOverlayTop" class="pm-tool-btn pm-advanced-only" style="background: rgba(0, 113, 227, 0.08); color: var(--pm-accent-blue); border-color: rgba(0, 113, 227, 0.25); font-weight: 600;" title="將圖片中模糊的小字轉為純黑清晰字，印刷絕對銳利不糊邊">
+              <button id="btnOpenVectorOverlayTop" class="pm-tool-btn pm-advanced-only" style="background: rgba(60, 30, 140, 0.08); color: var(--pm-accent-blue); border-color: rgba(60, 30, 140, 0.25); font-weight: 600;" title="將圖片中模糊的小字轉為純黑清晰字，印刷絕對銳利不糊邊">
                 <span>🔤</span> 文字清晰
               </button>
               <button id="btnToggleLoupe" class="pm-tool-btn pm-advanced-only" title="切換 20x CMYK 玫瑰網點顯微放大鏡">
@@ -370,7 +372,7 @@ export const APP_SHELL_HTML = `
           <!-- Simple Mode Export Actions Bar -->
           <div class="pm-export-simple-row" id="simpleExportRow">
             <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; width: 100%;">
-              <button id="btnSimpleExportPdf" class="pm-btn pm-btn-primary pm-btn-md" style="font-weight: 700; box-shadow: 0 4px 14px rgba(0, 113, 227, 0.32);" title="一鍵下載含 3mm 出血之標準印刷 PDF（送印印刷廠專用 · 零退件）">
+              <button id="btnSimpleExportPdf" class="pm-btn pm-btn-primary pm-btn-md" style="font-weight: 700; box-shadow: 0 4px 14px rgba(60, 30, 140, 0.32);" title="一鍵下載含 3mm 出血之標準印刷 PDF（送印印刷廠專用 · 零退件）">
                 <span>🌟</span> 一鍵下載標準印刷 PDF <span style="font-size: 0.68rem; opacity: 0.85; font-weight: 500; margin-left: 2px;">(送印專用)</span>
               </button>
               <button id="btnSimpleExportPng" class="pm-btn pm-btn-secondary pm-btn-md" title="匯出 300 DPI 高畫質 PNG 圖檔（相簿保存 / 傳 LINE / 手機沖洗）">
@@ -379,7 +381,7 @@ export const APP_SHELL_HTML = `
               <button id="btnSimpleConvPrint" class="pm-btn pm-btn-secondary pm-btn-md" title="7-11 ibon / 全家 FamiPort 超商列印檔案產生器">
                 <span>🏪</span> 超商列印檔
               </button>
-              <button id="btnSimpleShare" class="pm-btn pm-btn-secondary pm-btn-md" style="background: rgba(0, 113, 227, 0.08); color: var(--pm-accent-blue); border-color: rgba(0, 113, 227, 0.25);" title="以 iPhone / Android 原生分享選單 AirDrop、傳送 LINE 或無線列印">
+              <button id="btnSimpleShare" class="pm-btn pm-btn-secondary pm-btn-md" style="background: rgba(60, 30, 140, 0.08); color: var(--pm-accent-blue); border-color: rgba(60, 30, 140, 0.25);" title="以 iPhone / Android 原生分享選單 AirDrop、傳送 LINE 或無線列印">
                 <span>📤</span> 分享
               </button>
             </div>

@@ -51,9 +51,9 @@ export class PassportModal {
     const specPhrase = `老闆您好，這是${bleedPart}${preset.targetDpi}DPI 影像的 RGB 印刷 PDF (${preset.nameZh} ${sizeText})，如需 CMYK 請協助轉檔，謝謝！`;
 
     this.modalEl.innerHTML = `
-      <div class="pm-modal-dialog pm-overlay-dialog" style="max-width: 520px; border: 1px solid rgba(0, 113, 227, 0.25); box-shadow: 0 20px 48px rgba(0, 0, 0, 0.15);">
+      <div class="pm-modal-dialog pm-overlay-dialog" style="max-width: 520px; border: 1px solid rgba(60, 30, 140, 0.25); box-shadow: 0 20px 48px rgba(0, 0, 0, 0.15);">
         <!-- Header -->
-        <div class="pm-modal-header" style="background: linear-gradient(135deg, rgba(0, 113, 227, 0.08) 0%, rgba(52, 199, 89, 0.08) 100%); border-bottom: 1px solid rgba(0, 113, 227, 0.15);">
+        <div class="pm-modal-header" style="background: linear-gradient(135deg, rgba(60, 30, 140, 0.08) 0%, rgba(52, 199, 89, 0.08) 100%); border-bottom: 1px solid rgba(60, 30, 140, 0.15);">
           <div class="pm-modal-title-group">
             <span class="pm-modal-title" style="display: flex; align-items: center; gap: 8px;">
               <span>🛡️</span> 送印通關護照 (零退件指南)
@@ -65,7 +65,7 @@ export class PassportModal {
 
         <div class="pm-conv-body" style="padding: 18px 20px; display: flex; flex-direction: column; gap: 14px;">
           <!-- 1. What to say to print shop owner -->
-          <div style="background: rgba(0, 113, 227, 0.04); border: 1px solid rgba(0, 113, 227, 0.18); border-radius: 12px; padding: 12px 14px;">
+          <div style="background: rgba(60, 30, 140, 0.04); border: 1px solid rgba(60, 30, 140, 0.18); border-radius: 12px; padding: 12px 14px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
               <span style="font-size: 0.84rem; font-weight: 700; color: var(--pm-text-primary); display: flex; align-items: center; gap: 6px;">
                 <span>💬</span> 傳給印刷廠老闆一句話
@@ -108,7 +108,7 @@ export class PassportModal {
 
           <!-- Dismiss Action -->
           <div style="display: flex; justify-content: flex-end; padding-top: 6px;">
-            <button id="btnPassportOk" class="pm-btn pm-btn-primary pm-btn-md" style="width: 100%; font-weight: 700; box-shadow: 0 4px 14px rgba(0, 113, 227, 0.3);">
+            <button id="btnPassportOk" class="pm-btn pm-btn-primary pm-btn-md" style="width: 100%; font-weight: 700; box-shadow: 0 4px 14px rgba(60, 30, 140, 0.3);">
               ✓ 太棒了，我知道了！
             </button>
           </div>

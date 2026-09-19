@@ -73,7 +73,7 @@ export class TextInspectionModal {
         <!-- Header -->
         <div class="pm-modal-header">
           <div style="display: flex; align-items: center; gap: 10px;">
-            <div class="pm-modal-icon-badge" style="background: rgba(0, 113, 227, 0.1); color: var(--pm-accent-blue);">📝</div>
+            <div class="pm-modal-icon-badge" style="background: rgba(60, 30, 140, 0.1); color: var(--pm-accent-blue);">📝</div>
             <div>
               <h2 class="pm-modal-title">AI 智慧文字辨識與錯字檢查</h2>
               <p class="pm-modal-desc">

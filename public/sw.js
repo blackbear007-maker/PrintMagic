@@ -1,5 +1,5 @@
 // PrintMagic Studio PWA Offline Service Worker
-const CACHE_NAME = 'printmagic-v3.3.3-offline';
+const CACHE_NAME = 'printmagic-v3.4.0-offline';
 
 const ASSETS_TO_CACHE = [
   './',
@@ -7,6 +7,8 @@ const ASSETS_TO_CACHE = [
   './manifest.json',
   './xiaoxiang.jpg',
   './brand/logo-mark.svg',
+  './textures/paper.webp',
+  './textures/ink-wash.webp',
   './brand/logo-mark-64.png',
   './brand/logo-mark-192.png',
   './brand/logo-mark-512.png',

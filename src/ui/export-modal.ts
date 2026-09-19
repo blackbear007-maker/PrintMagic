@@ -56,7 +56,7 @@ export class ExportModal {
             <button class="pm-export-choice-card" data-format="pdf" style="background: #ffffff; border: 1.5px solid var(--pm-border-subtle); border-radius: 12px; padding: 14px; text-align: left; cursor: pointer; display: flex; flex-direction: column; gap: 6px; transition: all 0.2s ease;">
               <div style="display: flex; justify-content: space-between; align-items: center;">
                 <span style="font-size: 1.3rem;">📄</span>
-                <span style="font-size: 0.68rem; font-weight: 700; background: rgba(0,113,227,0.1); color: var(--pm-accent-blue); padding: 2px 6px; border-radius: 4px;">合版廠首選</span>
+                <span style="font-size: 0.68rem; font-weight: 700; background: rgba(60,30,140,0.1); color: var(--pm-accent-blue); padding: 2px 6px; border-radius: 4px;">合版廠首選</span>
               </div>
               <div style="font-weight: 700; font-size: 0.92rem; color: var(--pm-text-primary);">標準印刷 PDF (.pdf)</div>
               <div style="font-size: 0.72rem; color: var(--pm-text-muted); line-height: 1.3;">
@@ -80,7 +80,7 @@ export class ExportModal {
             <button class="pm-export-choice-card" data-format="png" style="background: #ffffff; border: 1.5px solid var(--pm-border-subtle); border-radius: 12px; padding: 14px; text-align: left; cursor: pointer; display: flex; flex-direction: column; gap: 6px; transition: all 0.2s ease;">
               <div style="display: flex; justify-content: space-between; align-items: center;">
                 <span style="font-size: 1.3rem;">📥</span>
-                <span style="font-size: 0.68rem; font-weight: 700; background: rgba(88,86,214,0.1); color: #5856d6; padding: 2px 6px; border-radius: 4px;">透明通道</span>
+                <span style="font-size: 0.68rem; font-weight: 700; background: rgba(88,86,214,0.1); color: #4b2aa8; padding: 2px 6px; border-radius: 4px;">透明通道</span>
               </div>
               <div style="font-weight: 700; font-size: 0.92rem; color: var(--pm-text-primary);">高清點陣 PNG (.png)</div>
               <div style="font-size: 0.72rem; color: var(--pm-text-muted); line-height: 1.3;">
@@ -113,7 +113,7 @@ export class ExportModal {
             </button>
 
             <!-- 6. Full Production ZIP Bundle -->
-            <button class="pm-export-choice-card" data-format="zip" style="background: linear-gradient(135deg, rgba(0,113,227,0.06) 0%, rgba(88,86,214,0.08) 100%); border: 1.5px solid var(--pm-accent-blue); border-radius: 12px; padding: 14px; text-align: left; cursor: pointer; display: flex; flex-direction: column; gap: 6px; transition: all 0.2s ease;">
+            <button class="pm-export-choice-card" data-format="zip" style="background: linear-gradient(135deg, rgba(60,30,140,0.06) 0%, rgba(88,86,214,0.08) 100%); border: 1.5px solid var(--pm-accent-blue); border-radius: 12px; padding: 14px; text-align: left; cursor: pointer; display: flex; flex-direction: column; gap: 6px; transition: all 0.2s ease;">
               <div style="display: flex; justify-content: space-between; align-items: center;">
                 <span style="font-size: 1.3rem;">📦</span>
                 <span style="font-size: 0.68rem; font-weight: 800; background: var(--pm-accent-blue); color: #ffffff; padding: 2px 6px; border-radius: 4px;">一鍵全打包</span>

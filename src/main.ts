@@ -1,6 +1,7 @@
 import './styles/index.css';
 import './styles/studio.css';
 import './styles/components.css';
+import './styles/theme-paper.css';
 
 import { mountAppShell } from './ui/app-shell';
 import { store, type AppState } from './ui/state';
@@ -1392,7 +1393,7 @@ class App {
           this.engineStatusText.textContent = '🖥️ 本機極速';
         }
         if (engineDot) {
-          engineDot.style.backgroundColor = '#0071e3';
+          engineDot.style.backgroundColor = '#3c1e8c';
         }
         if (btnToggleAiUpscale) btnToggleAiUpscale.title = '點擊切換為 🔬 自建服務放大（倍率依目標 DPI 決定）';
         if (aiUpscaleIcon) aiUpscaleIcon.textContent = '⚡';
@@ -1837,7 +1838,7 @@ class App {
     const btnEl = document.getElementById('btnOpenPricing');
     if (badgeEl && btnEl) {
       badgeEl.textContent = '✨ 測試版 (全部免費)';
-      btnEl.style.background = 'linear-gradient(135deg, rgba(52, 199, 89, 0.15), rgba(0, 113, 227, 0.15))';
+      btnEl.style.background = 'linear-gradient(135deg, rgba(52, 199, 89, 0.15), rgba(60, 30, 140, 0.15))';
       btnEl.style.color = '#1b7a34';
       btnEl.style.fontWeight = '700';
     }

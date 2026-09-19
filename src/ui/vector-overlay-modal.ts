@@ -132,7 +132,7 @@ export class VectorOverlayModal {
 
         <div class="pm-conv-body" style="padding: 16px 20px; display: flex; flex-direction: column; gap: 14px;">
           <!-- Plain Language Explanation & One-Click Auto-Detect Hero Banner -->
-          <div style="background: linear-gradient(135deg, rgba(0, 113, 227, 0.08) 0%, rgba(52, 199, 89, 0.08) 100%); border: 1px solid rgba(0, 113, 227, 0.2); border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px;">
+          <div style="background: linear-gradient(135deg, rgba(60, 30, 140, 0.08) 0%, rgba(52, 199, 89, 0.08) 100%); border: 1px solid rgba(60, 30, 140, 0.2); border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px;">
             <div style="display: flex; align-items: center; justify-content: space-between;">
               <div style="display: flex; align-items: center; gap: 8px;">
                 <span style="font-size: 1.25rem;">✨</span>
@@ -148,7 +148,7 @@ export class VectorOverlayModal {
             </div>
 
             <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-              <button id="btnAutoDetectAndApply" class="pm-btn pm-btn-artisan pm-btn-md" style="flex: 1; min-width: 190px; background: linear-gradient(135deg, #0071e3 0%, #0051a8 100%); color: #fff; font-weight: 700;">
+              <button id="btnAutoDetectAndApply" class="pm-btn pm-btn-artisan pm-btn-md" style="flex: 1; min-width: 190px; background: linear-gradient(135deg, #3c1e8c 0%, #0051a8 100%); color: #fff; font-weight: 700;">
                 <span>⚡</span> 一鍵掃描全圖文字區域 (需再確認文字內容)
               </button>
               <button id="btnAutoDetectOnly" class="pm-btn pm-btn-secondary pm-btn-md" style="font-weight: 600;">
