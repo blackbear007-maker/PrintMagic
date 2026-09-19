@@ -13,7 +13,6 @@ import { LoupeController } from './ui/loupe';
 import { LaserScanController } from './ui/laser-scan';
 import { MockupModal } from './ui/mockup-modal';
 import { SpecModal } from './ui/spec-modal';
-import { RulerCalibrationModal } from './ui/ruler-calibration';
 import { NearbyShopsModal } from './ui/nearby-shops-modal';
 import { DirectPrintModal } from './ui/direct-print-modal';
 import { BatchBar } from './ui/batch-bar';
@@ -89,7 +88,6 @@ class App {
   public mockupModal!: MockupModal;
   public specModal!: SpecModal;
   public passportModal!: PassportModal;
-  public calibrationModal!: RulerCalibrationModal;
   public shopsModal!: NearbyShopsModal;
   public directPrintModal!: DirectPrintModal;
   public convPrintModal!: ConveniencePrintModal;
@@ -119,10 +117,8 @@ class App {
   private soundIcon = document.getElementById('soundIcon');
   private btnToggleEngine = document.getElementById('btnToggleEngine');
   private engineStatusText = document.getElementById('engineStatusText');
-  private btnOpenCalibration = document.getElementById('btnOpenCalibration');
   private mainPreviewImg = document.getElementById('mainPreviewImg') as HTMLImageElement;
   private canvasSheet = document.getElementById('canvasSheet')!;
-  private stageContainer = document.getElementById('stageContainer')!;
   private compareSliderRoot = document.getElementById('compareSliderRoot')!;
   private bleedFrame = document.getElementById('bleedFrame')!;
   private safeFrame = document.getElementById('safeFrame')!;
@@ -132,7 +128,6 @@ class App {
 
   // Tool buttons
   private btnToggleCompare = document.getElementById('btnToggleCompare')!;
-  private btnToggle1to1 = document.getElementById('btnToggle1to1')!;
   private btnToggleLoupe = document.getElementById('btnToggleLoupe')!;
   private btnFlipBack = document.getElementById('btnFlipBack')!;
   private btnToggleHeatmap = document.getElementById('btnToggleHeatmap')!;
@@ -280,7 +275,6 @@ class App {
     this.mockupModal = new MockupModal();
     this.specModal = new SpecModal();
     this.passportModal = new PassportModal();
-    this.calibrationModal = new RulerCalibrationModal();
     this.shopsModal = new NearbyShopsModal();
     this.directPrintModal = new DirectPrintModal(() => this.shopsModal.open());
     this.convPrintModal = new ConveniencePrintModal();
@@ -314,7 +308,7 @@ class App {
     this.exportModal = new ExportModal();
     this.aiSettingsModal = new AiSettingsModal(() => {
       const state = store.getState();
-      if (state.originalImageData && state.aiUpscaleMode === 'cloud-ai' && state.engineMode === 'cloud') {
+      if (state.originalImageData && state.engineMode === 'cloud') {
         this.pipeline.runOptimizationPipeline(state.originalImageData);
       }
     });
@@ -375,39 +369,7 @@ class App {
         }
       } else {
         store.setEngineMode('local');
-        store.setState({ aiUpscaleMode: 'local' });
         Toast.info('🖥️ 已切換至【本機模式】：所有處理改用本機演算法，圖片不會上傳。臉部偵測與 ICC 精準軟打樣需要自建服務，本機模式下改用近似演算法或停用。');
-      }
-    });
-
-    // AI Super-Resolution Mode Toggle (Auto-promotes to Cloud if clicked)
-    document.getElementById('btnToggleAiUpscale')?.addEventListener('click', async () => {
-      const state = store.getState();
-      SoundEffects.sliderTick();
-
-      // If currently local, automatically promote/switch to Cloud Industrial mode
-      if (state.engineMode === 'local') {
-        const isOnline = await CloudClient.checkHealth();
-        store.setEngineMode('cloud');
-        store.setState({ aiUpscaleMode: 'cloud-ai' });
-        if (isOnline) {
-          Toast.success('⚡ 已切換至【邊緣強化放大引擎】模式！');
-        } else {
-          Toast.info('⚡ 已切換至【邊緣強化放大引擎】模式！(本機演算法，若需啟動自建服務請啟動 port 3001)');
-        }
-      } else {
-        const next = store.toggleAiUpscaleMode();
-        if (next === 'cloud-ai') {
-          Toast.info('⚡ 已啟動【邊緣強化放大引擎】模式！');
-        } else {
-          Toast.info('⚡ 已切換回【本機 Lanczos 金字塔放大】模式！');
-        }
-      }
-
-      // Re-run pipeline if image exists
-      const updatedState = store.getState();
-      if (updatedState.originalImageData) {
-        this.pipeline.runOptimizationPipeline(updatedState.originalImageData);
       }
     });
 
@@ -429,19 +391,6 @@ class App {
     // Open Onboarding Beginner Guide Modal
     document.getElementById('btnOpenGuide')?.addEventListener('click', () => {
       this.onboardingModal.open();
-    });
-
-    // Screen Calibration
-    this.btnOpenCalibration?.addEventListener('click', () => {
-      SoundEffects.sliderTick();
-      this.calibrationModal.open();
-    });
-
-    // 1:1 Scale Toggle
-    this.btnToggle1to1.addEventListener('click', () => {
-      const is1to1 = store.toggle1to1Scale();
-      SoundEffects.sliderTick();
-      Toast.info(is1to1 ? '📏 已開啟 100% 物理 1:1 毫米真實尺寸檢視' : '📐 已切換回螢幕自適應視圖');
     });
 
     // Sound Toggle
@@ -1241,7 +1190,6 @@ class App {
       store.setUiMode(mode);
       if (mode === 'simple') {
         store.setEngineMode('local');
-        store.setState({ aiUpscaleMode: 'local' });
         Toast.info('⚡ 已切換為【簡易模式】：極簡純粹、手機專用、極速輸出！');
       } else {
         Toast.info('🎛️ 已切換為【進階模式】：展開全部專業製版、工藝與管線工具！');
@@ -1435,9 +1383,6 @@ class App {
       }
       const engineDot = document.getElementById('engineStatusDot');
       const engineStatusIcon = document.getElementById('engineStatusIcon') as HTMLImageElement | null;
-      const aiUpscaleIcon = document.getElementById('aiUpscaleIcon') as HTMLImageElement | null;
-      const aiUpscaleText = document.getElementById('aiUpscaleText');
-      const btnToggleAiUpscale = document.getElementById('btnToggleAiUpscale');
 
       if (state.engineMode === 'cloud') {
         if (this.engineStatusText) {
@@ -1447,14 +1392,6 @@ class App {
         if (engineDot) {
           engineDot.style.backgroundColor = state.cloudStatus === 'online' ? '#34c759' : '#ff9500';
         }
-        if (btnToggleAiUpscale) btnToggleAiUpscale.title = '點擊切換 本機放大 與 自建服務放大（倍率依目標 DPI 決定）';
-        if (state.aiUpscaleMode === 'cloud-ai') {
-          if (aiUpscaleIcon) aiUpscaleIcon.src = 'icons/header/upscale-cloud.webp';
-          if (aiUpscaleText) aiUpscaleText.textContent = '服務放大';
-        } else {
-          if (aiUpscaleIcon) aiUpscaleIcon.src = 'icons/header/upscale-local.webp';
-          if (aiUpscaleText) aiUpscaleText.textContent = '本機放大';
-        }
       } else {
         if (this.engineStatusText) {
           this.engineStatusText.textContent = '本機基本功能';
@@ -1463,9 +1400,6 @@ class App {
         if (engineDot) {
           engineDot.style.backgroundColor = '#3c1e8c';
         }
-        if (btnToggleAiUpscale) btnToggleAiUpscale.title = '點擊切換為 自建服務放大（倍率依目標 DPI 決定）';
-        if (aiUpscaleIcon) aiUpscaleIcon.src = 'icons/header/upscale-local.webp';
-        if (aiUpscaleText) aiUpscaleText.textContent = '本機放大';
       }
 
       // 2. Switch View Containers
@@ -1522,21 +1456,7 @@ class App {
         this.mainPreviewImg.src = state.originalDataUrl;
       }
 
-      // 6. 1:1 Physical Scale Override
-      this.btnToggle1to1.classList.toggle('active', state.is1to1Scale);
-      if (state.is1to1Scale && state.currentPreset.widthMm > 0) {
-        this.stageContainer.classList.add('pm-stage-1to1');
-        const physicalW = (state.currentPreset.widthMm / 25.4) * state.screenPpi;
-        const physicalH = (state.currentPreset.heightMm / 25.4) * state.screenPpi;
-        this.canvasSheet.style.width = `${physicalW.toFixed(1)}px`;
-        this.canvasSheet.style.height = `${physicalH.toFixed(1)}px`;
-      } else {
-        this.stageContainer.classList.remove('pm-stage-1to1');
-        this.canvasSheet.style.width = '';
-        this.canvasSheet.style.height = '';
-      }
-
-      // 7. Button Active States
+      // 6. Button Active States
       this.btnToggleHeatmap.classList.toggle('active', state.showHeatmap);
       this.btnToggleSoftProof.classList.toggle('active', state.showSoftProof);
       this.btnToggleCvdPreview.classList.toggle('active', !!state.cvdPreviewType);

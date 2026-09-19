@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 import { STANDARD_SCREEN_ANGLES, HalftoneEngine } from '../src/core/halftone-engine';
 import { MOCKUP_SCENES, MockupRenderer } from '../src/engines/mockup-renderer';
 import { SoundEffects } from '../src/core/sound-effects';
-import { RulerCalibrationModal } from '../src/ui/ruler-calibration';
 import { store } from '../src/ui/state';
 
 describe('HalftoneEngine (Screen Angles & Rosette Pattern)', () => {
@@ -40,29 +39,7 @@ describe('MockupRenderer', () => {
   });
 });
 
-describe('RulerCalibration (Physical 1:1 Scale)', () => {
-  it('should have standard credit card millimeter dimensions (ISO/IEC 7810 ID-1)', () => {
-    expect(RulerCalibrationModal.CARD_WIDTH_MM).toBeCloseTo(85.60, 2);
-    expect(RulerCalibrationModal.CARD_HEIGHT_MM).toBeCloseTo(53.98, 2);
-  });
-
-  it('should calculate PPI from on-screen pixel card width accurately', () => {
-    // For a 96 PPI display: (85.6mm / 25.4) * 96 ≈ 323.5px
-    const cardPx = 324;
-    const computedPpi = (cardPx / RulerCalibrationModal.CARD_WIDTH_MM) * 25.4;
-    expect(computedPpi).toBeCloseTo(96.15, 1);
-  });
-});
-
-describe('StateStore (Batch Queue & 1:1 Scale & Smart Crop)', () => {
-  it('should toggle 1:1 physical scale state', () => {
-    const initial = store.getState().is1to1Scale;
-    const toggled = store.toggle1to1Scale();
-    expect(toggled).toBe(!initial);
-    const restored = store.toggle1to1Scale();
-    expect(restored).toBe(initial);
-  });
-
+describe('StateStore (Batch Queue & Smart Crop)', () => {
   it('should manage batch queue items and active selection', () => {
     store.reset();
     expect(store.getState().batchItems.length).toBe(0);

@@ -49,7 +49,7 @@ export const APP_SHELL_HTML = `
     </div>
   </header>
 
-  <!-- More Settings: tabbed panel behind the header's gear icon (檢查文字/放大/管線自訂/新手指南/螢幕校準) -->
+  <!-- More Settings: tabbed panel behind the header's gear icon (隱私設定/檢查文字/管線自訂/新手指南) -->
   <div class="pm-modal-backdrop" id="headerSettingsModal">
     <div class="pm-modal-dialog" style="max-width: 640px; width: 92vw;">
       <div class="pm-modal-header">
@@ -61,25 +61,18 @@ export const APP_SHELL_HTML = `
       </div>
       <div class="pm-modal-body" style="display: flex; padding: 0; min-height: 300px;">
         <div class="pm-settings-tabs" role="tablist">
-          <button class="pm-settings-tab active" data-tab="upscale"><img src="icons/header/upscale-local.webp" alt="" class="pm-icon-img" /> 本機放大</button>
+          <button class="pm-settings-tab active" data-tab="privacy"><img src="icons/shared/lock.webp" alt="" class="pm-icon-img" /> 隱私設定</button>
           <button class="pm-settings-tab" data-tab="text-inspect"><img src="icons/header/text-inspect.webp" alt="" class="pm-icon-img" /> 檢查文字</button>
           <button class="pm-settings-tab" data-tab="pipeline"><img src="icons/header/pipeline-matrix.webp" alt="" class="pm-icon-img" /> 管線自訂</button>
           <button class="pm-settings-tab" data-tab="guide"><img src="icons/header/guide.webp" alt="" class="pm-icon-img" /> 新手指南</button>
-          <button class="pm-settings-tab" data-tab="calibration"><img src="icons/header/calibration.webp" alt="" class="pm-icon-img" /> 螢幕校準</button>
         </div>
         <div class="pm-settings-panes">
-          <div class="pm-settings-pane" data-pane="upscale">
-            <h4 class="pm-settings-pane-title">本機放大</h4>
-            <p class="pm-settings-pane-desc">切換印刷放大要用本機決定性演算法，還是自建雲端服務（品質較高，離線時自動退回本機）。</p>
-            <div style="display: flex; align-items: center; gap: 8px; margin-top: 14px;">
-              <button id="btnToggleAiUpscale" class="pm-tool-btn" title="點擊切換 本機 Lanczos 金字塔放大 與 自建服務放大（倍率依目標 DPI 自動決定，服務無法使用時退回本機）">
-                <img id="aiUpscaleIcon" src="icons/header/upscale-local.webp" alt="" class="pm-icon-img" />
-                <span id="aiUpscaleText">本機放大</span>
-              </button>
-              <button id="btnOpenAiSettings" class="pm-tool-btn" style="padding: 6px 8px;" title="設定放大演算法與自建服務">
-                <img src="icons/header/mode-advanced.webp" alt="" class="pm-icon-img" />
-              </button>
-            </div>
+          <div class="pm-settings-pane" data-pane="privacy">
+            <h4 class="pm-settings-pane-title">隱私設定</h4>
+            <p class="pm-settings-pane-desc">要不要強制只用本機演算法（100% 本機模式）：圖片絕不離開你的裝置，完全跳過自建雲端服務。</p>
+            <button id="btnOpenAiSettings" class="pm-btn pm-btn-primary pm-settings-launch-btn" style="margin-top: 14px;">
+              <img src="icons/shared/lock.webp" alt="" class="pm-icon-img" /> 開啟隱私設定
+            </button>
           </div>
 
           <div class="pm-settings-pane" data-pane="text-inspect" style="display: none;">
@@ -103,14 +96,6 @@ export const APP_SHELL_HTML = `
             <p class="pm-settings-pane-desc">查看 30 秒 3 步速成指南，快速了解操作流程。</p>
             <button id="btnOpenGuide" class="pm-btn pm-btn-primary pm-settings-launch-btn" style="margin-top: 14px;">
               <img src="icons/header/guide.webp" alt="" class="pm-icon-img" /> 開啟新手指南
-            </button>
-          </div>
-
-          <div class="pm-settings-pane" data-pane="calibration" style="display: none;">
-            <h4 class="pm-settings-pane-title">螢幕校準</h4>
-            <p class="pm-settings-pane-desc">拿一張隨身信用卡/健保卡貼在螢幕上，校準 1:1 真實物理尺寸 PPI。</p>
-            <button id="btnOpenCalibration" class="pm-btn pm-btn-primary pm-settings-launch-btn" style="margin-top: 14px;">
-              <img src="icons/header/calibration.webp" alt="" class="pm-icon-img" /> 開啟螢幕校準
             </button>
           </div>
         </div>
@@ -319,9 +304,6 @@ export const APP_SHELL_HTML = `
               </button>
               <button id="btnFlipBack" class="pm-tool-btn" title="翻轉查看紙張背面規格標記">
                 <span>↻</span> 翻轉紙背
-              </button>
-              <button id="btnToggle1to1" class="pm-tool-btn" title="切換 100% 物理 1:1 毫米真實尺寸檢視">
-                <img src="icons/header/calibration.webp" alt="" class="pm-icon-img" /> 1:1 實體
               </button>
             </div>
 

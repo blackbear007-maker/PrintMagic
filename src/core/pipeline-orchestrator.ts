@@ -116,7 +116,7 @@ export class PipelineOrchestrator {
       if (opts.enableUpscale && originalDpiAnalysis.needsUpscale && originalDpiAnalysis.scaleFactor > 1) {
         const targetScale = originalDpiAnalysis.scaleFactor;
 
-        const isCloudAiAllowed = state.engineMode === 'cloud' && state.aiUpscaleMode === 'cloud-ai';
+        const isCloudAiAllowed = state.engineMode === 'cloud';
 
         if (isCloudAiAllowed) {
           const srcDataUrl = state.originalDataUrl || this.imageDataToDataUrl(srcImageData);

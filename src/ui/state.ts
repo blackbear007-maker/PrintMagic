@@ -50,10 +50,6 @@ export interface AppState {
   batchItems: BatchItem[];
   activeBatchId: string | null;
 
-  // Physical 1:1 Scale & PPI Calibration
-  screenPpi: number;
-  is1to1Scale: boolean;
-
   // Smart Focal Crop
   cropAnchor: CropAnchor;
   cropOffset: CropOffset;
@@ -61,7 +57,6 @@ export interface AppState {
   // Hybrid Dual-Engine Architecture
   engineMode: EngineMode;
   cloudStatus: CloudHealthStatus;
-  aiUpscaleMode: 'local' | 'cloud-ai';
 
   // Settings & Modes
   currentPreset: PrintPreset;
@@ -108,19 +103,6 @@ function loadStoredUiMode(): UiMode {
   return 'simple'; // Default to beginner-friendly Simple Mode
 }
 
-function loadStoredPpi(): number {
-  if (typeof localStorage !== 'undefined') {
-    const saved = localStorage.getItem('printmagic_screen_ppi');
-    if (saved) {
-      const parsed = parseFloat(saved);
-      if (!isNaN(parsed) && parsed > 30 && parsed < 600) {
-        return parsed;
-      }
-    }
-  }
-  return 96; // Standard default desktop display PPI
-}
-
 class StateStore {
   private state: AppState = {
     originalDataUrl: null,
@@ -148,9 +130,6 @@ class StateStore {
     batchItems: [],
     activeBatchId: null,
 
-    screenPpi: loadStoredPpi(),
-    is1to1Scale: false,
-
     cropAnchor: 'center',
     cropOffset: {
       anchor: 'center',
@@ -160,7 +139,6 @@ class StateStore {
 
     engineMode: 'local',
     cloudStatus: 'offline',
-    aiUpscaleMode: 'local',
 
     currentPreset: DEFAULT_PRESET,
     selectedPaper: 'glossy',
@@ -258,18 +236,6 @@ class StateStore {
     this.setState({ isComparing: !this.state.isComparing });
   }
 
-  public toggle1to1Scale(): boolean {
-    const next = !this.state.is1to1Scale;
-    this.setState({ is1to1Scale: next });
-    return next;
-  }
-
-  public toggleAiUpscaleMode(): 'local' | 'cloud-ai' {
-    const next = this.state.aiUpscaleMode === 'local' ? 'cloud-ai' : 'local';
-    this.setState({ aiUpscaleMode: next });
-    return next;
-  }
-
   // --- UI Complexity Mode Actions ---
 
   public setUiMode(mode: UiMode): void {
@@ -287,13 +253,6 @@ class StateStore {
 
   public setTextInspectionResult(result: TextInspectionResult | null): void {
     this.setState({ textInspectionResult: result });
-  }
-
-  public setScreenPpi(ppi: number): void {
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem('printmagic_screen_ppi', ppi.toFixed(2));
-    }
-    this.setState({ screenPpi: ppi });
   }
 
   // --- Smart Crop Actions ---
@@ -452,7 +411,6 @@ class StateStore {
       isProcessing: false,
       processingStep: '',
       appliedScale: 1,
-      is1to1Scale: false,
       cropAnchor: 'center',
       textInspectionResult: null
     });

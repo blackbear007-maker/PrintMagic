@@ -26,7 +26,6 @@ describe('Mobile & 100% Offline Usability', () => {
     const state = store.getState();
     expect(state.uiMode).toBe('simple');
     expect(state.engineMode).toBe('local');
-    expect(state.aiUpscaleMode).toBe('local');
 
     // Verify local DPI calculation
     const dpiResult = DpiCalculator.analyze(1080, 1920, DEFAULT_PRESET);
