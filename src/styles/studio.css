@@ -353,43 +353,63 @@
   transition: all var(--pm-anim-fast) ease;
 }
 
-/* Header gear dropdown: collapses the 檢查文字/放大/管線自訂/新手指南/螢幕校準 row of buttons
-   that used to sit directly in the header bar behind a single icon. */
-.pm-header-settings-panel {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  min-width: 200px;
-  background: var(--pm-bg-surface, #ffffff);
-  border: 1px solid var(--pm-border-subtle);
-  border-radius: var(--pm-radius-md, 10px);
-  box-shadow: var(--pm-shadow-lg, 0 12px 32px rgba(0, 0, 0, 0.14));
-  padding: 6px;
+/* Header "更多設定" modal: a real tabbed dialog (not a dropdown menu) collapsing
+   檢查文字/放大/管線自訂/新手指南/螢幕校準 behind one gear icon. */
+.pm-settings-tabs {
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  z-index: 200;
+  gap: 2px;
+  width: 168px;
+  flex-shrink: 0;
+  padding: 12px 8px;
+  border-right: 1px solid var(--pm-border-subtle);
+  background: rgba(0, 0, 0, 0.015);
 }
 
-.pm-header-settings-row {
+.pm-settings-tab {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   width: 100%;
-  padding: 7px 10px;
+  padding: 9px 10px;
   border-radius: var(--pm-radius-xs);
   background: transparent;
   border: none;
-  color: var(--pm-text-primary);
-  font-size: 0.78rem;
+  color: var(--pm-text-secondary);
+  font-size: 0.8rem;
   font-weight: 600;
   text-align: left;
   cursor: pointer;
-  transition: background var(--pm-anim-fast) ease;
+  transition: background var(--pm-anim-fast) ease, color var(--pm-anim-fast) ease;
 }
 
-.pm-header-settings-row:hover {
+.pm-settings-tab:hover {
   background: rgba(0, 0, 0, 0.05);
+  color: var(--pm-text-primary);
+}
+
+.pm-settings-tab.active {
+  background: rgba(60, 30, 140, 0.1);
+  color: var(--pm-accent-blue);
+}
+
+.pm-settings-panes {
+  flex: 1;
+  padding: 20px;
+}
+
+.pm-settings-pane-title {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--pm-text-primary);
+  margin: 0 0 8px 0;
+}
+
+.pm-settings-pane-desc {
+  font-size: 0.82rem;
+  color: var(--pm-text-secondary);
+  line-height: 1.5;
+  margin: 0;
 }
 
 /* AI-generated ink-line header icons (public/icons/header/*.webp) replacing inline emoji */

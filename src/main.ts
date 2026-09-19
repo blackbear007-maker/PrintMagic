@@ -517,30 +517,39 @@ class App {
       }
     });
 
-    // Header Settings Gear: collapses 檢查文字/放大/管線自訂/新手指南/螢幕校準 into one dropdown
-    const btnOpenHeaderSettings = document.getElementById('btnOpenHeaderSettings');
-    const headerSettingsPanel = document.getElementById('headerSettingsPanel');
-    btnOpenHeaderSettings?.addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (headerSettingsPanel) {
-        const isHidden = headerSettingsPanel.style.display === 'none' || !headerSettingsPanel.style.display;
-        headerSettingsPanel.style.display = isHidden ? 'flex' : 'none';
+    // Header Settings Gear: opens a tabbed modal collapsing 檢查文字/放大/管線自訂/新手指南/螢幕校準
+    const headerSettingsModal = document.getElementById('headerSettingsModal');
+    const openHeaderSettings = () => {
+      if (!headerSettingsModal) return;
+      headerSettingsModal.style.display = 'flex';
+      requestAnimationFrame(() => headerSettingsModal.classList.add('pm-modal-open'));
+      SoundEffects.sliderTick();
+    };
+    const closeHeaderSettings = () => {
+      if (!headerSettingsModal) return;
+      headerSettingsModal.classList.remove('pm-modal-open');
+      headerSettingsModal.style.display = 'none';
+    };
+    document.getElementById('btnOpenHeaderSettings')?.addEventListener('click', openHeaderSettings);
+    document.getElementById('btnCloseHeaderSettings')?.addEventListener('click', closeHeaderSettings);
+    headerSettingsModal?.addEventListener('click', (e) => {
+      if (e.target === headerSettingsModal) closeHeaderSettings();
+    });
+    // Tab strip switches which pane is visible; it never closes the modal.
+    headerSettingsModal?.querySelectorAll<HTMLButtonElement>('.pm-settings-tab').forEach((tab) => {
+      tab.addEventListener('click', () => {
+        const targetPane = tab.dataset.tab;
+        headerSettingsModal.querySelectorAll('.pm-settings-tab').forEach((t) => t.classList.toggle('active', t === tab));
+        headerSettingsModal.querySelectorAll<HTMLElement>('.pm-settings-pane').forEach((pane) => {
+          pane.style.display = pane.dataset.pane === targetPane ? 'block' : 'none';
+        });
         SoundEffects.sliderTick();
-      }
+      });
     });
-    // Any action row inside the panel closes it, so choosing an item feels like a menu selection
-    headerSettingsPanel?.addEventListener('click', (e) => {
-      const target = e.target as HTMLElement;
-      if (target.closest('button') && headerSettingsPanel) {
-        headerSettingsPanel.style.display = 'none';
-      }
-    });
-    document.addEventListener('click', (e) => {
-      if (headerSettingsPanel && headerSettingsPanel.style.display === 'flex') {
-        if (!headerSettingsPanel.contains(e.target as Node) && e.target !== btnOpenHeaderSettings) {
-          headerSettingsPanel.style.display = 'none';
-        }
-      }
+    // "開啟 X" launch buttons trigger their own already-bound handler elsewhere; this just also
+    // closes the settings modal afterward so it doesn't linger behind the feature it opened.
+    headerSettingsModal?.querySelectorAll('.pm-settings-launch-btn').forEach((btn) => {
+      btn.addEventListener('click', () => closeHeaderSettings());
     });
 
     // Preset Selection (handles both Simple dropdown and Advanced tab bar)
