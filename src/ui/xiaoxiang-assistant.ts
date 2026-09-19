@@ -95,7 +95,7 @@ export class XiaoxiangAssistant {
               <span class="pm-xiang-badge">印前助手</span>
             </div>
             <div id="xiangActs" class="pm-xiang-actions">
-              <button id="btnXiangGuide" class="pm-xiang-act-btn" title="查看 3 步速成指南">💡 30秒指南</button>
+              <button id="btnXiangGuide" class="pm-xiang-act-btn" title="查看 3 步速成指南"><img src="icons/header/guide.webp" alt="" class="pm-icon-img" /> 30秒指南</button>
             </div>
           </div>
           <div id="xiangSay" class="pm-xiang-say">

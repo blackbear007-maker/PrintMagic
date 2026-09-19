@@ -66,14 +66,16 @@ export class TextInspectionModal {
     // issues." This tool doesn't read text content, so a green badge here means "not checked,"
     // not "verified correct." Worded accordingly rather than claiming a clean spelling check.
     const statusBadgeClass = typoCount > 0 ? 'pm-badge-warning' : 'pm-badge-success';
-    const statusBadgeText = typoCount > 0 ? `⚠️ 發現 ${typoCount} 處需注意` : 'ℹ️ 未讀取文字內容（僅偵測位置）';
+    const statusBadgeText = typoCount > 0
+      ? `<img src="icons/shared/warning.webp" alt="" class="pm-icon-img" /> 發現 ${typoCount} 處需注意`
+      : '<img src="icons/shared/info.webp" alt="" class="pm-icon-img" /> 未讀取文字內容（僅偵測位置）';
 
     this.overlay.innerHTML = `
       <div class="pm-modal pm-modal-lg pm-text-inspect-modal" role="dialog" aria-modal="true">
         <!-- Header -->
         <div class="pm-modal-header">
           <div style="display: flex; align-items: center; gap: 10px;">
-            <div class="pm-modal-icon-badge" style="background: rgba(60, 30, 140, 0.1); color: var(--pm-accent-blue);">📝</div>
+            <div class="pm-modal-icon-badge" style="background: rgba(60, 30, 140, 0.1); color: var(--pm-accent-blue);"><img src="icons/header/text-inspect.webp" alt="" class="pm-icon-img" /></div>
             <div>
               <h2 class="pm-modal-title">AI 智慧文字辨識與錯字檢查</h2>
               <p class="pm-modal-desc">
@@ -81,7 +83,7 @@ export class TextInspectionModal {
               </p>
             </div>
           </div>
-          <button class="pm-modal-close" id="btnCloseTextInspect" title="關閉視窗">✕</button>
+          <button class="pm-modal-close" id="btnCloseTextInspect" title="關閉視窗"><img src="icons/shared/close.webp" alt="" class="pm-icon-img" /></button>
         </div>
 
         <!-- Summary Bar -->
@@ -123,7 +125,7 @@ export class TextInspectionModal {
           <div class="pm-text-inspect-list">
             ${regions.length === 0
               ? `<div class="pm-empty-text-state">
-                   <div style="font-size: 2rem; margin-bottom: 8px;">✨</div>
+                   <div style="font-size: 2rem; margin-bottom: 8px;"><img src="icons/shared/sparkle.webp" alt="" class="pm-icon-img" style="width: 32px; height: 30px;" /></div>
                    <div style="font-weight: 700; color: var(--pm-text-primary);">未偵測到明顯文字</div>
                    <div style="font-size: 0.8rem; color: var(--pm-text-tertiary); margin-top: 4px;">本圖為純插畫/無字視覺，無錯字風險，可安心送印！</div>
                  </div>`
@@ -140,10 +142,10 @@ export class TextInspectionModal {
           <div style="display: flex; gap: 10px;">
             <button class="pm-btn pm-btn-ghost" id="btnCancelTextInspect">關閉</button>
             <button class="pm-btn pm-btn-artisan pm-btn-md" id="btnAutoFixAllK100" style="font-weight: 700;">
-              <span>⚡</span> 一鍵掃描文字區域 (需再確認內容)
+              <img src="icons/header/upscale-local.webp" alt="" class="pm-icon-img" /> 一鍵掃描文字區域 (需再確認內容)
             </button>
             <button class="pm-btn pm-btn-secondary" id="btnInspectFixWithK100">
-              <span>🔤</span> 開啟圖層編輯器 ➔
+              <img src="icons/shared/pen-nib.webp" alt="" class="pm-icon-img" /> 開啟圖層編輯器 ➔
             </button>
           </div>
         </div>
@@ -163,7 +165,7 @@ export class TextInspectionModal {
         <div class="pm-inspect-bbox ${borderClass} ${selectedClass}"
              data-region-id="${reg.id}"
              title="${this.escapeHtml(reg.text)} (${reg.isTypo ? '疑似錯字' : '正常'})">
-          <span class="pm-bbox-tag">${reg.isTypo ? '⚠️ 錯字' : reg.isBlurry ? '🔍 模糊' : '✅ 正常'}</span>
+          <span class="pm-bbox-tag">${reg.isTypo ? '<img src="icons/shared/warning.webp" alt="" class="pm-icon-img" /> 錯字' : reg.isBlurry ? '<img src="icons/shared/magnifier.webp" alt="" class="pm-icon-img" /> 模糊' : '<img src="icons/shared/check.webp" alt="" class="pm-icon-img" /> 正常'}</span>
         </div>
       `;
     }).join('');
@@ -183,17 +185,17 @@ export class TextInspectionModal {
           </div>
           <div>
             ${reg.isTypo
-              ? `<span class="pm-status-pill pm-status-warning">⚠️ 疑似異常</span>`
+              ? `<span class="pm-status-pill pm-status-warning"><img src="icons/shared/warning.webp" alt="" class="pm-icon-img" /> 疑似異常</span>`
               : reg.isBlurry
-              ? `<span class="pm-status-pill pm-status-info">🔍 邊緣偏軟</span>`
-              : `<span class="pm-status-pill pm-status-success">✅ 正常</span>`
+              ? `<span class="pm-status-pill pm-status-info"><img src="icons/shared/magnifier.webp" alt="" class="pm-icon-img" /> 邊緣偏軟</span>`
+              : `<span class="pm-status-pill pm-status-success"><img src="icons/shared/check.webp" alt="" class="pm-icon-img" /> 正常</span>`
             }
           </div>
         </div>
 
         ${reg.typoReason ? `
           <div class="pm-text-card-issue">
-            <span class="pm-issue-icon">⚠️</span>
+            <span class="pm-issue-icon"><img src="icons/shared/warning.webp" alt="" class="pm-icon-img" /></span>
             <span class="pm-issue-text">${this.escapeHtml(reg.typoReason)}</span>
           </div>
         ` : ''}
@@ -206,10 +208,10 @@ export class TextInspectionModal {
               </span>
               <div style="display: flex; gap: 6px;">
                 <button class="pm-btn pm-btn-xs pm-btn-ghost btn-copy-suggest" data-text="${this.escapeHtml(reg.suggestion)}" title="複製建議文字">
-                  📋 複製
+                  <img src="icons/shared/clipboard.webp" alt="" class="pm-icon-img" /> 複製
                 </button>
                 <button class="pm-btn pm-btn-xs pm-btn-primary btn-apply-k100-single" data-text="${this.escapeHtml(reg.suggestion)}" title="直接載入 K100 純黑文字覆蓋此字">
-                  🔤 向量修復
+                  <img src="icons/shared/pen-nib.webp" alt="" class="pm-icon-img" /> 向量修復
                 </button>
               </div>
             </div>

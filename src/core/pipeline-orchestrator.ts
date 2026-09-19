@@ -22,6 +22,8 @@ import { SceneClassifier } from './scene-classifier';
 import { LineArtUpscaler } from './line-art-upscaler';
 import { EdgeAwareUpscaler } from './edge-aware-upscaler';
 import { FreeLowlightClient } from '../services/free-lowlight-client';
+import { FreeMattingClient } from '../services/free-matting-client';
+import { BleedExpander } from './bleed-expander';
 
 /**
  * 2026-08-30 抽出自 main.ts 的 `App` 類別：main.ts 身兼「26 個獨立 UI 元件的組裝根」
@@ -120,7 +122,8 @@ export class PipelineOrchestrator {
           const srcDataUrl = state.originalDataUrl || this.imageDataToDataUrl(srcImageData);
 
           setStep('2/4 正在執行邊緣強化放大演算法...');
-          const aiResult = await AiUpscaleClient.upscale(srcDataUrl);
+          const autoModel = AiUpscaleClient.autoSelectModel(srcImageData, targetScale);
+          const aiResult = await AiUpscaleClient.upscale(srcDataUrl, autoModel);
           if (this.isStale(gen)) return this.abandonRun(activeId);
 
           if (aiResult.success && aiResult.imageData) {
@@ -230,6 +233,32 @@ export class PipelineOrchestrator {
         processedImgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         if (this.isStale(gen)) return this.abandonRun(activeId);
       }
+
+      // Step 3.6: Auto background removal for die-cut sticker presets (2026-09-19). Background
+      // removal is only safe to assume as a default for artwork that's explicitly going to be
+      // die-cut around its subject — applying it to a poster/postcard/business-card photo would
+      // destroy an intentional background, so this is gated on the preset, not a global default.
+      if (opts.enableAutoBgRemoval && preset.id === 'sticker') {
+        setStep('3/4 正在自動去背（模切貼紙預設）...');
+        const mattingResult = await FreeMattingClient.removeBackground(processedImgData);
+        processedImgData = mattingResult.imageData;
+        if (this.isStale(gen)) return this.abandonRun(activeId);
+      }
+
+      // Step 3.7: Auto bleed outpaint (mirror-extend, non-generative — see bleed-expander.ts).
+      // 2026-09-19 修正：`enableBleedExpand` 這個選項在「專家管線自訂」面板裡預設是開啟的，UI 文案
+      // 也寫「開：自動補齊 3mm」，但這裡從未真的讀取這個旗標去呼叫 BleedExpander —— 唯一會真的
+      // 補出血的地方是使用者手動點擊「補足出血」按鈕。等於這個「自動」選項從上線以來從未自動過。
+      if (opts.enableBleedExpand && preset.bleedMm > 0) {
+        setStep(`3/4 正在自動補齊 ${preset.bleedMm}mm 出血區...`);
+        const bleedResult = BleedExpander.expandBleed(processedImgData, preset, preset.bleedMm);
+        processedImgData = bleedResult.imageData;
+        if (this.isStale(gen)) return this.abandonRun(activeId);
+      }
+
+      // Bleed outpaint (and, for stickers, background removal) both change canvas dimensions —
+      // recompute so the DPI/scale figures shown to the user reflect the final delivered pixels.
+      appliedScale = processedImgData.width / srcImageData.width;
 
       // Step 4: Post-Processing Comprehensive Diagnostic & Scientific Quality Evaluation
       const { stats, inkAnalysis } = await workerClient.analyze(processedImgData);

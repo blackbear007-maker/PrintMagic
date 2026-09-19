@@ -36,10 +36,10 @@ export class MockupModal {
       <div class="pm-modal-dialog pm-mockup-dialog">
         <div class="pm-modal-header">
           <div class="pm-modal-title-group">
-            <span class="pm-modal-title">🖼️ 美術館實體情境 Mockup</span>
+            <span class="pm-modal-title"><img src="icons/shared/picture.webp" alt="" class="pm-icon-img" /> 美術館實體情境 Mockup</span>
             <span class="pm-modal-subtitle">一鍵生成真實畫廊、工作室書桌與手持名片宣傳大圖</span>
           </div>
-          <button class="pm-modal-close" id="btnMockupClose">✕</button>
+          <button class="pm-modal-close" id="btnMockupClose"><img src="icons/shared/close.webp" alt="" class="pm-icon-img" /></button>
         </div>
 
         <div class="pm-mockup-scene-tabs">
@@ -56,7 +56,7 @@ export class MockupModal {
         <div class="pm-modal-footer">
           <button class="pm-btn pm-btn-ghost" id="btnMockupCancel">關閉</button>
           <button class="pm-btn pm-btn-primary" id="btnMockupDownload">
-            <span>📷</span> 下載高解析宣傳圖 (1920×1280)
+            <img src="icons/shared/camera.webp" alt="" class="pm-icon-img" /> 下載高解析宣傳圖 (1920×1280)
           </button>
         </div>
       </div>

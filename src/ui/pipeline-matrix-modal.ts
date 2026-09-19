@@ -36,7 +36,7 @@ export class PipelineMatrixModal {
     }[] = [
       {
         key: 'enableUpscale',
-        icon: '🔍',
+        icon: '<img src="icons/shared/magnifier.webp" alt="" class="pm-icon-img" />',
         title: '8x 金字塔超解析度放大',
         desc: '將低解析原圖透過 Lanczos-3 或邊緣強化演算法放大至 300+ DPI 印刷標準（本機決定性演算法，非神經網路）。',
         defaultHint: '開：自動補足解析度',
@@ -44,7 +44,7 @@ export class PipelineMatrixModal {
       },
       {
         key: 'enableSharpening',
-        icon: '✨',
+        icon: '<img src="icons/shared/sparkle.webp" alt="" class="pm-icon-img" />',
         title: 'USM 印刷微米級邊緣銳化補償',
         desc: '抵消合版印刷網點擴大（Dot Gain）造成的字體模糊與線條柔化。',
         defaultHint: '開：銳化微細輪廓',
@@ -52,7 +52,7 @@ export class PipelineMatrixModal {
       },
       {
         key: 'enableInkLimiting',
-        icon: '🎨',
+        icon: '<img src="icons/shared/palette.webp" alt="" class="pm-icon-img" />',
         title: 'TAC 300% 總墨量強制壓制保護',
         desc: '防止暗部 CMYK 4 色油墨總和超過 300%，避免油墨未乾拖花與背印污損。',
         defaultHint: '開：限制最高 300%',
@@ -60,7 +60,7 @@ export class PipelineMatrixModal {
       },
       {
         key: 'enableShadowLift',
-        icon: '🌓',
+        icon: '<img src="icons/shared/contrast.webp" alt="" class="pm-icon-img" />',
         title: '暗部階調浮起與動態反差補償',
         desc: '針對紙張吸墨特性微調暗階，防止畫面在實體印刷時暗沉死黑。',
         defaultHint: '開：動態範圍校正',
@@ -68,7 +68,7 @@ export class PipelineMatrixModal {
       },
       {
         key: 'enableBleedExpand',
-        icon: '📐',
+        icon: '<img src="icons/shared/ruler-vector.webp" alt="" class="pm-icon-img" />',
         title: '3mm 智慧出血自動補足與鏡像延伸',
         desc: '自動為周圍邊界鏡像延伸 3mm 出血區，徹底解決裁刀誤差白邊問題。',
         defaultHint: '開：自動補齊 3mm',
@@ -76,11 +76,19 @@ export class PipelineMatrixModal {
       },
       {
         key: 'enableColorProofing',
-        icon: '🌈',
+        icon: '<img src="icons/shared/rainbow-gamut.webp" alt="" class="pm-icon-img" />',
         title: '國際 ICC 描述檔色彩映射軟打樣',
         desc: '套用 Japan Color 2001 或 ISO Coated v2 CMYK 實體印刷打樣校色。',
         defaultHint: '開：精確色域映射',
         offHint: '關：維持 sRGB 原色'
+      },
+      {
+        key: 'enableAutoBgRemoval',
+        icon: '<img src="icons/shared/scissors.webp" alt="" class="pm-icon-img" />',
+        title: '模切貼紙自動去背',
+        desc: '僅在選用「模切貼紙」規格時，上傳後自動去背，省去手動點擊「髮絲去背」的步驟。其他規格（海報/名片/明信片等）不受影響，因為那些通常需要保留背景。',
+        defaultHint: '開：貼紙自動去背',
+        offHint: '關：需手動點擊去背'
       }
     ];
 
@@ -88,12 +96,12 @@ export class PipelineMatrixModal {
       <div class="pm-modal-dialog" style="max-width: 720px; width: 92vw;">
         <div class="pm-modal-header">
           <div style="display: flex; align-items: center; gap: 10px;">
-            <span style="font-size: 1.6rem;">🎛️</span>
+            <span style="font-size: 1.6rem;"><img src="icons/header/pipeline-matrix.webp" alt="" class="pm-icon-img" /></span>
             <div>
               <div style="display: flex; align-items: center; gap: 8px;">
                 <h3 class="pm-modal-title">專家級印前管線自訂控制器</h3>
                 <span class="pm-plan-tag" style="background: rgba(52, 199, 89, 0.15); color: #248a3d; border: 1px solid rgba(52, 199, 89, 0.3); font-size: 0.68rem; font-weight: 700; padding: 2px 8px; border-radius: 12px;">
-                  ✨ 測試版全開放
+                  <img src="icons/shared/sparkle.webp" alt="" class="pm-icon-img" /> 測試版全開放
                 </span>
               </div>
               <p style="font-size: 0.78rem; color: var(--pm-text-muted); margin: 2px 0 0 0;">
@@ -101,12 +109,12 @@ export class PipelineMatrixModal {
               </p>
             </div>
           </div>
-          <button class="pm-modal-close" id="btnClosePipelineMatrix">✕</button>
+          <button class="pm-modal-close" id="btnClosePipelineMatrix"><img src="icons/shared/close.webp" alt="" class="pm-icon-img" /></button>
         </div>
 
         <div class="pm-modal-body" style="padding: 16px 24px; max-height: 70vh; overflow-y: auto;">
           <div style="background: rgba(52, 199, 89, 0.08); border: 1px solid rgba(52, 199, 89, 0.25); border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; display: flex; align-items: center; gap: 8px;">
-            <span style="color: #34c759; font-size: 1.1rem;">✓</span>
+            <img src="icons/shared/check.webp" alt="" class="pm-icon-img" />
             <span style="font-size: 0.78rem; color: #248a3d; font-weight: 600;">測試版已全面開放所有專家印前管線開關自由調整權限，調整後儲存即時生效。</span>
           </div>
 
@@ -146,7 +154,7 @@ export class PipelineMatrixModal {
 
         <div class="pm-modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
           <button class="pm-btn pm-btn-ghost pm-btn-sm" id="btnResetPipelineDefaults" style="font-size: 0.78rem; color: var(--pm-text-secondary);">
-            🔄 重置為全自動預設值
+            <img src="icons/shared/refresh.webp" alt="" class="pm-icon-img" /> 重置為全自動預設值
           </button>
           <div style="display: flex; gap: 10px;">
             <button class="pm-btn pm-btn-secondary" id="btnCancelPipelineMatrix">關閉</button>

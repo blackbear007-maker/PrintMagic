@@ -120,10 +120,10 @@ export class DirectPrintModal {
       <div class="pm-modal-dialog pm-direct-print-dialog">
         <div class="pm-modal-header">
           <div class="pm-modal-title-group">
-            <span class="pm-modal-title">🏭 台灣在地印刷廠一鍵估價與直通送印</span>
+            <span class="pm-modal-title"><img src="icons/shared/factory.webp" alt="" class="pm-icon-img" /> 台灣在地印刷廠一鍵估價與直通送印</span>
             <span class="pm-modal-subtitle">已整合【${preset.nameZh}】標準規格，估算四大合版廠參考價格並打包標準工單（估價公式，非即時串接廠商報價）</span>
           </div>
-          <button class="pm-modal-close" id="btnDirectPrintClose">✕</button>
+          <button class="pm-modal-close" id="btnDirectPrintClose"><img src="icons/shared/close.webp" alt="" class="pm-icon-img" /></button>
         </div>
 
         <!-- 3-Step Beginner Guide -->
@@ -154,7 +154,7 @@ export class DirectPrintModal {
               ${shopTabsHtml}
             </div>
             <div class="pm-pricing-shop-desc">
-              ℹ️ <strong>${currentShop.name}</strong>：${currentShop.description}
+              <img src="icons/shared/info.webp" alt="" class="pm-icon-img" /> <strong>${currentShop.name}</strong>：${currentShop.description}
             </div>
           </div>
 
@@ -194,7 +194,7 @@ export class DirectPrintModal {
 
             <div class="pm-summary-right-actions">
               <button id="btnDownloadOrderPackage" class="pm-btn pm-btn-artisan pm-btn-lg" ${this.isPackaging ? 'disabled' : ''}>
-                <span>${this.isPackaging ? '⏳' : '📦'}</span>
+                <span>${this.isPackaging ? '<img src="icons/shared/hourglass.webp" alt="" class="pm-icon-img" />' : '<img src="icons/shared/package-box.webp" alt="" class="pm-icon-img" />'}</span>
                 <span>${this.isPackaging ? '正在打包工單封包中...' : '一鍵打包送印工單 (ZIP)'}</span>
               </button>
             </div>
@@ -203,13 +203,13 @@ export class DirectPrintModal {
           <!-- Secondary Action Bar -->
           <div class="pm-pricing-secondary-bar">
             <button id="btnCopyPrintSpec" class="pm-btn pm-btn-ghost pm-btn-sm" title="複製完整規格備註，直接貼在店家下單備註或 LINE 官方帳號">
-              <span>📋</span> 複製送印備註 (LINE/官網專用)
+              <img src="icons/shared/clipboard.webp" alt="" class="pm-icon-img" /> 複製送印備註 (LINE/官網專用)
             </button>
             <a href="${currentShop.onlineUploadUrl}" target="_blank" rel="noopener noreferrer" class="pm-btn pm-btn-secondary pm-btn-sm" title="前往該印刷廠官網線上傳檔系統">
-              <span>🌐</span> 直通【${currentShop.shortName}】官網傳檔 ↗
+              <span><img src="icons/shared/globe.webp" alt="" class="pm-icon-img" /></span> 直通【${currentShop.shortName}】官網傳檔 ↗
             </a>
             <button id="btnOpenNearbyShops" class="pm-btn pm-btn-ghost pm-btn-sm" title="查看周邊門市 Google Maps 導航">
-              <span>📍</span> 查詢全台門市地圖
+              <img src="icons/shared/pin-location.webp" alt="" class="pm-icon-img" /> 查詢全台門市地圖
             </button>
           </div>
         </div>

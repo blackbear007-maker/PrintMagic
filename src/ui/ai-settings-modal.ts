@@ -1,48 +1,14 @@
 import { Toast } from './toast';
 import { SoundEffects } from '../core/sound-effects';
-import { AI_MODELS, AiUpscaleClient, type AiModelType } from '../services/ai-upscale-client';
 import { NetworkGuard } from '../services/network-guard';
 
 /**
- * ⚙️ 引擎設定面板 — 誠實版
+ * ⚙️ 引擎設定面板
  *
- * 這裡曾經是一個模擬 24+ 個雲端 AI 供應商配額/品質路由的儀表板（進度條、額度百分比、自動切換徽章），
- * 但沒有一行程式碼真的呼叫過那些供應商 —— 全部是本機模擬的假帳本。已整個移除，改成如實呈現：
- * 2 個自建服務容器（VTracer、PyTorch 視覺服務）+ 一律會用到的本機決定性演算法。
- * 誠實現況（2026-08-29）：VTracer 是真正能建置、運作的服務。PyTorch/ONNX 視覺服務容器裡實際跑
- * 5 個模型：Real-ESRGAN、LaMa、rembg、YuNet（真實訓練權重，建置時自動下載）、Retinexformer
- * （真實訓練權重，作者無自動下載網址，2026-08-26 已手動下載並直接提交進 git——因為
- * Railway 是從 git 建置這個服務，只存在本機的權重檔案永遠不會真正部署上去，見
- * docker/zero-dce/weights/README.md）。
- * Retinexformer 已於 2026-08-26 取代原本從未載入訓練權重的 Zero-DCE++，成為低光提亮功能的
- * 真實模型（權重檔案已驗證：strict=True 完整載入 122 個張量無缺漏，真實推論成功讓測試圖片變亮）。
- * DehazeFormer-T（去霧）於 2026-08-26 加入、2026-08-27 評估後移除——真實模型本身能正常運作（權重檔案
- * 驗證通過：strict=True 完整載入 258 個張量無缺漏，真實推論讓對比度提升逾 3 倍），但去霧只對戶外霧霾
- * 遠景照片有幫助，跟本站證件照/名片/貼紙等典型使用情境重疊度低，也不是印刷特化能力（跟一般修圖軟體
- * 處理邏輯相同），詳見 docs/SPEC.md 的評估紀錄。同一天再進一步確認印前處理根本不需要這個功能，連本機
- * 大氣散射模型退回演算法（原本的 `contrast-dehaze-filter.ts`）也一併移除，去霧從此在本站完全不存在。
- * LaMa（物件／浮水印移除）於 2026-08-26 加入，TorchScript 權重可自動下載，已驗證：torch.jit.load()
- * 成功、真實推論乾淨移除模擬「浮水印」色塊測試區域（移除區域內 0% 殘留原色，且修正了上游
- * simple-lama-inpainting 套件遺漏的「輸出裁切回原始尺寸」錯誤）。
- * rembg（去背，固定 u2netp session）與 YuNet（人臉偵測）於 2026-08-27 加入，兩者跑在 ONNX
- * Runtime/OpenCV DNN 後端而非 PyTorch。已驗證：rembg 在有紋理漸層背景的合成測試圖上正確分離主體
- * 與背景（取代原本只能處理單一色背景的色鍵去背）；YuNet 對合成測試圖成功偵測人臉，信心分數 84.2%。
- * ICC 真實色彩管理（軟打樣）於 2026-08-27 加入——不是模型，是 Pillow 的 ImageCms 模組本來就內建的
- * LittleCMS（已驗證 Pillow 10.3.0 內建 lcms2 2.16，requirements.txt 無需新增任何套件）。此功能需要
- * 使用者自行上傳自己印刷廠的 CMYK ICC 描述檔——本專案刻意不內建/散布任何具名描述檔（FOGRA／SWOP／
- * GRACoL 等），因為查證 ICC 官方描述檔登錄庫後發現這些檔案本身「未經書面同意不得散布、出售或更改」。
- * 已驗證：用一份真實 CMYK 描述檔實測，軟打樣色彩確實產生可測量位移，逐像素總墨量（TAC）數值也合理。
- * 曾評估過的 GFPGAN（人像修復）、DDColor（老照片上色）、Florence-2（浮水印自動定位）皆決定不採用
- * ——技術可行，但與印前處理定位不符或成本過高，詳見 docs/SPEC.md 的評估紀錄。
- * ARNIQA（無參考影像品質評分）曾於 2026-08-25 加入並真實上線運作，2026-08-29 評估後移除——
- * 訓練依據是一般網路照片的人類主觀評分，量的是「照片好不好看」而非「印刷會不會出錯」，跟
- * GFPGAN/DDColor 是同一類定位問題，詳見 docs/SPEC.md 的評估紀錄。ARNIQA 的本機備援
- * PixelStatQualityAssessor 同日一併移除——拿掉 ARNIQA 後才發現它其實跟 PrintScoreCalculator
- * 重疊：兩者各自重新掃一次全圖算銳利度與對比度，而 PrintScoreCalculator 用真正的 Sobel 邊緣偵測
- * 與 P5/P95 動態範圍百分位，本來就是同一組訊號更準確的版本。現在全站只剩一個評分：
- * PrintScoreCalculator 的 7 因子印前評分，在比較滑桿（compare-slider.ts）呈現原圖 vs 處理後對比。
- * OCR（Tesseract）已於 2026-08-26 移除——查證後發現它從未被任何 UI 功能實際呼叫，而它原本
- * 想解決的問題（讀取 AI 繪圖產生的亂碼假文字）OCR 本來就解不了，因為那些筆畫通常根本不是真實字元。
+ * 2026-09-19 簡化：使用者只需要決定「要不要用雲端」，不需要知道背後是哪些自建服務/模型/授權
+ * 條款——面板從一份完整技術清單（VTracer/Real-ESRGAN/LaMa/rembg/YuNet/ICC 等）簡化成單一
+ * 100% 本機模式開關。完整的技術誠實揭露歷史（哪些模型真的有跑、驗證過程、移除過的模型與原因）
+ * 保留在 docs/SPEC.md，不在使用者介面重複呈現。
  */
 export class AiSettingsModal {
   private modalEl: HTMLElement;
@@ -60,73 +26,31 @@ export class AiSettingsModal {
   }
 
   public render(): void {
-    const currentModel = AiUpscaleClient.getStoredModel();
     const isPrivacyShieldActive = NetworkGuard.isPrivacyShieldActive();
 
-    const realServices = [
-      {
-        icon: '📐',
-        name: 'VTracer 點陣轉向量',
-        desc: '真實開源 Rust 向量化工具，貝茲曲線擬合。'
-      },
-      {
-        icon: '🔍',
-        name: 'Real-ESRGAN 4x 超解析度放大',
-        desc: '真實訓練權重（BSD-3-Clause），開箱即用。離線時自動退回本機邊緣強化演算法。'
-      },
-      {
-        icon: '☀️',
-        name: 'Retinexformer 低光照片提亮',
-        desc: '真實訓練權重（MIT，ICCV 2023），開箱即用（作者無自動下載網址，權重已手動下載並提交進 git）。離線時自動退回本機曲線估計演算法。'
-      },
-      {
-        icon: '🪄',
-        name: 'LaMa 物件／浮水印移除',
-        desc: '真實訓練權重（Apache-2.0），TorchScript 格式，開箱即用（建置時自動下載）。離線時自動退回本機 Navier-Stokes 畫布修復演算法。'
-      },
-      {
-        icon: '✂️',
-        name: 'rembg 髮絲級去背',
-        desc: '真實訓練權重（MIT，固定使用 u2netp session），開箱即用（建置時自動下載）。離線時自動退回本機顏色距離去背演算法（僅適合單一色背景）。'
-      },
-      {
-        icon: '🧑',
-        name: 'YuNet 人臉偵測',
-        desc: '真實訓練權重（Apache-2.0/MIT），開箱即用（建置時自動下載）。沒有本機備援——離線時誠實回報不可用，本專案沒有現成的本機人臉偵測演算法可退回。'
-      },
-      {
-        icon: '🖨️',
-        name: 'ICC 真實色彩管理（軟打樣）',
-        desc: '真實 LittleCMS 色彩轉換（透過 Pillow 的 ImageCms，MIT），需自行上傳你印刷廠的 CMYK 描述檔（.icc/.icm）才會啟用——本專案不內建任何具名描述檔。未上傳描述檔，或此服務離線時，軟打樣會自動退回內建的近似色彩模擬（非真實描述檔運算）。'
-      }
-    ];
-
     this.modalEl.innerHTML = `
-      <div class="pm-modal-dialog" style="max-width: 640px; width: 94vw;">
+      <div class="pm-modal-dialog" style="max-width: 480px; width: 94vw;">
         <div class="pm-modal-header">
           <div style="display: flex; align-items: center; gap: 10px;">
-            <span style="font-size: 1.6rem;">⚙️</span>
+            <img src="icons/header/mode-advanced.webp" alt="" class="pm-icon-img" />
             <div>
               <h3 class="pm-modal-title">引擎設定</h3>
-              <p style="font-size: 0.78rem; color: var(--pm-text-muted); margin: 2px 0 0 0;">
-                誠實列出目前真正在運作的服務與演算法
-              </p>
             </div>
           </div>
-          <button class="pm-modal-close" id="btnCloseAiSettings">✕</button>
+          <button class="pm-modal-close" id="btnCloseAiSettings"><img src="icons/shared/close.webp" alt="" class="pm-icon-img" /></button>
         </div>
 
-        <div class="pm-modal-body" style="padding: 16px 20px; max-height: 76vh; overflow-y: auto; display: flex; flex-direction: column; gap: 14px;">
+        <div class="pm-modal-body" style="padding: 16px 20px; display: flex; flex-direction: column; gap: 14px;">
           <!-- Privacy Shield -->
           <div style="background: ${isPrivacyShieldActive ? 'linear-gradient(135deg, rgba(88,86,214,0.12) 0%, rgba(60,30,140,0.08) 100%)' : 'rgba(0,0,0,0.02)'}; border: 1.5px solid ${isPrivacyShieldActive ? 'var(--pm-accent-purple, #4b2aa8)' : 'var(--pm-border-subtle)'}; border-radius: 12px; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s ease;">
             <div style="display: flex; align-items: center; gap: 10px;">
-              <span style="font-size: 1.4rem;">🔒</span>
+              <img src="icons/shared/lock.webp" alt="" class="pm-icon-img" />
               <div>
                 <div style="font-size: 0.86rem; font-weight: 700; color: var(--pm-text-primary);">100% 本機模式</div>
-                <div style="font-size: 0.72rem; color: var(--pm-text-muted); margin-top: 1px; max-width: 380px;">
+                <div style="font-size: 0.72rem; color: var(--pm-text-muted); margin-top: 1px; max-width: 300px;">
                   ${isPrivacyShieldActive
-                    ? '已開啟：圖片絕不離開你的裝置，完全跳過下方自建服務，只用本機演算法。'
-                    : '關閉時，會優先嘗試下方自建服務以取得更好結果（品質較高，但圖片會傳到你部署的伺服器），離線時自動退回本機演算法。開啟後強制只用本機演算法。'}
+                    ? '已開啟：圖片絕不離開你的裝置。'
+                    : '關閉時會優先嘗試雲端以取得更好結果，離線時自動退回本機處理。'}
                 </div>
               </div>
             </div>
@@ -135,46 +59,6 @@ export class AiSettingsModal {
               <span style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: ${isPrivacyShieldActive ? '#34c759' : '#ccc'}; border-radius: 24px; transition: .3s;"></span>
               <span style="position: absolute; content: ''; height: 18px; width: 18px; left: ${isPrivacyShieldActive ? '23px' : '3px'}; bottom: 3px; background-color: white; border-radius: 50%; transition: .3s;"></span>
             </label>
-          </div>
-
-          <!-- Real self-hosted services -->
-          <div style="background: rgba(0, 0, 0, 0.02); border: 1.5px solid var(--pm-border-subtle); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 10px;">
-            <div style="font-size: 0.86rem; font-weight: 700; color: var(--pm-text-primary);">自建服務（2 個容器 · 8 項功能，詳見各項說明）</div>
-            ${realServices.map((s) => `
-              <div style="display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; ${s !== realServices[realServices.length - 1] ? 'border-bottom: 1px solid var(--pm-border-subtle);' : ''}">
-                <span style="font-size: 1.1rem;">${s.icon}</span>
-                <div>
-                  <div style="font-size: 0.8rem; font-weight: 600; color: var(--pm-text-primary);">${s.name}</div>
-                  <div style="font-size: 0.72rem; color: var(--pm-text-muted); margin-top: 1px;">${s.desc}</div>
-                </div>
-              </div>
-            `).join('')}
-            <div style="font-size: 0.7rem; color: var(--pm-text-muted); padding-top: 4px;">
-              以上服務離線時，系統會自動退回本機決定性演算法（結果標籤會誠實標示「本機」，不會冒充雲端服務）——唯獨 YuNet 人臉偵測沒有本機備援，離線時該功能直接不可用，不會假造一個「本機演算法」來冒充。
-            </div>
-          </div>
-
-          <!-- Local upscale presets -->
-          <div style="background: rgba(0, 0, 0, 0.02); border: 1.5px solid var(--pm-border-subtle); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 10px;">
-            <label style="font-size: 0.86rem; font-weight: 700; color: var(--pm-text-primary); display: flex; align-items: center; gap: 6px;">
-              <span>🌐</span> 放大演算法設定
-            </label>
-            <div style="font-size: 0.72rem; color: var(--pm-text-muted); margin-top: -4px;">
-              以下都是同一套本機決定性演算法（雙線性插值 + 邊緣強化），差別只在放大倍率與銳化強度，不是不同的 AI 模型。
-            </div>
-            <div style="display: flex; flex-direction: column; gap: 8px;">
-              ${AI_MODELS.map(
-                (m) => `
-                <label style="display: flex; align-items: flex-start; gap: 8px; padding: 8px 10px; background: #ffffff; border: 1.5px solid ${currentModel === m.id ? 'var(--pm-accent-blue)' : 'var(--pm-border-subtle)'}; border-radius: var(--pm-radius-sm); cursor: pointer; transition: all 0.15s ease;">
-                  <input type="radio" name="aiModelChoice" value="${m.id}" ${currentModel === m.id ? 'checked' : ''} style="margin-top: 3px; accent-color: var(--pm-accent-blue);" />
-                  <div style="flex: 1;">
-                    <div style="font-weight: 700; font-size: 0.8rem; color: var(--pm-text-primary);">${m.name}</div>
-                    <div style="font-size: 0.7rem; color: var(--pm-text-muted); margin-top: 1px; line-height: 1.25;">${m.desc}</div>
-                  </div>
-                </label>
-              `
-              ).join('')}
-            </div>
           </div>
         </div>
 
@@ -205,11 +89,6 @@ export class AiSettingsModal {
       }
 
       if (target.id === 'btnSaveAiSettings') {
-        const selectedRadio = this.modalEl.querySelector<HTMLInputElement>('input[name="aiModelChoice"]:checked');
-        if (selectedRadio) {
-          AiUpscaleClient.setStoredModel(selectedRadio.value as AiModelType);
-        }
-
         SoundEffects.purityChime();
         Toast.success('✓ 設定已儲存！');
         this.close();

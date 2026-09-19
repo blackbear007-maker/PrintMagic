@@ -89,10 +89,10 @@ export class ImpositionModal {
       <div class="pm-modal-dialog pm-imposition-dialog">
         <div class="pm-modal-header">
           <div class="pm-modal-title-group">
-            <span class="pm-modal-title">🧩 智慧自動拼模引擎 (A4 / A3 拼版)</span>
+            <span class="pm-modal-title"><img src="icons/shared/puzzle.webp" alt="" class="pm-icon-img" /> 智慧自動拼模引擎 (A4 / A3 拼版)</span>
             <span class="pm-modal-subtitle">將名片、貼紙、明信片或證件照自動排列鋪滿一張紙，印一張抵多張，現省高達 ${this.layout.costSavingsPercent}% 印刷費！</span>
           </div>
-          <button class="pm-modal-close" id="btnImpositionClose">✕</button>
+          <button class="pm-modal-close" id="btnImpositionClose"><img src="icons/shared/close.webp" alt="" class="pm-icon-img" /></button>
         </div>
 
         <div class="pm-imposition-body">
@@ -102,10 +102,10 @@ export class ImpositionModal {
             <div class="pm-toggle-group">
               <span class="pm-preset-label">拼版紙張：</span>
               <button class="pm-tool-btn ${this.sheetPreset === 'A4' ? 'active' : ''}" data-sheet="A4">
-                📄 A4 紙張 (210×297mm)
+                <img src="icons/shared/document-page.webp" alt="" class="pm-icon-img" /> A4 紙張 (210×297mm)
               </button>
               <button class="pm-tool-btn ${this.sheetPreset === 'A3' ? 'active' : ''}" data-sheet="A3">
-                🖼️ A3 大紙 (297×420mm)
+                <img src="icons/shared/picture.webp" alt="" class="pm-icon-img" /> A3 大紙 (297×420mm)
               </button>
             </div>
 
@@ -113,10 +113,10 @@ export class ImpositionModal {
             <div class="pm-toggle-group">
               <span class="pm-preset-label">拼排模式：</span>
               <button class="pm-tool-btn ${this.isRepeatSingle ? 'active' : ''}" data-mode="single">
-                🔁 單圖自動鋪滿 (${this.layout.totalCells} 模)
+                <img src="icons/shared/refresh.webp" alt="" class="pm-icon-img" /> 單圖自動鋪滿 (${this.layout.totalCells} 模)
               </button>
               <button class="pm-tool-btn ${!this.isRepeatSingle ? 'active' : ''}" data-mode="multi">
-                📚 批次多圖混拼
+                <img src="icons/shared/book.webp" alt="" class="pm-icon-img" /> 批次多圖混拼
               </button>
             </div>
           </div>
@@ -135,17 +135,17 @@ export class ImpositionModal {
                 <span class="pm-summary-tax">模 (${this.layout.cols} 列 × ${this.layout.rows} 行)</span>
               </div>
               <div class="pm-summary-unit-price">
-                ✓ 包含 0.1mm 裁切十字線與 3mm 安全間距 · 印刷成本立省 <strong>${this.layout.costSavingsPercent}%</strong>！
+                <img src="icons/shared/check.webp" alt="" class="pm-icon-img" /> 包含 0.1mm 裁切十字線與 3mm 安全間距 · 印刷成本立省 <strong>${this.layout.costSavingsPercent}%</strong>！
               </div>
             </div>
 
             <div class="pm-summary-right-actions">
               <button id="btnDownloadImpositionPdf" class="pm-btn pm-btn-artisan pm-btn-lg" ${this.isGenerating ? 'disabled' : ''}>
-                <span>${this.isGenerating ? '⏳' : '📄'}</span>
+                <span>${this.isGenerating ? '<img src="icons/shared/hourglass.webp" alt="" class="pm-icon-img" />' : '<img src="icons/shared/document-page.webp" alt="" class="pm-icon-img" />'}</span>
                 <span>${this.isGenerating ? '正在輸出 PDF...' : `下載 ${this.layout.sheetPreset} 拼模標準 PDF`}</span>
               </button>
               <button id="btnDownloadImpositionPng" class="pm-btn pm-btn-secondary pm-btn-md">
-                <span>📥</span> 下載 300 DPI 拼模圖 (PNG)
+                <img src="icons/shared/download.webp" alt="" class="pm-icon-img" /> 下載 300 DPI 拼模圖 (PNG)
               </button>
             </div>
           </div>

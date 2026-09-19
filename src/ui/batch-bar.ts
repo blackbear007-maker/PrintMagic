@@ -77,7 +77,7 @@ export class BatchBar {
               <img src="${thumbSrc}" alt="${safeName}" class="pm-film-thumb" />
               ${isProcessing ? '<div class="pm-film-spinner"><div class="pm-mini-spinner"></div></div>' : ''}
               ${scoreBadge}
-              <button class="pm-film-remove" data-remove-id="${item.id}" title="移除此作品">✕</button>
+              <button class="pm-film-remove" data-remove-id="${item.id}" title="移除此作品"><img src="icons/shared/close.webp" alt="" class="pm-icon-img" /></button>
             </div>
             <div class="pm-film-meta">
               <span class="pm-film-num">#${idx + 1}</span>
@@ -92,7 +92,7 @@ export class BatchBar {
       <div class="pm-batch-bar-inner">
         <div class="pm-batch-header">
           <div class="pm-batch-title-group">
-            <span class="pm-batch-icon">🎞️</span>
+            <span class="pm-batch-icon"><img src="icons/shared/filmstrip.webp" alt="" class="pm-icon-img" /></span>
             <span class="pm-batch-title">畫廊工作台</span>
             <span class="pm-batch-count">(${items.length}/20 張作品)</span>
           </div>
@@ -102,10 +102,10 @@ export class BatchBar {
               <span>＋</span> ${items.length >= 20 ? '已達上限 (20/20)' : '加入圖片'}
             </button>
             <button id="btnBatchOptimize" class="pm-btn pm-btn-artisan pm-btn-sm" title="一鍵將全部作品自動分析並套用印刷優化">
-              <span>⚡</span> 批次全優化
+              <img src="icons/header/upscale-local.webp" alt="" class="pm-icon-img" /> 批次全優化
             </button>
             <button id="btnBatchExportPdf" class="pm-btn pm-btn-primary pm-btn-sm" title="一鍵將全部作品連續匯出標準印刷 PDF">
-              <span>📦</span> 批次匯出全部
+              <img src="icons/shared/package-box.webp" alt="" class="pm-icon-img" /> 批次匯出全部
             </button>
           </div>
         </div>

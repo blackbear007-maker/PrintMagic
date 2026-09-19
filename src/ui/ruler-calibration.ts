@@ -35,10 +35,10 @@ export class RulerCalibrationModal {
       <div class="pm-modal-dialog pm-calibration-dialog">
         <div class="pm-modal-header">
           <div class="pm-modal-title-group">
-            <span class="pm-modal-title">📏 實體 1:1 螢幕真尺寸校準</span>
+            <span class="pm-modal-title"><img src="icons/header/calibration.webp" alt="" class="pm-icon-img" /> 實體 1:1 螢幕真尺寸校準</span>
             <span class="pm-modal-subtitle">拿一張隨身信用卡/健保卡貼在螢幕上，調整至完全重合即可精確校準螢幕像素密度</span>
           </div>
-          <button class="pm-modal-close" id="btnCalibClose">✕</button>
+          <button class="pm-modal-close" id="btnCalibClose"><img src="icons/shared/close.webp" alt="" class="pm-icon-img" /></button>
         </div>
 
         <div class="pm-calib-body">
@@ -51,7 +51,7 @@ export class RulerCalibrationModal {
                 <div class="pm-calib-ruler-marks">
                   <span>|</span><span>|</span><span>|</span><span>|</span><span>|</span><span>|</span><span>|</span><span>|</span>
                 </div>
-                <div class="pm-calib-hint">💳 請將實體卡片貼在畫面上對齊</div>
+                <div class="pm-calib-hint"><img src="icons/shared/credit-card.webp" alt="" class="pm-icon-img" /> 請將實體卡片貼在畫面上對齊</div>
               </div>
             </div>
           </div>
@@ -87,7 +87,7 @@ export class RulerCalibrationModal {
         <div class="pm-modal-footer">
           <button class="pm-btn pm-btn-ghost" id="btnCalibCancel">取消</button>
           <button class="pm-btn pm-btn-primary" id="btnCalibSave">
-            <span>✓</span> 儲存校準並開啟 1:1 檢視
+            <img src="icons/shared/check.webp" alt="" class="pm-icon-img" /> 儲存校準並開啟 1:1 檢視
           </button>
         </div>
       </div>

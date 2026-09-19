@@ -65,7 +65,7 @@ export class ObjectEraserModal {
         <!-- Header -->
         <div class="pm-modal-header">
           <div style="display: flex; align-items: center; gap: 10px;">
-            <div class="pm-modal-icon-badge" style="background: rgba(255, 45, 85, 0.1); color: #ff2d55; font-size: 1.4rem;">🪄</div>
+            <div class="pm-modal-icon-badge" style="background: rgba(255, 45, 85, 0.1); color: #ff2d55; font-size: 1.4rem;"><img src="icons/shared/magic-wand.webp" alt="" class="pm-icon-img" /></div>
             <div>
               <h2 class="pm-modal-title">智慧消除筆 / 物件移除</h2>
               <p class="pm-modal-desc">
@@ -73,14 +73,14 @@ export class ObjectEraserModal {
               </p>
             </div>
           </div>
-          <button class="pm-modal-close" id="btnCloseEraser" title="關閉視窗">✕</button>
+          <button class="pm-modal-close" id="btnCloseEraser" title="關閉視窗"><img src="icons/shared/close.webp" alt="" class="pm-icon-img" /></button>
         </div>
 
         <!-- Floating Interactive Toolbar -->
         <div class="pm-eraser-toolbar">
           <div class="pm-eraser-tool-group">
             <label class="pm-eraser-tool-label">
-              <span>🖌️ 筆刷大小：</span>
+              <span><img src="icons/shared/paintbrush.webp" alt="" class="pm-icon-img" /> 筆刷大小：</span>
               <span id="brushSizeVal" style="font-weight: 700; color: var(--pm-accent-blue); min-width: 32px;">${this.brushSize}px</span>
             </label>
             <input type="range" id="inputBrushSize" min="8" max="96" value="${this.brushSize}" class="pm-slider-range" style="width: 110px;" />
@@ -88,19 +88,19 @@ export class ObjectEraserModal {
 
           <div class="pm-eraser-tool-group">
             <button id="btnToggleEraserMode" class="pm-btn pm-btn-ghost pm-btn-xs" title="切換塗抹 / 擦除選區">
-              <span id="eraserModeIcon">🖌️</span> <span id="eraserModeText">塗抹選區</span>
+              <span id="eraserModeIcon"><img src="icons/shared/paintbrush.webp" alt="" class="pm-icon-img" /></span> <span id="eraserModeText">塗抹選區</span>
             </button>
             <button id="btnClearMask" class="pm-btn pm-btn-ghost pm-btn-xs" title="清空全部塗抹選區">
-              <span>🗑️</span> 清空選區
+              <img src="icons/shared/trash.webp" alt="" class="pm-icon-img" /> 清空選區
             </button>
           </div>
 
           <div class="pm-eraser-tool-group" style="margin-left: auto;">
             <button id="btnRunInpaint" class="pm-btn pm-btn-primary pm-btn-sm" style="background: linear-gradient(135deg, #ff2d55, #af52de); border: none; font-weight: 700; box-shadow: 0 4px 14px rgba(255, 45, 85, 0.35);">
-              <span>✨</span> 開始消除
+              <img src="icons/shared/sparkle.webp" alt="" class="pm-icon-img" /> 開始消除
             </button>
             <button id="btnToggleCompareResult" class="pm-btn pm-btn-secondary pm-btn-sm" style="display: none;">
-              <span>👁️</span> 查看原圖
+              <img src="icons/shared/eye.webp" alt="" class="pm-icon-img" /> 查看原圖
             </button>
           </div>
         </div>
@@ -125,7 +125,7 @@ export class ObjectEraserModal {
         <div class="pm-modal-footer">
           <button class="pm-btn pm-btn-ghost" id="btnCancelEraser">取消</button>
           <button class="pm-btn pm-btn-primary" id="btnApplyEraser" disabled style="box-shadow: 0 4px 12px rgba(60, 30, 140, 0.28);">
-            <span>🌟</span> 套用並更新印刷檔
+            <img src="icons/shared/star-cta.webp" alt="" class="pm-icon-img" /> 套用並更新印刷檔
           </button>
         </div>
       </div>
@@ -174,7 +174,9 @@ export class ObjectEraserModal {
     const modeText = document.getElementById('eraserModeText');
     btnToggleMode?.addEventListener('click', () => {
       this.isEraserMode = !this.isEraserMode;
-      if (modeIcon) modeIcon.textContent = this.isEraserMode ? '🧽' : '🖌️';
+      if (modeIcon) modeIcon.innerHTML = this.isEraserMode
+        ? '<img src="icons/shared/sponge-erase.webp" alt="" class="pm-icon-img" />'
+        : '<img src="icons/shared/paintbrush.webp" alt="" class="pm-icon-img" />';
       if (modeText) modeText.textContent = this.isEraserMode ? '擦除選區' : '塗抹選區';
       btnToggleMode.classList.toggle('active', this.isEraserMode);
       SoundEffects.sliderTick();
@@ -345,7 +347,9 @@ export class ObjectEraserModal {
       if (!this.currentResultImageData || !this.currentSrcImageData) return;
       this.isComparing = !this.isComparing;
       btnCompare.classList.toggle('active', this.isComparing);
-      btnCompare.innerHTML = this.isComparing ? '<span>👁️</span> 顯示消除後' : '<span>👁️</span> 查看原圖';
+      btnCompare.innerHTML = this.isComparing
+        ? '<img src="icons/shared/eye.webp" alt="" class="pm-icon-img" /> 顯示消除後'
+        : '<img src="icons/shared/eye.webp" alt="" class="pm-icon-img" /> 查看原圖';
 
       imgCtx.putImageData(this.isComparing ? this.currentSrcImageData : this.currentResultImageData, 0, 0);
       SoundEffects.sliderTick();

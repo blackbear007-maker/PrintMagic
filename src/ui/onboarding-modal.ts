@@ -31,7 +31,7 @@ export class OnboardingModal {
               </p>
             </div>
           </div>
-          <button class="pm-modal-close" id="btnCloseOnboarding">✕</button>
+          <button class="pm-modal-close" id="btnCloseOnboarding"><img src="icons/shared/close.webp" alt="" class="pm-icon-img" /></button>
         </div>
 
         <div class="pm-modal-body" style="padding: 20px 16px;">
@@ -44,7 +44,7 @@ export class OnboardingModal {
               </div>
               <div>
                 <h4 style="font-size: 0.96rem; font-weight: 700; color: var(--pm-text-primary); margin: 0 0 4px 0;">
-                  📸 選擇相片、拍照掃描或貼上剪貼簿
+                  <img src="icons/shared/camera.webp" alt="" class="pm-icon-img" /> 選擇相片、拍照掃描或貼上剪貼簿
                 </h4>
                 <p style="font-size: 0.8rem; color: var(--pm-text-secondary); margin: 0; line-height: 1.45;">
                   直接將照片拖入畫面或用手機相機掃描匯入，點選<strong>「貼紙 / 海報 / 明信片 / 名片」</strong>自動適配印刷尺寸，並依版型加上出血。
@@ -59,10 +59,10 @@ export class OnboardingModal {
               </div>
               <div>
                 <h4 style="font-size: 0.96rem; font-weight: 700; color: var(--pm-text-primary); margin: 0 0 4px 0;">
-                  🔍 自動放大補足 DPI 與 100 分印前健檢
+                  <img src="icons/shared/magnifier.webp" alt="" class="pm-icon-img" /> 自動放大補足 DPI 與 100 分印前健檢
                 </h4>
                 <p style="font-size: 0.8rem; color: var(--pm-text-secondary); margin: 0; line-height: 1.45;">
-                  系統在<strong>依目標 DPI 自動放大</strong>、USM 銳化與 CMYK 墨量安全防護。看到懸浮膠囊亮起 <strong style="color: var(--pm-status-success);">100分 ✨ 完美就緒</strong> 即可安心輸出！
+                  系統在<strong>依目標 DPI 自動放大</strong>、USM 銳化與 CMYK 墨量安全防護。看到懸浮膠囊亮起 <strong style="color: var(--pm-status-success);">100分 <img src="icons/shared/sparkle.webp" alt="" class="pm-icon-img" /> 完美就緒</strong> 即可安心輸出！
                 </p>
               </div>
             </div>
@@ -74,10 +74,10 @@ export class OnboardingModal {
               </div>
               <div>
                 <h4 style="font-size: 0.96rem; font-weight: 700; color: var(--pm-text-primary); margin: 0 0 4px 0;">
-                  📦 一鍵下載標準 PDF 或超商列印檔
+                  <img src="icons/shared/package-box.webp" alt="" class="pm-icon-img" /> 一鍵下載標準 PDF 或超商列印檔
                 </h4>
                 <p style="font-size: 0.8rem; color: var(--pm-text-secondary); margin: 0; line-height: 1.45;">
-                  點擊<strong>「🌟 一鍵下載標準印刷檔 (PDF)」</strong>直接送交印刷廠出機，或點擊<strong>「🏪 超商列印檔案產生器」</strong>下載排版好的檔案，再透過超商官網上傳取得取件碼。
+                  點擊<strong>「<img src="icons/shared/star-cta.webp" alt="" class="pm-icon-img" /> 一鍵下載標準印刷檔 (PDF)」</strong>直接送交印刷廠出機，或點擊<strong>「<img src="icons/shared/store.webp" alt="" class="pm-icon-img" /> 超商列印檔案產生器」</strong>下載排版好的檔案，再透過超商官網上傳取得取件碼。
                 </p>
               </div>
             </div>
@@ -86,7 +86,7 @@ export class OnboardingModal {
 
         <div class="pm-modal-footer" style="justify-content: space-between;">
           <span style="font-size: 0.76rem; color: var(--pm-text-muted);">
-            💡 預設在本機處理，圖片不會上傳；需要 AI 服務時再切換到自建服務模式
+            💡 預設在本機處理，圖片不會上傳；需要 AI 服務時再切換到雲端高階功能
           </span>
           <button class="pm-btn pm-btn-primary" id="btnStartNow" style="padding: 8px 24px;">
             開始創作 ➔

@@ -66,12 +66,12 @@ export class CompareSlider {
             <div class="pm-compare-overlay-tags">
               <div class="pm-compare-tag pm-compare-tag-before" title="左側畫面：原始上傳圖檔 (未超解析/未控墨)">
                 <span class="pm-tag-dot pm-dot-before"></span>
-                <span class="pm-tag-title">📷 原始原圖</span>
+                <span class="pm-tag-title"><img src="icons/shared/camera.webp" alt="" class="pm-icon-img" /> 原始原圖</span>
                 <span class="pm-tag-desc">低解析 / 未校色</span>
               </div>
               <div class="pm-compare-tag pm-compare-tag-after" title="右側畫面：處理後結果">
                 <span class="pm-tag-dot pm-dot-after"></span>
-                <span class="pm-tag-title">✨ 印刷準備優化</span>
+                <span class="pm-tag-title"><img src="icons/shared/sparkle.webp" alt="" class="pm-icon-img" /> 印刷準備優化</span>
                 <span class="pm-tag-desc">處理後</span>
               </div>
             </div>
@@ -95,7 +95,7 @@ export class CompareSlider {
           <div class="pm-compare-metrics-card" id="compareMetricsCard">
             <div class="pm-cmp-card-header">
               <div style="display: flex; align-items: center; gap: 6px;">
-                <span style="font-size: 1rem;">📊</span>
+                <span style="font-size: 1rem;"><img src="icons/shared/bar-chart.webp" alt="" class="pm-icon-img" /></span>
                 <span style="font-weight: 700; font-size: 0.84rem; color: var(--pm-text-primary);">各項指標加權評分對照</span>
               </div>
               <span style="font-size: 0.65rem; color: var(--pm-text-muted); font-weight: 600;">印刷廠直出標準</span>
@@ -104,7 +104,7 @@ export class CompareSlider {
             <!-- Total Score Transition Box -->
             <div class="pm-cmp-score-banner">
               <div class="pm-cmp-score-block pm-cmp-before">
-                <span class="pm-cmp-score-label">📷 原圖總分</span>
+                <span class="pm-cmp-score-label"><img src="icons/shared/camera.webp" alt="" class="pm-icon-img" /> 原圖總分</span>
                 <span class="pm-cmp-score-num" id="cmpBeforeScore">--</span>
               </div>
               <div class="pm-cmp-arrow-box">
@@ -112,7 +112,7 @@ export class CompareSlider {
                 <span class="pm-cmp-delta-pill" id="cmpScoreDelta">+0 分</span>
               </div>
               <div class="pm-cmp-score-block pm-cmp-after">
-                <span class="pm-cmp-score-label">✨ 優化後總分</span>
+                <span class="pm-cmp-score-label"><img src="icons/shared/sparkle.webp" alt="" class="pm-icon-img" /> 優化後總分</span>
                 <span class="pm-cmp-score-num" id="cmpAfterScore">--</span>
               </div>
             </div>
@@ -126,7 +126,7 @@ export class CompareSlider {
 
             <!-- Bottom Note -->
             <div class="pm-cmp-card-footer">
-              <span id="cmpComplianceBadge">🛡️ 檔案已符合本機印前檢查標準（尺寸/出血/DPI/墨量）</span>
+              <span id="cmpComplianceBadge"><img src="icons/shared/shield.webp" alt="" class="pm-icon-img" /> 檔案已符合本機印前檢查標準（尺寸/出血/DPI/墨量）</span>
             </div>
           </div>
         </div>
@@ -179,13 +179,13 @@ export class CompareSlider {
 
     this.beforeScoreEl.textContent = `${bScore}分`;
     this.afterScoreEl.textContent = `${aScore}分`;
-    this.scoreDeltaEl.textContent = delta >= 0 ? `+${delta} 分 🚀` : `${delta} 分`;
+    this.scoreDeltaEl.innerHTML = delta >= 0 ? `+${delta} 分 <img src="icons/shared/rocket.webp" alt="" class="pm-icon-img" />` : `${delta} 分`;
     this.scoreDeltaEl.className = `pm-cmp-delta-pill ${delta > 0 ? 'pm-delta-up' : ''}`;
 
     if (afterScore.issues.length === 0) {
-      this.complianceBadgeEl.textContent = '🛡️ 檔案已符合本機印前檢查標準（尺寸/出血/DPI/墨量）';
+      this.complianceBadgeEl.innerHTML = '<img src="icons/shared/shield.webp" alt="" class="pm-icon-img" /> 檔案已符合本機印前檢查標準（尺寸/出血/DPI/墨量）';
     } else {
-      this.complianceBadgeEl.textContent = `⚠️ 仍有 ${afterScore.issues.length} 項待改善：${afterScore.issues[0]}`;
+      this.complianceBadgeEl.innerHTML = `<img src="icons/shared/warning.webp" alt="" class="pm-icon-img" /> 仍有 ${afterScore.issues.length} 項待改善：${afterScore.issues[0]}`;
     }
 
     const b = beforeScore.breakdown;
@@ -194,7 +194,7 @@ export class CompareSlider {
     const metricsConfig = [
       {
         id: 'resolution',
-        icon: '🔍',
+        icon: '<img src="icons/shared/magnifier.webp" alt="" class="pm-icon-img" />',
         name: '實體解析度',
         weight: '35%',
         beforeVal: Math.round(b.resolution),
@@ -204,7 +204,7 @@ export class CompareSlider {
       },
       {
         id: 'inkSafety',
-        icon: '🎨',
+        icon: '<img src="icons/shared/palette.webp" alt="" class="pm-icon-img" />',
         name: '安全墨量 TAC',
         weight: '15%',
         beforeVal: Math.round(b.inkSafety),
@@ -214,7 +214,7 @@ export class CompareSlider {
       },
       {
         id: 'aspectRatio',
-        icon: '📐',
+        icon: '<img src="icons/shared/ruler-vector.webp" alt="" class="pm-icon-img" />',
         name: '長寬比例適配',
         weight: '15%',
         beforeVal: Math.round(b.aspectRatio),
@@ -224,7 +224,7 @@ export class CompareSlider {
       },
       {
         id: 'sharpness',
-        icon: '✨',
+        icon: '<img src="icons/shared/sparkle.webp" alt="" class="pm-icon-img" />',
         name: '邊緣銳利度',
         weight: '10%',
         beforeVal: Math.round(b.sharpness),
@@ -234,7 +234,7 @@ export class CompareSlider {
       },
       {
         id: 'contrast',
-        icon: '🌓',
+        icon: '<img src="icons/shared/contrast.webp" alt="" class="pm-icon-img" />',
         name: '暗階對比度',
         weight: '10%',
         beforeVal: Math.round(b.contrast),
@@ -244,7 +244,7 @@ export class CompareSlider {
       },
       {
         id: 'saturation',
-        icon: '🌈',
+        icon: '<img src="icons/shared/rainbow-gamut.webp" alt="" class="pm-icon-img" />',
         name: '色彩飽和度',
         weight: '10%',
         beforeVal: Math.round(b.saturation),
@@ -254,7 +254,7 @@ export class CompareSlider {
       },
       {
         id: 'brightness',
-        icon: '💡',
+        icon: '<img src="icons/header/guide.webp" alt="" class="pm-icon-img" />',
         name: '明暗分佈',
         weight: '5%',
         beforeVal: Math.round(b.brightness),

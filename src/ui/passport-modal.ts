@@ -56,11 +56,11 @@ export class PassportModal {
         <div class="pm-modal-header" style="background: linear-gradient(135deg, rgba(60, 30, 140, 0.08) 0%, rgba(52, 199, 89, 0.08) 100%); border-bottom: 1px solid rgba(60, 30, 140, 0.15);">
           <div class="pm-modal-title-group">
             <span class="pm-modal-title" style="display: flex; align-items: center; gap: 8px;">
-              <span>🛡️</span> 送印通關護照 (零退件指南)
+              <img src="icons/shared/shield.webp" alt="" class="pm-icon-img" /> 送印通關護照 (零退件指南)
             </span>
             <span class="pm-modal-subtitle">PDF 已成功下載！請依照下方小抄安心送印</span>
           </div>
-          <button class="pm-modal-close" id="btnPassportClose">✕</button>
+          <button class="pm-modal-close" id="btnPassportClose"><img src="icons/shared/close.webp" alt="" class="pm-icon-img" /></button>
         </div>
 
         <div class="pm-conv-body" style="padding: 18px 20px; display: flex; flex-direction: column; gap: 14px;">
@@ -68,10 +68,10 @@ export class PassportModal {
           <div style="background: rgba(60, 30, 140, 0.04); border: 1px solid rgba(60, 30, 140, 0.18); border-radius: 12px; padding: 12px 14px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
               <span style="font-size: 0.84rem; font-weight: 700; color: var(--pm-text-primary); display: flex; align-items: center; gap: 6px;">
-                <span>💬</span> 傳給印刷廠老闆一句話
+                <img src="icons/shared/speech-bubble.webp" alt="" class="pm-icon-img" /> 傳給印刷廠老闆一句話
               </span>
               <button id="btnCopyPassportPhrase" class="pm-btn pm-btn-xs pm-btn-artisan" type="button">
-                📋 一鍵複製
+                <img src="icons/shared/clipboard.webp" alt="" class="pm-icon-img" /> 一鍵複製
               </button>
             </div>
             <div style="font-size: 0.8rem; color: var(--pm-text-primary); line-height: 1.45; background: #fff; padding: 8px 10px; border-radius: 8px; border: 1px solid rgba(0,0,0,0.06); user-select: all;">
@@ -82,7 +82,7 @@ export class PassportModal {
           <!-- 2. Paper Recommendation Cheat-Sheet -->
           <div style="background: rgba(0, 0, 0, 0.02); border: 1px solid rgba(0, 0, 0, 0.06); border-radius: 12px; padding: 12px 14px;">
             <span style="font-size: 0.84rem; font-weight: 700; color: var(--pm-text-primary); display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
-              <span>🏷️</span> 老闆問你要印什麼紙？
+              <img src="icons/shared/tag.webp" alt="" class="pm-icon-img" /> 老闆問你要印什麼紙？
             </span>
             <div style="font-size: 0.8rem; color: var(--pm-text-secondary); line-height: 1.45;">
               建議直接回答：<strong style="color: var(--pm-accent-blue);">${paperRecommendation}</strong>
@@ -95,7 +95,7 @@ export class PassportModal {
           <!-- 3. 7-11 / FamilyMart Convenience Store Steps -->
           <div style="background: rgba(52, 199, 89, 0.04); border: 1px solid rgba(52, 199, 89, 0.18); border-radius: 12px; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between;">
             <div style="display: flex; align-items: center; gap: 8px;">
-              <span style="font-size: 1.2rem;">🏪</span>
+              <img src="icons/shared/store.webp" alt="" class="pm-icon-img" />
               <div>
                 <div style="font-size: 0.82rem; font-weight: 700; color: var(--pm-text-primary);">超商列印檔</div>
                 <div style="font-size: 0.72rem; color: var(--pm-text-secondary);">下載排版好的檔案，至 7-11 ibon / 全家官網上傳即可取得取件碼</div>
@@ -109,7 +109,7 @@ export class PassportModal {
           <!-- Dismiss Action -->
           <div style="display: flex; justify-content: flex-end; padding-top: 6px;">
             <button id="btnPassportOk" class="pm-btn pm-btn-primary pm-btn-md" style="width: 100%; font-weight: 700; box-shadow: 0 4px 14px rgba(60, 30, 140, 0.3);">
-              ✓ 太棒了，我知道了！
+              <img src="icons/shared/check.webp" alt="" class="pm-icon-img" /> 太棒了，我知道了！
             </button>
           </div>
         </div>

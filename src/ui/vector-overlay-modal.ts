@@ -112,10 +112,10 @@ export class VectorOverlayModal {
               <div style="display:flex; flex-direction:column; gap:2px;">
                 <span class="pm-conv-paper-title" style="font-weight:700; color:var(--pm-text-primary); font-size:0.92rem;">${this.escapeHtml(item.text)}</span>
                 <div class="pm-conv-size-text" style="font-size:0.75rem; color:var(--pm-text-tertiary);">
-                  位置：(${item.xPercent}%, ${item.yPercent}%) · 字級：${item.fontSizePx}px · ${item.isK100 ? '🛡️ K100 純黑防糊' : item.color}
+                  位置：(${item.xPercent}%, ${item.yPercent}%) · 字級：${item.fontSizePx}px · ${item.isK100 ? '<img src="icons/shared/shield.webp" alt="" class="pm-icon-img" /> K100 純黑防糊' : item.color}
                 </div>
               </div>
-              <button class="pm-btn pm-btn-secondary pm-btn-xs" data-del-text="${item.id}" style="padding:4px 8px; font-size:0.75rem;">✕ 刪除</button>
+              <button class="pm-btn pm-btn-secondary pm-btn-xs" data-del-text="${item.id}" style="padding:4px 8px; font-size:0.75rem;"><img src="icons/shared/close.webp" alt="" class="pm-icon-img" /> 刪除</button>
             </div>
           `)
           .join('');
@@ -124,10 +124,10 @@ export class VectorOverlayModal {
       <div class="pm-modal-dialog pm-overlay-dialog" style="max-width: 620px;">
         <div class="pm-modal-header">
           <div class="pm-modal-title-group">
-            <span class="pm-modal-title">✒️ 文字清晰防糊 & 銳利字體層</span>
+            <span class="pm-modal-title"><img src="icons/shared/pen-nib.webp" alt="" class="pm-icon-img" /> 文字清晰防糊 & 銳利字體層</span>
             <span class="pm-modal-subtitle">自動將圖中文字轉為「純黑清晰向量字」，印出來字體像刀鋒般銳利、完全不發虛模糊</span>
           </div>
-          <button class="pm-modal-close" id="btnOverlayClose">✕</button>
+          <button class="pm-modal-close" id="btnOverlayClose"><img src="icons/shared/close.webp" alt="" class="pm-icon-img" /></button>
         </div>
 
         <div class="pm-conv-body" style="padding: 16px 20px; display: flex; flex-direction: column; gap: 14px;">
@@ -135,11 +135,11 @@ export class VectorOverlayModal {
           <div style="background: linear-gradient(135deg, rgba(60, 30, 140, 0.08) 0%, rgba(52, 199, 89, 0.08) 100%); border: 1px solid rgba(60, 30, 140, 0.2); border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px;">
             <div style="display: flex; align-items: center; justify-content: space-between;">
               <div style="display: flex; align-items: center; gap: 8px;">
-                <span style="font-size: 1.25rem;">✨</span>
+                <img src="icons/shared/sparkle.webp" alt="" class="pm-icon-img" style="width: 20px; height: 19px;" />
                 <strong style="font-size: 0.95rem; color: var(--pm-text-primary);">自動偵測文字區域（免手動輸入）</strong>
               </div>
               <span style="font-size: 0.75rem; color: var(--pm-status-success); font-weight: 600; background: rgba(52,199,89,0.12); padding: 2px 8px; border-radius: 12px;">
-                ⚡ 即時偵測
+                <img src="icons/header/upscale-local.webp" alt="" class="pm-icon-img" /> 即時偵測
               </span>
             </div>
 
@@ -149,12 +149,12 @@ export class VectorOverlayModal {
 
             <div style="display: flex; gap: 8px; flex-wrap: wrap;">
               <button id="btnAutoDetectAndApply" class="pm-btn pm-btn-artisan pm-btn-md" style="flex: 1; min-width: 190px; background: linear-gradient(135deg, #3c1e8c 0%, #0051a8 100%); color: #fff; font-weight: 700;">
-                <span>⚡</span> 一鍵掃描全圖文字區域 (需再確認文字內容)
+                <img src="icons/header/upscale-local.webp" alt="" class="pm-icon-img" /> 一鍵掃描全圖文字區域 (需再確認文字內容)
               </button>
               <button id="btnAutoDetectOnly" class="pm-btn pm-btn-secondary pm-btn-md" style="font-weight: 600;">
-                <span>🤖</span> 重新自動掃描
+                <img src="icons/shared/robot.webp" alt="" class="pm-icon-img" /> 重新自動掃描
               </button>
-              ${items.length > 0 ? `<button id="btnClearAllItems" class="pm-btn pm-btn-ghost pm-btn-md" style="color: var(--pm-text-tertiary);">🗑️ 清空</button>` : ''}
+              ${items.length > 0 ? `<button id="btnClearAllItems" class="pm-btn pm-btn-ghost pm-btn-md" style="color: var(--pm-text-tertiary);"><img src="icons/shared/trash.webp" alt="" class="pm-icon-img" /> 清空</button>` : ''}
             </div>
           </div>
 
@@ -190,9 +190,9 @@ export class VectorOverlayModal {
               <!-- Quick Templates -->
               <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 4px;">
                 <span style="font-size: 0.75rem; color: var(--pm-text-tertiary);">常見範本：</span>
-                <button class="pm-sample-pill-btn" data-tmpl="brand" style="font-size: 0.72rem; padding: 2px 6px;">🏢 品牌主標</button>
-                <button class="pm-sample-pill-btn" data-tmpl="contact" style="font-size: 0.72rem; padding: 2px 6px;">📱 業務電話</button>
-                <button class="pm-sample-pill-btn" data-tmpl="web" style="font-size: 0.72rem; padding: 2px 6px;">🌐 官方網站</button>
+                <button class="pm-sample-pill-btn" data-tmpl="brand" style="font-size: 0.72rem; padding: 2px 6px;"><img src="icons/shared/building.webp" alt="" class="pm-icon-img" /> 品牌主標</button>
+                <button class="pm-sample-pill-btn" data-tmpl="contact" style="font-size: 0.72rem; padding: 2px 6px;"><img src="icons/shared/phone.webp" alt="" class="pm-icon-img" /> 業務電話</button>
+                <button class="pm-sample-pill-btn" data-tmpl="web" style="font-size: 0.72rem; padding: 2px 6px;"><img src="icons/shared/globe.webp" alt="" class="pm-icon-img" /> 官方網站</button>
                 <button class="pm-sample-pill-btn" data-tmpl="copyright" style="font-size: 0.72rem; padding: 2px 6px;">© 2026 版權所有</button>
               </div>
             </div>
@@ -204,7 +204,7 @@ export class VectorOverlayModal {
               💡 提示：套用後直接點擊「下載標準印刷 PDF」，印出來字體就是頂級清晰度！
             </span>
             <button id="btnApplyOverlay" class="pm-btn pm-btn-artisan pm-btn-lg" style="min-width: 150px;">
-              <span>✓</span> 套用並渲染於畫布
+              <img src="icons/shared/check.webp" alt="" class="pm-icon-img" /> 套用並渲染於畫布
             </button>
           </div>
         </div>

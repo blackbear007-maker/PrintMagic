@@ -1,0 +1,92 @@
+{
+  "generatedAt": "2026-09-19T10:51:59.429Z",
+  "provider": "Google Cloud Vertex AI",
+  "scope": "Pilot batch — top header/toolbar row only (src/ui/app-shell.ts), see docs/SPEC.md for the full 150+ icon inventory",
+  "deliveryFormat": "RGBA WebP with transparent background",
+  "project": "gen-lang-client-0435924395",
+  "preferredModel": "gemini-3.1-flash-lite-image",
+  "fallbackModel": "gemini-2.5-flash-image",
+  "styleLock": "a single small square app icon, flat minimalist ink-brush line-art style, one continuous confident brush stroke of muted indigo-purple ink (#4b2aa8), uniform stroke weight, rounded stroke ends, the ENTIRE background (100 percent of the canvas outside the ink strokes) filled with one single flat solid pure magenta color, hex FF00FF, perfectly uniform with zero variation, no gradient, no texture, no pattern, no checkerboard, no shading, no vignette — this magenta fill is a chroma-key placeholder that will be programmatically removed, it is not part of the artwork and must not resemble anything, no background shape of any kind behind the subject: no circle, no rounded square, no rounded rectangle, no app-icon tile, no card, no badge, no chip, no vignette, no shadow, no drop shadow, no glow — the magenta must reach flat and unbroken all the way to all four edges and all four corners of the canvas with nothing else drawn in it, centered subject filling about 70 percent of the canvas, generous even padding of solid magenta on all sides, flat 2D vector look, no gradients, no 3D shading, no photorealism, no textures, no outlines around the whole canvas, part of a consistent icon set for a print-preflight studio app called 印象魔法 PrintMagic, calm and professional, not playful or cartoonish. no text, no letters, no numbers, no watermark, no logo, no signature, no color anywhere in the icon subject other than the single indigo-purple ink tone (pure monochrome line art) — the ONLY other color allowed anywhere in the image is the solid magenta background fill, no emoji-style rendering, no glossy highlights, no multiple objects, no border, no frame, no checkerboard pattern anywhere.",
+  "icons": {
+    "mode-simple": {
+      "file": "public/icons/header/mode-simple.webp",
+      "replaces": "🌱",
+      "status": "existing",
+      "model": null,
+      "bytes": 25668,
+      "sha256": "693b8b4fe9cf85c20ca4b5ce4775d16f0af50dbf59523f3f23b2f54a0db93692"
+    },
+    "mode-advanced": {
+      "file": "public/icons/header/mode-advanced.webp",
+      "replaces": "⚙️",
+      "status": "existing",
+      "model": null,
+      "bytes": 49482,
+      "sha256": "029be0cb0e8bdfaa3eeb560cc87c7dfcf1c3394d078f92f21a69b1f81366981f"
+    },
+    "engine-local": {
+      "file": "public/icons/header/engine-local.webp",
+      "replaces": "🖥️",
+      "status": "existing",
+      "model": null,
+      "bytes": 18396,
+      "sha256": "5377695447d10dd7dc1df0cd0da35e96d78224be025f6cb271ab35ea416e8604"
+    },
+    "engine-cloud": {
+      "file": "public/icons/header/engine-cloud.webp",
+      "replaces": "⚡",
+      "status": "existing",
+      "model": null,
+      "bytes": 27398,
+      "sha256": "18bc86465a732f6e3ba5a03d5f0fdd081066500499299414f20ee886e74c4e9d"
+    },
+    "text-inspect": {
+      "file": "public/icons/header/text-inspect.webp",
+      "replaces": "📝",
+      "status": "existing",
+      "model": null,
+      "bytes": 40304,
+      "sha256": "b5275d9c9f4e2957d857758fb83cf5cee7c02024cc722d2865a7fbee930a0bf4"
+    },
+    "upscale-local": {
+      "file": "public/icons/header/upscale-local.webp",
+      "replaces": "⚡",
+      "status": "generated",
+      "model": "gemini-3.1-flash-lite-image",
+      "bytes": 26438,
+      "sha256": "fb39cb2fad862fe2df261273e9f188e296cad7c2a8c87b5c7d7d44ab93d61464"
+    },
+    "upscale-cloud": {
+      "file": "public/icons/header/upscale-cloud.webp",
+      "replaces": "🔬",
+      "status": "existing",
+      "model": null,
+      "bytes": 41446,
+      "sha256": "73a9bdbf2dfa2889351ca4b6b8051ae35433c0e8566dd2cdb1b50b5a0326e9f5"
+    },
+    "pipeline-matrix": {
+      "file": "public/icons/header/pipeline-matrix.webp",
+      "replaces": "🎛️",
+      "status": "existing",
+      "model": null,
+      "bytes": 23304,
+      "sha256": "2aed2c11e3ed351dd840cdc8720d9858b26f7074e1d55ec92e1a8337054b5493"
+    },
+    "guide": {
+      "file": "public/icons/header/guide.webp",
+      "replaces": "💡",
+      "status": "existing",
+      "model": null,
+      "bytes": 39214,
+      "sha256": "7877bd818c8fe084685166e5f815a8e2c6754e2fb955a8383f34f363048b9a63"
+    },
+    "calibration": {
+      "file": "public/icons/header/calibration.webp",
+      "replaces": "📏",
+      "status": "existing",
+      "model": null,
+      "bytes": 32170,
+      "sha256": "ec23ecec4bf13d6cfafa925f44f1552aca38aac4ed00ac6a3a293993f557a058"
+    }
+  }
+}

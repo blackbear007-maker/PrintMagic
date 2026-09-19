@@ -59,7 +59,7 @@ export class CanvasZoomController {
     // 1. Long-press peek original indicator badge
     this.peekBadge = document.createElement('div');
     this.peekBadge.className = 'pm-canvas-peek-badge';
-    this.peekBadge.innerHTML = '<span>👁️ 查看原圖中 (放開還原)</span>';
+    this.peekBadge.innerHTML = '<span><img src="icons/shared/eye.webp" alt="" class="pm-icon-img" /> 查看原圖中 (放開還原)</span>';
     this.peekBadge.style.display = 'none';
     this.stage.appendChild(this.peekBadge);
 
@@ -67,7 +67,7 @@ export class CanvasZoomController {
     this.zoomResetBtn = document.createElement('button');
     this.zoomResetBtn.className = 'pm-canvas-zoom-reset-btn';
     this.zoomResetBtn.type = 'button';
-    this.zoomResetBtn.innerHTML = '<span>🔍 100% 還原</span>';
+    this.zoomResetBtn.innerHTML = '<span><img src="icons/shared/magnifier.webp" alt="" class="pm-icon-img" /> 100% 還原</span>';
     this.zoomResetBtn.style.display = 'none';
     this.zoomResetBtn.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -293,7 +293,7 @@ export class CanvasZoomController {
     if (this.zoomResetBtn) {
       this.zoomResetBtn.style.display = this.scale > 1.05 ? 'inline-flex' : 'none';
       if (this.scale > 1.05) {
-        this.zoomResetBtn.innerHTML = `<span>🔍 ${(this.scale * 100).toFixed(0)}% (點擊重設)</span>`;
+        this.zoomResetBtn.innerHTML = `<span><img src="icons/shared/magnifier.webp" alt="" class="pm-icon-img" /> ${(this.scale * 100).toFixed(0)}% (點擊重設)</span>`;
       }
     }
   }

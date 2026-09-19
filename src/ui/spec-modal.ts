@@ -47,10 +47,10 @@ export class SpecModal {
       <div class="pm-modal-dialog pm-spec-dialog" style="max-width: 580px;">
         <div class="pm-modal-header">
           <div class="pm-modal-title-group">
-            <span class="pm-modal-title">📋 印刷廠零障礙溝通小抄</span>
+            <span class="pm-modal-title"><img src="icons/shared/clipboard.webp" alt="" class="pm-icon-img" /> 印刷廠零障礙溝通小抄</span>
             <span class="pm-modal-subtitle">送印溝通無痛小抄，直接傳給印刷廠師傅或貼在 LINE 即能精準出圖</span>
           </div>
-          <button class="pm-modal-close" id="btnSpecClose">✕</button>
+          <button class="pm-modal-close" id="btnSpecClose"><img src="icons/shared/close.webp" alt="" class="pm-icon-img" /></button>
         </div>
 
         <div class="pm-spec-card">
@@ -87,7 +87,7 @@ export class SpecModal {
         <!-- LINE/Email Direct Message Preview Box -->
         <div style="margin-top: 12px; padding: 12px 14px; background: rgba(52, 199, 89, 0.08); border: 1px solid rgba(52, 199, 89, 0.25); border-radius: 12px;">
           <div style="font-size: 0.78rem; font-weight: 700; color: #248a3d; margin-bottom: 4px; display: flex; align-items: center; gap: 5px;">
-            <span>💬</span> 傳給老闆一句話 (LINE / 蝦皮 / Email 詢價下單)：
+            <img src="icons/shared/speech-bubble.webp" alt="" class="pm-icon-img" /> 傳給老闆一句話 (LINE / 蝦皮 / Email 詢價下單)：
           </div>
           <div style="font-size: 0.76rem; color: var(--pm-text-secondary); line-height: 1.4; background: #ffffff; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--pm-border-light);">
             ${bossMsgText}
@@ -97,10 +97,10 @@ export class SpecModal {
         <div class="pm-modal-footer" style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end;">
           <button class="pm-btn pm-btn-ghost" id="btnSpecCancel">關閉</button>
           <button class="pm-btn pm-btn-secondary" id="btnSpecCopyBoss" style="background: rgba(52, 199, 89, 0.12); color: #248a3d; border-color: rgba(52, 199, 89, 0.3); font-weight: 600;">
-            <span>💬</span> 複製「傳給老闆一句話」
+            <img src="icons/shared/speech-bubble.webp" alt="" class="pm-icon-img" /> 複製「傳給老闆一句話」
           </button>
           <button class="pm-btn pm-btn-primary" id="btnSpecCopy">
-            <span>📋</span> 複製完整規格小抄
+            <img src="icons/shared/clipboard.webp" alt="" class="pm-icon-img" /> 複製完整規格小抄
           </button>
         </div>
       </div>

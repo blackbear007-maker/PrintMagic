@@ -75,7 +75,26 @@ export interface AppState {
   processingStep: string;
   appliedScale: number;
   pipelineOptions: PipelineOptions;
+
+  // Manual-only enhancements applied to the current image (not part of the automatic pipeline —
+  // see pipeline-orchestrator.ts's step 3.6/3.7 comment for why these 4 stay opt-in). Tracked so
+  // the export modal can remind the user they exist instead of silently going unmentioned.
+  manualEnhancementsApplied: ManualEnhancementFlags;
 }
+
+export interface ManualEnhancementFlags {
+  descreen: boolean;
+  jpegDeblock: boolean;
+  vectorize: boolean;
+  textOverlay: boolean;
+}
+
+export const DEFAULT_MANUAL_ENHANCEMENTS: ManualEnhancementFlags = {
+  descreen: false,
+  jpegDeblock: false,
+  vectorize: false,
+  textOverlay: false
+};
 
 type Listener = (state: AppState) => void;
 
@@ -162,8 +181,10 @@ class StateStore {
       enableColorProofing: true,
       enableVectorOverlay: true,
       enableAntiBanding: true,
-      enableDeshadow: false
-    }
+      enableDeshadow: false,
+      enableAutoBgRemoval: true
+    },
+    manualEnhancementsApplied: { ...DEFAULT_MANUAL_ENHANCEMENTS }
   };
 
   private listeners: Set<Listener> = new Set();
@@ -311,7 +332,8 @@ class StateStore {
     const activeId = items.length > 0 ? items[0].id : this.state.activeBatchId;
     this.setState({
       batchItems: newItems,
-      activeBatchId: activeId
+      activeBatchId: activeId,
+      manualEnhancementsApplied: { ...DEFAULT_MANUAL_ENHANCEMENTS }
     });
   }
 
@@ -372,7 +394,8 @@ class StateStore {
       // 文字檢查結果與統計屬於上一張作品，切換後不可沿用
       textInspectionResult: null,
       originalStats: null,
-      processedStats: null
+      processedStats: null,
+      manualEnhancementsApplied: { ...DEFAULT_MANUAL_ENHANCEMENTS }
     });
   }
 

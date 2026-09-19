@@ -68,7 +68,7 @@ export class Paper3DController {
         <div class="pm-back-watermark">PREVIEW</div>
 
         <div class="pm-back-header">
-          <span class="pm-back-logo">✨ PrintMagic Studio</span>
+          <span class="pm-back-logo"><img src="icons/shared/sparkle.webp" alt="" class="pm-icon-img" /> PrintMagic Studio</span>
           <span class="pm-back-tag">紙材預覽</span>
         </div>
 

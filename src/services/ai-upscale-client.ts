@@ -1,6 +1,7 @@
 import { EdgeAwareUpscaler } from '../core/edge-aware-upscaler';
 import { UnsharpMask } from '../core/unsharp-mask';
 import { NetworkGuard } from './network-guard';
+import { SceneClassifier } from '../core/scene-classifier';
 
 /**
  * Upscale Client (self-hosted Real-ESRGAN / local edge-aware fallback)
@@ -67,18 +68,18 @@ export class AiUpscaleClient {
   // Fast in-memory LRU Cache (max 20 processed images)
   private static readonly resultCache = new Map<string, { dataUrl: string; imageData: ImageData; model: string; scale: number }>();
 
-  public static getStoredModel(): AiModelType {
-    if (typeof localStorage !== 'undefined') {
-      const m = localStorage.getItem('printmagic_ai_model') as AiModelType;
-      if (m && AI_MODELS.some((item) => item.id === m)) return m;
-    }
+  /**
+   * Auto-picks the local-fallback preset from the image itself instead of asking the user to
+   * choose. Line art / stickers get the edge-enhanced preset; anything else gets the general
+   * preset; and if the DPI analysis only needs a 2x bump, the cheaper fast preset covers it
+   * regardless of content (a bigger local pass would just cost time for no visible gain, since
+   * the caller always tops up to the exact target width with Lanczos afterwards).
+   */
+  public static autoSelectModel(imageData: ImageData, targetScale: number): AiModelType {
+    if (targetScale <= 2) return 'fast-2x';
+    const scene = SceneClassifier.classifyImage(imageData);
+    if (scene.category === 'anime' || scene.category === 'sticker') return 'lineart-4x';
     return 'general-4x';
-  }
-
-  public static setStoredModel(model: AiModelType): void {
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem('printmagic_ai_model', model);
-    }
   }
 
   /**
@@ -138,7 +139,7 @@ export class AiUpscaleClient {
    */
   public static async upscale(
     sourceDataUrl: string,
-    modelId: AiModelType = this.getStoredModel()
+    modelId: AiModelType = 'general-4x'
   ): Promise<AiUpscaleResult> {
     const config = AI_MODELS.find((m) => m.id === modelId) || AI_MODELS[0];
 

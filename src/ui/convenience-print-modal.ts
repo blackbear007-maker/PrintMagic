@@ -69,10 +69,10 @@ export class ConveniencePrintModal {
     const storeTabsHtml = `
       <div class="pm-conv-store-tabs">
         <button class="pm-conv-store-btn ${this.selectedStore === '7-11' ? 'active store-711' : ''}" data-store="7-11">
-          <span>🏪</span> 7-ELEVEN ibon (全國 6,800+ 門市)
+          <img src="icons/shared/store.webp" alt="" class="pm-icon-img" /> 7-ELEVEN ibon (全國 6,800+ 門市)
         </button>
         <button class="pm-conv-store-btn ${this.selectedStore === 'familymart' ? 'active store-fami' : ''}" data-store="familymart">
-          <span>🏬</span> 全家 FamiPort (全國 4,200+ 門市)
+          <img src="icons/shared/store.webp" alt="" class="pm-icon-img" /> 全家 FamiPort (全國 4,200+ 門市)
         </button>
       </div>
     `;
@@ -87,7 +87,7 @@ export class ConveniencePrintModal {
               <span class="pm-conv-price-tag">NT$ ${spec.priceNTD} / 張</span>
             </div>
             <div class="pm-conv-size-text">
-              📐 實體尺寸：${spec.widthMm} × ${spec.heightMm} mm (300 DPI)
+              <img src="icons/shared/ruler-vector.webp" alt="" class="pm-icon-img" /> 實體尺寸：${spec.widthMm} × ${spec.heightMm} mm (300 DPI)
             </div>
             <div class="pm-conv-desc-text">
               ${spec.description}
@@ -104,10 +104,10 @@ export class ConveniencePrintModal {
       <div class="pm-modal-dialog pm-conv-dialog" style="max-width: 680px;">
         <div class="pm-modal-header">
           <div class="pm-modal-title-group">
-            <span class="pm-modal-title">🏪 超商列印檔案產生器</span>
+            <span class="pm-modal-title"><img src="icons/shared/store.webp" alt="" class="pm-icon-img" /> 超商列印檔案產生器</span>
             <span class="pm-modal-subtitle">自動符合超商列印規範，產生專屬 300 DPI 實體出機檔</span>
           </div>
-          <button class="pm-modal-close" id="btnConvClose">✕</button>
+          <button class="pm-modal-close" id="btnConvClose"><img src="icons/shared/close.webp" alt="" class="pm-icon-img" /></button>
         </div>
 
         <div class="pm-conv-body" style="padding: 16px 20px;">
@@ -131,7 +131,7 @@ export class ConveniencePrintModal {
 
             <div class="pm-summary-right-actions">
               <button id="btnDownloadConvFile" class="pm-btn pm-btn-artisan pm-btn-lg" ${this.isGenerating ? 'disabled' : ''}>
-                <span>${this.isGenerating ? '⏳' : '📥'}</span>
+                <span>${this.isGenerating ? '<img src="icons/shared/hourglass.webp" alt="" class="pm-icon-img" />' : '<img src="icons/shared/download.webp" alt="" class="pm-icon-img" />'}</span>
                 <span>${this.isGenerating ? '正在生成 300 DPI 專用圖...' : '下載超商專用列印檔 (JPG)'}</span>
               </button>
             </div>
@@ -160,7 +160,7 @@ export class ConveniencePrintModal {
           <!-- Direct Upload Gateway Buttons -->
           <div class="pm-conv-gateways" style="margin-top: 14px;">
             <a href="${currentSpec.uploadUrl}" target="_blank" rel="noopener noreferrer" class="pm-btn pm-btn-secondary pm-btn-md">
-              <span>🚀</span> 前往 ${currentSpec.storeName} 官方雲端上傳頁面 ➔
+              <img src="icons/shared/rocket.webp" alt="" class="pm-icon-img" /> 前往 ${currentSpec.storeName} 官方雲端上傳頁面 ➔
             </a>
           </div>
         </div>

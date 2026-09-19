@@ -110,7 +110,7 @@ export class NearbyShopsModal {
     const shopCardsHtml = shops
       .map((shop) => {
         const distanceBadge = (shop as ShopWithDistance).distanceFormatted
-          ? `<span class="pm-shop-dist-badge">📍 ${(shop as ShopWithDistance).distanceFormatted}</span>`
+          ? `<span class="pm-shop-dist-badge"><img src="icons/shared/pin-location.webp" alt="" class="pm-icon-img" /> ${(shop as ShopWithDistance).distanceFormatted}</span>`
           : '';
 
         const tagsHtml = shop.services
@@ -131,8 +131,8 @@ export class NearbyShopsModal {
             </div>
 
             <div class="pm-shop-meta-row">
-              <span class="pm-shop-hours">🕒 ${shop.businessHours}</span>
-              <a href="tel:${shop.phone}" class="pm-shop-phone">📞 ${shop.phone}</a>
+              <span class="pm-shop-hours"><img src="icons/shared/clock.webp" alt="" class="pm-icon-img" /> ${shop.businessHours}</span>
+              <a href="tel:${shop.phone}" class="pm-shop-phone"><img src="icons/shared/phone-call.webp" alt="" class="pm-icon-img" /> ${shop.phone}</a>
             </div>
 
             <div class="pm-shop-tags">
@@ -141,13 +141,13 @@ export class NearbyShopsModal {
 
             <div class="pm-shop-actions">
               <a href="${navUrl}" target="_blank" rel="noopener noreferrer" class="pm-btn pm-btn-secondary pm-btn-sm" title="開啟 Google Maps 路線導航">
-                <span>🧭</span> 地圖導航
+                <img src="icons/shared/compass.webp" alt="" class="pm-icon-img" /> 地圖導航
               </a>
               <a href="${shop.onlineUploadUrl}" target="_blank" rel="noopener noreferrer" class="pm-btn pm-btn-artisan pm-btn-sm" title="前往該印刷廠官網線上傳檔系統">
-                <span>🌐</span> 線上送印官網
+                <span><img src="icons/shared/globe.webp" alt="" class="pm-icon-img" /></span> 線上送印官網
               </a>
               <button class="pm-btn pm-btn-ghost pm-btn-sm btn-copy-shop-spec" data-shop-name="${shop.name}" title="複製符合此印刷廠之印前規格小抄">
-                <span>📋</span> 複製送印規格
+                <img src="icons/shared/clipboard.webp" alt="" class="pm-icon-img" /> 複製送印規格
               </button>
             </div>
           </div>
@@ -159,15 +159,15 @@ export class NearbyShopsModal {
       <div class="pm-modal-dialog pm-shops-dialog">
         <div class="pm-modal-header">
           <div class="pm-modal-title-group">
-            <span class="pm-modal-title">📍 尋找附近專業商業印刷廠</span>
+            <span class="pm-modal-title"><img src="icons/shared/pin-location.webp" alt="" class="pm-icon-img" /> 尋找附近專業商業印刷廠</span>
             <span class="pm-modal-subtitle">精選具備 CMYK 出血裁切、多紙材打樣與線上自動落版能力的專業廠商 (100% 免費導航)</span>
           </div>
-          <button class="pm-modal-close" id="btnShopsClose">✕</button>
+          <button class="pm-modal-close" id="btnShopsClose"><img src="icons/shared/close.webp" alt="" class="pm-icon-img" /></button>
         </div>
 
         <div class="pm-shops-toolbar">
           <button id="btnGpsLocate" class="pm-btn pm-btn-secondary pm-btn-sm" ${this.isLocating ? 'disabled' : ''}>
-            <span>${this.isLocating ? '🔄' : '📍'}</span>
+            <span>${this.isLocating ? '<img src="icons/shared/refresh.webp" alt="" class="pm-icon-img" />' : '<img src="icons/shared/pin-location.webp" alt="" class="pm-icon-img" />'}</span>
             <span>${this.isLocating ? '正在定位中...' : '重新 GPS 定位'}</span>
           </button>
 
@@ -256,7 +256,7 @@ export class NearbyShopsModal {
     const btn = this.modalEl.querySelector<HTMLButtonElement>('#btnGpsLocate');
     if (btn) {
       btn.disabled = this.isLocating;
-      btn.innerHTML = `<span>${this.isLocating ? '🔄' : '📍'}</span><span>${this.isLocating ? '正在定位中...' : '重新 GPS 定位'}</span>`;
+      btn.innerHTML = `<span>${this.isLocating ? '<img src="icons/shared/refresh.webp" alt="" class="pm-icon-img" />' : '<img src="icons/shared/pin-location.webp" alt="" class="pm-icon-img" />'}</span><span>${this.isLocating ? '正在定位中...' : '重新 GPS 定位'}</span>`;
     }
   }
 }

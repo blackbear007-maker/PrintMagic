@@ -72,26 +72,26 @@ export class DielineModal {
       <div class="pm-modal-dialog pm-dieline-dialog">
         <div class="pm-modal-header">
           <div class="pm-modal-title-group">
-            <span class="pm-modal-title">✂️ 智慧造型刀模 & 白墨專色層生成器</span>
+            <span class="pm-modal-title"><img src="icons/shared/scissors.webp" alt="" class="pm-icon-img" /> 智慧造型刀模 & 白墨專色層生成器</span>
             <span class="pm-modal-subtitle">透明貼紙、雷射貼紙、壓克力專用：自動生成 0.2mm 內縮白墨防溢底層與 2mm 洋紅外擴向量刀模線</span>
           </div>
-          <button class="pm-modal-close" id="btnDielineClose">✕</button>
+          <button class="pm-modal-close" id="btnDielineClose"><img src="icons/shared/close.webp" alt="" class="pm-icon-img" /></button>
         </div>
 
         <div class="pm-dieline-body">
           <!-- Layer View Tabs -->
           <div class="pm-toggle-group">
             <button class="pm-tool-btn ${this.activeView === 'composite' ? 'active' : ''}" data-view="composite">
-              👁️ 三層合成效果打樣
+              <img src="icons/shared/eye.webp" alt="" class="pm-icon-img" /> 三層合成效果打樣
             </button>
             <button class="pm-tool-btn ${this.activeView === 'white' ? 'active' : ''}" data-view="white">
               ⬜ 白墨專色層 (0.2mm 內縮防溢)
             </button>
             <button class="pm-tool-btn ${this.activeView === 'cut' ? 'active' : ''}" data-view="cut">
-              ✂️ 向量刀模線 (2mm 外擴洋紅)
+              <img src="icons/shared/scissors.webp" alt="" class="pm-icon-img" /> 向量刀模線 (2mm 外擴洋紅)
             </button>
             <button class="pm-tool-btn ${this.activeView === 'cmyk' ? 'active' : ''}" data-view="cmyk">
-              🎨 CMYK 彩色印刷層
+              <img src="icons/shared/palette.webp" alt="" class="pm-icon-img" /> CMYK 彩色印刷層
             </button>
           </div>
 
@@ -109,16 +109,16 @@ export class DielineModal {
                 <span class="pm-summary-tax">層分離式印刷封包</span>
               </div>
               <div class="pm-summary-unit-price">
-                ✓ 包含 100% 遮蔽率白墨層、0.2mm 內縮防溢白、100% Magenta 1pt 刀模路徑 · 符合健豪/卡之屋透明模切規範
+                <img src="icons/shared/check.webp" alt="" class="pm-icon-img" /> 包含 100% 遮蔽率白墨層、0.2mm 內縮防溢白、100% Magenta 1pt 刀模路徑 · 符合健豪/卡之屋透明模切規範
               </div>
             </div>
 
             <div class="pm-summary-right-actions">
               <button id="btnDownloadWhiteInkPng" class="pm-btn pm-btn-artisan pm-btn-lg">
-                <span>📥</span> 下載白墨專色層 (K100 PNG)
+                <img src="icons/shared/download.webp" alt="" class="pm-icon-img" /> 下載白墨專色層 (K100 PNG)
               </button>
               <button id="btnDownloadCutContourPng" class="pm-btn pm-btn-secondary pm-btn-md">
-                <span>✂️</span> 下載向量刀模線 (PNG)
+                <img src="icons/shared/scissors.webp" alt="" class="pm-icon-img" /> 下載向量刀模線 (PNG)
               </button>
             </div>
           </div>

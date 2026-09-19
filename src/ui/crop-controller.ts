@@ -42,7 +42,7 @@ export class CropController {
           <button class="pm-align-cell" data-anchor="bottom" title="靠下對齊（保留底部細節）">↓</button>
           <button class="pm-align-cell" data-anchor="bottom" title="靠下對齊">↘</button>
         </div>
-        <button class="pm-btn pm-btn-xs pm-btn-secondary" id="btnSmartCropSuggest" title="用 smartcrop.js 分析構圖，自動建議最佳焦點方向">✨ AI 建議</button>
+        <button class="pm-btn pm-btn-xs pm-btn-secondary" id="btnSmartCropSuggest" title="用 smartcrop.js 分析構圖，自動建議最佳焦點方向"><img src="icons/shared/sparkle.webp" alt="" class="pm-icon-img" /> AI 建議</button>
       </div>
     `;
   }

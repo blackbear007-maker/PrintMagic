@@ -173,6 +173,7 @@ export interface PipelineOptions {
   enableVectorOverlay: boolean; // 🔤 自動文字清晰防糊重構
   enableAntiBanding: boolean;   // 🌊 漸層防斷階與抗色階條紋平滑 (Auto)
   enableDeshadow: boolean;      // ☀️ 手機拍畫手機倒影與光照均勻化 (Auto)
+  enableAutoBgRemoval: boolean; // ✂️ 模切貼紙自動去背 (Auto，僅在貼紙類預設套用)
 }
 
 export const DEFAULT_PIPELINE_OPTIONS: PipelineOptions = {
@@ -184,7 +185,8 @@ export const DEFAULT_PIPELINE_OPTIONS: PipelineOptions = {
   enableColorProofing: true,
   enableVectorOverlay: true,
   enableAntiBanding: true,
-  enableDeshadow: false
+  enableDeshadow: false,
+  enableAutoBgRemoval: true
 };
 
 export interface OptimizationOptions {

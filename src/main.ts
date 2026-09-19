@@ -61,6 +61,17 @@ import { SceneClassifier } from './core/scene-classifier';
 import { PipelineOrchestrator } from './core/pipeline-orchestrator';
 import type { BatchItem, PaperType, PrintPresetId } from './types';
 
+/** Icon asset id (public/icons/shared/<id>.webp) per print preset, for the preset pill/tabs. */
+const PRESET_ICON_IDS: Record<string, string> = {
+  'poster-a4': 'document-page',
+  'poster-a3': 'picture',
+  'postcard': 'envelope',
+  'business-card': 'id-card',
+  'sticker': 'tag',
+  'id-photo': 'id-card',
+  'social': 'phone',
+};
+
 /**
  * PrintMagic Studio 3.1 Pro Dual-Engine Main Controller
  */
@@ -184,6 +195,16 @@ class App {
     this.cvdPreviewCachedType = null;
   }
 
+  /** 標記某項「手動選用」加強功能已對目前圖片套用過，供出機中心的提醒清單使用。 */
+  private markManualEnhancementApplied(key: keyof AppState['manualEnhancementsApplied']): void {
+    store.setState({
+      manualEnhancementsApplied: {
+        ...store.getState().manualEnhancementsApplied,
+        [key]: true
+      }
+    });
+  }
+
   private initServiceWorker(): void {
     if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
       navigator.serviceWorker
@@ -266,6 +287,7 @@ class App {
     this.impositionModal = new ImpositionModal();
     this.dielineModal = new DielineModal();
     this.vectorOverlayModal = new VectorOverlayModal(this.vectorOverlayEngine, () => {
+      this.markManualEnhancementApplied('textOverlay');
       void this.renderVectorOverlayOnCanvas();
     });
     this.textInspectionModal = new TextInspectionModal(
@@ -864,6 +886,10 @@ class App {
         Toast.info('此尺寸不需要出血，無需外擴');
         return;
       }
+      if (state.pipelineOptions.enableBleedExpand) {
+        Toast.info(`已在自動處理流程中補齊 ${bleedMm}mm 出血，無需再次外擴（可在「專家管線自訂」關閉自動出血後手動套用）`);
+        return;
+      }
       if (this.bleedAppliedTo && this.bleedAppliedTo === state.processedImageData) {
         Toast.info(`已補過 ${bleedMm}mm 出血，不再重複外擴`);
         return;
@@ -930,12 +956,14 @@ class App {
       try {
         const { svg, engineName, elapsedMs } = await FreeVectorizeClient.vectorizeImage(imgData, 12, 1.5);
         AiVectorizer.downloadSvg(svg, `PrintMagic_Vector_${state.currentPreset.id}_${Date.now()}.svg`);
+        this.markManualEnhancementApplied('vectorize');
         SoundEffects.shutterClick();
         Toast.success(`✓ 向量 SVG 已生成並下載！[${engineName}] ${elapsedMs ? `(${elapsedMs}ms)` : ''}`);
       } catch (err: any) {
         // Ultimate fallback
         const svgString = AiVectorizer.traceToSvg(imgData, 12, 2);
         AiVectorizer.downloadSvg(svgString, `PrintMagic_Vector_${state.currentPreset.id}_${Date.now()}.svg`);
+        this.markManualEnhancementApplied('vectorize');
         SoundEffects.shutterClick();
         Toast.success('✓ 向量 SVG 檔案已由本機引擎生成並下載！');
       }
@@ -1002,6 +1030,7 @@ class App {
           processedDataUrl: resultUrl
         });
         this.mainPreviewImg.src = resultUrl;
+        this.markManualEnhancementApplied('descreen');
         SoundEffects.purityChime();
         Toast.success('✓ 去網紋完成（本機 FFT 陷波濾波）。若原圖沒有明顯網紋/摩爾紋，效果可能不明顯。');
       } catch (err: any) {
@@ -1033,6 +1062,7 @@ class App {
           processedDataUrl: resultUrl
         });
         this.mainPreviewImg.src = resultUrl;
+        this.markManualEnhancementApplied('jpegDeblock');
         SoundEffects.purityChime();
         Toast.success('✓ 去區塊完成。若原圖沒有明顯 JPEG 壓縮網格痕跡，效果可能不明顯。');
       } catch (err: any) {
@@ -1369,34 +1399,37 @@ class App {
         this.btnToggleEngine.classList.toggle('pm-engine-offline', state.cloudStatus === 'offline');
       }
       const engineDot = document.getElementById('engineStatusDot');
-      const aiUpscaleIcon = document.getElementById('aiUpscaleIcon');
+      const engineStatusIcon = document.getElementById('engineStatusIcon') as HTMLImageElement | null;
+      const aiUpscaleIcon = document.getElementById('aiUpscaleIcon') as HTMLImageElement | null;
       const aiUpscaleText = document.getElementById('aiUpscaleText');
       const btnToggleAiUpscale = document.getElementById('btnToggleAiUpscale');
 
       if (state.engineMode === 'cloud') {
         if (this.engineStatusText) {
-          this.engineStatusText.textContent = state.cloudStatus === 'online' ? '⚡ 自建服務模式 (在線)' : '⚡ 自建服務模式 (離線)';
+          this.engineStatusText.textContent = state.cloudStatus === 'online' ? '雲端高階功能 (在線)' : '雲端高階功能 (離線)';
         }
+        if (engineStatusIcon) engineStatusIcon.src = 'icons/header/engine-cloud.webp';
         if (engineDot) {
           engineDot.style.backgroundColor = state.cloudStatus === 'online' ? '#34c759' : '#ff9500';
         }
-        if (btnToggleAiUpscale) btnToggleAiUpscale.title = '點擊切換 ⚡ 本機放大 與 🔬 自建服務放大（倍率依目標 DPI 決定）';
+        if (btnToggleAiUpscale) btnToggleAiUpscale.title = '點擊切換 本機放大 與 自建服務放大（倍率依目標 DPI 決定）';
         if (state.aiUpscaleMode === 'cloud-ai') {
-          if (aiUpscaleIcon) aiUpscaleIcon.textContent = '🔬';
+          if (aiUpscaleIcon) aiUpscaleIcon.src = 'icons/header/upscale-cloud.webp';
           if (aiUpscaleText) aiUpscaleText.textContent = '服務放大';
         } else {
-          if (aiUpscaleIcon) aiUpscaleIcon.textContent = '⚡';
+          if (aiUpscaleIcon) aiUpscaleIcon.src = 'icons/header/upscale-local.webp';
           if (aiUpscaleText) aiUpscaleText.textContent = '本機放大';
         }
       } else {
         if (this.engineStatusText) {
-          this.engineStatusText.textContent = '🖥️ 本機極速';
+          this.engineStatusText.textContent = '本機基本功能';
         }
+        if (engineStatusIcon) engineStatusIcon.src = 'icons/header/engine-local.webp';
         if (engineDot) {
           engineDot.style.backgroundColor = '#3c1e8c';
         }
-        if (btnToggleAiUpscale) btnToggleAiUpscale.title = '點擊切換為 🔬 自建服務放大（倍率依目標 DPI 決定）';
-        if (aiUpscaleIcon) aiUpscaleIcon.textContent = '⚡';
+        if (btnToggleAiUpscale) btnToggleAiUpscale.title = '點擊切換為 自建服務放大（倍率依目標 DPI 決定）';
+        if (aiUpscaleIcon) aiUpscaleIcon.src = 'icons/header/upscale-local.webp';
         if (aiUpscaleText) aiUpscaleText.textContent = '本機放大';
       }
 
@@ -1799,17 +1832,19 @@ class App {
     const sizeText = preset.widthMm > 0 ? `${preset.widthMm}×${preset.heightMm}mm` : '1080px';
 
     // 1. Update Simple Mode Auto-Preset Pill
-    const simpleIcon = document.getElementById('simplePresetIcon');
+    const simpleIcon = document.getElementById('simplePresetIcon') as HTMLImageElement | null;
     const simpleName = document.getElementById('simplePresetName');
     const simpleAutoBadge = document.getElementById('simplePresetAutoBadge');
-    if (simpleIcon) simpleIcon.textContent = preset.icon || '📄';
+    if (simpleIcon) simpleIcon.src = `icons/shared/${PRESET_ICON_IDS[preset.id] || 'document-page'}.webp`;
     if (simpleName) simpleName.textContent = `${preset.nameZh} (${sizeText})`;
     if (simpleAutoBadge) {
       if (isAuto === null) {
         simpleAutoBadge.style.display = 'none';
       } else {
         simpleAutoBadge.style.display = '';
-        simpleAutoBadge.textContent = isAuto ? '✨ 自動偵測' : '🎨 已手動自訂';
+        simpleAutoBadge.innerHTML = isAuto
+          ? '<img src="icons/shared/sparkle.webp" alt="" class="pm-icon-img" /> 自動偵測'
+          : '<img src="icons/shared/palette.webp" alt="" class="pm-icon-img" /> 已手動自訂';
       }
     }
 
@@ -1819,10 +1854,10 @@ class App {
         this.presetAutoBadge.style.display = 'none';
       } else if (isAuto) {
         this.presetAutoBadge.style.display = 'inline-flex';
-        this.presetAutoBadge.textContent = `✨ 智慧適配：${shortName}`;
+        this.presetAutoBadge.innerHTML = `<img src="icons/shared/sparkle.webp" alt="" class="pm-icon-img" /> 智慧適配：${shortName}`;
       } else {
         this.presetAutoBadge.style.display = 'inline-flex';
-        this.presetAutoBadge.textContent = '🎨 手動選擇';
+        this.presetAutoBadge.innerHTML = '<img src="icons/shared/palette.webp" alt="" class="pm-icon-img" /> 手動選擇';
       }
     }
   }
@@ -1861,13 +1896,13 @@ class App {
     pill.classList.remove('pm-score-pill-high', 'pm-score-pill-mid', 'pm-score-pill-low');
     if (score >= 88) {
       pill.classList.add('pm-score-pill-high');
-      verdict.textContent = '✨ 完美就緒';
+      verdict.innerHTML = '<img src="icons/shared/sparkle.webp" alt="" class="pm-icon-img" /> 完美就緒';
     } else if (score >= 75) {
       pill.classList.add('pm-score-pill-mid');
-      verdict.textContent = '✓ 良好達標';
+      verdict.innerHTML = '<img src="icons/shared/check.webp" alt="" class="pm-icon-img" /> 良好達標';
     } else {
       pill.classList.add('pm-score-pill-low');
-      verdict.textContent = '⚠️ 需確認';
+      verdict.innerHTML = '<img src="icons/shared/warning.webp" alt="" class="pm-icon-img" /> 需確認';
     }
   }
 }

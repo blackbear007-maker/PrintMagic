@@ -1,0 +1,492 @@
+{
+  "generatedAt": "2026-09-19T11:56:00.362Z",
+  "provider": "Google Cloud Vertex AI",
+  "scope": "Round 2 — shared icons reused across modals/lists, deduplicated by meaning. See public/icons/header for the top nav row.",
+  "deliveryFormat": "RGBA WebP with transparent background",
+  "project": "gen-lang-client-0435924395",
+  "preferredModel": "gemini-3.1-flash-lite-image",
+  "fallbackModel": "gemini-2.5-flash-image",
+  "styleLock": "a single small square app icon, flat minimalist ink-brush line-art style, one continuous confident brush stroke of muted indigo-purple ink (#4b2aa8), uniform stroke weight, rounded stroke ends, the ENTIRE background (100 percent of the canvas outside the ink strokes) filled with one single flat solid pure magenta color, hex FF00FF, perfectly uniform with zero variation, no gradient, no texture, no pattern, no checkerboard, no shading, no vignette — this magenta fill is a chroma-key placeholder that will be programmatically removed, it is not part of the artwork and must not resemble anything, no background shape of any kind behind the subject: no circle, no rounded square, no rounded rectangle, no app-icon tile, no card, no badge, no chip, no vignette, no shadow, no drop shadow, no glow — the magenta must reach flat and unbroken all the way to all four edges and all four corners of the canvas with nothing else drawn in it, centered subject filling about 70 percent of the canvas, generous even padding of solid magenta on all sides, flat 2D vector look, no gradients, no 3D shading, no photorealism, no textures, no outlines around the whole canvas, part of a consistent icon set for a print-preflight studio app called 印象魔法 PrintMagic, calm and professional, not playful or cartoonish. no text, no letters, no numbers, no watermark, no logo, no signature, no color anywhere in the icon subject other than the single indigo-purple ink tone (pure monochrome line art) — the ONLY other color allowed anywhere in the image is the solid magenta background fill, no emoji-style rendering, no glossy highlights, no multiple objects, no border, no frame, no checkerboard pattern anywhere.",
+  "icons": {
+    "close": {
+      "file": "public/icons/shared/close.webp",
+      "replaces": "✕",
+      "status": "existing",
+      "model": null,
+      "bytes": 45400,
+      "sha256": "d8f2048a83df196f00d1a12611ca33d42d529a76e499fa8bdd5ba0d40dd8b89d"
+    },
+    "check": {
+      "file": "public/icons/shared/check.webp",
+      "replaces": "✓",
+      "status": "existing",
+      "model": null,
+      "bytes": 18876,
+      "sha256": "ce3a14e6e915e23e2ba866b57705ae00288f75f42817e5b2ab2199ffa411d43b"
+    },
+    "ruler-vector": {
+      "file": "public/icons/shared/ruler-vector.webp",
+      "replaces": "📐",
+      "status": "existing",
+      "model": null,
+      "bytes": 31674,
+      "sha256": "e2455c53d3d449e55a945d4a68efc633271785fdf3fc90f749803151f4835afb"
+    },
+    "magnifier": {
+      "file": "public/icons/shared/magnifier.webp",
+      "replaces": "🔍",
+      "status": "existing",
+      "model": null,
+      "bytes": 24194,
+      "sha256": "a4ea8cbd067325e656f35dab6bc5f791502ad36ae495bd1536e7c25472470bbd"
+    },
+    "sun": {
+      "file": "public/icons/shared/sun.webp",
+      "replaces": "☀️",
+      "status": "existing",
+      "model": null,
+      "bytes": 36454,
+      "sha256": "4042b81e6778ff1a945a601eb872ad4f13270304ff90204eb497651d7f45b3bd"
+    },
+    "magic-wand": {
+      "file": "public/icons/shared/magic-wand.webp",
+      "replaces": "🪄",
+      "status": "existing",
+      "model": null,
+      "bytes": 17204,
+      "sha256": "0f9c92a8dfce3e2f02d91caf19fed8011c8dfed93225e2067a9631bfd5ce3079"
+    },
+    "scissors": {
+      "file": "public/icons/shared/scissors.webp",
+      "replaces": "✂️",
+      "status": "existing",
+      "model": null,
+      "bytes": 45220,
+      "sha256": "de0746ca08ff7b9203260aedc137ee704baaa914fc4301abb1970a212beff9b0"
+    },
+    "face-scan": {
+      "file": "public/icons/shared/face-scan.webp",
+      "replaces": "🧑",
+      "status": "existing",
+      "model": null,
+      "bytes": 26770,
+      "sha256": "792476008ca7fe103f8a06c09eac4ea128e2d3e5977166783e160d65c3ce6c84"
+    },
+    "printer": {
+      "file": "public/icons/shared/printer.webp",
+      "replaces": "🖨️",
+      "status": "existing",
+      "model": null,
+      "bytes": 21426,
+      "sha256": "947d02d25bfc61c158e88a1cf07eaf08e3d369f214566e50460f0aa2099a72b4"
+    },
+    "sparkle": {
+      "file": "public/icons/shared/sparkle.webp",
+      "replaces": "✨",
+      "status": "existing",
+      "model": null,
+      "bytes": 14228,
+      "sha256": "f83192a3687935760cbdc431291584155faf6baba44ac64c24fd7ae29ec20daf"
+    },
+    "contrast": {
+      "file": "public/icons/shared/contrast.webp",
+      "replaces": "🌓",
+      "status": "existing",
+      "model": null,
+      "bytes": 25634,
+      "sha256": "3c89de7449869a3eb2a9a57bb4cd19c4779056b2484835bdcd1f8eabf77009d3"
+    },
+    "rainbow-gamut": {
+      "file": "public/icons/shared/rainbow-gamut.webp",
+      "replaces": "🌈",
+      "status": "existing",
+      "model": null,
+      "bytes": 44144,
+      "sha256": "4bd1604e582c951e4a38173a0ce6e66e7a2a1d0c4b17f97a87eeb2f91bf62ea1"
+    },
+    "document-page": {
+      "file": "public/icons/shared/document-page.webp",
+      "replaces": "📄",
+      "status": "existing",
+      "model": null,
+      "bytes": 16320,
+      "sha256": "48d94de2142daa864b0aed649156a89c9f82adc54421ea5fc1109df8945f255f"
+    },
+    "picture": {
+      "file": "public/icons/shared/picture.webp",
+      "replaces": "🖼️",
+      "status": "existing",
+      "model": null,
+      "bytes": 26050,
+      "sha256": "d45009866ca82660f7045baa86c52405dfd30ca499e7d6799754c603eb224b29"
+    },
+    "envelope": {
+      "file": "public/icons/shared/envelope.webp",
+      "replaces": "✉️",
+      "status": "existing",
+      "model": null,
+      "bytes": 35284,
+      "sha256": "0b198c3b8290099c2d83873a7e46260d672bcb0bc29fa5800a928eb4608e59b5"
+    },
+    "id-card": {
+      "file": "public/icons/shared/id-card.webp",
+      "replaces": "📇",
+      "status": "existing",
+      "model": null,
+      "bytes": 19990,
+      "sha256": "556f197fbfa73423100482cf82f5211d47811e798e3a2bbdeee53cae5795d522"
+    },
+    "tag": {
+      "file": "public/icons/shared/tag.webp",
+      "replaces": "🏷️",
+      "status": "existing",
+      "model": null,
+      "bytes": 20078,
+      "sha256": "2256a80c165630ae1d4e6e61ba541f95b5dbf740fe24b79161e513c9383ce565"
+    },
+    "phone": {
+      "file": "public/icons/shared/phone.webp",
+      "replaces": "📱",
+      "status": "existing",
+      "model": null,
+      "bytes": 15338,
+      "sha256": "fe917e2e01f7ab00416b2698099c189efc382491aade7501ac177d2543474fb5"
+    },
+    "book": {
+      "file": "public/icons/shared/book.webp",
+      "replaces": "📖",
+      "status": "existing",
+      "model": null,
+      "bytes": 19636,
+      "sha256": "bc3a171bc7227f2e39645557fd162168b969792a5de7a92a1bc3f87498cd10a8"
+    },
+    "gem-facet": {
+      "file": "public/icons/shared/gem-facet.webp",
+      "replaces": "🌸💎⚡🌈",
+      "status": "existing",
+      "model": null,
+      "bytes": 36158,
+      "sha256": "5fd0fa12a63cfd3b2596370dcfa6d04d6d4e832a75f666762f0a75058a3cfd3a"
+    },
+    "download": {
+      "file": "public/icons/shared/download.webp",
+      "replaces": "📥",
+      "status": "existing",
+      "model": null,
+      "bytes": 25660,
+      "sha256": "fe6a12665462806cdce97b6d3671d1155901ad3c02aee0053ae2e99336aa00bf"
+    },
+    "palette": {
+      "file": "public/icons/shared/palette.webp",
+      "replaces": "🎨",
+      "status": "existing",
+      "model": null,
+      "bytes": 31290,
+      "sha256": "9f5471311289dd07f6ab70ab23b413ea902d7feef874d0ae6ae0fbd0d87468e1"
+    },
+    "folder-upload": {
+      "file": "public/icons/shared/folder-upload.webp",
+      "replaces": "📁",
+      "status": "existing",
+      "model": null,
+      "bytes": 16504,
+      "sha256": "00734cc0bad233e3a6fecf3a61e109ecbcc960a47e2ece0b7e6528f3f187996e"
+    },
+    "eye": {
+      "file": "public/icons/shared/eye.webp",
+      "replaces": "👁️",
+      "status": "existing",
+      "model": null,
+      "bytes": 37136,
+      "sha256": "57d86babf1645bdf599d0cad16306386a10a3ddd366790896c992e86eddbae0d"
+    },
+    "refresh": {
+      "file": "public/icons/shared/refresh.webp",
+      "replaces": "🔄",
+      "status": "existing",
+      "model": null,
+      "bytes": 48472,
+      "sha256": "94921ff83ca00a214220628c6c8909050cd0b513a897eb3ae4de8cd6d4890f37"
+    },
+    "star-cta": {
+      "file": "public/icons/shared/star-cta.webp",
+      "replaces": "🌟",
+      "status": "existing",
+      "model": null,
+      "bytes": 20254,
+      "sha256": "4336972b4bf6670bb84bd80f77f30b2772cac171b0d7609d023c3213e2a2479e"
+    },
+    "store": {
+      "file": "public/icons/shared/store.webp",
+      "replaces": "🏪🏬",
+      "status": "existing",
+      "model": null,
+      "bytes": 32886,
+      "sha256": "48b7a06abc1a6e77037e3612055d3dde105a5fcfe4c6a11ad034de806419458c"
+    },
+    "share": {
+      "file": "public/icons/shared/share.webp",
+      "replaces": "📤",
+      "status": "existing",
+      "model": null,
+      "bytes": 29496,
+      "sha256": "a727b197da6a6d8278f3206406ad30818e5631d7e25c95d7d5cd7714388a57e2"
+    },
+    "puzzle": {
+      "file": "public/icons/shared/puzzle.webp",
+      "replaces": "🧩",
+      "status": "existing",
+      "model": null,
+      "bytes": 25826,
+      "sha256": "68d11d8a6a1927859267763d78353c25e665b1a6bf47536190e9320b3cff01e7"
+    },
+    "factory": {
+      "file": "public/icons/shared/factory.webp",
+      "replaces": "🏭",
+      "status": "existing",
+      "model": null,
+      "bytes": 21738,
+      "sha256": "c3652bb8860868bc810d22cc75e2916950a98b9ddaa6d7705d7a31490f744150"
+    },
+    "clipboard": {
+      "file": "public/icons/shared/clipboard.webp",
+      "replaces": "📋",
+      "status": "existing",
+      "model": null,
+      "bytes": 24924,
+      "sha256": "3be459cfc7ae2b737bb62b173572fbbba7547887257b3ccd9c60e59462f801b1"
+    },
+    "hexagon-vector": {
+      "file": "public/icons/shared/hexagon-vector.webp",
+      "replaces": "⬡",
+      "status": "existing",
+      "model": null,
+      "bytes": 18332,
+      "sha256": "6812ca7252ee9f947f7f9c10cc08684967171b8768ede92e35801029686fd033"
+    },
+    "gift": {
+      "file": "public/icons/shared/gift.webp",
+      "replaces": "🎁",
+      "status": "existing",
+      "model": null,
+      "bytes": 32470,
+      "sha256": "bd35f7e5143a98b790c60a42038f61f8d03f968af3ebc27aa30ee4fe44ea42b9"
+    },
+    "pen-nib": {
+      "file": "public/icons/shared/pen-nib.webp",
+      "replaces": "🔤✒️",
+      "status": "existing",
+      "model": null,
+      "bytes": 18290,
+      "sha256": "d3ae2c0d53bd3727acae6468b68d9095d0dc8f58c500e5fdd87515bf695f5936"
+    },
+    "spiral-descreen": {
+      "file": "public/icons/shared/spiral-descreen.webp",
+      "replaces": "🌀",
+      "status": "existing",
+      "model": null,
+      "bytes": 45964,
+      "sha256": "e17599b26c857cb4231761a3abb0cbeca0a9b37de1b97f83f1f2aa7b18668786"
+    },
+    "camera": {
+      "file": "public/icons/shared/camera.webp",
+      "replaces": "📷",
+      "status": "existing",
+      "model": null,
+      "bytes": 32682,
+      "sha256": "069c00cdab8248fd2d7279b7049326103ab9180a95db96c8d6338f091a4a1e2b"
+    },
+    "package-box": {
+      "file": "public/icons/shared/package-box.webp",
+      "replaces": "📦",
+      "status": "existing",
+      "model": null,
+      "bytes": 45950,
+      "sha256": "f40582393c223e2a064ea45124cf5f6c1a89ccd9de2d7caa7eabd67aed07f2d7"
+    },
+    "speech-bubble": {
+      "file": "public/icons/shared/speech-bubble.webp",
+      "replaces": "💬",
+      "status": "existing",
+      "model": null,
+      "bytes": 18968,
+      "sha256": "341fa7789e8fb6594c9689494b719d35f8821618e58bbe10d026719f176b9c3f"
+    },
+    "shield": {
+      "file": "public/icons/shared/shield.webp",
+      "replaces": "🛡️",
+      "status": "existing",
+      "model": null,
+      "bytes": 26686,
+      "sha256": "5f951b24323f9a0e2555311c10a6c7fc7d20b2d9de838965033b094bf36ec138"
+    },
+    "credit-card": {
+      "file": "public/icons/shared/credit-card.webp",
+      "replaces": "💳",
+      "status": "existing",
+      "model": null,
+      "bytes": 12522,
+      "sha256": "75dfe856b58b0614db3d42ff9d7e0ccd1e2a531becd1fcdc2930c15a87bb4e05"
+    },
+    "rocket": {
+      "file": "public/icons/shared/rocket.webp",
+      "replaces": "🚀",
+      "status": "existing",
+      "model": null,
+      "bytes": 24836,
+      "sha256": "55e7ab8cac17d7b916c97015ec59b25656f95da733a821be2d0aed39fa6c5055"
+    },
+    "hourglass": {
+      "file": "public/icons/shared/hourglass.webp",
+      "replaces": "⏳",
+      "status": "existing",
+      "model": null,
+      "bytes": 27350,
+      "sha256": "587c600cdace432f586d9ad10b324967613732483eb0f24dcace7a6bd5e1fb58"
+    },
+    "robot": {
+      "file": "public/icons/shared/robot.webp",
+      "replaces": "🤖",
+      "status": "existing",
+      "model": null,
+      "bytes": 25564,
+      "sha256": "586039d0e2a312729be181de9fe6f3a4663b44a275c3d03c5e7622c00315cc4e"
+    },
+    "building": {
+      "file": "public/icons/shared/building.webp",
+      "replaces": "🏢",
+      "status": "existing",
+      "model": null,
+      "bytes": 18306,
+      "sha256": "63e25df04bd3e1706c5dda7ca42e320676bc52b3524c83251f4494495a200bb4"
+    },
+    "pin-location": {
+      "file": "public/icons/shared/pin-location.webp",
+      "replaces": "📍",
+      "status": "existing",
+      "model": null,
+      "bytes": 29680,
+      "sha256": "a9ed7845fb9c8f353c447ed9320c2f0dd8ce0223d7c4c09d8bb4116366115792"
+    },
+    "clock": {
+      "file": "public/icons/shared/clock.webp",
+      "replaces": "🕒",
+      "status": "existing",
+      "model": null,
+      "bytes": 37250,
+      "sha256": "4fc69916b0c59e3152235f4c46c05896e36a4952c8182ee087e06bf7cdd614bc"
+    },
+    "phone-call": {
+      "file": "public/icons/shared/phone-call.webp",
+      "replaces": "📞",
+      "status": "existing",
+      "model": null,
+      "bytes": 28500,
+      "sha256": "c320d9c709a668c9a70bbedd20abde427f15027039899d0a1c4b706460d1482b"
+    },
+    "compass": {
+      "file": "public/icons/shared/compass.webp",
+      "replaces": "🧭",
+      "status": "existing",
+      "model": null,
+      "bytes": 36574,
+      "sha256": "42cb364435092be8d0b59187629cd2fb87466f0e4ac9addda930f8ce2b5e002c"
+    },
+    "paintbrush": {
+      "file": "public/icons/shared/paintbrush.webp",
+      "replaces": "🖌️",
+      "status": "existing",
+      "model": null,
+      "bytes": 22706,
+      "sha256": "a35f76c0c6e2351fdab81c002675b29cd1cf39548a1afb052ebea607186fe058"
+    },
+    "sponge-erase": {
+      "file": "public/icons/shared/sponge-erase.webp",
+      "replaces": "🧽",
+      "status": "existing",
+      "model": null,
+      "bytes": 32182,
+      "sha256": "fd967e75a866cbe25b6eb2b846838116abb5171b96b747cb1850828c8fdf88d9"
+    },
+    "trash": {
+      "file": "public/icons/shared/trash.webp",
+      "replaces": "🗑️",
+      "status": "existing",
+      "model": null,
+      "bytes": 26272,
+      "sha256": "ee274a95066716d22d33484ed512fb05bdf4a212e007ebd0a52dec2bd646393e"
+    },
+    "wave-gradient": {
+      "file": "public/icons/shared/wave-gradient.webp",
+      "replaces": "🌊",
+      "status": "existing",
+      "model": null,
+      "bytes": 28088,
+      "sha256": "083923c087c92c8281bb8aeb6904539e58ea6e7191a7faff534116009449fd21"
+    },
+    "droplet": {
+      "file": "public/icons/shared/droplet.webp",
+      "replaces": "💧",
+      "status": "existing",
+      "model": null,
+      "bytes": 23702,
+      "sha256": "0e9d9e3c1861204cd0f6e939404c9d8cbd816f7afc213d26f9f54eca9d42f81e"
+    },
+    "filmstrip": {
+      "file": "public/icons/shared/filmstrip.webp",
+      "replaces": "🎞️",
+      "status": "existing",
+      "model": null,
+      "bytes": 27508,
+      "sha256": "33e873a51c038185b56962716340afa17d4235a842a0d7956d669dbca6c42f17"
+    },
+    "bar-chart": {
+      "file": "public/icons/shared/bar-chart.webp",
+      "replaces": "📊",
+      "status": "existing",
+      "model": null,
+      "bytes": 19190,
+      "sha256": "ae86e7de0cd07c997f9f3288e49631a836ceebf6608ee402fb9eb344c799e57d"
+    },
+    "info": {
+      "file": "public/icons/shared/info.webp",
+      "replaces": "ℹ️",
+      "status": "existing",
+      "model": null,
+      "bytes": 22304,
+      "sha256": "7a1c3df1679703321066f220688df33cfb07be818c826c38d8c5091724643269"
+    },
+    "checkered-flag": {
+      "file": "public/icons/shared/checkered-flag.webp",
+      "replaces": "🏁",
+      "status": "existing",
+      "model": null,
+      "bytes": 17958,
+      "sha256": "20a458cda399500aec1753d8c7e5540a33925091521a4b4e8487dc77adfadefa"
+    },
+    "lock": {
+      "file": "public/icons/shared/lock.webp",
+      "replaces": "🔒",
+      "status": "existing",
+      "model": null,
+      "bytes": 22036,
+      "sha256": "3df30040ae4e75d7ffd34a86e5c9cb6d4e3024bee20b6c64b1f935cb51e71bd0"
+    },
+    "warning": {
+      "file": "public/icons/shared/warning.webp",
+      "replaces": "⚠️",
+      "status": "existing",
+      "model": null,
+      "bytes": 25122,
+      "sha256": "89d0230436644e1a08413733bb6a1ceea0e629ff4998dee5fa5b8fff8990f290"
+    },
+    "globe": {
+      "file": "public/icons/shared/globe.webp",
+      "replaces": "🌐",
+      "status": "generated",
+      "model": "gemini-3.1-flash-lite-image",
+      "bytes": 51728,
+      "sha256": "89174856dfc5a7f57ff5005e4539033c3b1e39e972302227a178a071150ec314"
+    }
+  }
+}
