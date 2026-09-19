@@ -63,9 +63,6 @@ export const APP_SHELL_HTML = `
           <span>📏</span> 螢幕校準
         </button>
 
-        <button id="btnToggleSound" class="pm-sound-btn" title="切換微擬物觸覺音效">
-          <span id="soundIcon">🔊</span>
-        </button>
 
         <button id="btnNewArtwork" class="pm-btn pm-btn-ghost" style="display: none; padding: 5px 12px; font-size: 0.78rem; font-weight: 600;">
           <span>＋ 更換圖片</span>
@@ -160,27 +157,13 @@ export const APP_SHELL_HTML = `
             <line x1="12" y1="3" x2="12" y2="15"></line>
           </svg>
         </div>
-        <div class="pm-dropzone-eyebrow">Pre-press Studio · 印前工作室</div>
         <h2 class="pm-dropzone-title"><span class="pm-nobr">把任何一張圖，</span><span class="pm-nobr">變成印刷廠能直接出機的檔案</span></h2>
-        <p class="pm-dropzone-subtitle"><span class="pm-nobr">拖進來、拍一張或貼上剪貼簿。</span><span class="pm-nobr">尺寸、解析度、出血與墨量，交給印象魔法。</span></p>
-        <div class="pm-dropzone-feature-row">
-          <span class="pm-dropzone-feature-badge blue">🖨️ 300 DPI 超高畫質</span>
-          <span class="pm-dropzone-feature-badge green">✓ 依版型自動出血</span>
-          <span class="pm-dropzone-feature-badge purple">🔒 本機優先處理</span>
-          <span class="pm-dropzone-feature-badge">💧 智慧墨量安全</span>
-        </div>
+        <p class="pm-dropzone-subtitle"><span class="pm-nobr">把圖拖進來，或從相簿選一張。</span><span class="pm-nobr">尺寸、解析度、出血與墨量，交給印象魔法。</span></p>
         <div class="pm-dropzone-actions">
           <div class="pm-dropzone-cta-btn" id="btnPickAlbum">
             <span>＋ 從相簿選擇相片</span>
           </div>
-          <button class="pm-dropzone-sub-btn" id="btnPickCamera" type="button" title="手機相機直接拍照掃描實體畫作/作品">
-            <span>📷</span> 拍照掃描
-          </button>
-          <button class="pm-dropzone-sub-btn" id="btnPasteClipboard" type="button" title="直接讀取剪貼簿中已複製之圖片">
-            <span>📋</span> 貼上剪貼簿
-          </button>
         </div>
-        <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display: none;" />
       </div>
 
     </section>
