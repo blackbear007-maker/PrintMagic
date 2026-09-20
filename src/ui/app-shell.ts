@@ -87,7 +87,12 @@ export const APP_SHELL_HTML = `
           </div>
 
           <div class="pm-settings-pane" data-pane="guide" style="display: none;">
-            <h4 class="pm-settings-pane-title">新手指南</h4>
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+              <h4 class="pm-settings-pane-title" style="margin: 0;">新手指南</h4>
+              <button id="btnOpenGuide" class="pm-tool-btn pm-settings-launch-btn" title="開啟小象陪同的完整圖文版指南">
+                <img src="icons/header/guide.webp" alt="" class="pm-icon-img" /> 完整圖文版
+              </button>
+            </div>
             <div style="display: flex; flex-direction: column; gap: 14px; margin-top: 14px;">
               <div style="display: flex; gap: 14px; padding: 14px; background: var(--pm-bg-secondary); border: 1px solid var(--pm-border-subtle); border-radius: 12px;">
                 <div style="width: 36px; height: 36px; border-radius: 10px; background: rgba(60, 30, 140, 0.1); color: var(--pm-accent-blue); display: flex; align-items: center; justify-content: center; font-size: 1.05rem; font-weight: 800; flex-shrink: 0;">1</div>

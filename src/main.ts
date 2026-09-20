@@ -31,7 +31,6 @@ import { ConveniencePrintModal } from './ui/convenience-print-modal';
 import { ImpositionModal } from './ui/imposition-modal';
 import { DielineModal } from './ui/dieline-modal';
 import { VectorOverlayModal } from './ui/vector-overlay-modal';
-import { PricingModal } from './ui/pricing-modal';
 import { OnboardingModal } from './ui/onboarding-modal';
 import { PipelineMatrixModal, renderPipelineSwitchList, bindPipelineSwitchList } from './ui/pipeline-matrix-modal';
 import { ExportModal } from './ui/export-modal';
@@ -95,7 +94,6 @@ class App {
   public vectorOverlayModal!: VectorOverlayModal;
   public textInspectionModal!: TextInspectionModal;
   public objectEraserModal!: ObjectEraserModal;
-  public pricingModal!: PricingModal;
   public onboardingModal!: OnboardingModal;
   public pipelineMatrixModal!: PipelineMatrixModal;
   public exportModal!: ExportModal;
@@ -296,24 +294,14 @@ class App {
       });
       this.pipeline.runOptimizationPipeline(newImageData);
     });
-    this.pricingModal = new PricingModal(() => {
-      this.updatePlanBadge();
-      this.pipelineMatrixModal.render();
-    });
     this.onboardingModal = new OnboardingModal();
     this.exportModal = new ExportModal();
-    this.pipelineMatrixModal = new PipelineMatrixModal(
-      () => {
-        const state = store.getState();
-        if (state.originalImageData) {
-          this.pipeline.runOptimizationPipeline(state.originalImageData);
-        }
-      },
-      () => {
-        this.pricingModal.open();
+    this.pipelineMatrixModal = new PipelineMatrixModal(() => {
+      const state = store.getState();
+      if (state.originalImageData) {
+        this.pipeline.runOptimizationPipeline(state.originalImageData);
       }
-    );
-    this.updatePlanBadge();
+    });
 
     // 10. Crop Controller
     this.cropController = new CropController('cropToolbarRoot', 'mainPreviewImg');
@@ -360,16 +348,6 @@ class App {
       } else {
         Toast.info('⚡ 已切換至【雲端AI模式】(伺服器未連線，會自動退回本機演算法)');
       }
-    });
-
-    // Open Pro / VIP Expert Pipeline Matrix Modal
-    document.getElementById('btnOpenPipelineMatrix')?.addEventListener('click', () => {
-      this.pipelineMatrixModal.open();
-    });
-
-    // Open Commercial Subscription & Pricing Modal
-    document.getElementById('btnOpenPricing')?.addEventListener('click', () => {
-      this.pricingModal.open();
     });
 
     // Open Onboarding Beginner Guide Modal
@@ -1804,17 +1782,6 @@ class App {
     this.paperButtons.forEach((btn) => {
       btn.classList.toggle('active', btn.dataset.paper === activePaper);
     });
-  }
-
-  public updatePlanBadge(): void {
-    const badgeEl = document.getElementById('planBadgeText');
-    const btnEl = document.getElementById('btnOpenPricing');
-    if (badgeEl && btnEl) {
-      badgeEl.textContent = '✨ 測試版 (全部免費)';
-      btnEl.style.background = 'linear-gradient(135deg, rgba(52, 199, 89, 0.15), rgba(60, 30, 140, 0.15))';
-      btnEl.style.color = '#1b7a34';
-      btnEl.style.fontWeight = '700';
-    }
   }
 
   private updateCanvasScorePill(state: AppState): void {

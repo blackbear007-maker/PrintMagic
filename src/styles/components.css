@@ -3832,9 +3832,6 @@ body[data-ui-mode="simple"] .pm-footer {
     padding: 2px 7px !important;
     font-size: 0.68rem !important;
   }
-  #btnOpenPricing {
-    display: none; /* Hide badge in narrow mobile header to maintain breathing room */
-  }
   #btnOpenTextInspectHeader {
     padding: 4px 8px;
     font-size: 0.72rem;

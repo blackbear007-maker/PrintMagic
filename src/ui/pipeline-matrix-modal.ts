@@ -133,7 +133,7 @@ export class PipelineMatrixModal {
   private modalEl: HTMLElement;
   private onApplyChanges?: () => void;
 
-  constructor(onApplyChanges?: () => void, _onOpenPricing?: () => void) {
+  constructor(onApplyChanges?: () => void) {
     this.onApplyChanges = onApplyChanges;
 
     this.modalEl = document.createElement('div');
