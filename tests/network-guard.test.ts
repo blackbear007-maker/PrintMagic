@@ -1,32 +1,9 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { NetworkGuard } from '../src/services/network-guard';
 
-describe('NetworkGuard & Privacy Shield', () => {
-  let storeMock: Record<string, string> = {};
-
+describe('NetworkGuard', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    storeMock = {};
-
-    // @ts-ignore
-    global.localStorage = {
-      getItem: (k: string) => storeMock[k] || null,
-      setItem: (k: string, v: string) => { storeMock[k] = v; },
-      removeItem: (k: string) => { delete storeMock[k]; },
-      clear: () => { storeMock = {}; }
-    } as any;
-
-    NetworkGuard.setPrivacyShield(false);
-  });
-
-  it('should toggle and persist privacy shield state in localStorage', () => {
-    expect(NetworkGuard.isPrivacyShieldActive()).toBe(false);
-
-    NetworkGuard.setPrivacyShield(true);
-    expect(NetworkGuard.isPrivacyShieldActive()).toBe(true);
-
-    NetworkGuard.setPrivacyShield(false);
-    expect(NetworkGuard.isPrivacyShieldActive()).toBe(false);
   });
 
   it('should correctly validate binary magic headers for PNG, JPEG, and WebP', async () => {

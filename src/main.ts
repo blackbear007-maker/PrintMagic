@@ -31,7 +31,6 @@ import { ConveniencePrintModal } from './ui/convenience-print-modal';
 import { ImpositionModal } from './ui/imposition-modal';
 import { DielineModal } from './ui/dieline-modal';
 import { VectorOverlayModal } from './ui/vector-overlay-modal';
-import { AiSettingsModal } from './ui/ai-settings-modal';
 import { PricingModal } from './ui/pricing-modal';
 import { OnboardingModal } from './ui/onboarding-modal';
 import { PipelineMatrixModal } from './ui/pipeline-matrix-modal';
@@ -96,7 +95,6 @@ class App {
   public vectorOverlayModal!: VectorOverlayModal;
   public textInspectionModal!: TextInspectionModal;
   public objectEraserModal!: ObjectEraserModal;
-  public aiSettingsModal!: AiSettingsModal;
   public pricingModal!: PricingModal;
   public onboardingModal!: OnboardingModal;
   public pipelineMatrixModal!: PipelineMatrixModal;
@@ -115,8 +113,6 @@ class App {
   private btnNewArtwork = document.getElementById('btnNewArtwork')!;
   private btnToggleSound = document.getElementById('btnToggleSound');
   private soundIcon = document.getElementById('soundIcon');
-  private btnToggleEngine = document.getElementById('btnToggleEngine');
-  private engineStatusText = document.getElementById('engineStatusText');
   private mainPreviewImg = document.getElementById('mainPreviewImg') as HTMLImageElement;
   private canvasSheet = document.getElementById('canvasSheet')!;
   private compareSliderRoot = document.getElementById('compareSliderRoot')!;
@@ -306,12 +302,6 @@ class App {
     });
     this.onboardingModal = new OnboardingModal();
     this.exportModal = new ExportModal();
-    this.aiSettingsModal = new AiSettingsModal(() => {
-      const state = store.getState();
-      if (state.originalImageData && state.engineMode === 'cloud') {
-        this.pipeline.runOptimizationPipeline(state.originalImageData);
-      }
-    });
     this.pipelineMatrixModal = new PipelineMatrixModal(
       () => {
         const state = store.getState();
@@ -353,29 +343,23 @@ class App {
   }
 
   private bindEvents(): void {
-    // Hybrid Dual-Engine Switcher (Local vs Cloud Industrial)
-    this.btnToggleEngine?.addEventListener('click', async () => {
-      const current = store.getState().engineMode;
+    // Hybrid Dual-Engine Switcher (two explicit buttons: 本機隱私模式 / 雲端AI模式)
+    document.getElementById('btnEngineLocal')?.addEventListener('click', () => {
+      if (store.getState().engineMode === 'local') return;
       SoundEffects.sliderTick();
-
-      if (current === 'local') {
-        const isOnline = await CloudClient.checkHealth();
-        if (isOnline) {
-          store.setEngineMode('cloud');
-          Toast.success('⚡ 已切換至【自建服務引擎模式】：在線運行 (可使用自建向量化 / 低光提亮服務)');
-        } else {
-          store.setEngineMode('cloud');
-          Toast.info('⚡ 已切換至【自建服務引擎模式】(伺服器未連線，會自動退回本機演算法)');
-        }
-      } else {
-        store.setEngineMode('local');
-        Toast.info('🖥️ 已切換至【本機模式】：所有處理改用本機演算法，圖片不會上傳。臉部偵測與 ICC 精準軟打樣需要自建服務，本機模式下改用近似演算法或停用。');
-      }
+      store.setEngineMode('local');
+      Toast.info('🖥️ 已切換至【本機隱私模式】：所有處理改用本機演算法，圖片不會上傳。臉部偵測與 ICC 精準軟打樣需要自建服務，本機模式下改用近似演算法或停用。');
     });
-
-    // Open AI Super-Resolution Settings & Token Modal
-    document.getElementById('btnOpenAiSettings')?.addEventListener('click', () => {
-      this.aiSettingsModal.open();
+    document.getElementById('btnEngineCloud')?.addEventListener('click', async () => {
+      if (store.getState().engineMode === 'cloud') return;
+      SoundEffects.sliderTick();
+      const isOnline = await CloudClient.checkHealth();
+      store.setEngineMode('cloud');
+      if (isOnline) {
+        Toast.success('⚡ 已切換至【雲端AI模式】：在線運行 (可使用自建向量化 / 低光提亮服務)');
+      } else {
+        Toast.info('⚡ 已切換至【雲端AI模式】(伺服器未連線，會自動退回本機演算法)');
+      }
     });
 
     // Open Pro / VIP Expert Pipeline Matrix Modal
@@ -1376,30 +1360,16 @@ class App {
       this.btnModeSimple?.classList.toggle('active', state.uiMode === 'simple');
       this.btnModeAdvanced?.classList.toggle('active', state.uiMode === 'advanced');
 
-      // 1. Update Hybrid Engine Pill UI
-      if (this.btnToggleEngine) {
-        this.btnToggleEngine.classList.toggle('pm-engine-cloud', state.engineMode === 'cloud');
-        this.btnToggleEngine.classList.toggle('pm-engine-offline', state.cloudStatus === 'offline');
-      }
-      const engineDot = document.getElementById('engineStatusDot');
-      const engineStatusIcon = document.getElementById('engineStatusIcon') as HTMLImageElement | null;
-
-      if (state.engineMode === 'cloud') {
-        if (this.engineStatusText) {
-          this.engineStatusText.textContent = state.cloudStatus === 'online' ? '雲端高階功能 (在線)' : '雲端高階功能 (離線)';
-        }
-        if (engineStatusIcon) engineStatusIcon.src = 'icons/header/engine-cloud.webp';
-        if (engineDot) {
-          engineDot.style.backgroundColor = state.cloudStatus === 'online' ? '#34c759' : '#ff9500';
-        }
-      } else {
-        if (this.engineStatusText) {
-          this.engineStatusText.textContent = '本機基本功能';
-        }
-        if (engineStatusIcon) engineStatusIcon.src = 'icons/header/engine-local.webp';
-        if (engineDot) {
-          engineDot.style.backgroundColor = '#3c1e8c';
-        }
+      // 1. Update Dual-Engine Switch Buttons (selected = light green, unselected = light gray)
+      const btnEngineLocal = document.getElementById('btnEngineLocal');
+      const btnEngineCloud = document.getElementById('btnEngineCloud');
+      const engineCloudLabel = document.getElementById('engineCloudLabel');
+      btnEngineLocal?.classList.toggle('active', state.engineMode === 'local');
+      btnEngineCloud?.classList.toggle('active', state.engineMode === 'cloud');
+      if (engineCloudLabel) {
+        engineCloudLabel.textContent = state.engineMode === 'cloud'
+          ? (state.cloudStatus === 'online' ? '雲端AI模式 (在線)' : '雲端AI模式 (離線)')
+          : '雲端AI模式';
       }
 
       // 2. Switch View Containers

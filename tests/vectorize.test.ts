@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { FreeVectorizeClient } from '../src/services/free-vectorize-client';
-import { NetworkGuard } from '../src/services/network-guard';
 import { store } from '../src/ui/state';
 
 describe('FreeVectorizeClient (VTracer Rust 微服務與本機三次貝茲曲線雙通道)', () => {
@@ -20,7 +19,6 @@ describe('FreeVectorizeClient (VTracer Rust 微服務與本機三次貝茲曲線
       clear: () => { storeMock = {}; }
     } as any;
 
-    NetworkGuard.setPrivacyShield(false);
     FreeVectorizeClient.clearCache();
   });
 
@@ -32,8 +30,8 @@ describe('FreeVectorizeClient (VTracer Rust 微服務與本機三次貝茲曲線
     colorSpace: 'srgb'
   } as ImageData;
 
-  it('should fall back to local Cubic Bézier engine when Privacy Shield is enabled', async () => {
-    NetworkGuard.setPrivacyShield(true);
+  it('should fall back to local Cubic Bézier engine in local engine mode', async () => {
+    store.setState({ engineMode: 'local' });
 
     const res = await FreeVectorizeClient.vectorizeImage(dummyImageData, 8, 1.5);
     expect(res.isCloud).toBe(false);

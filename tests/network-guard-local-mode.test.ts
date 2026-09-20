@@ -13,7 +13,6 @@ describe('NetworkGuard.isRemoteAllowed (local-mode upload gate)', () => {
   beforeEach(() => {
     fetchSpy = vi.fn(async () => { throw new Error('offline'); });
     vi.stubGlobal('fetch', fetchSpy);
-    vi.spyOn(NetworkGuard, 'isPrivacyShieldActive').mockReturnValue(false);
   });
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -26,15 +25,9 @@ describe('NetworkGuard.isRemoteAllowed (local-mode upload gate)', () => {
     expect(NetworkGuard.isRemoteAllowed()).toBe(false);
   });
 
-  it('is true in cloud mode with the shield off', () => {
+  it('is true in cloud engine mode', () => {
     store.setState({ engineMode: 'cloud' });
     expect(NetworkGuard.isRemoteAllowed()).toBe(true);
-  });
-
-  it('is false in cloud mode when the privacy shield is on', () => {
-    store.setState({ engineMode: 'cloud' });
-    vi.spyOn(NetworkGuard, 'isPrivacyShieldActive').mockReturnValue(true);
-    expect(NetworkGuard.isRemoteAllowed()).toBe(false);
   });
 
   it('face detect and ICC never call fetch in local mode', async () => {

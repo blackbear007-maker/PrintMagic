@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { FreeLowlightClient } from '../src/services/free-lowlight-client';
-import { NetworkGuard } from '../src/services/network-guard';
 import { store } from '../src/ui/state';
 
 describe('FreeLowlightClient (Retinexformer 微服務與本機曲線估計雙通道)', () => {
@@ -19,7 +18,6 @@ describe('FreeLowlightClient (Retinexformer 微服務與本機曲線估計雙通
       removeItem: (k: string) => { delete storeMock[k]; },
       clear: () => { storeMock = {}; }
     } as any;
-    NetworkGuard.setPrivacyShield(false);
 
     const mockCtx = {
       drawImage: vi.fn(),
@@ -56,8 +54,8 @@ describe('FreeLowlightClient (Retinexformer 微服務與本機曲線估計雙通
     colorSpace: 'srgb'
   } as ImageData;
 
-  it('should fall back to the local curve-estimation enhancer when Privacy Shield is enabled', async () => {
-    NetworkGuard.setPrivacyShield(true);
+  it('should fall back to the local curve-estimation enhancer in local engine mode', async () => {
+    store.setState({ engineMode: 'local' });
     const fetchSpy = vi.fn();
     global.fetch = fetchSpy as any;
 

@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { AiUpscaleClient, AI_MODELS } from '../src/services/ai-upscale-client';
-import { NetworkGuard } from '../src/services/network-guard';
 import { store } from '../src/ui/state';
 
 describe('AiUpscaleClient (self-hosted Real-ESRGAN / local edge-aware fallback)', () => {
@@ -19,7 +18,6 @@ describe('AiUpscaleClient (self-hosted Real-ESRGAN / local edge-aware fallback)'
       removeItem: (k: string) => { delete storeMock[k]; },
       clear: () => { storeMock = {}; }
     } as any;
-    NetworkGuard.setPrivacyShield(false);
 
     const mockCtx = {
       drawImage: vi.fn(),
@@ -115,8 +113,8 @@ describe('AiUpscaleClient (self-hosted Real-ESRGAN / local edge-aware fallback)'
     expect(result.dataUrl).toBe('data:image/png;base64,realesrgan_output');
   });
 
-  it('should skip the network entirely and go straight to local when Privacy Shield is active', async () => {
-    NetworkGuard.setPrivacyShield(true);
+  it('should skip the network entirely and go straight to local in local engine mode', async () => {
+    store.setState({ engineMode: 'local' });
     const fetchSpy = global.fetch as any;
 
     const dummyDataUrl = 'data:image/png;base64,privacy_shield_input';

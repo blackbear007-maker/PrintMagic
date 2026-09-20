@@ -353,6 +353,42 @@
   transition: all var(--pm-anim-fast) ease;
 }
 
+/* Dual-engine switch: two explicit buttons (not one toggling pill) — unselected is light gray,
+   selected is light green, regardless of which of the two it is. */
+.pm-engine-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px;
+  border-radius: var(--pm-radius-full, 999px);
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.pm-engine-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: var(--pm-radius-full, 999px);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--pm-text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--pm-anim-fast) ease;
+}
+
+.pm-engine-btn:hover {
+  color: var(--pm-text-secondary);
+}
+
+.pm-engine-btn.active {
+  background: rgba(52, 199, 89, 0.14);
+  border-color: rgba(52, 199, 89, 0.35);
+  color: #1b7a34;
+}
+
 /* Header "更多設定" modal: a real tabbed dialog (not a dropdown menu) collapsing
    檢查文字/放大/管線自訂/新手指南/螢幕校準 behind one gear icon. */
 .pm-settings-tabs {

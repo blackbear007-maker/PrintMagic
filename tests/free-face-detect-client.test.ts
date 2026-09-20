@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { FreeFaceDetectClient } from '../src/services/free-face-detect-client';
-import { NetworkGuard } from '../src/services/network-guard';
 import { store } from '../src/ui/state';
 
 describe('FreeFaceDetectClient (YuNet 微服務，無本機備援)', () => {
@@ -17,7 +16,6 @@ describe('FreeFaceDetectClient (YuNet 微服務，無本機備援)', () => {
       removeItem: (k: string) => { delete storeMock[k]; },
       clear: () => { storeMock = {}; }
     } as any;
-    NetworkGuard.setPrivacyShield(false);
 
     const mockCtx = {
       putImageData: vi.fn()
@@ -42,8 +40,8 @@ describe('FreeFaceDetectClient (YuNet 微服務，無本機備援)', () => {
     colorSpace: 'srgb'
   } as ImageData;
 
-  it('should report unavailable (no local fallback) when Privacy Shield is enabled', async () => {
-    NetworkGuard.setPrivacyShield(true);
+  it('should report unavailable (no local fallback) in local engine mode', async () => {
+    store.setState({ engineMode: 'local' });
     const fetchSpy = vi.fn();
     global.fetch = fetchSpy as any;
 

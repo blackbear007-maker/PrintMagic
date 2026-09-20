@@ -137,7 +137,7 @@ class StateStore {
       offsetYPercent: 0
     },
 
-    engineMode: 'local',
+    engineMode: 'cloud', // 2026-09-20：預設改用雲端AI模式，使用者可隨時切回本機隱私模式
     cloudStatus: 'offline',
 
     currentPreset: DEFAULT_PRESET,

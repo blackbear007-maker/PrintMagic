@@ -30,15 +30,19 @@ export const APP_SHELL_HTML = `
       </div>
 
       <div class="pm-header-actions">
-        <!-- Dual-Engine Switcher: Local Basic vs Cloud Advanced (visible in both Simple and Advanced modes) -->
-        <button id="btnToggleEngine" class="pm-tool-btn pm-engine-pill" style="background: rgba(60, 30, 140, 0.08); color: var(--pm-accent-blue); border-color: rgba(60, 30, 140, 0.25); font-weight: 700;" title="點擊切換 本機基本功能 與 雲端高階功能 (自建向量化 / 低光提亮服務，離線時自動退回本機演算法)">
-          <span id="engineStatusDot" class="pm-engine-dot" style="display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #3c1e8c; margin-right: 2px;"></span>
-          <img id="engineStatusIcon" src="icons/header/engine-local.webp" alt="" class="pm-icon-img" />
-          <span id="engineStatusText">本機基本功能 (離線)</span>
-        </button>
+        <!-- Dual-Engine Switcher: two explicit buttons instead of one toggling pill (visible in both Simple and Advanced modes) -->
+        <div class="pm-engine-switch" role="group" aria-label="本機隱私模式或雲端AI模式">
+          <button id="btnEngineLocal" class="pm-engine-btn" title="本機隱私模式：圖片絕不離開你的裝置">
+            <img src="icons/header/engine-local.webp" alt="" class="pm-icon-img" /> 本機隱私模式
+          </button>
+          <button id="btnEngineCloud" class="pm-engine-btn" title="雲端AI模式：優先嘗試自建服務以取得更好結果，離線時自動退回本機演算法">
+            <img id="engineCloudIcon" src="icons/header/engine-cloud.webp" alt="" class="pm-icon-img" />
+            <span id="engineCloudLabel">雲端AI模式</span>
+          </button>
+        </div>
 
         <!-- Consolidated Settings: everything below collapses behind one gear icon (Advanced Only) -->
-        <button id="btnOpenHeaderSettings" class="pm-tool-btn pm-advanced-only" style="padding: 6px 8px;" title="更多設定：文字檢查、放大引擎、管線自訂、新手指南、螢幕校準">
+        <button id="btnOpenHeaderSettings" class="pm-tool-btn pm-advanced-only" style="padding: 6px 8px;" title="更多設定：文字檢查、管線自訂、新手指南">
           <img src="icons/header/mode-advanced.webp" alt="" class="pm-icon-img" />
         </button>
 
@@ -61,21 +65,12 @@ export const APP_SHELL_HTML = `
       </div>
       <div class="pm-modal-body" style="display: flex; padding: 0; min-height: 300px;">
         <div class="pm-settings-tabs" role="tablist">
-          <button class="pm-settings-tab active" data-tab="privacy"><img src="icons/shared/lock.webp" alt="" class="pm-icon-img" /> 隱私設定</button>
-          <button class="pm-settings-tab" data-tab="text-inspect"><img src="icons/header/text-inspect.webp" alt="" class="pm-icon-img" /> 檢查文字</button>
+          <button class="pm-settings-tab active" data-tab="text-inspect"><img src="icons/header/text-inspect.webp" alt="" class="pm-icon-img" /> 檢查文字</button>
           <button class="pm-settings-tab" data-tab="pipeline"><img src="icons/header/pipeline-matrix.webp" alt="" class="pm-icon-img" /> 管線自訂</button>
           <button class="pm-settings-tab" data-tab="guide"><img src="icons/header/guide.webp" alt="" class="pm-icon-img" /> 新手指南</button>
         </div>
         <div class="pm-settings-panes">
-          <div class="pm-settings-pane" data-pane="privacy">
-            <h4 class="pm-settings-pane-title">隱私設定</h4>
-            <p class="pm-settings-pane-desc">要不要強制只用本機演算法（100% 本機模式）：圖片絕不離開你的裝置，完全跳過自建雲端服務。</p>
-            <button id="btnOpenAiSettings" class="pm-btn pm-btn-primary pm-settings-launch-btn" style="margin-top: 14px;">
-              <img src="icons/shared/lock.webp" alt="" class="pm-icon-img" /> 開啟隱私設定
-            </button>
-          </div>
-
-          <div class="pm-settings-pane" data-pane="text-inspect" style="display: none;">
+          <div class="pm-settings-pane" data-pane="text-inspect">
             <h4 class="pm-settings-pane-title">檢查文字</h4>
             <p class="pm-settings-pane-desc">自動辨識圖中文字，檢查 AI 繪圖常見的英文拼寫錯誤與怪異亂碼。</p>
             <button id="btnOpenTextInspectHeader" class="pm-btn pm-btn-primary pm-settings-launch-btn" style="margin-top: 14px;">

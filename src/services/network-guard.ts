@@ -1,52 +1,29 @@
 /**
- * 🛡️ NetworkGuard — Privacy Shield & Upload Payload Helpers
+ * 🛡️ NetworkGuard — Upload Payload Helpers
  *
- * Privacy Shield is a real, functional toggle: when active, the app skips the self-hosted
- * services entirely (VTracer, and the PyTorch vision container's Retinexformer/Real-ESRGAN/
- * LaMa/rembg/YuNet, all reachable at `/api/*`) and only ever runs the local deterministic
- * algorithms in src/core/ — nothing leaves the browser. When
- * inactive, the app still tries the self-hosted services first (better results) and gracefully
- * falls back to the same local algorithms if they're unreachable.
+ * 2026-09-20 簡化：原本這裡還有一個獨立的「Privacy Shield」開關，可以在雲端模式下額外強制只用
+ * 本機演算法。使用者指出這多此一舉——本機模式（engineMode === 'local'）本身就已經是 100% 隱私
+ * 模式，不會有任何圖片離開瀏覽器；如果使用者不想上傳圖片，切回本機模式就好，不需要在雲端模式裡
+ * 再疊加一個「其實我不想要雲端」的開關。已整個移除，`isRemoteAllowed()` 現在單純只看 engineMode。
  *
- * There is no third-party cloud API involved either way — "self-hosted" here means the server you
- * (or whoever operates this deployment) run, not an external vendor.
+ * 自建服務（VTracer，以及 PyTorch 視覺服務容器的 Retinexformer/Real-ESRGAN/LaMa/rembg/YuNet，
+ * 皆掛在 `/api/*`）只在 engineMode === 'cloud' 時才會被嘗試呼叫；本機模式下一律使用
+ * src/core/ 裡的本機決定性演算法，圖片不會離開瀏覽器。沒有涉及任何第三方雲端 API——
+ * 「自建」指的是你（或這個部署的維運者）自己架設的伺服器，不是外部供應商。
  */
 import { store } from '../ui/state';
 
 export class NetworkGuard {
-  private static readonly STORAGE_PRIVACY_KEY = 'printmagic_privacy_shield_active';
-
-  /**
-   * Check if Privacy Shield is enabled (100% local-only mode — skip self-hosted services)
-   */
-  public static isPrivacyShieldActive(): boolean {
-    if (typeof localStorage !== 'undefined') {
-      return localStorage.getItem(this.STORAGE_PRIVACY_KEY) === 'true';
-    }
-    return false;
-  }
-
   /**
    * Single gate for every client that would send user image data to a self-hosted `/api/*`
-   * service. Returns false when the engine switch is on 本機極速 (engineMode === 'local') OR the
-   * Privacy Shield is active — in either case callers must use their local fallback and never
-   * upload. Cloud mode with the shield off behaves exactly as before (try service, fall back).
+   * service. False in 本機基本功能 (engineMode === 'local') — callers must use their local
+   * fallback and never upload. True in 雲端高階功能 (try the service, fall back if unreachable).
    */
   public static isRemoteAllowed(): boolean {
-    if (this.isPrivacyShieldActive()) return false;
     try {
       return store.getState().engineMode === 'cloud';
     } catch {
       return false;
-    }
-  }
-
-  /**
-   * Toggle Privacy Shield
-   */
-  public static setPrivacyShield(active: boolean): void {
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem(this.STORAGE_PRIVACY_KEY, active ? 'true' : 'false');
     }
   }
 

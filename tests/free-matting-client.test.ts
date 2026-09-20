@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { FreeMattingClient } from '../src/services/free-matting-client';
-import { NetworkGuard } from '../src/services/network-guard';
 import { store } from '../src/ui/state';
 
 describe('FreeMattingClient (rembg u2netp 微服務與本機顏色距離去背雙通道)', () => {
@@ -17,7 +16,6 @@ describe('FreeMattingClient (rembg u2netp 微服務與本機顏色距離去背�
       removeItem: (k: string) => { delete storeMock[k]; },
       clear: () => { storeMock = {}; }
     } as any;
-    NetworkGuard.setPrivacyShield(false);
 
     const mockCtx = {
       drawImage: vi.fn(),
@@ -60,8 +58,8 @@ describe('FreeMattingClient (rembg u2netp 微服務與本機顏色距離去背�
     colorSpace: 'srgb'
   } as ImageData;
 
-  it('should fall back to the local color-distance matting when Privacy Shield is enabled', async () => {
-    NetworkGuard.setPrivacyShield(true);
+  it('should fall back to the local color-distance matting in local engine mode', async () => {
+    store.setState({ engineMode: 'local' });
     const fetchSpy = vi.fn();
     global.fetch = fetchSpy as any;
 
