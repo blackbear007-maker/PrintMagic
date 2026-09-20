@@ -4804,6 +4804,7 @@ body[data-ui-mode="simple"] .pm-footer {
   height: 16px;
   object-fit: contain;
   display: block;
+  pointer-events: none; /* see .pm-icon-img's comment in studio.css — same delegated-click bug */
 }
 
 .pm-dock-name {

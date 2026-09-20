@@ -53,9 +53,11 @@ export const APP_SHELL_HTML = `
     </div>
   </header>
 
-  <!-- More Settings: tabbed panel behind the header's gear icon (隱私設定/檢查文字/管線自訂/新手指南) -->
+  <!-- More Settings: tabbed panel behind the header's gear icon (檢查文字/管線自訂/新手指南).
+       No save/close footer — pipeline toggles apply immediately, and clicking the backdrop or
+       the ✕ dismisses it, same as every other modal in the app. -->
   <div class="pm-modal-backdrop" id="headerSettingsModal">
-    <div class="pm-modal-dialog" style="max-width: 640px; width: 92vw;">
+    <div class="pm-modal-dialog" style="max-width: 960px; width: 94vw;">
       <div class="pm-modal-header">
         <div style="display: flex; align-items: center; gap: 10px;">
           <img src="icons/header/mode-advanced.webp" alt="" class="pm-icon-img" />
@@ -63,35 +65,52 @@ export const APP_SHELL_HTML = `
         </div>
         <button class="pm-modal-close" id="btnCloseHeaderSettings"><img src="icons/shared/close.webp" alt="" class="pm-icon-img" /></button>
       </div>
-      <div class="pm-modal-body" style="display: flex; padding: 0; min-height: 300px;">
+      <div class="pm-modal-body" style="display: flex; padding: 0; min-height: 560px; max-height: 78vh;">
         <div class="pm-settings-tabs" role="tablist">
-          <button class="pm-settings-tab active" data-tab="text-inspect"><img src="icons/header/text-inspect.webp" alt="" class="pm-icon-img" /> 檢查文字</button>
-          <button class="pm-settings-tab" data-tab="pipeline"><img src="icons/header/pipeline-matrix.webp" alt="" class="pm-icon-img" /> 管線自訂</button>
+          <button class="pm-settings-tab" data-tab="text-inspect"><img src="icons/header/text-inspect.webp" alt="" class="pm-icon-img" /> 檢查文字</button>
+          <button class="pm-settings-tab active" data-tab="pipeline"><img src="icons/header/pipeline-matrix.webp" alt="" class="pm-icon-img" /> 管線自訂</button>
           <button class="pm-settings-tab" data-tab="guide"><img src="icons/header/guide.webp" alt="" class="pm-icon-img" /> 新手指南</button>
         </div>
-        <div class="pm-settings-panes">
-          <div class="pm-settings-pane" data-pane="text-inspect">
+        <div class="pm-settings-panes" style="flex: 1; overflow-y: auto;">
+          <div class="pm-settings-pane" data-pane="text-inspect" style="display: none;">
             <h4 class="pm-settings-pane-title">檢查文字</h4>
-            <p class="pm-settings-pane-desc">自動辨識圖中文字，檢查 AI 繪圖常見的英文拼寫錯誤與怪異亂碼。</p>
+            <p class="pm-settings-pane-desc">自動辨識圖中文字，檢查 AI 繪圖常見的英文拼寫錯誤與怪異亂碼——這項需要在獨立視窗中比對標註框與原圖，所以會另開一個檢查視窗。</p>
             <button id="btnOpenTextInspectHeader" class="pm-btn pm-btn-primary pm-settings-launch-btn" style="margin-top: 14px;">
               <img src="icons/header/text-inspect.webp" alt="" class="pm-icon-img" /> 開啟檢查文字
             </button>
           </div>
 
-          <div class="pm-settings-pane" data-pane="pipeline" style="display: none;">
+          <div class="pm-settings-pane" data-pane="pipeline">
             <h4 class="pm-settings-pane-title">管線自訂</h4>
-            <p class="pm-settings-pane-desc">專家級印前管線開關：自由自訂 AI 放大、銳化、控墨與階調處理 (測試版免費開放)。</p>
-            <button id="btnOpenPipelineMatrix" class="pm-btn pm-btn-primary pm-settings-launch-btn" style="margin-top: 14px;">
-              <img src="icons/header/pipeline-matrix.webp" alt="" class="pm-icon-img" /> 開啟管線自訂
-            </button>
+            <p class="pm-settings-pane-desc">專家級印前管線開關：自由自訂 AI 放大、銳化、控墨與階調處理。每個開關切換後立即套用，不需另外儲存。</p>
+            <div id="settingsPipelineList" style="display: flex; flex-direction: column; gap: 10px; margin-top: 14px;"></div>
           </div>
 
           <div class="pm-settings-pane" data-pane="guide" style="display: none;">
             <h4 class="pm-settings-pane-title">新手指南</h4>
-            <p class="pm-settings-pane-desc">查看 30 秒 3 步速成指南，快速了解操作流程。</p>
-            <button id="btnOpenGuide" class="pm-btn pm-btn-primary pm-settings-launch-btn" style="margin-top: 14px;">
-              <img src="icons/header/guide.webp" alt="" class="pm-icon-img" /> 開啟新手指南
-            </button>
+            <div style="display: flex; flex-direction: column; gap: 14px; margin-top: 14px;">
+              <div style="display: flex; gap: 14px; padding: 14px; background: var(--pm-bg-secondary); border: 1px solid var(--pm-border-subtle); border-radius: 12px;">
+                <div style="width: 36px; height: 36px; border-radius: 10px; background: rgba(60, 30, 140, 0.1); color: var(--pm-accent-blue); display: flex; align-items: center; justify-content: center; font-size: 1.05rem; font-weight: 800; flex-shrink: 0;">1</div>
+                <div>
+                  <h5 style="font-size: 0.9rem; font-weight: 700; color: var(--pm-text-primary); margin: 0 0 4px 0;"><img src="icons/shared/camera.webp" alt="" class="pm-icon-img" /> 選擇相片、拍照掃描或貼上剪貼簿</h5>
+                  <p style="font-size: 0.78rem; color: var(--pm-text-secondary); margin: 0; line-height: 1.45;">直接將照片拖入畫面或用手機相機掃描匯入，點選「貼紙 / 海報 / 明信片 / 名片」自動適配印刷尺寸，並依版型加上出血。</p>
+                </div>
+              </div>
+              <div style="display: flex; gap: 14px; padding: 14px; background: var(--pm-bg-secondary); border: 1px solid var(--pm-border-subtle); border-radius: 12px;">
+                <div style="width: 36px; height: 36px; border-radius: 10px; background: rgba(52, 199, 89, 0.1); color: var(--pm-status-success); display: flex; align-items: center; justify-content: center; font-size: 1.05rem; font-weight: 800; flex-shrink: 0;">2</div>
+                <div>
+                  <h5 style="font-size: 0.9rem; font-weight: 700; color: var(--pm-text-primary); margin: 0 0 4px 0;"><img src="icons/shared/magnifier.webp" alt="" class="pm-icon-img" /> 自動放大補足 DPI 與 100 分印前健檢</h5>
+                  <p style="font-size: 0.78rem; color: var(--pm-text-secondary); margin: 0; line-height: 1.45;">系統依目標 DPI 自動放大、USM 銳化與 CMYK 墨量安全防護。看到懸浮膠囊亮起「100分 完美就緒」即可安心輸出！</p>
+                </div>
+              </div>
+              <div style="display: flex; gap: 14px; padding: 14px; background: var(--pm-bg-secondary); border: 1px solid var(--pm-border-subtle); border-radius: 12px;">
+                <div style="width: 36px; height: 36px; border-radius: 10px; background: rgba(255, 149, 0, 0.1); color: var(--pm-status-warning); display: flex; align-items: center; justify-content: center; font-size: 1.05rem; font-weight: 800; flex-shrink: 0;">3</div>
+                <div>
+                  <h5 style="font-size: 0.9rem; font-weight: 700; color: var(--pm-text-primary); margin: 0 0 4px 0;"><img src="icons/shared/package-box.webp" alt="" class="pm-icon-img" /> 一鍵下載標準 PDF 或超商列印檔</h5>
+                  <p style="font-size: 0.78rem; color: var(--pm-text-secondary); margin: 0; line-height: 1.45;">點擊「一鍵下載標準印刷檔 (PDF)」直接送交印刷廠出機，或點擊「超商列印檔案產生器」下載排版好的檔案，再透過超商官網上傳取得取件碼。</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

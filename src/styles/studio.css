@@ -389,6 +389,14 @@
   color: #1b7a34;
 }
 
+/* No focus ring on these two — the site-wide :focus-visible outline (theme-paper.css) adds a
+   thick outset border that reads as a layout shift right after a click; the active/inactive
+   background color already makes the current selection unambiguous. */
+.pm-engine-btn:focus,
+.pm-engine-btn:focus-visible {
+  outline: none;
+}
+
 /* Header "更多設定" modal: a real tabbed dialog (not a dropdown menu) collapsing
    檢查文字/放大/管線自訂/新手指南/螢幕校準 behind one gear icon. */
 .pm-settings-tabs {
@@ -448,13 +456,20 @@
   margin: 0;
 }
 
-/* AI-generated ink-line header icons (public/icons/header/*.webp) replacing inline emoji */
+/* AI-generated ink-line header icons (public/icons/header/*.webp) replacing inline emoji.
+   pointer-events:none is load-bearing: dozens of buttons across the app (e.g. every modal's
+   close "✕") use delegated click handlers that check `e.target.id` against the BUTTON's id.
+   Before these icons existed, a click landed on the button's own text node and `e.target` was
+   the button; now an <img> sits where that text was, and a click precisely on the icon makes
+   `e.target` the <img> (no id), so the id check silently fails and the button looks unresponsive.
+   Disabling pointer events on the icon makes every click bubble to the parent element instead. */
 .pm-icon-img {
   width: 15px;
   height: 15px;
   object-fit: contain;
   vertical-align: -3px;
   display: inline-block;
+  pointer-events: none;
 }
 
 .pm-tool-btn:hover {

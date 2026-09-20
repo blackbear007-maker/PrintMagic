@@ -33,7 +33,7 @@ import { DielineModal } from './ui/dieline-modal';
 import { VectorOverlayModal } from './ui/vector-overlay-modal';
 import { PricingModal } from './ui/pricing-modal';
 import { OnboardingModal } from './ui/onboarding-modal';
-import { PipelineMatrixModal } from './ui/pipeline-matrix-modal';
+import { PipelineMatrixModal, renderPipelineSwitchList, bindPipelineSwitchList } from './ui/pipeline-matrix-modal';
 import { ExportModal } from './ui/export-modal';
 import { MultiFormatExporter } from './engines/multi-format-exporter';
 import { TextInspectionModal } from './ui/text-inspection-modal';
@@ -465,6 +465,19 @@ class App {
     };
     document.getElementById('btnOpenHeaderSettings')?.addEventListener('click', openHeaderSettings);
     document.getElementById('btnCloseHeaderSettings')?.addEventListener('click', closeHeaderSettings);
+
+    // 管線自訂 tab embeds the real switch list (see image-2-style request) — bound once, each
+    // toggle applies to the store and re-runs the pipeline immediately, no separate save step.
+    const settingsPipelineList = document.getElementById('settingsPipelineList');
+    if (settingsPipelineList) {
+      settingsPipelineList.innerHTML = renderPipelineSwitchList();
+      bindPipelineSwitchList(settingsPipelineList, () => {
+        const state = store.getState();
+        if (state.originalImageData) {
+          this.pipeline.runOptimizationPipeline(state.originalImageData);
+        }
+      });
+    }
     headerSettingsModal?.addEventListener('click', (e) => {
       if (e.target === headerSettingsModal) closeHeaderSettings();
     });

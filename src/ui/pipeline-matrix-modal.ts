@@ -3,9 +3,131 @@ import { SoundEffects } from '../core/sound-effects';
 import { store } from './state';
 import type { PipelineOptions } from '../types';
 
+export interface PipelineItemDef {
+  key: keyof PipelineOptions;
+  icon: string;
+  title: string;
+  desc: string;
+  defaultHint: string;
+  offHint: string;
+}
+
+export const PIPELINE_ITEMS: PipelineItemDef[] = [
+  {
+    key: 'enableUpscale',
+    icon: '<img src="icons/shared/magnifier.webp" alt="" class="pm-icon-img" />',
+    title: '8x 金字塔超解析度放大',
+    desc: '將低解析原圖透過 Lanczos-3 或邊緣強化演算法放大至 300+ DPI 印刷標準（本機決定性演算法，非神經網路）。',
+    defaultHint: '開：自動補足解析度',
+    offHint: '關：維持原始像素尺寸'
+  },
+  {
+    key: 'enableSharpening',
+    icon: '<img src="icons/shared/sparkle.webp" alt="" class="pm-icon-img" />',
+    title: 'USM 印刷微米級邊緣銳化補償',
+    desc: '抵消合版印刷網點擴大（Dot Gain）造成的字體模糊與線條柔化。',
+    defaultHint: '開：銳化微細輪廓',
+    offHint: '關：保留原始顆粒/柔邊'
+  },
+  {
+    key: 'enableInkLimiting',
+    icon: '<img src="icons/shared/palette.webp" alt="" class="pm-icon-img" />',
+    title: 'TAC 300% 總墨量強制壓制保護',
+    desc: '防止暗部 CMYK 4 色油墨總和超過 300%，避免油墨未乾拖花與背印污損。',
+    defaultHint: '開：限制最高 300%',
+    offHint: '關：允許原始油墨直出'
+  },
+  {
+    key: 'enableShadowLift',
+    icon: '<img src="icons/shared/contrast.webp" alt="" class="pm-icon-img" />',
+    title: '暗部階調浮起與動態反差補償',
+    desc: '針對紙張吸墨特性微調暗階，防止畫面在實體印刷時暗沉死黑。',
+    defaultHint: '開：動態範圍校正',
+    offHint: '關：維持原圖暗度'
+  },
+  {
+    key: 'enableBleedExpand',
+    icon: '<img src="icons/shared/ruler-vector.webp" alt="" class="pm-icon-img" />',
+    title: '3mm 智慧出血自動補足與鏡像延伸',
+    desc: '自動為周圍邊界鏡像延伸 3mm 出血區，徹底解決裁刀誤差白邊問題。',
+    defaultHint: '開：自動補齊 3mm',
+    offHint: '關：原始邊界裁切'
+  },
+  {
+    key: 'enableColorProofing',
+    icon: '<img src="icons/shared/rainbow-gamut.webp" alt="" class="pm-icon-img" />',
+    title: '國際 ICC 描述檔色彩映射軟打樣',
+    desc: '套用 Japan Color 2001 或 ISO Coated v2 CMYK 實體印刷打樣校色。',
+    defaultHint: '開：精確色域映射',
+    offHint: '關：維持 sRGB 原色'
+  },
+  {
+    key: 'enableAutoBgRemoval',
+    icon: '<img src="icons/shared/scissors.webp" alt="" class="pm-icon-img" />',
+    title: '模切貼紙自動去背',
+    desc: '僅在選用「模切貼紙」規格時，上傳後自動去背，省去手動點擊「髮絲去背」的步驟。其他規格（海報/名片/明信片等）不受影響，因為那些通常需要保留背景。',
+    defaultHint: '開：貼紙自動去背',
+    offHint: '關：需手動點擊去背'
+  }
+];
+
+/** Pure markup for the switch list — shared by the standalone modal and the header settings tab. */
+export function renderPipelineSwitchList(): string {
+  const opts = store.getState().pipelineOptions;
+  return PIPELINE_ITEMS.map((item) => {
+    const isChecked = opts[item.key];
+    return `
+      <div class="pm-pipeline-switch-card" data-key="${item.key}" style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: #ffffff; border: 1.5px solid ${isChecked ? 'rgba(60, 30, 140, 0.4)' : 'var(--pm-border-subtle)'}; border-radius: 12px; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);">
+        <div style="display: flex; align-items: flex-start; gap: 12px; flex: 1; padding-right: 12px;">
+          <span style="font-size: 1.3rem; line-height: 1;">${item.icon}</span>
+          <div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 0.88rem; font-weight: 700; color: var(--pm-text-primary);">${item.title}</span>
+              <span style="font-size: 0.68rem; font-weight: 600; padding: 2px 6px; border-radius: 4px; background: ${isChecked ? 'rgba(60, 30, 140, 0.1)' : '#f0f0f2'}; color: ${isChecked ? '#3c1e8c' : 'var(--pm-text-muted)'};">
+                ${isChecked ? item.defaultHint : item.offHint}
+              </span>
+            </div>
+            <div style="font-size: 0.75rem; color: var(--pm-text-muted); margin-top: 3px; line-height: 1.35;">${item.desc}</div>
+          </div>
+        </div>
+
+        <!-- Apple iOS Style Toggle Switch -->
+        <label class="pm-apple-switch" style="position: relative; display: inline-block; width: 44px; height: 26px; flex-shrink: 0; cursor: pointer;">
+          <input type="checkbox" class="pipeline-checkbox" data-key="${item.key}" ${isChecked ? 'checked' : ''} style="opacity: 0; width: 0; height: 0;" />
+          <span class="pm-switch-slider ${isChecked ? 'pm-switch-on' : ''}" style="position: absolute; inset: 0; background-color: ${isChecked ? '#34c759' : '#e5e5ea'}; border-radius: 26px; transition: 0.25s cubic-bezier(0.16, 1, 0.3, 1);">
+            <span class="pm-switch-knob" style="position: absolute; height: 22px; width: 22px; left: ${isChecked ? '20px' : '2px'}; bottom: 2px; background-color: white; border-radius: 50%; transition: 0.25s cubic-bezier(0.16, 1, 0.3, 1); box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);"></span>
+          </span>
+        </label>
+      </div>
+    `;
+  }).join('');
+}
+
+/**
+ * Wires a container that holds `renderPipelineSwitchList()`'s markup: every toggle applies to
+ * the store immediately (no separate save step) and re-renders the list in place so the hint
+ * badge/border color stay in sync. Bind once per container — re-rendering its innerHTML doesn't
+ * lose this listener since it's delegated on the container itself, never the checkboxes.
+ */
+export function bindPipelineSwitchList(container: HTMLElement, onChange?: () => void): void {
+  container.addEventListener('change', (e) => {
+    const target = e.target as HTMLInputElement;
+    if (!target.classList.contains('pipeline-checkbox')) return;
+    const key = target.dataset.key as keyof PipelineOptions;
+    if (!key) return;
+    store.setPipelineOption(key, target.checked);
+    SoundEffects.sliderTick();
+    container.innerHTML = renderPipelineSwitchList();
+    if (onChange) onChange();
+  });
+}
+
 /**
  * 🎛️ 專家級印前管線自訂控制器 (Expert Pipeline Matrix Modal)
  * Apple HIG Frosted Glass Switch Matrix for Non-Destructive Selective Optimization
+ *
+ * 2026-09-20 簡化：拿掉「儲存並立即套用／關閉」這組按鈕——每個開關現在切換的當下就直接生效
+ * 並重新套用管線，不需要額外確認一次；要離開就點右上角 ✕ 或點背景，跟其他彈窗一致。
  */
 export class PipelineMatrixModal {
   private modalEl: HTMLElement;
@@ -24,74 +146,6 @@ export class PipelineMatrixModal {
   }
 
   public render(): void {
-    const opts = store.getState().pipelineOptions;
-
-    const pipelineItems: {
-      key: keyof PipelineOptions;
-      icon: string;
-      title: string;
-      desc: string;
-      defaultHint: string;
-      offHint: string;
-    }[] = [
-      {
-        key: 'enableUpscale',
-        icon: '<img src="icons/shared/magnifier.webp" alt="" class="pm-icon-img" />',
-        title: '8x 金字塔超解析度放大',
-        desc: '將低解析原圖透過 Lanczos-3 或邊緣強化演算法放大至 300+ DPI 印刷標準（本機決定性演算法，非神經網路）。',
-        defaultHint: '開：自動補足解析度',
-        offHint: '關：維持原始像素尺寸'
-      },
-      {
-        key: 'enableSharpening',
-        icon: '<img src="icons/shared/sparkle.webp" alt="" class="pm-icon-img" />',
-        title: 'USM 印刷微米級邊緣銳化補償',
-        desc: '抵消合版印刷網點擴大（Dot Gain）造成的字體模糊與線條柔化。',
-        defaultHint: '開：銳化微細輪廓',
-        offHint: '關：保留原始顆粒/柔邊'
-      },
-      {
-        key: 'enableInkLimiting',
-        icon: '<img src="icons/shared/palette.webp" alt="" class="pm-icon-img" />',
-        title: 'TAC 300% 總墨量強制壓制保護',
-        desc: '防止暗部 CMYK 4 色油墨總和超過 300%，避免油墨未乾拖花與背印污損。',
-        defaultHint: '開：限制最高 300%',
-        offHint: '關：允許原始油墨直出'
-      },
-      {
-        key: 'enableShadowLift',
-        icon: '<img src="icons/shared/contrast.webp" alt="" class="pm-icon-img" />',
-        title: '暗部階調浮起與動態反差補償',
-        desc: '針對紙張吸墨特性微調暗階，防止畫面在實體印刷時暗沉死黑。',
-        defaultHint: '開：動態範圍校正',
-        offHint: '關：維持原圖暗度'
-      },
-      {
-        key: 'enableBleedExpand',
-        icon: '<img src="icons/shared/ruler-vector.webp" alt="" class="pm-icon-img" />',
-        title: '3mm 智慧出血自動補足與鏡像延伸',
-        desc: '自動為周圍邊界鏡像延伸 3mm 出血區，徹底解決裁刀誤差白邊問題。',
-        defaultHint: '開：自動補齊 3mm',
-        offHint: '關：原始邊界裁切'
-      },
-      {
-        key: 'enableColorProofing',
-        icon: '<img src="icons/shared/rainbow-gamut.webp" alt="" class="pm-icon-img" />',
-        title: '國際 ICC 描述檔色彩映射軟打樣',
-        desc: '套用 Japan Color 2001 或 ISO Coated v2 CMYK 實體印刷打樣校色。',
-        defaultHint: '開：精確色域映射',
-        offHint: '關：維持 sRGB 原色'
-      },
-      {
-        key: 'enableAutoBgRemoval',
-        icon: '<img src="icons/shared/scissors.webp" alt="" class="pm-icon-img" />',
-        title: '模切貼紙自動去背',
-        desc: '僅在選用「模切貼紙」規格時，上傳後自動去背，省去手動點擊「髮絲去背」的步驟。其他規格（海報/名片/明信片等）不受影響，因為那些通常需要保留背景。',
-        defaultHint: '開：貼紙自動去背',
-        offHint: '關：需手動點擊去背'
-      }
-    ];
-
     this.modalEl.innerHTML = `
       <div class="pm-modal-dialog" style="max-width: 720px; width: 92vw;">
         <div class="pm-modal-header">
@@ -113,56 +167,30 @@ export class PipelineMatrixModal {
         </div>
 
         <div class="pm-modal-body" style="padding: 16px 24px; max-height: 70vh; overflow-y: auto;">
-          <div style="background: rgba(52, 199, 89, 0.08); border: 1px solid rgba(52, 199, 89, 0.25); border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; display: flex; align-items: center; gap: 8px;">
-            <img src="icons/shared/check.webp" alt="" class="pm-icon-img" />
-            <span style="font-size: 0.78rem; color: #248a3d; font-weight: 600;">測試版已全面開放所有專家印前管線開關自由調整權限，調整後儲存即時生效。</span>
+          <div style="background: rgba(52, 199, 89, 0.08); border: 1px solid rgba(52, 199, 89, 0.25); border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <img src="icons/shared/check.webp" alt="" class="pm-icon-img" />
+              <span style="font-size: 0.78rem; color: #248a3d; font-weight: 600;">每個開關切換後立即套用，不需另外儲存。</span>
+            </div>
+            <button class="pm-btn pm-btn-ghost pm-btn-sm" id="btnResetPipelineDefaults" style="font-size: 0.76rem; color: var(--pm-text-secondary); flex-shrink: 0;">
+              <img src="icons/shared/refresh.webp" alt="" class="pm-icon-img" /> 重置為全自動預設值
+            </button>
           </div>
 
           <!-- Switches List -->
-          <div style="display: flex; flex-direction: column; gap: 10px;">
-            ${pipelineItems
-              .map((item) => {
-                const isChecked = opts[item.key];
-                return `
-                <div class="pm-pipeline-switch-card" data-key="${item.key}" style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: #ffffff; border: 1.5px solid ${isChecked ? 'rgba(60, 30, 140, 0.4)' : 'var(--pm-border-subtle)'}; border-radius: 12px; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);">
-                  <div style="display: flex; align-items: flex-start; gap: 12px; flex: 1; padding-right: 12px;">
-                    <span style="font-size: 1.3rem; line-height: 1;">${item.icon}</span>
-                    <div>
-                      <div style="display: flex; align-items: center; gap: 8px;">
-                        <span style="font-size: 0.88rem; font-weight: 700; color: var(--pm-text-primary);">${item.title}</span>
-                        <span style="font-size: 0.68rem; font-weight: 600; padding: 2px 6px; border-radius: 4px; background: ${isChecked ? 'rgba(60, 30, 140, 0.1)' : '#f0f0f2'}; color: ${isChecked ? '#3c1e8c' : 'var(--pm-text-muted)'};">
-                          ${isChecked ? item.defaultHint : item.offHint}
-                        </span>
-                      </div>
-                      <div style="font-size: 0.75rem; color: var(--pm-text-muted); margin-top: 3px; line-height: 1.35;">${item.desc}</div>
-                    </div>
-                  </div>
-
-                  <!-- Apple iOS Style Toggle Switch -->
-                  <label class="pm-apple-switch" style="position: relative; display: inline-block; width: 44px; height: 26px; flex-shrink: 0; cursor: pointer;">
-                    <input type="checkbox" class="pipeline-checkbox" data-key="${item.key}" ${isChecked ? 'checked' : ''} style="opacity: 0; width: 0; height: 0;" />
-                    <span class="pm-switch-slider ${isChecked ? 'pm-switch-on' : ''}" style="position: absolute; inset: 0; background-color: ${isChecked ? '#34c759' : '#e5e5ea'}; border-radius: 26px; transition: 0.25s cubic-bezier(0.16, 1, 0.3, 1);">
-                      <span class="pm-switch-knob" style="position: absolute; height: 22px; width: 22px; left: ${isChecked ? '20px' : '2px'}; bottom: 2px; background-color: white; border-radius: 50%; transition: 0.25s cubic-bezier(0.16, 1, 0.3, 1); box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);"></span>
-                    </span>
-                  </label>
-                </div>
-              `;
-              })
-              .join('')}
-          </div>
-        </div>
-
-        <div class="pm-modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
-          <button class="pm-btn pm-btn-ghost pm-btn-sm" id="btnResetPipelineDefaults" style="font-size: 0.78rem; color: var(--pm-text-secondary);">
-            <img src="icons/shared/refresh.webp" alt="" class="pm-icon-img" /> 重置為全自動預設值
-          </button>
-          <div style="display: flex; gap: 10px;">
-            <button class="pm-btn pm-btn-secondary" id="btnCancelPipelineMatrix">關閉</button>
-            <button class="pm-btn pm-btn-primary" id="btnApplyPipelineChanges">儲存並立即套用</button>
+          <div id="pipelineSwitchListStandalone" style="display: flex; flex-direction: column; gap: 10px;">
+            ${renderPipelineSwitchList()}
           </div>
         </div>
       </div>
     `;
+
+    const listEl = this.modalEl.querySelector<HTMLElement>('#pipelineSwitchListStandalone');
+    if (listEl) {
+      bindPipelineSwitchList(listEl, () => {
+        if (this.onApplyChanges) this.onApplyChanges();
+      });
+    }
   }
 
   private bindEvents(): void {
@@ -171,11 +199,7 @@ export class PipelineMatrixModal {
     this.modalEl.addEventListener('click', (e) => {
       const target = e.target as HTMLElement;
 
-      if (
-        target.id === 'btnClosePipelineMatrix' ||
-        target.id === 'btnCancelPipelineMatrix' ||
-        target.id === 'pipelineMatrixModal'
-      ) {
+      if (target.id === 'btnClosePipelineMatrix' || target.id === 'pipelineMatrixModal') {
         close();
       }
 
@@ -184,25 +208,7 @@ export class PipelineMatrixModal {
         SoundEffects.sliderTick();
         this.render();
         Toast.info('✓ 已重置為全自動預設管線');
-      }
-
-      if (target.id === 'btnApplyPipelineChanges') {
-        SoundEffects.purityChime();
-        Toast.success('✓ 專家管線設定已儲存！');
-        this.close();
         if (this.onApplyChanges) this.onApplyChanges();
-      }
-    });
-
-    this.modalEl.addEventListener('change', (e) => {
-      const target = e.target as HTMLInputElement;
-      if (target.classList.contains('pipeline-checkbox')) {
-        const key = target.dataset.key as keyof PipelineOptions;
-        if (key) {
-          store.setPipelineOption(key, target.checked);
-          SoundEffects.sliderTick();
-          this.render();
-        }
       }
     });
   }
