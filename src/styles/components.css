@@ -4357,18 +4357,27 @@ body[data-ui-mode="simple"] .pm-footer {
 .pm-xiang-assistant {
   position: relative;
   display: flex;
-  align-items: flex-start;
+  /* stretch (not flex-start) makes the avatar and the dialog card share exactly the same
+     rendered height. Height must be a definite value (not min-height) — otherwise the
+     avatar's aspect-ratio has nothing to resolve against and falls back to the source
+     image's native 1254px size instead of stretching to the row. */
+  align-items: stretch;
   gap: 14px;
   margin: 18px auto 22px auto;
   width: 100%;
   max-width: 820px;
+  height: 40vh;
+  min-height: 260px;
+  max-height: 420px;
   box-sizing: border-box;
 }
 
 .pm-xiang-avatar-wrap {
   position: relative;
-  width: 192px;
-  height: 192px;
+  /* height comes from the flex stretch above; width follows it via aspect-ratio so the
+     character never distorts, matching the source art's square canvas (see idle.webp etc). */
+  width: auto;
+  aspect-ratio: 1 / 1;
   flex-shrink: 0;
   order: -1; /* 頭像放在對話框左邊 */
   border-radius: 50%;
@@ -4406,7 +4415,10 @@ body[data-ui-mode="simple"] .pm-footer {
 
 .pm-xiang-card {
   position: relative;
-  flex: 0 1 auto;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   max-width: 560px;
   background: linear-gradient(135deg, rgba(139, 127, 168, 0.12) 0%, rgba(255, 255, 255, 0.9) 100%);
   border: 1.5px solid rgba(139, 127, 168, 0.3);
@@ -4467,12 +4479,19 @@ body[data-ui-mode="simple"] .pm-footer {
 @media (max-width: 640px) {
   .pm-xiang-assistant {
     gap: 10px;
+    height: auto;
+    min-height: 0;
+    max-height: none;
+    flex-wrap: wrap;
   }
   .pm-xiang-avatar-wrap {
+    aspect-ratio: 1 / 1;
     width: 144px;
-    height: 144px;
+    height: auto;
+    flex: 0 0 auto;
   }
   .pm-xiang-card {
+    flex: 1 1 240px;
     padding: 20px 24px;
   }
   .pm-xiang-say {
