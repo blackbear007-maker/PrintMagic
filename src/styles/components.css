@@ -4366,9 +4366,9 @@ body[data-ui-mode="simple"] .pm-footer {
   margin: 18px auto 22px auto;
   width: 100%;
   max-width: 820px;
-  height: 40vh;
-  min-height: 260px;
-  max-height: 420px;
+  /* clamp(min, preferred, max) scales the row with viewport height but never lets the
+     avatar balloon on tall desktop monitors or shrink to nothing on short laptop screens. */
+  height: clamp(150px, 20vh, 220px);
   box-sizing: border-box;
 }
 
