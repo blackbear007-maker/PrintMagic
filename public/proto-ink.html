@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>墨滴暈染 Intro 原型</title>
+<style>
+  :root {
+    --paper: #f6f2ea;
+    --paper-raised: #fbf9f4;
+    --ink: #221b2e;
+    --ink-2: #5a5263;
+    --spot: #3c1e8c;
+    --spot-deep: #2e1670;
+    --spot-wash: rgba(60, 30, 140, 0.07);
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--paper);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: "Noto Sans TC", "PingFang TC", -apple-system, sans-serif;
+  }
+  .proto-stage {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+  }
+  .ink-scene {
+    position: relative;
+    width: 820px;
+    max-width: 92vw;
+    height: 360px;
+    background:
+      radial-gradient(circle at 78% 12%, rgba(60,30,140,0.08), transparent 55%),
+      var(--paper-raised);
+    border: 1px solid rgba(60,30,140,0.12);
+    border-radius: 24px;
+    overflow: hidden;
+  }
+  .ink-svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .ink-title {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 0 48px;
+    opacity: 0;
+    transform: translateY(10px);
+    animation: titleIn 0.8s cubic-bezier(0.16,1,0.3,1) 2.2s forwards;
+  }
+  .ink-title h1 {
+    margin: 0;
+    font-size: 26px;
+    font-weight: 800;
+    color: var(--ink);
+    line-height: 1.5;
+  }
+  @keyframes titleIn {
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .proto-controls {
+    display: flex;
+    gap: 10px;
+  }
+  .proto-controls button {
+    border: 1.5px solid var(--spot);
+    background: var(--paper-raised);
+    color: var(--spot);
+    font-weight: 700;
+    padding: 8px 18px;
+    border-radius: 999px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  .proto-controls button:hover { background: var(--spot); color: #fff; }
+  .proto-note {
+    color: var(--ink-2);
+    font-size: 13px;
+  }
+</style>
+</head>
+<body>
+  <div class="proto-stage">
+    <div class="ink-scene" id="inkScene">
+      <svg class="ink-svg" viewBox="0 0 820 360" preserveAspectRatio="xMidYMid slice" id="inkSvg">
+        <defs>
+          <!-- gooey filter: 讓水滴與暈染區在接觸瞬間圓潤融合，而不是硬邊疊加 -->
+          <filter id="goo">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="7" result="blur" />
+            <feColorMatrix in="blur" mode="matrix"
+              values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 22 -11" result="goo" />
+            <feComposite in="SourceGraphic" in2="goo" operator="atop" />
+          </filter>
+
+          <!-- 墨暈邊緣：feTurbulence 產生噪訊，feDisplacementMap 把噪訊套到暈染形狀邊界 -->
+          <filter id="inkTurbulence" x="-60%" y="-60%" width="220%" height="220%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.018" numOctaves="3" seed="7" result="noise" />
+            <feDisplacementMap in="SourceGraphic" in2="noise" xChannelSelector="R" yChannelSelector="G" result="displaced">
+              <animate attributeName="scale" values="0;70;95;90" keyTimes="0;0.45;0.8;1"
+                dur="1.6s" begin="0.6s" fill="freeze" />
+            </feDisplacementMap>
+          </filter>
+
+          <radialGradient id="inkFade" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="var(--spot)" stop-opacity="0.85" />
+            <stop offset="70%" stop-color="var(--spot)" stop-opacity="0.35" />
+            <stop offset="100%" stop-color="var(--spot)" stop-opacity="0" />
+          </radialGradient>
+
+          <!-- 漣漪邊緣的輕微不規則感：水在紙上暈開不會是數學上的正圓 -->
+          <filter id="rippleTurbulence" x="-40%" y="-40%" width="180%" height="180%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.045" numOctaves="2" seed="4" result="noise" />
+            <feDisplacementMap in="SourceGraphic" in2="noise" scale="7" xChannelSelector="R" yChannelSelector="G" />
+          </filter>
+        </defs>
+
+        <!-- 漣漪：觸地瞬間向外擴散淡出，兩圈微微錯開時間，邊緣用 turbulence 打散避免死板正圓；
+             線寬同步收細，模擬水波能量隨擴散遞減 -->
+        <g filter="url(#rippleTurbulence)">
+          <circle id="ripple" cx="410" cy="150" r="4" fill="none" stroke="var(--spot)" stroke-width="3.5" opacity="0">
+            <animate attributeName="r" values="4;70" dur="0.55s" begin="0.55s" fill="freeze"
+              calcMode="spline" keySplines="0.16 1 0.3 1" />
+            <animate attributeName="stroke-width" values="3.5;0.4" dur="0.55s" begin="0.55s" fill="freeze" />
+            <animate attributeName="opacity" values="0.5;0" dur="0.55s" begin="0.55s" fill="freeze" />
+          </circle>
+          <circle id="ripple2" cx="410" cy="150" r="4" fill="none" stroke="var(--spot)" stroke-width="2.5" opacity="0">
+            <animate attributeName="r" values="4;46" dur="0.5s" begin="0.66s" fill="freeze"
+              calcMode="spline" keySplines="0.16 1 0.3 1" />
+            <animate attributeName="stroke-width" values="2.5;0.3" dur="0.5s" begin="0.66s" fill="freeze" />
+            <animate attributeName="opacity" values="0.4;0" dur="0.5s" begin="0.66s" fill="freeze" />
+          </circle>
+        </g>
+
+        <!-- 墨暈本體：接觸點放大並被 turbulence 扭曲成不規則邊緣 -->
+        <circle id="inkBlob" cx="410" cy="150" r="0" fill="url(#inkFade)" filter="url(#inkTurbulence)">
+          <animate attributeName="r" values="0;0;120;132;128" keyTimes="0;0.2;0.65;0.85;1"
+            dur="2.6s" begin="0.6s" fill="freeze"
+            calcMode="spline" keySplines="0.4 0 0.2 1;0.16 1 0.3 1;0.3 0 0.7 1;0.3 0 0.7 1" />
+          <animate attributeName="opacity" values="0;0.9;0.55;0.22" keyTimes="0;0.15;0.5;1"
+            dur="2.6s" begin="0.6s" fill="freeze" />
+        </circle>
+
+        <!-- 水滴：真實水滴輪廓（尖頂圓腹），從畫面上方墜落、下墜中被拉長，觸地瞬間扁平化並被吸收 -->
+        <g filter="url(#goo)">
+          <!-- 外層 g 只負責位置（墜落路徑） -->
+          <g id="dropPos">
+            <animateTransform attributeName="transform" type="translate" values="410,-46;410,140" dur="0.55s"
+              begin="0s" fill="freeze" calcMode="spline" keySplines="0.55 0 1 0.45" />
+            <!-- 內層 g 負責形變：下墜中略為拉長（水滴慣性），觸地瞬間左右扁平化如濺開，再收縮消失 -->
+            <g id="dropScale">
+              <animateTransform attributeName="transform" type="scale" values="0.85,1.1;0.72,1.4;1.6,0.3;0.15,0.08"
+                keyTimes="0;0.62;0.9;1" dur="0.75s" begin="0s" fill="freeze"
+                calcMode="spline" keySplines="0.3 0 0.7 1;0.3 0 0.7 1;0.3 0 0.7 1" />
+              <!-- 標準水滴輪廓：尖頂 + 圓腹，比橢圓自然許多 -->
+              <path id="dropShape" fill="var(--spot)"
+                d="M0,-18 C0,-18 15,4 15,13 A15,15 0 1 1 -15,13 C-15,4 0,-18 0,-18 Z">
+                <animate attributeName="opacity" values="1;1;0" keyTimes="0;0.85;1" dur="0.75s" begin="0s"
+                  fill="freeze" />
+              </path>
+            </g>
+          </g>
+        </g>
+      </svg>
+      <div class="ink-title">
+        <h1>把任何一張圖，變成印刷廠能直接出機的檔案</h1>
+      </div>
+    </div>
+    <div class="proto-controls">
+      <button id="btnReplay">重播動畫</button>
+    </div>
+    <div class="proto-note">分鏡：0–0.6s 墜落 → 0.6–1.0s 撞擊吸收 → 0.6–2.2s 墨暈擴散 → 2.2–3.0s 標題浮現</div>
+  </div>
+
+  <script>
+    document.getElementById('btnReplay').addEventListener('click', () => {
+      const svg = document.getElementById('inkSvg');
+      const parent = svg.parentNode;
+      const fresh = svg.cloneNode(true);
+      parent.replaceChild(fresh, svg);
+      fresh.id = 'inkSvg';
+
+      const title = document.querySelector('.ink-title');
+      title.style.animation = 'none';
+      // eslint-disable-next-line no-unused-expressions
+      title.offsetHeight;
+      title.style.animation = null;
+    });
+  </script>
+</body>
+</html>
