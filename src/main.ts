@@ -1359,8 +1359,8 @@ class App {
       btnEngineCloud?.classList.toggle('active', state.engineMode === 'cloud');
       if (engineCloudLabel) {
         engineCloudLabel.textContent = state.engineMode === 'cloud'
-          ? (state.cloudStatus === 'online' ? '雲端AI模式 (在線)' : '雲端AI模式 (離線)')
-          : '雲端AI模式';
+          ? (state.cloudStatus === 'online' ? '雲端 (在線)' : '雲端 (離線)')
+          : '雲端';
       }
 
       // 2. Switch View Containers

@@ -1166,8 +1166,34 @@
    Mobile-First Touch Ergonomics & Responsive Layout
    ============================================================ */
 @media (max-width: 768px) {
+  /* The 3-column grid (brand | mode-switch | actions) has no room to breathe at phone widths —
+     switch to a wrapping flex layout: brand takes its own full-width row, then mode-switch and
+     the engine/gear cluster share a second row. Same 12px padding as .pm-main at this breakpoint
+     so the brand mark still lines up with the dropzone's left edge (both measured from the same
+     offset now, since neither has a max-width binding below ~800px anyway). */
+  .pm-header {
+    height: auto;
+  }
+
   .pm-header-inner {
-    padding: 0 12px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    row-gap: 8px;
+    padding: 8px 12px;
+  }
+
+  .pm-brand {
+    flex: 1 1 100%;
+  }
+
+  .pm-mode-switch-wrapper {
+    order: 2;
+  }
+
+  .pm-header-actions {
+    order: 3;
+    margin-left: auto;
   }
 
   .pm-logo-text {

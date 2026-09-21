@@ -33,11 +33,11 @@ export const APP_SHELL_HTML = `
         <!-- Dual-Engine Switcher: two explicit buttons instead of one toggling pill (visible in both Simple and Advanced modes) -->
         <div class="pm-engine-switch" role="group" aria-label="本機隱私模式或雲端AI模式">
           <button id="btnEngineLocal" class="pm-engine-btn" title="本機隱私模式：圖片絕不離開你的裝置">
-            <img src="icons/header/engine-local.webp" alt="" class="pm-icon-img" /> 本機隱私模式
+            <img src="icons/header/engine-local.webp" alt="" class="pm-icon-img" /> 本機
           </button>
           <button id="btnEngineCloud" class="pm-engine-btn" title="雲端AI模式：優先嘗試自建服務以取得更好結果，離線時自動退回本機演算法">
             <img id="engineCloudIcon" src="icons/header/engine-cloud.webp" alt="" class="pm-icon-img" />
-            <span id="engineCloudLabel">雲端AI模式</span>
+            <span id="engineCloudLabel">雲端</span>
           </button>
         </div>
 

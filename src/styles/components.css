@@ -3808,7 +3808,7 @@ body[data-ui-mode="simple"] .pm-footer {
 /* 1. Mobile Header & Segmented Pill Switcher */
 @media (max-width: 640px) {
   .pm-header-inner {
-    padding: 0 12px;
+    padding: 8px 12px;
     gap: 6px;
   }
   .pm-brand .pm-logo-text {
@@ -4367,8 +4367,8 @@ body[data-ui-mode="simple"] .pm-footer {
 
 .pm-xiang-avatar-wrap {
   position: relative;
-  width: 96px;
-  height: 96px;
+  width: 192px;
+  height: 192px;
   flex-shrink: 0;
   order: -1; /* 頭像放在對話框左邊 */
   border-radius: 50%;
@@ -4410,8 +4410,8 @@ body[data-ui-mode="simple"] .pm-footer {
   max-width: 560px;
   background: linear-gradient(135deg, rgba(139, 127, 168, 0.12) 0%, rgba(255, 255, 255, 0.9) 100%);
   border: 1.5px solid rgba(139, 127, 168, 0.3);
-  border-radius: 18px;
-  padding: 12px 16px;
+  border-radius: 28px;
+  padding: 24px 32px;
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   box-shadow: 0 4px 20px rgba(139, 127, 168, 0.08);
@@ -4437,55 +4437,23 @@ body[data-ui-mode="simple"] .pm-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 6px;
+  margin-bottom: 12px;
 }
 
 .pm-xiang-title-row {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 12px;
 }
 
 .pm-xiang-name {
-  font-size: 0.92rem;
+  font-size: 1.84rem;
   font-weight: 800;
   color: #4a3e68;
 }
 
-.pm-xiang-badge {
-  font-size: 0.68rem;
-  font-weight: 600;
-  color: #8B7FA8;
-  background: rgba(139, 127, 168, 0.15);
-  padding: 1px 7px;
-  border-radius: 10px;
-}
-
-.pm-xiang-actions {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.pm-xiang-act-btn {
-  background: rgba(139, 127, 168, 0.12);
-  border: 1px solid rgba(139, 127, 168, 0.25);
-  color: #5c4e78;
-  font-size: 0.72rem;
-  font-weight: 700;
-  padding: 2px 8px;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.pm-xiang-act-btn:hover {
-  background: rgba(139, 127, 168, 0.25);
-  color: #3b2f54;
-}
-
 .pm-xiang-say {
-  font-size: 0.88rem;
+  font-size: 1.76rem;
   line-height: 1.6;
   color: #2c2538;
   transition: opacity 0.2s ease;
@@ -4501,14 +4469,14 @@ body[data-ui-mode="simple"] .pm-footer {
     gap: 10px;
   }
   .pm-xiang-avatar-wrap {
-    width: 72px;
-    height: 72px;
+    width: 144px;
+    height: 144px;
   }
   .pm-xiang-card {
-    padding: 10px 12px;
+    padding: 20px 24px;
   }
   .pm-xiang-say {
-    font-size: 0.82rem;
+    font-size: 1.64rem;
     line-height: 1.5;
   }
 }

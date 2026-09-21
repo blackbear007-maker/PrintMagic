@@ -92,10 +92,6 @@ export class XiaoxiangAssistant {
           <div class="pm-xiang-header">
             <div class="pm-xiang-title-row">
               <span class="pm-xiang-name">小象</span>
-              <span class="pm-xiang-badge">印前助手</span>
-            </div>
-            <div id="xiangActs" class="pm-xiang-actions">
-              <button id="btnXiangGuide" class="pm-xiang-act-btn" title="查看 3 步速成指南"><img src="icons/header/guide.webp" alt="" class="pm-icon-img" /> 30秒指南</button>
             </div>
           </div>
           <div id="xiangSay" class="pm-xiang-say">
@@ -116,10 +112,6 @@ export class XiaoxiangAssistant {
   }
 
   private bindEvents(): void {
-    this.container.querySelector('#btnXiangGuide')?.addEventListener('click', () => {
-      document.getElementById('btnOpenGuide')?.click();
-    });
-
     this.xiangAvatar?.addEventListener('click', () => {
       SoundEffects.purityChime();
       this.setAvatarState('hello');
