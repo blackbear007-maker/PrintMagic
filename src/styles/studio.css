@@ -456,6 +456,16 @@
   margin: 0;
 }
 
+/* 位置鎖定：不同頁籤（檢查文字/管線自訂/新手指南）內容長短不一，若沿用其他 modal
+   置中對齊，dialog 高度一變就會整個重新置中，畫面跳來跳去。改成從固定頂部距離往下
+   排版，切換頁籤只會讓 dialog 向下延伸/收合，頂部位置永遠不動。用 id 選擇器蓋過
+   .pm-modal-backdrop 的置中設定；手機版仍走既有的底部彈出 sheet（見下方 media query
+   的 !important，優先權更高，不受影響）。 */
+#headerSettingsModal {
+  align-items: flex-start;
+  padding-top: min(7vh, 64px);
+}
+
 /* AI-generated ink-line header icons (public/icons/header/*.webp) replacing inline emoji.
    pointer-events:none is load-bearing: dozens of buttons across the app (e.g. every modal's
    close "✕") use delegated click handlers that check `e.target.id` against the BUTTON's id.
