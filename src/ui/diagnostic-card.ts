@@ -1,4 +1,5 @@
 import type { AppState } from './state';
+import { renderPipelineSwitchList, bindPipelineSwitchList } from './pipeline-matrix-modal';
 
 /**
  * PrintPass™ Pre-press Diagnostic Certificate Component
@@ -8,16 +9,16 @@ export class DiagnosticCard {
   private container: HTMLElement;
   private onDirectPrintClick?: () => void;
   private onExportPdfClick?: () => void;
-  private onOpenPipelineMatrix?: () => void;
   private onOpenTextInspectorClick?: () => void;
   private onOpenExportCenterClick?: () => void;
+  private onPipelineOptionsChange?: () => void;
   private isDetailsExpanded = false;
 
   constructor(
     containerId: string,
     onDirectPrintClick?: () => void,
     onExportPdfClick?: () => void,
-    onOpenPipelineMatrix?: () => void,
+    onPipelineOptionsChange?: () => void,
     onOpenTextInspectorClick?: () => void,
     onOpenExportCenterClick?: () => void
   ) {
@@ -26,9 +27,9 @@ export class DiagnosticCard {
     this.container = el;
     this.onDirectPrintClick = onDirectPrintClick;
     this.onExportPdfClick = onExportPdfClick;
-    this.onOpenPipelineMatrix = onOpenPipelineMatrix;
     this.onOpenTextInspectorClick = onOpenTextInspectorClick;
     this.onOpenExportCenterClick = onOpenExportCenterClick;
+    this.onPipelineOptionsChange = onPipelineOptionsChange;
   }
 
   public render(state: AppState): void {
@@ -40,7 +41,6 @@ export class DiagnosticCard {
       inkAnalysis,
       originalInkAnalysis,
       currentPreset,
-      appliedScale,
       uiMode,
       textInspectionResult
     } = state;
@@ -60,7 +60,7 @@ export class DiagnosticCard {
     const levelClass = currentScore >= 88 ? 'pm-score-high' : currentScore >= 70 ? 'pm-score-mid' : 'pm-score-low';
     const levelColor = currentScore >= 88 ? '#34c759' : currentScore >= 70 ? '#ff9500' : '#ff3b30';
 
-    const { breakdown, issues, recommendations } = scoreResult;
+    const { breakdown, issues } = scoreResult;
     const initialBreakdown = originalScoreResult ? originalScoreResult.breakdown : breakdown;
 
     // 出血依實際規格（部分預設為 1.5 / 2 / 0 mm），且出血是在匯出 PDF 時才加上
@@ -134,139 +134,29 @@ export class DiagnosticCard {
 
     // Render depending on uiMode (Simple vs Advanced)
     if (uiMode === 'simple') {
+      // 簡易模式：使用者不需要知道系統改了什麼，只看修正前後評分，然後下載。
+      // 處理項目開關、規格、更多格式都在「進階」模式，同一個畫面、同一張圖。
       this.container.innerHTML = `
         <div class="pm-card pm-diagnostic-panel pm-panel-simple">
-          <!-- 1. Hero Score Header -->
-          <div class="pm-diagnostic-header" style="margin-bottom: 10px;">
-            <div class="pm-score-summary-box" style="padding: 12px 14px;">
-              <div class="pm-score-circle" style="border-color: ${levelColor}; width: 68px; height: 68px;">
-                <span class="pm-score-value" style="color: ${levelColor}; font-size: 1.55rem;">${currentScore}</span>
-                <span class="pm-score-max" style="font-size: 0.65rem;">/100分</span>
-              </div>
-
-              <div class="pm-score-meta">
-                <div class="pm-score-flow-row">
-                  <span class="pm-score-stage-tag">原圖 ${initialScore}分</span>
-                  <span class="pm-score-arrow">➔</span>
-                  <span class="pm-score-stage-tag pm-stage-after">優化後 ${currentScore}分</span>
-                  ${deltaBadge}
-                </div>
-                <div class="pm-score-verdict ${levelClass}"><img src="icons/shared/sparkle.webp" alt="" class="pm-icon-img" /> ${scoreResult.verdict}</div>
-                <div style="font-size: 0.72rem; color: var(--pm-text-muted); margin-top: 2px;">
-                  ${currentPreset.nameZh} · ${physicalSizeText} ${currentPreset.realWorldRef ? `<span style="color: var(--pm-accent-blue); font-weight: 600;">(${currentPreset.realWorldRef})</span>` : ''}
-                </div>
-              </div>
+          <div class="pm-simple-score">
+            <div class="pm-simple-score-col">
+              <span class="pm-simple-score-label">修正前</span>
+              <span class="pm-simple-score-num">${initialScore}</span>
+            </div>
+            <span class="pm-simple-score-arrow" aria-hidden="true">→</span>
+            <div class="pm-simple-score-col">
+              <span class="pm-simple-score-label">修正後</span>
+              <span class="pm-simple-score-num pm-simple-score-after" style="color: ${levelColor};">${currentScore}</span>
             </div>
           </div>
 
-          <!-- 2. Converged All-in-One Defense Grid (全自動 10 大無腦印前守護) -->
-          <div class="pm-simple-defense-box">
-            <div class="pm-defense-box-header">
-              <span class="pm-defense-title"><img src="icons/shared/shield.webp" alt="" class="pm-icon-img" /> 10 大商業印前守護 · 背景全自動處理</span>
-              <span class="pm-defense-status">${issues.length === 0 ? '<img src="icons/shared/check.webp" alt="" class="pm-icon-img" /> 完美就緒' : `<img src="icons/shared/warning.webp" alt="" class="pm-icon-img" /> ${issues.length} 項待改善`}</span>
-            </div>
-
-            <div class="pm-defense-chips-grid" style="grid-template-columns: repeat(2, 1fr); gap: 6px;">
-              <div class="pm-defense-chip" title="自動由 72 DPI 升級至 ${finalDpi} DPI 視網膜印刷畫質">
-                <span class="pm-chip-icon"><img src="icons/shared/star-cta.webp" alt="" class="pm-icon-img" /></span>
-                <span class="pm-chip-text"><strong>${finalDpi} DPI</strong> 超解析補齊</span>
-              </div>
-              <div class="pm-defense-chip" title="${bleedMm > 0 ? `${currentPreset.nameZh} 匯出 PDF 時加上 ${bleedMm}mm 出血` : `${currentPreset.nameZh} 此規格無出血`}">
-                <span class="pm-chip-icon"><img src="icons/shared/ruler-vector.webp" alt="" class="pm-icon-img" /></span>
-                <span class="pm-chip-text">${bleedMm > 0 ? `<strong>${bleedMm}mm</strong> 出血防白邊` : '<strong>無出血</strong> 數位用途'}</span>
-              </div>
-              <div class="pm-defense-chip" title="抹除手機拍畫時的手部黑影與光照不均">
-                <span class="pm-chip-icon"><img src="icons/shared/sun.webp" alt="" class="pm-icon-img" /></span>
-                <span class="pm-chip-text"><strong>手機拍照</strong> 均光抹影</span>
-              </div>
-              <div class="pm-defense-chip" title="平滑 8-bit 色階斷層與消除 JPEG 塊狀噪點">
-                <span class="pm-chip-icon"><img src="icons/shared/wave-gradient.webp" alt="" class="pm-icon-img" /></span>
-                <span class="pm-chip-text"><strong>漸層防斷階</strong> 去噪</span>
-              </div>
-              <div class="pm-defense-chip" title="油墨安全壓制至 ${finalTac}% 防吸墨沾黏">
-                <span class="pm-chip-icon"><img src="icons/shared/palette.webp" alt="" class="pm-icon-img" /></span>
-                <span class="pm-chip-text"><strong>TAC ≤${finalTac}%</strong> 安全控墨</span>
-              </div>
-              <div class="pm-defense-chip" id="btnCardOpenVectorOverlay" style="cursor: pointer;" title="小字自動純黑向量化，保證印刷邊緣銳利不模糊">
-                <span class="pm-chip-icon"><img src="icons/shared/pen-nib.webp" alt="" class="pm-icon-img" /></span>
-                <span class="pm-chip-text"><strong>純黑 K100</strong> 文字防糊</span>
-              </div>
-              <div class="pm-defense-chip" title="Gamma 階調自動補償，印刷暗部層次分明不死黑">
-                <span class="pm-chip-icon"><img src="icons/shared/contrast.webp" alt="" class="pm-icon-img" /></span>
-                <span class="pm-chip-text"><strong>暗部階調</strong> 防死黑</span>
-              </div>
-              <div class="pm-defense-chip" title="自動萃取主要專色並匹配 Pantone 國際標準色票">
-                <span class="pm-chip-icon"><img src="icons/shared/rainbow-gamut.webp" alt="" class="pm-icon-img" /></span>
-                <span class="pm-chip-text"><strong>Pantone</strong> 專色配墨</span>
-              </div>
-              <div class="pm-defense-chip" title="檢查條碼光學反差比與物理毫米尺寸">
-                <span class="pm-chip-icon"><img src="icons/shared/checkered-flag.webp" alt="" class="pm-icon-img" /></span>
-                <span class="pm-chip-text"><strong>條碼光學</strong> 防呆校驗</span>
-              </div>
-              <div class="pm-defense-chip" title="已套用印刷廠色彩描述檔參考值進行控墨（非真正 ICC 色彩轉換，色差程度依印刷廠實際校色而定）">
-                <span class="pm-chip-icon">🇹🇼</span>
-                <span class="pm-chip-text"><strong>CMYK</strong> 色彩校正</span>
-              </div>
-            </div>
-
-            <div class="pm-defense-reassurance" style="background: rgba(52, 199, 89, 0.08); border-radius: 8px; padding: 8px 10px; margin-top: 6px; font-size: 0.73rem; color: #248a3d; font-weight: 600;">
-              <img src="icons/shared/sparkle.webp" alt="" class="pm-icon-img" /> 系統已為您全自動完成 10 道印刷工序，無需任何專業知識，點擊下方即可直接無腦送印！
-            </div>
-          </div>
-
-          <!-- 3. Text Inspection Banner (scan CTA / clean result / typo warning) -->
-          <!-- 2026-08-29 修正：這裡原本用 typoWarningHtml，只有「已經有結果且發現錯字」才會顯示——
-               簡易模式下從來沒有任何按鈕可以觸發第一次掃描，所以這個橫幅在簡易模式(預設模式)實際上
-               永遠不會出現。改用跟進階模式一樣的 textInspectHtml，它本身就正確處理「尚未掃描」
-               （顯示可點擊的「立即檢查」CTA）、「掃描完成、乾淨」、「掃描完成、有問題」三種狀態。 -->
-          ${textInspectHtml}
-
-          <!-- 4. Big Action Buttons -->
           <div class="pm-diag-hero-actions">
-            <button class="pm-btn pm-btn-primary pm-btn-lg btn-diag-export-pdf" style="font-size: 0.95rem; font-weight: 700; width: 100%; box-shadow: 0 4px 14px rgba(60, 30, 140, 0.35);" title="一鍵下載最高畫質標準印刷 PDF">
-              <span><img src="icons/shared/star-cta.webp" alt="" class="pm-icon-img" /></span> 一鍵下載標準印刷檔 (PDF)
+            <button class="pm-btn pm-btn-primary pm-btn-lg btn-diag-export-pdf" style="font-size: 0.95rem; font-weight: 700; width: 100%; box-shadow: 0 4px 14px rgba(60, 30, 140, 0.35);" title="下載含出血與裁切線的印刷用 PDF">
+              下載印刷檔 (PDF)
             </button>
-            <!-- 2026-08-29 補上：DirectPrintModal（比價四大印刷廠 + 打包送印工單）原本已經接好
-                 onDirectPrintClick 回呼與 bindEvents() 的 .btn-diag-direct-print 監聽器，
-                 但兩種模式的樣板都從未真的渲染過這個按鈕，導致整個功能完全打不開。這裡補上入口。 -->
-            <button class="pm-btn pm-btn-artisan pm-btn-lg btn-diag-direct-print" style="width: 100%; margin-top: 8px; font-weight: 700;" title="比價台灣四大合版印刷廠，一鍵打包送印工單 ZIP">
-              <span><img src="icons/shared/factory.webp" alt="" class="pm-icon-img" /></span> 送印估價與比價
-            </button>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px;">
-              <button class="pm-btn pm-btn-secondary pm-btn-md btn-diag-open-export" title="選擇輸出 TIFF / JPG / 向量刀模 SVG 或一鍵全打包出機 ZIP">
-                <span><img src="icons/shared/printer.webp" alt="" class="pm-icon-img" /></span> 更多格式 (TIFF/ZIP)
-              </button>
-              <button class="pm-btn pm-btn-secondary pm-btn-md" id="btnSimpleOpenConvPrint" title="7-11 / 全家超商列印檔案產生器">
-                <span><img src="icons/shared/store.webp" alt="" class="pm-icon-img" /></span> 超商列印檔
-              </button>
-            </div>
           </div>
 
-          <!-- 5. Progressive Disclosure: Toggle Technical Specs -->
-          <div class="pm-diag-accordion-wrapper" style="margin-top: 14px;">
-            <button class="pm-diag-accordion-toggle" id="btnToggleDiagAccordion" type="button">
-              <span class="pm-accordion-title">
-                <span><img src="icons/shared/bar-chart.webp" alt="" class="pm-icon-img" /></span>
-                <span>${this.isDetailsExpanded ? '收合詳細檢驗數據' : '查看 7 項專業印前檢測指標詳情'}</span>
-              </span>
-              <span class="pm-accordion-icon">${this.isDetailsExpanded ? '▲' : '▼'}</span>
-            </button>
-
-            <div class="pm-diag-accordion-content" style="display: ${this.isDetailsExpanded ? 'block' : 'none'};">
-              <div class="pm-weighted-section">
-                <div class="pm-metrics-grid">
-                  ${this.renderWeightedRow('解析度適配', '35%', initialBreakdown.resolution, breakdown.resolution, 'Lanczos-3 重採樣補足 300 DPI')}
-                  ${this.renderWeightedRow('長寬比契合', '15%', initialBreakdown.aspectRatio, breakdown.aspectRatio, `${bleedText}與安全框裁切保護`)}
-                  ${this.renderWeightedRow('總墨量安全', '10%', initialBreakdown.inkSafety, breakdown.inkSafety, 'TAC ≤300% 防吸墨背印沾黏')}
-                  ${this.renderWeightedRow('微細邊緣銳度', '10%', initialBreakdown.sharpness, breakdown.sharpness, 'USM 印刷微細邊緣銳化補償')}
-                  ${this.renderWeightedRow('亮部與暗階', '10%', initialBreakdown.brightness, breakdown.brightness, '階調校正防止印刷暗沉')}
-                  ${this.renderWeightedRow('色彩飽和度', '10%', initialBreakdown.saturation, breakdown.saturation, 'CMYK 印刷色域適配軟打樣')}
-                  ${this.renderWeightedRow('反差與層次', '10%', initialBreakdown.contrast, breakdown.contrast, '動態對比度增強')}
-                </div>
-              </div>
-              ${this.renderDiagnostics(issues, recommendations, appliedScale, bleedMm)}
-            </div>
-          </div>
+          <div class="pm-simple-score-hint">想自己決定要套用哪些處理，或需要其他格式，切換到「進階」。</div>
         </div>
       `;
     } else {
@@ -290,6 +180,15 @@ export class DiagnosticCard {
                 </div>
                 <div class="pm-score-verdict ${levelClass}">${scoreResult.verdict}</div>
               </div>
+            </div>
+          </div>
+
+          <!-- 1b. Processing switches: the same steps simple mode applies silently, now user-selectable.
+               Each toggle re-runs the pipeline on the current image immediately. -->
+          <div class="pm-adv-switches">
+            <div class="pm-adv-switches-title">處理項目 · 切換後立即重新處理</div>
+            <div class="pm-adv-switches-list" id="diagPipelineSwitches">
+              ${renderPipelineSwitchList(true)}
             </div>
           </div>
 
@@ -332,8 +231,8 @@ export class DiagnosticCard {
               <button class="pm-btn pm-btn-secondary pm-btn-md btn-diag-export-png" title="下載 300 DPI 高解析度 PNG 影像檔">
                 <span><img src="icons/shared/download.webp" alt="" class="pm-icon-img" /></span> 下載高清 PNG
               </button>
-              <button class="pm-btn pm-btn-secondary pm-btn-md btn-diag-open-pipeline" style="background: rgba(88, 86, 214, 0.08); color: #4b2aa8; border-color: rgba(88, 86, 214, 0.25);" title="專家管線自訂：逐項開關自訂放大、銳化、控墨與階調處理 (本機決定性演算法，測試版免費開放)">
-                <span><img src="icons/header/pipeline-matrix.webp" alt="" class="pm-icon-img" /></span> 專家管線自訂
+              <button class="pm-btn pm-btn-secondary pm-btn-md btn-diag-open-export" title="選擇輸出 TIFF / JPG / 向量刀模 SVG 或一鍵全打包出機 ZIP">
+                <span><img src="icons/shared/printer.webp" alt="" class="pm-icon-img" /></span> 更多格式
               </button>
             </div>
           </div>
@@ -485,28 +384,17 @@ export class DiagnosticCard {
       document.getElementById('btnExportPng')?.click();
     });
 
-    // 3. Pipeline Matrix Customizer CTA
-    this.container.querySelector('.btn-diag-open-pipeline')?.addEventListener('click', () => {
-      if (this.onOpenPipelineMatrix) {
-        this.onOpenPipelineMatrix();
-      }
-    });
+    // 2d. Advanced-mode inline processing switches
+    const switches = this.container.querySelector<HTMLElement>('#diagPipelineSwitches');
+    if (switches) {
+      bindPipelineSwitchList(switches, () => this.onPipelineOptionsChange?.(), true);
+    }
 
     // 4. Text Inspection CTA
     this.container.querySelector('#btnOpenTextInspectFromCard')?.addEventListener('click', () => {
       if (this.onOpenTextInspectorClick) {
         this.onOpenTextInspectorClick();
       }
-    });
-
-    // 5. Simple mode convenience print button
-    this.container.querySelector('#btnSimpleOpenConvPrint')?.addEventListener('click', () => {
-      document.getElementById('btnOpenConvPrint')?.click();
-    });
-
-    // 5b. Simple mode text clarity button
-    this.container.querySelector('#btnCardOpenVectorOverlay')?.addEventListener('click', () => {
-      document.getElementById('btnOpenVectorOverlay')?.click();
     });
 
     // 6. Accordion Toggle
@@ -550,57 +438,6 @@ export class DiagnosticCard {
           <div class="pm-metric-fill" style="width: ${afterScore}%; background-color: ${afterColor}"></div>
         </div>
         <div class="pm-metric-action-hint"><img src="icons/header/guide.webp" alt="" class="pm-icon-img" /> ${actionDesc}</div>
-      </div>
-    `;
-  }
-
-  private renderDiagnostics(
-    issues: string[],
-    recommendations: string[],
-    appliedScale: number,
-    bleedMm = 0
-  ): string {
-    const autoActions: string[] = [];
-
-    if (appliedScale > 1) {
-      autoActions.push(`<img src="icons/shared/check.webp" alt="" class="pm-icon-img" /> 已執行 ${appliedScale}x Lanczos-3 印刷級超解析度重採樣放大`);
-    }
-    autoActions.push('<img src="icons/shared/check.webp" alt="" class="pm-icon-img" /> 已套用 USM 微細邊緣銳化補償');
-    autoActions.push('<img src="icons/shared/check.webp" alt="" class="pm-icon-img" /> 已檢測並壓制總墨量 TAC ≤ 300% 避免印刷背印');
-    if (bleedMm > 0) autoActions.push(`<img src="icons/shared/check.webp" alt="" class="pm-icon-img" /> 匯出 PDF 時會加上 ${bleedMm}mm 出血與安全裁切框`);
-
-    const autoActionsHtml = autoActions
-      .map((act) => `<li class="pm-auto-act-item">${act}</li>`)
-      .join('');
-
-    let issuesHtml = '';
-    for (const issue of issues) {
-      issuesHtml += `<li class="pm-diag-issue"><span><img src="icons/shared/warning.webp" alt="" class="pm-icon-img" /></span> ${issue}</li>`;
-    }
-    let recommendationsHtml = '';
-    for (const rec of recommendations) {
-      recommendationsHtml += `<li class="pm-diag-rec"><span><img src="icons/header/guide.webp" alt="" class="pm-icon-img" /></span> ${rec}</li>`;
-    }
-
-    return `
-      <div class="pm-diagnostic-details">
-        <div class="pm-diag-title"><img src="icons/header/upscale-local.webp" alt="" class="pm-icon-img" /> 系統已自動完成處理項目：</div>
-        <ul class="pm-auto-act-list">
-          ${autoActionsHtml}
-        </ul>
-
-        ${issues.length > 0 || recommendations.length > 0 ? `
-          <div class="pm-diag-title" style="margin-top: 12px;">送印前提醒：</div>
-          <ul class="pm-diag-list">
-            ${issuesHtml}
-            ${recommendationsHtml}
-          </ul>
-        ` : `
-          <div class="pm-diagnostic-clean" style="margin-top: 10px;">
-            <span class="pm-clean-icon"><img src="icons/shared/check.webp" alt="" class="pm-icon-img" /></span>
-            <span>各項指標已全數達到印刷廠出圖標準，可直接輸出 PDF！</span>
-          </div>
-        `}
       </div>
     `;
   }

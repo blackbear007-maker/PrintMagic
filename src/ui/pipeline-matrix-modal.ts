@@ -1,4 +1,3 @@
-import { Toast } from './toast';
 import { SoundEffects } from '../core/sound-effects';
 import { store } from './state';
 import type { PipelineOptions } from '../types';
@@ -30,11 +29,27 @@ export const PIPELINE_ITEMS: PipelineItemDef[] = [
     offHint: '關：保留原始顆粒/柔邊'
   },
   {
+    key: 'enableAntiBanding',
+    icon: '<img src="icons/shared/wave-gradient.webp" alt="" class="pm-icon-img" />',
+    title: '漸層防斷階',
+    desc: '平滑 8-bit 漸層的色階斷層，避免天空、背景漸層印出一圈圈條紋。',
+    defaultHint: '開：平滑漸層',
+    offHint: '關：保留原始漸層'
+  },
+  {
+    key: 'enableDeshadow',
+    icon: '<img src="icons/shared/sun.webp" alt="" class="pm-icon-img" />',
+    title: '手機翻拍光照均勻化',
+    desc: '用手機拍紙本畫作時，抹平手影與光照不均。一般數位圖檔請保持關閉，否則會壓平原本刻意的明暗。',
+    defaultHint: '開：均勻光照',
+    offHint: '關：維持原始明暗'
+  },
+  {
     key: 'enableInkLimiting',
     icon: '<img src="icons/shared/palette.webp" alt="" class="pm-icon-img" />',
-    title: 'TAC 300% 總墨量強制壓制保護',
-    desc: '防止暗部 CMYK 4 色油墨總和超過 300%，避免油墨未乾拖花與背印污損。',
-    defaultHint: '開：限制最高 300%',
+    title: '總墨量 TAC 上限壓制',
+    desc: '依目前選擇的印刷色彩描述檔上限，壓低暗部 CMYK 4 色油墨總和，避免油墨未乾拖花與背印污損。',
+    defaultHint: '開：限制總墨量',
     offHint: '關：允許原始油墨直出'
   },
   {
@@ -48,19 +63,13 @@ export const PIPELINE_ITEMS: PipelineItemDef[] = [
   {
     key: 'enableBleedExpand',
     icon: '<img src="icons/shared/ruler-vector.webp" alt="" class="pm-icon-img" />',
-    title: '3mm 智慧出血自動補足與鏡像延伸',
-    desc: '自動為周圍邊界鏡像延伸 3mm 出血區，徹底解決裁刀誤差白邊問題。',
-    defaultHint: '開：自動補齊 3mm',
+    title: '依版型自動補出血',
+    desc: '依目前版型的出血寬度（例如 A4 3mm、明信片 2mm）鏡像延伸四邊，降低裁刀誤差露白邊的風險。',
+    defaultHint: '開：自動補出血',
     offHint: '關：原始邊界裁切'
   },
-  {
-    key: 'enableColorProofing',
-    icon: '<img src="icons/shared/rainbow-gamut.webp" alt="" class="pm-icon-img" />',
-    title: '國際 ICC 描述檔色彩映射軟打樣',
-    desc: '套用 Japan Color 2001 或 ISO Coated v2 CMYK 實體印刷打樣校色。',
-    defaultHint: '開：精確色域映射',
-    offHint: '關：維持 sRGB 原色'
-  },
+  // 2026-09-24：拿掉「enableColorProofing（ICC 色彩映射軟打樣）」開關——管線從未讀取這個旗標，
+  // 切換它不會改變任何輸出，是一個假開關。軟打樣預覽另有畫布工具列的「軟打樣」按鈕。
   {
     key: 'enableAutoBgRemoval',
     icon: '<img src="icons/shared/scissors.webp" alt="" class="pm-icon-img" />',
@@ -71,11 +80,27 @@ export const PIPELINE_ITEMS: PipelineItemDef[] = [
   }
 ];
 
-/** Pure markup for the switch list — shared by the standalone modal and the header settings tab. */
-export function renderPipelineSwitchList(): string {
+/**
+ * Pure markup for the switch list — shared by the header settings tab and
+ * (compact: title + switch only, description moved to the tooltip) the advanced-mode score card.
+ */
+export function renderPipelineSwitchList(compact = false): string {
   const opts = store.getState().pipelineOptions;
   return PIPELINE_ITEMS.map((item) => {
     const isChecked = opts[item.key];
+    if (compact) {
+      return `
+      <label class="pm-pipeline-switch-card" data-key="${item.key}" title="${item.desc}" style="display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 12px; background: var(--pm-bg-elevated, #ffffff); border: 1px solid ${isChecked ? 'rgba(60, 30, 140, 0.35)' : 'var(--pm-border-subtle)'}; border-radius: 10px; cursor: pointer;">
+        <span style="display: flex; align-items: center; gap: 8px; font-size: 0.8rem; font-weight: 600; color: var(--pm-text-primary);">${item.icon} ${item.title}</span>
+        <span class="pm-apple-switch" style="position: relative; display: inline-block; width: 38px; height: 22px; flex-shrink: 0;">
+          <input type="checkbox" class="pipeline-checkbox" data-key="${item.key}" ${isChecked ? 'checked' : ''} aria-label="${item.title}" style="opacity: 0; width: 0; height: 0;" />
+          <span class="pm-switch-slider" style="position: absolute; inset: 0; background-color: ${isChecked ? '#34c759' : '#e5e5ea'}; border-radius: 22px; transition: 0.25s cubic-bezier(0.16, 1, 0.3, 1);">
+            <span class="pm-switch-knob" style="position: absolute; height: 18px; width: 18px; left: ${isChecked ? '18px' : '2px'}; bottom: 2px; background-color: white; border-radius: 50%; transition: 0.25s cubic-bezier(0.16, 1, 0.3, 1); box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);"></span>
+          </span>
+        </span>
+      </label>
+    `;
+    }
     return `
       <div class="pm-pipeline-switch-card" data-key="${item.key}" style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: #ffffff; border: 1.5px solid ${isChecked ? 'rgba(60, 30, 140, 0.4)' : 'var(--pm-border-subtle)'}; border-radius: 12px; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);">
         <div style="display: flex; align-items: flex-start; gap: 12px; flex: 1; padding-right: 12px;">
@@ -109,7 +134,7 @@ export function renderPipelineSwitchList(): string {
  * badge/border color stay in sync. Bind once per container — re-rendering its innerHTML doesn't
  * lose this listener since it's delegated on the container itself, never the checkboxes.
  */
-export function bindPipelineSwitchList(container: HTMLElement, onChange?: () => void): void {
+export function bindPipelineSwitchList(container: HTMLElement, onChange?: () => void, compact = false): void {
   container.addEventListener('change', (e) => {
     const target = e.target as HTMLInputElement;
     if (!target.classList.contains('pipeline-checkbox')) return;
@@ -117,111 +142,7 @@ export function bindPipelineSwitchList(container: HTMLElement, onChange?: () => 
     if (!key) return;
     store.setPipelineOption(key, target.checked);
     SoundEffects.sliderTick();
-    container.innerHTML = renderPipelineSwitchList();
+    container.innerHTML = renderPipelineSwitchList(compact);
     if (onChange) onChange();
   });
-}
-
-/**
- * 🎛️ 專家級印前管線自訂控制器 (Expert Pipeline Matrix Modal)
- * Apple HIG Frosted Glass Switch Matrix for Non-Destructive Selective Optimization
- *
- * 2026-09-20 簡化：拿掉「儲存並立即套用／關閉」這組按鈕——每個開關現在切換的當下就直接生效
- * 並重新套用管線，不需要額外確認一次；要離開就點右上角 ✕ 或點背景，跟其他彈窗一致。
- */
-export class PipelineMatrixModal {
-  private modalEl: HTMLElement;
-  private onApplyChanges?: () => void;
-
-  constructor(onApplyChanges?: () => void) {
-    this.onApplyChanges = onApplyChanges;
-
-    this.modalEl = document.createElement('div');
-    this.modalEl.id = 'pipelineMatrixModal';
-    this.modalEl.className = 'pm-modal-backdrop';
-    this.modalEl.style.display = 'none';
-    this.render();
-    document.body.appendChild(this.modalEl);
-    this.bindEvents();
-  }
-
-  public render(): void {
-    this.modalEl.innerHTML = `
-      <div class="pm-modal-dialog" style="max-width: 720px; width: 92vw;">
-        <div class="pm-modal-header">
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <span style="font-size: 1.6rem;"><img src="icons/header/pipeline-matrix.webp" alt="" class="pm-icon-img" /></span>
-            <div>
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <h3 class="pm-modal-title">專家級印前管線自訂控制器</h3>
-                <span class="pm-plan-tag" style="background: rgba(52, 199, 89, 0.15); color: #248a3d; border: 1px solid rgba(52, 199, 89, 0.3); font-size: 0.68rem; font-weight: 700; padding: 2px 8px; border-radius: 12px;">
-                  <img src="icons/shared/sparkle.webp" alt="" class="pm-icon-img" /> 測試版全開放
-                </span>
-              </div>
-              <p style="font-size: 0.78rem; color: var(--pm-text-muted); margin: 2px 0 0 0;">
-                非破壞性逐項開關：自由掌控超解析放大、控墨、銳化與色彩映射流程
-              </p>
-            </div>
-          </div>
-          <button class="pm-modal-close" id="btnClosePipelineMatrix"><img src="icons/shared/close.webp" alt="" class="pm-icon-img" /></button>
-        </div>
-
-        <div class="pm-modal-body" style="padding: 16px 24px; max-height: 70vh; overflow-y: auto;">
-          <div style="background: rgba(52, 199, 89, 0.08); border: 1px solid rgba(52, 199, 89, 0.25); border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; gap: 8px;">
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <img src="icons/shared/check.webp" alt="" class="pm-icon-img" />
-              <span style="font-size: 0.78rem; color: #248a3d; font-weight: 600;">每個開關切換後立即套用，不需另外儲存。</span>
-            </div>
-            <button class="pm-btn pm-btn-ghost pm-btn-sm" id="btnResetPipelineDefaults" style="font-size: 0.76rem; color: var(--pm-text-secondary); flex-shrink: 0;">
-              <img src="icons/shared/refresh.webp" alt="" class="pm-icon-img" /> 重置為全自動預設值
-            </button>
-          </div>
-
-          <!-- Switches List -->
-          <div id="pipelineSwitchListStandalone" style="display: flex; flex-direction: column; gap: 10px;">
-            ${renderPipelineSwitchList()}
-          </div>
-        </div>
-      </div>
-    `;
-
-    const listEl = this.modalEl.querySelector<HTMLElement>('#pipelineSwitchListStandalone');
-    if (listEl) {
-      bindPipelineSwitchList(listEl, () => {
-        if (this.onApplyChanges) this.onApplyChanges();
-      });
-    }
-  }
-
-  private bindEvents(): void {
-    const close = () => this.close();
-
-    this.modalEl.addEventListener('click', (e) => {
-      const target = e.target as HTMLElement;
-
-      if (target.id === 'btnClosePipelineMatrix' || target.id === 'pipelineMatrixModal') {
-        close();
-      }
-
-      if (target.id === 'btnResetPipelineDefaults') {
-        store.resetPipelineOptions();
-        SoundEffects.sliderTick();
-        this.render();
-        Toast.info('✓ 已重置為全自動預設管線');
-        if (this.onApplyChanges) this.onApplyChanges();
-      }
-    });
-  }
-
-  public open(): void {
-    this.render();
-    this.modalEl.style.display = 'flex';
-    this.modalEl.classList.add('pm-modal-open');
-    SoundEffects.sliderTick();
-  }
-
-  public close(): void {
-    this.modalEl.style.display = 'none';
-    this.modalEl.classList.remove('pm-modal-open');
-  }
 }

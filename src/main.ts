@@ -32,7 +32,7 @@ import { ImpositionModal } from './ui/imposition-modal';
 import { DielineModal } from './ui/dieline-modal';
 import { VectorOverlayModal } from './ui/vector-overlay-modal';
 import { OnboardingModal } from './ui/onboarding-modal';
-import { PipelineMatrixModal, renderPipelineSwitchList, bindPipelineSwitchList } from './ui/pipeline-matrix-modal';
+import { renderPipelineSwitchList, bindPipelineSwitchList } from './ui/pipeline-matrix-modal';
 import { ExportModal } from './ui/export-modal';
 import { MultiFormatExporter } from './engines/multi-format-exporter';
 import { TextInspectionModal } from './ui/text-inspection-modal';
@@ -95,7 +95,6 @@ class App {
   public textInspectionModal!: TextInspectionModal;
   public objectEraserModal!: ObjectEraserModal;
   public onboardingModal!: OnboardingModal;
-  public pipelineMatrixModal!: PipelineMatrixModal;
   public exportModal!: ExportModal;
   public dropZoneInstance!: DropZone;
   public batchBar!: BatchBar;
@@ -237,7 +236,10 @@ class App {
         this.btnExportPdf.click();
       },
       () => {
-        this.pipelineMatrixModal.open();
+        const state = store.getState();
+        if (state.originalImageData) {
+          this.pipeline.runOptimizationPipeline(state.originalImageData);
+        }
       },
       () => {
         this.openTextInspectionModal();
@@ -296,12 +298,6 @@ class App {
     });
     this.onboardingModal = new OnboardingModal();
     this.exportModal = new ExportModal();
-    this.pipelineMatrixModal = new PipelineMatrixModal(() => {
-      const state = store.getState();
-      if (state.originalImageData) {
-        this.pipeline.runOptimizationPipeline(state.originalImageData);
-      }
-    });
 
     // 10. Crop Controller
     this.cropController = new CropController('cropToolbarRoot', 'mainPreviewImg');
@@ -432,6 +428,9 @@ class App {
     const headerSettingsModal = document.getElementById('headerSettingsModal');
     const openHeaderSettings = () => {
       if (!headerSettingsModal) return;
+      // The same switches also live on the advanced-mode score card — re-read the current values.
+      const pipelineList = document.getElementById('settingsPipelineList');
+      if (pipelineList) pipelineList.innerHTML = renderPipelineSwitchList();
       headerSettingsModal.style.display = 'flex';
       requestAnimationFrame(() => headerSettingsModal.classList.add('pm-modal-open'));
       SoundEffects.sliderTick();
@@ -1189,12 +1188,6 @@ class App {
     document.getElementById('btnSimpleExportPdf')?.addEventListener('click', () => {
       this.btnExportPdf.click();
     });
-    document.getElementById('btnSimpleExportPng')?.addEventListener('click', () => {
-      this.btnExportPng.click();
-    });
-    document.getElementById('btnSimpleConvPrint')?.addEventListener('click', () => {
-      this.convPrintModal.open();
-    });
 
     // 📷 Camera Direct Capture (Document Scanner)
     const cameraInput = document.getElementById('cameraInput') as HTMLInputElement | null;
@@ -1265,7 +1258,6 @@ class App {
       }
     };
 
-    document.getElementById('btnSimpleShare')?.addEventListener('click', handleShareArtwork);
     document.getElementById('btnAdvancedShare')?.addEventListener('click', handleShareArtwork);
 
     // 🎛️ Bind Canvas Floating Quick HUD
@@ -1371,7 +1363,9 @@ class App {
 
       // 3. Processing Overlay
       this.processingOverlay.style.display = state.isProcessing ? 'flex' : 'none';
-      this.processingText.textContent = state.processingStep || '正在處理中...';
+      // Simple mode doesn't narrate each algorithm step — just that it's working.
+      this.processingText.textContent =
+        state.uiMode === 'simple' ? '正在自動優化…' : state.processingStep || '正在處理中...';
 
       // 4. Comparison Mode
       if (state.isComparing) {

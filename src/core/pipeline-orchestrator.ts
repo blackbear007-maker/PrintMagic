@@ -140,7 +140,7 @@ export class PipelineOrchestrator {
             // Graceful automatic fallback to local Lanczos-3 pyramid engine (at the DPI-derived scale)
             setStep('2/4 正在啟用本機金字塔超解析度放大 (備援)...');
             processedImgData = await workerClient.lanczos(srcImageData, targetScale);
-            if (!this.isStale(gen)) Toast.info('⚡ 雲端放大無法使用，已改用本機 Lanczos 金字塔放大');
+            if (!this.isStale(gen) && this.isAdvancedMode()) Toast.info('⚡ 雲端放大無法使用，已改用本機 Lanczos 金字塔放大');
           }
         } else {
           // Local engine only (no network call for upscaling)
@@ -149,7 +149,7 @@ export class PipelineOrchestrator {
         }
         if (this.isStale(gen)) return this.abandonRun(activeId);
         appliedScale = processedImgData.width / srcImageData.width;
-        if (isCloudAiAllowed) {
+        if (isCloudAiAllowed && this.isAdvancedMode()) {
           Toast.success(`⚡ 放大完成（實際 ${Number(appliedScale.toFixed(2))}x）`);
         }
 
@@ -351,8 +351,9 @@ export class PipelineOrchestrator {
       // returns are in the same coordinate space as the processed preview they're drawn on.
       void this.runAutoTextInspection(processedImgData, gen);
 
-      // Smart Contextual Action Hints (Learnability & Proactivity)
-      if (stats.transparentRatio > 0.03) {
+      // Smart Contextual Action Hints (Learnability & Proactivity) — they point at advanced-mode tools,
+      // so simple mode (which only shows the before/after score) skips them.
+      if (this.isAdvancedMode() && stats.transparentRatio > 0.03) {
         setTimeout(() => {
           Toast.info('💡 偵測到透明背景！點擊下方【🏷️ 刀模白墨】可一鍵產生貼紙刀模線與白墨層');
         }, 1200);
@@ -378,12 +379,17 @@ export class PipelineOrchestrator {
     }
   }
 
+  /** Simple mode only shows the before/after score, so step-by-step notices are advanced-only. */
+  private isAdvancedMode(): boolean {
+    return store.getState().uiMode === 'advanced';
+  }
+
   public async runAutoTextInspection(imgData: ImageData, gen: number = this.runGeneration): Promise<void> {
     try {
       const inspectResult = await TextInspector.inspectImage(imgData);
       if (this.isStale(gen)) return;
       store.setTextInspectionResult(inspectResult);
-      if (inspectResult.typoCount > 0) {
+      if (inspectResult.typoCount > 0 && this.isAdvancedMode()) {
         this.xiangAssistant?.say(`⚠️ AI 文字檢查：發現 ${inspectResult.typoCount} 處文字疑似拼寫或邊緣發虛，點擊【🔤 文字清晰】可一鍵自動修復！`, 6000);
         setTimeout(() => {
           Toast.info(`📝 發現 ${inspectResult.typoCount} 處文字需注意，點擊【🔤 文字清晰防糊】可一鍵修復！`);

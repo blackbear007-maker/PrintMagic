@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { store } from '../src/ui/state';
 import { DiagnosticCard } from '../src/ui/diagnostic-card';
+import { PIPELINE_ITEMS } from '../src/ui/pipeline-matrix-modal';
 import { DEFAULT_PRESET, detectBestPreset, getPresetById } from '../src/core/presets';
 import type { DpiAnalysis, PrintScoreResult, InkAnalysis } from '../src/types';
 
@@ -69,7 +70,7 @@ describe('UI Mode (Simple vs Advanced) & Diagnostic Rendering', () => {
     expect(store.getState().uiMode).toBe('simple');
   });
 
-  it('should render plain-language 3-pillar upgrade cards in Simple Mode', () => {
+  it('simple mode shows only the before/after score and one download; advanced adds the processing switches', () => {
     const dummyContainer = document.createElement('div');
     dummyContainer.id = 'testDiagCardRoot';
     elementsMap['testDiagCardRoot'] = dummyContainer;
@@ -119,6 +120,7 @@ describe('UI Mode (Simple vs Advanced) & Diagnostic Rendering', () => {
     const state = {
       ...store.getState(),
       scoreResult: mockScore,
+      originalScoreResult: { ...mockScore, score: 71 },
       dpiAnalysis: mockDpi,
       inkAnalysis: mockInk,
       currentPreset: DEFAULT_PRESET,
@@ -129,18 +131,25 @@ describe('UI Mode (Simple vs Advanced) & Diagnostic Rendering', () => {
 
     const html = dummyContainer.innerHTML;
     expect(html).toContain('pm-panel-simple');
-    expect(html).toContain('pm-simple-defense-box');
-    expect(html).toContain('10 大商業印前守護');
-    expect(html).toContain('超解析');
-    expect(html).toContain('出血防白邊');
-    expect(html).toContain('安全控墨');
-    expect(html).toContain('一鍵下載標準印刷檔');
+    expect(html).toContain('修正前');
+    expect(html).toContain('>71<');
+    expect(html).toContain('修正後');
+    expect(html).toContain('>96<');
+    expect(html).toContain('下載印刷檔 (PDF)');
+    // Simple mode doesn't explain or expose what was changed.
+    expect(html).not.toContain('pipeline-checkbox');
+    expect(html).not.toContain('TAC');
+    expect(html).not.toContain('DPI');
+    expect((html.match(/<button/g) || []).length).toBe(1);
 
-    // Switch to advanced mode and verify technical panel
+    // Advanced mode: same card, now with a switch for every processing step.
     card.render({ ...state, uiMode: 'advanced' });
     const advHtml = dummyContainer.innerHTML;
     expect(advHtml).toContain('pm-panel-advanced');
     expect(advHtml).toContain('總墨量 TAC');
+    for (const item of PIPELINE_ITEMS) {
+      expect(advHtml).toContain(`class="pipeline-checkbox" data-key="${item.key}"`);
+    }
 
     dummyContainer.remove();
   });

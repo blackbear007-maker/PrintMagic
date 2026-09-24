@@ -4872,3 +4872,97 @@ body[data-ui-mode="simple"] .pm-footer {
 
 
 
+/* Simple mode = drop a picture, get the before/after score, download. Everything that explains
+   or tweaks the processing (toolbar, canvas score pill, back-side prompt, guide-line note,
+   one-image gallery) only appears in advanced mode, on the same screen with the same image. */
+body[data-ui-mode="simple"] .pm-view-toolbar,
+body[data-ui-mode="simple"] #canvasScorePill,
+body[data-ui-mode="simple"] #btnPromptAddBack,
+body[data-ui-mode="simple"] .pm-canvas-reassurance-note,
+body[data-ui-mode="simple"] #batchBarRoot[data-count="1"] {
+  display: none !important;
+}
+
+/* The score card carries the download button on desktop; the bottom bar is the mobile version. */
+@media (min-width: 769px) {
+  body[data-ui-mode="simple"] #simpleExportRow {
+    display: none !important;
+  }
+}
+/* In simple mode the export bar has nothing visible in-flow (desktop: hidden; mobile: its only row
+   is position:fixed), so drop its empty padded strip under the canvas. */
+body[data-ui-mode="simple"] .pm-export-bar {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+@media (max-width: 768px) {
+  body[data-ui-mode="simple"] .pm-panel-simple .btn-diag-export-pdf {
+    display: none;
+  }
+  /* The result is the point: show the before/after score above the image instead of under the
+     floating download bar. */
+  body[data-ui-mode="simple"] #diagnosticCardRoot {
+    order: -1;
+  }
+  body[data-ui-mode="simple"] .pm-main {
+    padding-bottom: 96px;
+  }
+}
+
+/* Simple-mode score card */
+.pm-simple-score {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 18px 8px 14px;
+}
+.pm-simple-score-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.pm-simple-score-label {
+  font-size: 0.78rem;
+  color: var(--pm-text-muted);
+  font-weight: 600;
+}
+.pm-simple-score-num {
+  font-size: 2.1rem;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--pm-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.pm-simple-score-num.pm-simple-score-after {
+  font-size: 3rem;
+}
+.pm-simple-score-arrow {
+  font-size: 1.4rem;
+  color: var(--pm-text-muted);
+}
+.pm-simple-score-hint {
+  font-size: 0.72rem;
+  color: var(--pm-text-muted);
+  text-align: center;
+  margin-top: 10px;
+}
+
+/* Advanced-mode inline processing switches */
+.pm-adv-switches {
+  margin-top: 12px;
+}
+.pm-adv-switches-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--pm-text-primary);
+  margin-bottom: 8px;
+}
+.pm-adv-switches-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}

@@ -400,22 +400,12 @@ export const APP_SHELL_HTML = `
 
         <!-- Bottom Action Export Bar (Dual Simple / Advanced Rendering) -->
         <div class="pm-export-bar">
-          <!-- Simple Mode Export Actions Bar -->
+          <!-- Simple Mode: one download button. Shown only as the mobile floating bar (the score
+               card already carries the same button on desktop); PNG / 超商 / 分享 live in advanced mode. -->
           <div class="pm-export-simple-row" id="simpleExportRow">
-            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; width: 100%;">
-              <button id="btnSimpleExportPdf" class="pm-btn pm-btn-primary pm-btn-md" style="font-weight: 700; box-shadow: 0 4px 14px rgba(60, 30, 140, 0.32);" title="一鍵下載含 3mm 出血之標準印刷 PDF（送印印刷廠專用 · 零退件）">
-                <img src="icons/shared/star-cta.webp" alt="" class="pm-icon-img" /> 一鍵下載標準印刷 PDF <span style="font-size: 0.68rem; opacity: 0.85; font-weight: 500; margin-left: 2px;">(送印專用)</span>
-              </button>
-              <button id="btnSimpleExportPng" class="pm-btn pm-btn-secondary pm-btn-md" title="匯出 300 DPI 高畫質 PNG 圖檔（相簿保存 / 傳 LINE / 手機沖洗）">
-                <img src="icons/shared/download.webp" alt="" class="pm-icon-img" /> 下載高清 PNG <span style="font-size: 0.68rem; color: var(--pm-text-muted); font-weight: 500;">(相簿/LINE)</span>
-              </button>
-              <button id="btnSimpleConvPrint" class="pm-btn pm-btn-secondary pm-btn-md" title="7-11 ibon / 全家 FamiPort 超商列印檔案產生器">
-                <img src="icons/shared/store.webp" alt="" class="pm-icon-img" /> 超商列印檔
-              </button>
-              <button id="btnSimpleShare" class="pm-btn pm-btn-secondary pm-btn-md" style="background: rgba(60, 30, 140, 0.08); color: var(--pm-accent-blue); border-color: rgba(60, 30, 140, 0.25);" title="以 iPhone / Android 原生分享選單 AirDrop、傳送 LINE 或無線列印">
-                <img src="icons/shared/share.webp" alt="" class="pm-icon-img" /> 分享
-              </button>
-            </div>
+            <button id="btnSimpleExportPdf" class="pm-btn pm-btn-primary pm-btn-md" style="font-weight: 700; width: 100%; box-shadow: 0 4px 14px rgba(60, 30, 140, 0.32);" title="下載含出血與裁切線的印刷用 PDF">
+              下載印刷檔 (PDF)
+            </button>
           </div>
 
           <!-- Advanced Mode macOS Floating Glass Dock -->

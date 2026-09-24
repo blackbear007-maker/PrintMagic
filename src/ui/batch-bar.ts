@@ -55,6 +55,8 @@ export class BatchBar {
     }
 
     this.container.style.display = 'block';
+    // Lets simple-mode CSS hide the gallery when there's only the one image being worked on.
+    this.container.dataset.count = String(items.length);
 
     const itemsHtml = items
       .map((item, idx) => {
