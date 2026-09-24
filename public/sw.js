@@ -1,5 +1,6 @@
 // PrintMagic Studio PWA Offline Service Worker
-const CACHE_NAME = 'printmagic-v3.5.0-offline';
+// Bumped 2026-09-24: activating this version deletes the old cache, which held a stale index.html.
+const CACHE_NAME = 'printmagic-v3.6.0-offline';
 
 const ASSETS_TO_CACHE = [
   './',
@@ -60,6 +61,24 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Pages: network-first, cache only as the offline fallback. Serving index.html cache-first meant
+  // every visit after a deploy loaded the PREVIOUS build (the new one only arrived one visit later),
+  // so a shipped fix didn't reach users the first time they opened the app.
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request).then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200) {
+          const copy = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+        }
+        return networkResponse;
+      }).catch(() =>
+        caches.match(event.request).then((cached) => cached || caches.match('./index.html'))
+      )
+    );
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       if (cachedResponse) {
@@ -87,11 +106,6 @@ self.addEventListener('fetch', (event) => {
         });
 
         return networkResponse;
-      }).catch(() => {
-        // If navigating and offline, return cached index.html
-        if (event.request.mode === 'navigate') {
-          return caches.match('./index.html') || caches.match('./');
-        }
       });
     })
   );

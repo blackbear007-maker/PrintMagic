@@ -192,7 +192,16 @@ class App {
   }
 
   private initServiceWorker(): void {
-    if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
+    if (import.meta.env.DEV && 'serviceWorker' in navigator) {
+      // 開發時不用 SW：它會把 Vite 的 /src 模組當一般資源快取起來，改完程式要重新整理兩次才看得到新版。
+      // 也順手清掉先前開發時已經註冊的 sw.js 與它的快取。
+      navigator.serviceWorker.getRegistrations()
+        .then((registrations) => registrations.forEach((r) => void r.unregister()))
+        .catch(() => {});
+      if ('caches' in window) {
+        caches.keys().then((keys) => keys.forEach((k) => void caches.delete(k))).catch(() => {});
+      }
+    } else if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
       navigator.serviceWorker
         .register('./sw.js')
         .then(() => {
