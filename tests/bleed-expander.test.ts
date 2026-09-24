@@ -1,47 +1,120 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { BleedExpander } from '../src/core/bleed-expander';
 import { getPresetById } from '../src/core/presets';
 
 describe('BleedExpander (3mm mirror-extrapolation bleed extension, non-generative)', () => {
-  beforeEach(() => {
-    const mockCtx = {
-      save: vi.fn(),
-      restore: vi.fn(),
-      translate: vi.fn(),
-      scale: vi.fn(),
-      drawImage: vi.fn(),
-      putImageData: vi.fn(),
-      getImageData: vi.fn((_x, _y, w, h) => ({
-        width: w,
-        height: h,
-        data: new Uint8ClampedArray(w * h * 4)
-      }))
+  // 2026-09-24：原本這裡的測試整個 canvas 都是 mock，drawImage 什麼都沒畫，所以右／下出血其實是
+  // 全透明（translate 起點算錯，鏡像條被畫回原圖範圍又被中心圖蓋掉），它卻一直通過。這裡改用一個
+  // 真的會寫入像素的迷你軟體 canvas（支援 translate / ±1 scale / save / restore / drawImage），
+  // 直接檢查輸出像素。
+  describe('real pixel output (software canvas)', () => {
+    type Matrix = { a: number; d: number; e: number; f: number };
+
+    class SoftCanvas {
+      width = 0;
+      height = 0;
+      buf: Uint8ClampedArray | null = null;
+      getContext() {
+        this.buf ??= new Uint8ClampedArray(this.width * this.height * 4);
+        return new SoftContext(this);
+      }
+      toDataURL() {
+        return 'data:image/png;base64,soft';
+      }
+    }
+
+    class SoftContext {
+      private m: Matrix = { a: 1, d: 1, e: 0, f: 0 };
+      private stack: Matrix[] = [];
+      constructor(private c: SoftCanvas) {}
+      save() { this.stack.push({ ...this.m }); }
+      restore() { this.m = this.stack.pop() ?? { a: 1, d: 1, e: 0, f: 0 }; }
+      translate(x: number, y: number) { this.m.e += this.m.a * x; this.m.f += this.m.d * y; }
+      scale(x: number, y: number) { this.m.a *= x; this.m.d *= y; }
+      putImageData(img: ImageData, x: number, y: number) {
+        for (let row = 0; row < img.height; row++) {
+          const dst = ((y + row) * this.c.width + x) * 4;
+          this.c.buf!.set(img.data.subarray(row * img.width * 4, (row + 1) * img.width * 4), dst);
+        }
+      }
+      getImageData(x: number, y: number, w: number, h: number) {
+        const out = new ImageData(w, h);
+        for (let row = 0; row < h; row++) {
+          const src = ((y + row) * this.c.width + x) * 4;
+          out.data.set(this.c.buf!.subarray(src, src + w * 4), row * w * 4);
+        }
+        return out;
+      }
+      drawImage(src: SoftCanvas, ...args: number[]) {
+        const [sx, sy, sw, sh, dx, dy, dw, dh] =
+          args.length === 2 ? [0, 0, src.width, src.height, args[0], args[1], src.width, src.height] : args;
+        const { a, d, e, f } = this.m;
+        const xs = [a * dx + e, a * (dx + dw) + e];
+        const ys = [d * dy + f, d * (dy + dh) + f];
+        for (let Y = Math.max(0, Math.min(...ys)); Y < Math.min(this.c.height, Math.max(...ys)); Y++) {
+          const v = (Y + 0.5 - f) / d;
+          if (v < dy || v >= dy + dh) continue;
+          const srcY = sy + Math.floor(((v - dy) * sh) / dh);
+          for (let X = Math.max(0, Math.min(...xs)); X < Math.min(this.c.width, Math.max(...xs)); X++) {
+            const u = (X + 0.5 - e) / a;
+            if (u < dx || u >= dx + dw) continue;
+            const srcX = sx + Math.floor(((u - dx) * sw) / dw);
+            const si = (srcY * src.width + srcX) * 4;
+            this.c.buf!.set(src.buf!.subarray(si, si + 4), (Y * this.c.width + X) * 4);
+          }
+        }
+      }
+    }
+
+    beforeEach(() => {
+      // @ts-ignore
+      global.document = { createElement: () => new SoftCanvas() } as any;
+    });
+
+    // R = source x, G = source y — so every output pixel tells us which source pixel it came from.
+    const makeCoordImage = (w: number, h: number): ImageData => {
+      const img = new ImageData(w, h);
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+          const i = (y * w + x) * 4;
+          img.data[i] = x; img.data[i + 1] = y; img.data[i + 2] = 0; img.data[i + 3] = 255;
+        }
+      }
+      return img;
     };
 
-    const mockCanvas = {
-      width: 100,
-      height: 100,
-      getContext: vi.fn(() => mockCtx),
-      toDataURL: vi.fn(() => 'data:image/png;base64,mockexpanded')
+    const SRC_W = 120;
+    const SRC_H = 80;
+    const run = () => {
+      const result = BleedExpander.expandBleed(makeCoordImage(SRC_W, SRC_H), getPresetById('postcard'), 2);
+      const bx = (result.width - SRC_W) / 2;
+      const by = (result.height - SRC_H) / 2;
+      const px = (x: number, y: number) => {
+        const i = (y * result.width + x) * 4;
+        return { r: result.imageData.data[i], g: result.imageData.data[i + 1], a: result.imageData.data[i + 3] };
+      };
+      return { result, bx, by, px };
     };
 
-    // @ts-ignore
-    global.document = {
-      createElement: vi.fn((tag) => (tag === 'canvas' ? mockCanvas : {}))
-    } as any;
-  });
+    it('leaves no transparent pixel anywhere — all four bleed edges are filled', () => {
+      const { result } = run();
+      const d = result.imageData.data;
+      let transparent = 0;
+      for (let i = 3; i < d.length; i += 4) if (d[i] < 255) transparent++;
+      expect(transparent).toBe(0);
+    });
 
-  it('should expand bleed margin on all four borders while preserving center subject', () => {
-    const w = 200;
-    const h = 200;
-    const data = new Uint8ClampedArray(w * h * 4);
-    const srcImg = { width: w, height: h, data } as ImageData;
-    const preset = getPresetById('poster-a4');
+    it('fills each bleed strip with the mirror image of the adjacent source edge', () => {
+      const { bx, by, px } = run();
+      const j = 10; // deeper than the seam-healing radius (5px here), so values are the raw mirror
+      const midX = bx + SRC_W / 2;
+      const midY = by + SRC_H / 2;
 
-    const result = BleedExpander.expandBleed(srcImg, preset, 3);
-    expect(result.width).toBeGreaterThan(w);
-    expect(result.height).toBeGreaterThan(h);
-    expect(result.dataUrl).toBeDefined();
+      expect(px(bx - 1 - j, midY).r).toBe(j); // left
+      expect(px(bx + SRC_W + j, midY).r).toBe(SRC_W - 1 - j); // right
+      expect(px(midX, by - 1 - j).g).toBe(j); // top
+      expect(px(midX, by + SRC_H + j).g).toBe(SRC_H - 1 - j); // bottom
+    });
   });
 
   describe('healSeamBoundaries — symmetric raised-cosine hump centered on the seam (2026-08-29 fix)', () => {

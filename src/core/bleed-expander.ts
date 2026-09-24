@@ -54,8 +54,12 @@ export class BleedExpander {
     ctx.restore();
 
     // Bottom bleed
+    // ⚠️ 2026-09-24 修正：這裡原本 translate 到 `bleedPxY + srcH`（原圖下緣），配上 scale(1,-1)
+    // 之後鏡像條會往上畫回原圖範圍，接著被第 3 步的中心原圖整個蓋掉，下方出血區完全沒被畫到、
+    // 保持全透明；右側出血同樣的錯。送印 PDF 的右、下兩邊因此各有一條白邊——正好是這個模組要防的事。
+    // 翻轉後的起點必須是出血區的外緣（outH / outW）。
     ctx.save();
-    ctx.translate(bleedPxX, bleedPxY + srcH);
+    ctx.translate(bleedPxX, outH);
     ctx.scale(1, -1);
     ctx.drawImage(tempCanvas, 0, srcH - bleedPxY, srcW, bleedPxY, 0, 0, srcW, bleedPxY);
     ctx.restore();
@@ -69,7 +73,7 @@ export class BleedExpander {
 
     // Right bleed
     ctx.save();
-    ctx.translate(bleedPxX + srcW, bleedPxY);
+    ctx.translate(outW, bleedPxY);
     ctx.scale(-1, 1);
     ctx.drawImage(tempCanvas, srcW - bleedPxX, 0, bleedPxX, srcH, 0, 0, bleedPxX, srcH);
     ctx.restore();
