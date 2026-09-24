@@ -1,5 +1,6 @@
 import type { AppState } from './state';
 import { Toast } from './toast';
+import { iccProfileEngine } from '../core/icc-profiles';
 
 /**
  * Zero-Friction Print Shop Specification Sheet Modal
@@ -18,7 +19,9 @@ export class SpecModal {
   }
 
   public open(state: AppState): void {
-    const { currentPreset, dpiAnalysis, inkAnalysis } = state;
+    const { currentPreset, dpiAnalysis, inkAnalysis, pipelineOptions } = state;
+    const maxTac = iccProfileEngine.getActiveProfile().maxTac;
+    const tacNote = pipelineOptions.enableInkLimiting ? `上限 ${maxTac}%` : '未壓制總墨量';
     const bleed = currentPreset.bleedMm;
     const totalW = currentPreset.widthMm + bleed * 2;
     const totalH = currentPreset.heightMm + bleed * 2;
@@ -36,12 +39,13 @@ export class SpecModal {
 ■ 成品尺寸：${currentPreset.widthMm} × ${currentPreset.heightMm} mm
 ■ 含出血尺寸：${totalW} × ${totalH} mm (單邊 ${bleed}mm 出血)
 ■ 實體解析度：${dpiAnalysis?.currentDpi || currentPreset.targetDpi} DPI 實體渲染
-■ 總墨量 TAC：${inkAnalysis?.maxTotalInk || 300}% (已套用 300% 安全壓制防溢)
-■ 裁切標記：內嵌 0.1mm 標準向量角線、CMYK 密度條與十字套準
+■ 總墨量 TAC：最高 ${inkAnalysis?.maxTotalInk ?? '—'}%（${tacNote}）
+■ 色彩模式：RGB（如需 CMYK 請印刷廠協助轉檔）
+■ 裁切標記：內嵌 0.1mm 向量角線、色條與十字套準
 ■ 建議紙材：${paperName}
 ■ 檔案備註：已通過 PrintMagic 本機自動預檢（非第三方獨立驗證）`;
 
-    const bossMsgText = `老闆您好！我要印【${currentPreset.nameZh}】（成品淨尺寸 ${currentPreset.widthMm}×${currentPreset.heightMm} mm），紙材使用【${paperName}】。檔案為標準 PDF 格式，已內建${bleed > 0 ? ` ${bleed}mm 出血與` : '（無出血）與'} CMYK 安全墨量，請直接安排標準出機，感謝您！`;
+    const bossMsgText = `老闆您好！我要印【${currentPreset.nameZh}】（成品淨尺寸 ${currentPreset.widthMm}×${currentPreset.heightMm} mm），紙材使用【${paperName}】。檔案為 RGB 印刷 PDF${bleed > 0 ? `，已內建 ${bleed}mm 出血` : '（無出血）'}，如需 CMYK 請協助轉檔，感謝您！`;
 
     this.modalEl.innerHTML = `
       <div class="pm-modal-dialog pm-spec-dialog" style="max-width: 580px;">
@@ -80,7 +84,7 @@ export class SpecModal {
           </div>
           <div class="pm-spec-row">
             <span class="pm-spec-k">裁切與套準</span>
-            <span class="pm-spec-v">已內嵌 0.1mm 向量角線、CMYK 色條、十字標記</span>
+            <span class="pm-spec-v">已內嵌 0.1mm 向量角線、色條、十字標記</span>
           </div>
         </div>
 

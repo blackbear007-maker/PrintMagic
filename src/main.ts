@@ -50,7 +50,6 @@ import { PdfExporter } from './engines/pdf-exporter';
 import { VectorTracer } from './engines/vector-tracer';
 import { workerClient } from './workers/worker-client';
 import { ColorBlindnessSimulator, type CvdType } from './core/color-blindness-simulator';
-import { PassportModal } from './ui/passport-modal';
 import { CanvasZoomController } from './ui/canvas-zoom';
 import { WebShareService } from './services/web-share';
 import { XiaoxiangAssistant } from './ui/xiaoxiang-assistant';
@@ -85,7 +84,6 @@ class App {
   public laserScan!: LaserScanController;
   public mockupModal!: MockupModal;
   public specModal!: SpecModal;
-  public passportModal!: PassportModal;
   public shopsModal!: NearbyShopsModal;
   public directPrintModal!: DirectPrintModal;
   public convPrintModal!: ConveniencePrintModal;
@@ -270,7 +268,6 @@ class App {
     // 9. Modals
     this.mockupModal = new MockupModal();
     this.specModal = new SpecModal();
-    this.passportModal = new PassportModal();
     this.shopsModal = new NearbyShopsModal();
     this.directPrintModal = new DirectPrintModal(() => this.shopsModal.open());
     this.convPrintModal = new ConveniencePrintModal();
@@ -1062,7 +1059,10 @@ class App {
 
       try {
         SoundEffects.shutterClick();
-        const specSummary = `【送印規格小抄】尺寸：${state.currentPreset.nameZh} (${state.currentPreset.widthMm}×${state.currentPreset.heightMm}mm) · 解析度：${state.currentPreset.targetDpi} DPI · 色彩：CMYK · 出血：${state.currentPreset.bleedMm}mm · 純黑向量銳化 · 零退件認證`;
+        // 2026-09-24 修正：這段原本寫「色彩：CMYK · 純黑向量銳化 · 零退件認證」，但輸出的 PDF 是 RGB——
+        // 使用者照貼給印刷廠，老闆就不會幫忙轉 CMYK。改成照實寫檔案內容。
+        const p = state.currentPreset;
+        const specSummary = `【送印規格小抄】${p.nameZh}（${p.widthMm}×${p.heightMm}mm）· ${p.targetDpi} DPI · ${p.bleedMm > 0 ? `出血 ${p.bleedMm}mm` : '無出血'} · 檔案為 RGB PDF，如需 CMYK 請協助轉檔`;
         if (navigator.clipboard) {
           void navigator.clipboard.writeText(specSummary).catch(() => {});
         }
@@ -1090,12 +1090,9 @@ class App {
           Toast.success('✓ 標準印刷 PDF 已成功輸出！已自動複製「送印溝通小抄」至剪貼簿！');
         }
 
-        // In Simple Mode, pop up the Print-Ready Passport to reassure beginners
-        if (state.uiMode === 'simple') {
-          setTimeout(() => {
-            this.passportModal.open();
-          }, 450);
-        }
+        // 下載後不再彈出「送印通關護照」視窗（簡易模式要一路無腦到底）；該提醒的只有一件事——
+        // 檔案是 RGB——由小象說，不擋畫面。
+        this.xiangAssistant?.say(XiaoxiangAssistant.LINES.exportPdf, 8000);
       } catch (err: any) {
         Toast.error(`PDF 匯出失敗: ${err?.message || err}`);
       }

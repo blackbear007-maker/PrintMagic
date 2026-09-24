@@ -57,7 +57,8 @@ export class PdfExporter {
     const contentWidth = trimWidthMm + bleedMm * 2;
     const contentHeight = trimHeightMm + bleedMm * 2;
 
-    // 0. Auto White Ink Underlay (for transparent stickers/clear prints to prevent see-through)
+    // 0. Sticker: plain RGB white backing so transparent areas print as white. This is NOT a
+    //    white-ink spot plate (that one comes from the dieline tool as a separate file).
     if (preset.id === 'sticker') {
       pdf.setFillColor(255, 255, 255);
       pdf.rect(contentX, contentY, contentWidth, contentHeight, 'F');
