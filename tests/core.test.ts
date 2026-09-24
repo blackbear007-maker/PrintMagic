@@ -251,6 +251,12 @@ describe('PrintScoreCalculator', () => {
     expect(scoreResult.score).toBeLessThanOrEqual(100);
     expect(scoreResult.breakdown.resolution).toBeDefined();
     expect(scoreResult.issues.length).toBeGreaterThan(0);
+    // The verdict must not claim "perfect / press-ready" while listing open issues.
+    expect(scoreResult.verdict).not.toContain('完美就緒');
+    expect(scoreResult.verdict).not.toContain('直出');
+    if (scoreResult.score >= 75) {
+      expect(scoreResult.verdict).toContain(`${scoreResult.issues.length} 項建議留意`);
+    }
   });
 
   it('should actually detect gamut-risk pixels for a vividly saturated image', () => {

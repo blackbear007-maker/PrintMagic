@@ -4944,12 +4944,6 @@ body[data-ui-mode="simple"] .pm-export-bar {
   font-size: 1.4rem;
   color: var(--pm-text-muted);
 }
-.pm-simple-score-hint {
-  font-size: 0.72rem;
-  color: var(--pm-text-muted);
-  text-align: center;
-  margin-top: 10px;
-}
 
 /* Advanced-mode inline processing switches */
 .pm-adv-switches {

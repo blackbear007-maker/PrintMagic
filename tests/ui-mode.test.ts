@@ -151,6 +151,20 @@ describe('UI Mode (Simple vs Advanced) & Diagnostic Rendering', () => {
       expect(advHtml).toContain(`class="pipeline-checkbox" data-key="${item.key}"`);
     }
 
+    // Advanced descriptions follow the real switch states instead of claiming every step ran.
+    const allOn = dummyContainer.innerHTML;
+    expect(allOn).toContain('USM 銳化');
+    expect(allOn).not.toContain('總墨量壓制已關閉');
+    expect(allOn).not.toContain('CMYK 色階校正');
+    card.render({
+      ...state,
+      uiMode: 'advanced',
+      pipelineOptions: { ...state.pipelineOptions, enableSharpening: false, enableInkLimiting: false }
+    });
+    const someOff = dummyContainer.innerHTML;
+    expect(someOff).not.toContain('USM 銳化');
+    expect(someOff).toContain('總墨量壓制已關閉');
+
     dummyContainer.remove();
   });
 

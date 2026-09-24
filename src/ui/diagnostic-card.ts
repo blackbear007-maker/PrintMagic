@@ -1,5 +1,6 @@
 import type { AppState } from './state';
 import { renderPipelineSwitchList, bindPipelineSwitchList } from './pipeline-matrix-modal';
+import { iccProfileEngine } from '../core/icc-profiles';
 
 /**
  * PrintPass™ Pre-press Diagnostic Certificate Component
@@ -42,7 +43,8 @@ export class DiagnosticCard {
       originalInkAnalysis,
       currentPreset,
       uiMode,
-      textInspectionResult
+      textInspectionResult,
+      pipelineOptions
     } = state;
 
     if (!scoreResult || !dpiAnalysis) {
@@ -86,6 +88,34 @@ export class DiagnosticCard {
       ? `${initTac}% ➔ ${finalTac}%`
       : `${finalTac}%`;
 
+    // 2026-09-24：進階模式可以逐項開關處理步驟，所以下面的說明文字一律依「實際開關狀態」與
+    // 「目前色彩描述檔上限」產生，不再寫死「已套用 USM 銳化」「TAC ≤ 300%」「CMYK 色階校正」——
+    // 那些字在使用者關掉對應開關後就會變成假的；而且輸出一直是 RGB，從沒做過 CMYK 色彩校正。
+    const maxTac = iccProfileEngine.getActiveProfile().maxTac;
+    const targetDpi = dpiAnalysis.targetDpi;
+    const upscaled = finalDpi > initDpi;
+    const resolutionDesc = upscaled
+      ? `已放大到 <strong>${finalDpi} DPI</strong>（目標 ${targetDpi} DPI）`
+      : !originalDpiAnalysis?.needsUpscale
+        ? `原圖已有 <strong>${finalDpi} DPI</strong>，不需放大`
+        : pipelineOptions.enableUpscale
+          ? `目前 <strong>${finalDpi} DPI</strong>，低於目標 ${targetDpi} DPI`
+          : `放大已關閉：目前 <strong>${finalDpi} DPI</strong>，低於目標 ${targetDpi} DPI`;
+    const bleedDesc = bleedMm <= 0
+      ? '此規格無出血（數位用途）'
+      : pipelineOptions.enableBleedExpand
+        ? `四邊已鏡像延伸 <strong>${bleedMm}mm 出血</strong>，降低裁切偏差露白邊的風險`
+        : `自動補出血已關閉：PDF 仍保留 ${bleedMm}mm 出血區，但圖片會被拉伸填滿，邊緣內容會被裁掉`;
+    const inkDesc = pipelineOptions.enableInkLimiting
+      ? `總墨量上限 <strong>${maxTac}%</strong>，目前最高 ${finalTac}%`
+      : `總墨量壓制已關閉，目前最高 <strong>${finalTac}%</strong>（上限 ${maxTac}%）`;
+    const toneSteps = [
+      pipelineOptions.enableSharpening ? 'USM 銳化' : '',
+      pipelineOptions.enableShadowLift ? '暗部提亮' : '',
+      pipelineOptions.enableAntiBanding ? '漸層防斷階' : ''
+    ].filter(Boolean);
+    const toneDesc = `${toneSteps.length > 0 ? `已套用 ${toneSteps.join('、')}` : '未套用銳化與階調調整'}。顏色仍為 RGB，CMYK 轉換由印刷廠處理`;
+
     // Delta badge
     const deltaBadge = deltaScore > 0
       ? `<span class="pm-score-delta-badge">+${deltaScore} 分升級</span>`
@@ -103,10 +133,16 @@ export class DiagnosticCard {
             <span style="font-size: 1.1rem;">${isTypo ? '<img src="icons/shared/warning.webp" alt="" class="pm-icon-img" />' : '<img src="icons/header/text-inspect.webp" alt="" class="pm-icon-img" />'}</span>
             <div>
               <div style="font-weight: 700; font-size: 0.82rem; color: var(--pm-text-primary);">
-                ${isTypo ? `發現 ${textInspectionResult.typoCount} 處文字疑似異常` : '<img src="icons/shared/info.webp" alt="" class="pm-icon-img" /> 已偵測文字區域位置（未讀取內容，錯字需自行確認）'}
+                ${isTypo
+                  ? `發現 ${textInspectionResult.typoCount} 處文字疑似異常`
+                  : textInspectionResult.regions.length === 0
+                    ? '沒有偵測到文字區塊'
+                    : `偵測到 ${textInspectionResult.regions.length} 處文字區塊`}
               </div>
               <div style="font-size: 0.72rem; color: var(--pm-text-secondary);">
-                ${textInspectionResult.summary}
+                ${textInspectionResult.regions.length === 0 && !isTypo
+                  ? '偵測可能漏掉大字或藝術字；圖中若有文字，錯字請自行確認。'
+                  : textInspectionResult.summary}
               </div>
             </div>
           </div>
@@ -156,7 +192,6 @@ export class DiagnosticCard {
             </button>
           </div>
 
-          <div class="pm-simple-score-hint">想自己決定要套用哪些處理，或需要其他格式，切換到「進階」。</div>
         </div>
       `;
     } else {
@@ -220,11 +255,11 @@ export class DiagnosticCard {
           <!-- 3. Key Hero Action Buttons (Standard PDF & High-Res PNG & Pipeline Customizer) -->
           <div class="pm-diag-hero-actions">
             <button class="pm-btn pm-btn-primary pm-btn-lg btn-diag-export-pdf" style="width: 100%; font-weight: 700; box-shadow: 0 4px 14px rgba(60, 30, 140, 0.35);" title="下載含裁切十字、色條與出血之標準印刷 PDF">
-              <span><img src="icons/shared/document-page.webp" alt="" class="pm-icon-img" /></span> 下載標準印刷 PDF (含出血)
+              <span><img src="icons/shared/document-page.webp" alt="" class="pm-icon-img" /></span> 下載印刷 PDF${bleedMm > 0 ? ' (含出血)' : ''}
             </button>
             <!-- 2026-08-29 補上：見 Simple 模式樣板同段落註解，DirectPrintModal 入口按鈕原本兩種
                  模式都沒有渲染，這裡補上。 -->
-            <button class="pm-btn pm-btn-artisan pm-btn-lg btn-diag-direct-print" style="width: 100%; margin-top: 8px; font-weight: 700;" title="比價台灣四大合版印刷廠，一鍵打包送印工單 ZIP">
+            <button class="pm-btn pm-btn-artisan pm-btn-lg btn-diag-direct-print" style="width: 100%; margin-top: 8px; font-weight: 700;" title="估算台灣 4 間合版印刷廠的參考價格（合成估算，非即時報價），並打包送印工單 ZIP">
               <span><img src="icons/shared/factory.webp" alt="" class="pm-icon-img" /></span> 送印估價與比價
             </button>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px;">
@@ -248,11 +283,11 @@ export class DiagnosticCard {
                     <span class="pm-safety-tile-name">畫質解析度</span>
                   </div>
                   <span class="pm-safety-badge ${breakdown.resolution >= 90 ? 'pm-badge-pass' : 'pm-badge-warn'}">
-                    ${breakdown.resolution >= 90 ? '<img src="icons/shared/check.webp" alt="" class="pm-icon-img" /> 頂級清晰' : '需放大'} · ${breakdown.resolution}分
+                    ${breakdown.resolution >= 90 ? '<img src="icons/shared/check.webp" alt="" class="pm-icon-img" /> 足夠' : '<img src="icons/shared/warning.webp" alt="" class="pm-icon-img" /> 不足'} · ${breakdown.resolution}分
                   </span>
                 </div>
                 <div class="pm-safety-tile-desc">
-                  Lanczos-3 補足 <strong>${finalDpi} DPI</strong> 印刷標準，無顆粒與鋸齒
+                  ${resolutionDesc}
                 </div>
               </div>
 
@@ -268,7 +303,7 @@ export class DiagnosticCard {
                   </span>
                 </div>
                 <div class="pm-safety-tile-desc">
-                  ${bleedMm > 0 ? `匯出 PDF 時會加上 <strong>${bleedMm}mm 出血</strong>，降低裁切偏差露白邊的風險` : '此規格無出血（數位用途）'}
+                  ${bleedDesc}
                 </div>
               </div>
 
@@ -280,11 +315,11 @@ export class DiagnosticCard {
                     <span class="pm-safety-tile-name">墨量防沾黏</span>
                   </div>
                   <span class="pm-safety-badge ${breakdown.inkSafety >= 80 ? 'pm-badge-pass' : 'pm-badge-warn'}">
-                    ${breakdown.inkSafety >= 80 ? '<img src="icons/shared/check.webp" alt="" class="pm-icon-img" /> 安全控墨' : '<img src="icons/shared/warning.webp" alt="" class="pm-icon-img" /> 需控墨'} · ${breakdown.inkSafety}分
+                    ${breakdown.inkSafety >= 80 ? '<img src="icons/shared/check.webp" alt="" class="pm-icon-img" /> 墨量安全' : '<img src="icons/shared/warning.webp" alt="" class="pm-icon-img" /> 墨量過高'} · ${breakdown.inkSafety}分
                   </span>
                 </div>
                 <div class="pm-safety-tile-desc">
-                  總墨量壓制至 <strong>TAC ≤ 300%</strong>，避免紙張吸墨過重背印沾黏
+                  ${inkDesc}
                 </div>
               </div>
 
@@ -296,30 +331,26 @@ export class DiagnosticCard {
                     <span class="pm-safety-tile-name">色彩與階調</span>
                   </div>
                   <span class="pm-safety-badge ${breakdown.saturation >= 90 ? 'pm-badge-pass' : 'pm-badge-warn'}">
-                    <img src="icons/shared/check.webp" alt="" class="pm-icon-img" /> 色彩通透 · ${breakdown.saturation}分
+                    ${breakdown.saturation >= 90 ? '<img src="icons/shared/check.webp" alt="" class="pm-icon-img" /> 正常' : '<img src="icons/shared/warning.webp" alt="" class="pm-icon-img" /> 需留意'} · ${breakdown.saturation}分
                   </span>
                 </div>
                 <div class="pm-safety-tile-desc">
-                  已套用 <strong>USM 印刷銳化</strong> 與 CMYK 色階校正，實體通透不暗沉
+                  ${toneDesc}
                 </div>
               </div>
             </div>
 
-            <!-- Auto Summary Checklist Box -->
-            <div class="pm-auto-summary-box">
-              <div class="pm-auto-summary-title"><img src="icons/header/upscale-local.webp" alt="" class="pm-icon-img" /> 系統已自動完成印前安全處理</div>
-              <div class="pm-auto-tags">
-                <span class="pm-auto-tag"><img src="icons/shared/check.webp" alt="" class="pm-icon-img" /> 補足 ${finalDpi} DPI</span>
-                ${bleedMm > 0 ? `<span class="pm-auto-tag"><img src="icons/shared/check.webp" alt="" class="pm-icon-img" /> 匯出含 ${bleedMm}mm 出血</span>` : ''}
-                <span class="pm-auto-tag"><img src="icons/shared/check.webp" alt="" class="pm-icon-img" /> TAC 控墨安全</span>
-                <span class="pm-auto-tag"><img src="icons/shared/check.webp" alt="" class="pm-icon-img" /> USM 微細銳化</span>
+            <!-- Open issues. (The old "系統已自動完成" tag list claimed every step ran regardless of the
+                 switches above, which now show exactly what's on.) -->
+            ${issues.length > 0 ? `
+              <div class="pm-auto-summary-box">
+                ${issues.map((issue) => `
+                  <div class="pm-diag-warning-inline">
+                    <span><img src="icons/shared/warning.webp" alt="" class="pm-icon-img" /></span> ${issue}
+                  </div>
+                `).join('')}
               </div>
-              ${issues.length > 0 ? `
-                <div class="pm-diag-warning-inline">
-                  <span><img src="icons/shared/warning.webp" alt="" class="pm-icon-img" /></span> ${issues[0]}
-                </div>
-              ` : ''}
-            </div>
+            ` : ''}
 
             <!-- Optional Collapsible Deep Metrics Toggle -->
             <button class="pm-diag-accordion-toggle" id="btnToggleDiagAccordion" type="button" style="margin-top: 10px; padding: 6px 10px; font-size: 0.72rem;">
@@ -334,13 +365,13 @@ export class DiagnosticCard {
               <!-- 7-Factor Weighted Indicator Comparison Table -->
               <div class="pm-weighted-section">
                 <div class="pm-metrics-grid">
-                  ${this.renderWeightedRow('解析度適配', '35%', initialBreakdown.resolution, breakdown.resolution, 'Lanczos-3 重採樣補足 300 DPI')}
+                  ${this.renderWeightedRow('解析度適配', '35%', initialBreakdown.resolution, breakdown.resolution, `目標 ${targetDpi} DPI`)}
                   ${this.renderWeightedRow('長寬比契合', '15%', initialBreakdown.aspectRatio, breakdown.aspectRatio, `${bleedText}與安全框裁切保護`)}
-                  ${this.renderWeightedRow('總墨量安全', '10%', initialBreakdown.inkSafety, breakdown.inkSafety, 'TAC ≤300% 防吸墨背印沾黏')}
-                  ${this.renderWeightedRow('微細邊緣銳度', '10%', initialBreakdown.sharpness, breakdown.sharpness, 'USM 印刷微細邊緣銳化補償')}
-                  ${this.renderWeightedRow('亮部與暗階', '10%', initialBreakdown.brightness, breakdown.brightness, '階調校正防止印刷暗沉')}
-                  ${this.renderWeightedRow('色彩飽和度', '10%', initialBreakdown.saturation, breakdown.saturation, 'CMYK 印刷色域適配軟打樣')}
-                  ${this.renderWeightedRow('反差與層次', '10%', initialBreakdown.contrast, breakdown.contrast, '動態對比度增強')}
+                  ${this.renderWeightedRow('總墨量安全', '10%', initialBreakdown.inkSafety, breakdown.inkSafety, `上限 ${maxTac}%，過高易背印沾黏`)}
+                  ${this.renderWeightedRow('微細邊緣銳度', '10%', initialBreakdown.sharpness, breakdown.sharpness, '邊緣與小字的清晰程度')}
+                  ${this.renderWeightedRow('亮部與暗階', '10%', initialBreakdown.brightness, breakdown.brightness, '暗部是否會印得太黑')}
+                  ${this.renderWeightedRow('色彩飽和度', '10%', initialBreakdown.saturation, breakdown.saturation, '色彩飽和程度')}
+                  ${this.renderWeightedRow('反差與層次', '10%', initialBreakdown.contrast, breakdown.contrast, '明暗層次')}
                 </div>
               </div>
             </div>

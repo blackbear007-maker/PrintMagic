@@ -340,8 +340,8 @@ export const APP_SHELL_HTML = `
           <!-- Floating iOS Health / Score Badge -->
           <div class="pm-canvas-score-pill" id="canvasScorePill" style="display: none;" title="點擊查看完整印前健檢報告">
             <span id="canvasScoreDot" class="pm-score-dot"></span>
-            <span id="canvasScoreText" class="pm-score-val">100分</span>
-            <span id="canvasScoreVerdict" class="pm-score-verdict"><img src="icons/shared/sparkle.webp" alt="" class="pm-icon-img" /> 完美就緒</span>
+            <span id="canvasScoreText" class="pm-score-val"></span>
+            <span id="canvasScoreVerdict" class="pm-score-verdict"></span>
           </div>
 
           <!-- Canvas Floating Quick HUD (Apple Frosted Glass Pill) -->
@@ -475,7 +475,7 @@ export const APP_SHELL_HTML = `
                 <img class="pm-dock-icon" src="icons/shared/printer.webp" alt="" />
                 <span class="pm-dock-name">出機中心</span>
               </button>
-              <button id="btnExportPdf" class="pm-dock-btn" title="匯出含裁切十字與出血之標準印刷 PDF（零退件認證）">
+              <button id="btnExportPdf" class="pm-dock-btn" title="匯出含裁切十字與出血的印刷用 PDF（RGB，CMYK 轉換由印刷廠處理）">
                 <img class="pm-dock-icon" src="icons/shared/document-page.webp" alt="" />
                 <span class="pm-dock-name">標準 PDF</span>
               </button>

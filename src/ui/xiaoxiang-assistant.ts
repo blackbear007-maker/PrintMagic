@@ -28,8 +28,11 @@ export class XiaoxiangAssistant {
     // 剪貼簿三個上傳按鈕，沒有任何規格選擇（規格選擇列現在也已改成上傳後才出現，見 main.ts
     // presetSelectionBar 的顯示邏輯）——這句話對不上實際畫面，已改成準確描述真正存在的選項。
     welcome: '丟一張圖進來吧。拖進畫面或從相簿選一張，我會依版型幫你算好出血；規格不合適的話，上傳後隨時能換。',
-    processing: '正在依目標 DPI 放大並做 CMYK 控墨... 稍等一下，馬上就好。',
-    ready: '搞定了！300 DPI 補齊了，總墨量也幫你壓在 300% 內。直接點下載 PDF，印刷廠老闆挑不出毛病。',
+    processing: '在弄了，稍等一下，馬上就好。',
+    // 進階模式的處理步驟都能關掉，所以不再保證「300 DPI 補齊、墨量壓在 300% 內」——實際狀態看卡片上的開關。
+    ready: '搞定了！要套哪些處理，卡片上的開關自己切，切一下我馬上重跑一次。弄好就下載 PDF。',
+    // 簡易模式不講改了什麼，只提醒進階模式在哪（原本是評分卡下方的一行小字）。
+    readySimple: '搞定了！直接下載 PDF 就能送印。想自己決定要套用哪些處理、或要別的格式，切到上面的【進階】，我一項一項攤開給你挑。',
     simpleMode: '切到【簡易模式】了。無腦直出，該有的 DPI 補齊放大、依版型出血與文字防糊我都在背景做好了。',
     advancedMode: '切到【進階模式】了。專業製版、紙材、ICC 軟打樣和燙金工藝都在上面，想調什麼自己開。',
     localEngine: '100% 離線本機模式，照片完全不連網，商業作品放心用。',
@@ -53,7 +56,7 @@ export class XiaoxiangAssistant {
     softProofOff: '回到螢幕 RGB 鮮豔光色。',
     safeZoneOn: '開啟【出血線與安全框】。外圈是裁切出血保護，綠框以內重要文字保證切不到。',
     safeZoneOff: '關閉輔助框線，檢視純淨畫面。',
-    heatmapOn: '開啟【總墨量溢墨熱力圖】。油墨較重區域一目了然，系統已幫你自動控墨壓制在 300% 內。',
+    heatmapOn: '開啟【總墨量溢墨熱力圖】。超過目前色彩描述檔上限的地方會標出來，油墨太重的區域一目了然。',
     heatmapOff: '關閉溢墨熱力圖。',
     loupeOn: '開啟【20x 玫瑰網點顯微鏡】。滑鼠移上去能看到實體印刷機的 CMYK 角度排列網點。',
     compareOn: '開啟【原圖對比】。左邊是原圖，右邊是放大補齊目標 DPI 後的細節，拉一下就知道差在哪。',
@@ -66,7 +69,7 @@ export class XiaoxiangAssistant {
     specCopy: '「傳給老闆一句話」複製好了。直接貼在 LINE 傳給印刷廠，你不用在那邊背出血和解析度數字。',
     objectEraser: '要修圖？用筆刷塗掉不要的雜物或路人，我幫你算底圖補回去。',
     textInspect: '文字檢測看過了。幫你檢查了有沒有怪異亂碼或 AI 偽字。',
-    exportPdf: 'PDF 輸出完成，已內嵌向量角線、十字規矩線與 CMYK 色條，拿到哪家印刷廠都能直接出機。',
+    exportPdf: 'PDF 輸出完成，角線、十字規矩線和色條都放好了。顏色還是 RGB，送印時跟老闆說一聲請他轉 CMYK。',
     exportPng: '300 DPI 高清 PNG 已下載。拿去傳 LINE 或手機沖洗相片剛剛好。'
   };
 
@@ -196,7 +199,7 @@ export class XiaoxiangAssistant {
       this.timeoutId = setTimeout(() => {
         const state = store.getState();
         if (state.originalDataUrl) {
-          this.say(XiaoxiangAssistant.LINES.ready, 0);
+          this.say(this.readyLine(), 0);
         } else {
           this.say(XiaoxiangAssistant.LINES.welcome, 0);
         }
@@ -204,12 +207,18 @@ export class XiaoxiangAssistant {
     }
   }
 
+  private readyLine(): string {
+    return store.getState().uiMode === 'simple'
+      ? XiaoxiangAssistant.LINES.readySimple
+      : XiaoxiangAssistant.LINES.ready;
+  }
+
   private sayRandomBanter(): void {
     const banters = [
       '「我爸開印刷廠三十年，最怕客人給 72 DPI 的圖說要印兩米海報。還好有我幫你先補到 300 DPI。」',
       '「單單上次環島也拍了一堆海邊照，叫我幫她印滿一張 A3，拿 250P 霧面印出來是真的挺好看。」',
       '「不要的東西用消除筆塗掉就好，底圖我幫你算。不用開 Photoshop 搞老半天。」',
-      '「送印直接丟我給你的 PDF 就好，出血十字色條全都有，老闆挑不出毛病。」',
+      '「送印直接丟我給你的 PDF 就好，出血十字色條全都有。記得跟老闆說一聲是 RGB 檔，請他轉 CMYK。」',
       '「那就好。」',
       '「字體我有幫你看，AI 生的怪字或英文拼錯都幫你挑出來了。」'
     ];
@@ -246,7 +255,7 @@ export class XiaoxiangAssistant {
       } else if (!state.isProcessing && prevProcessing) {
         prevProcessing = false;
         this.setAvatarState('thumbs');
-        this.say(XiaoxiangAssistant.LINES.ready, 0);
+        this.say(this.readyLine(), 0);
       }
 
       // 3. Preset change

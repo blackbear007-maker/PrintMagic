@@ -1085,7 +1085,7 @@ class App {
           URL.revokeObjectURL(url);
           Toast.success('✓ 標準雙面 2-Page PDF 已成功輸出！已自動複製「送印溝通小抄」至剪貼簿！');
         } else {
-          Toast.info('📄 正在以本機極速引擎生成標準 PDF (含 0.1mm 裁切標記與 CMYK 色條)...');
+          Toast.info('📄 正在產生印刷用 PDF（含裁切標記與色條）...');
           await PdfExporter.export(state.processedDataUrl, state.currentPreset, undefined, state.cropAnchor);
           Toast.success('✓ 標準印刷 PDF 已成功輸出！已自動複製「送印溝通小抄」至剪貼簿！');
         }
@@ -1793,12 +1793,16 @@ class App {
     text.textContent = `${score}分`;
 
     pill.classList.remove('pm-score-pill-high', 'pm-score-pill-mid', 'pm-score-pill-low');
+    // Same wording as the score card's verdict — no "完美就緒" next to a list of open issues.
+    const issueCount = state.scoreResult.issues.length;
     if (score >= 88) {
       pill.classList.add('pm-score-pill-high');
-      verdict.innerHTML = '<img src="icons/shared/sparkle.webp" alt="" class="pm-icon-img" /> 完美就緒';
+      verdict.innerHTML = issueCount > 0
+        ? `<img src="icons/shared/check.webp" alt="" class="pm-icon-img" /> 良好 · ${issueCount} 項建議`
+        : '<img src="icons/shared/check.webp" alt="" class="pm-icon-img" /> 品質良好';
     } else if (score >= 75) {
       pill.classList.add('pm-score-pill-mid');
-      verdict.innerHTML = '<img src="icons/shared/check.webp" alt="" class="pm-icon-img" /> 良好達標';
+      verdict.innerHTML = '<img src="icons/shared/info.webp" alt="" class="pm-icon-img" /> 尚可';
     } else {
       pill.classList.add('pm-score-pill-low');
       verdict.innerHTML = '<img src="icons/shared/warning.webp" alt="" class="pm-icon-img" /> 需確認';

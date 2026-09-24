@@ -210,16 +210,20 @@ export class PrintScoreCalculator {
     let verdict: string;
     let level: 'high' | 'mid' | 'low';
 
+    // 2026-09-24 修正：原本高分一律寫「完美就緒 — 已達商業印刷廠直出標準」，但同一張卡片上可能同時
+    // 列出「N 項待改善」，而且輸出的 PDF 是 RGB、非 PDF/X，CMYK 轉換仍由印刷廠處理——「直出標準」
+    // 這句話不成立。改成只陳述分數代表的意思，有待改善項目時直接說出數量。
+    const issueNote = issues.length > 0 ? `，有 ${issues.length} 項建議留意` : '';
     if (score >= 88) {
       level = 'high';
       verdict = isDigitalPreset
-        ? '✅ 完美就緒 — 已達數位社群頂級高畫質標準'
-        : '✅ 完美就緒 — 已達商業印刷廠直出標準';
+        ? `✓ 品質良好 — 可直接發布${issueNote}`
+        : `✓ 品質良好 — 可以送印${issueNote}`;
     } else if (score >= 75) {
       level = 'mid';
       verdict = isDigitalPreset
-        ? '✓ 良好 — 經過自動優化後可直接發布'
-        : '✓ 良好 — 經過一鍵自動優化後可直接送印';
+        ? `△ 尚可 — 發布前建議先看過細節${issueNote}`
+        : `△ 尚可 — 送印前建議先看過細節${issueNote}`;
     } else {
       level = 'low';
       verdict = '⚠️ 需留意 — 請依據專家建議確認裁切或色域設定';
