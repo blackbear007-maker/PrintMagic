@@ -70,7 +70,7 @@ export class XiaoxiangAssistant {
     specCopy: '「傳給老闆一句話」複製好了。直接貼在 LINE 傳給印刷廠，你不用在那邊背出血和解析度數字。',
     objectEraser: '要修圖？用筆刷塗掉不要的雜物或路人，我幫你算底圖補回去。',
     textInspect: '文字檢測看過了。幫你檢查了有沒有怪異亂碼或 AI 偽字。',
-    exportPdfRgb: 'PDF 輸出完成，角線、十字規矩線和色條都放好了。這次分色服務沒接上，顏色還是 RGB，送印時跟老闆說一聲請他轉 CMYK。',
+    exportPdfRgb: 'PDF 輸出完成，角線、十字規矩線和色條都放好了。這次沒有分色成 CMYK（本機模式不上傳圖片，或分色服務沒接上），顏色還是 RGB，送印時跟老闆說一聲請他轉 CMYK。',
     exportPng: '300 DPI 高清 PNG 已下載。拿去傳 LINE 或手機沖洗相片剛剛好。'
   };
 

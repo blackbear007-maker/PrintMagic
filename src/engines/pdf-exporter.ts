@@ -2,7 +2,7 @@ import { jsPDF } from 'jspdf';
 import type { CropAnchor, PrintPreset } from '../types';
 import { iccProfileEngine } from '../core/icc-profiles';
 import { CmykConversionClient } from '../services/cmyk-conversion-client';
-import { CmykPdfWriter } from './cmyk-pdf-writer';
+import { CmykPdfWriter, type CmykRaster } from './cmyk-pdf-writer';
 
 export interface PrintPdfResult {
   blob: Blob;
@@ -27,9 +27,12 @@ export class PdfExporter {
   /** The most recent PDF this exporter produced, so later copy (spec sheet) states what the shop actually got. */
   public static lastResult: PrintPdfResult | null = null;
 
-  /** 產生並下載 PDF；與 generatePdfBlob 共用同一份流程（generate），避免兩條路徑輸出不一致 */
+  /**
+   * 產生並下載 PDF；與 generatePdfBlob 共用同一份流程（generate），避免兩條路徑輸出不一致。
+   * 傳陣列時每張圖一頁（雙面合版：[正面, 背面]）。
+   */
   public static async export(
-    imageDataUrl: string,
+    imageDataUrl: string | string[],
     preset: PrintPreset,
     filename?: string,
     _cropAnchor: CropAnchor = 'center'
@@ -58,25 +61,40 @@ export class PdfExporter {
     return (await this.generate(imageDataUrl, preset)).blob;
   }
 
-  /** CMYK when the separation service answers, otherwise the RGB layout. */
-  public static async generate(imageDataUrl: string, preset: PrintPreset, title?: string): Promise<PrintPdfResult> {
-    const cmyk = await CmykConversionClient.convert(imageDataUrl, iccProfileEngine.getActiveProfile().id);
-    const result: PrintPdfResult = cmyk.ok
+  /**
+   * CMYK when the separation service answers for every page, otherwise the RGB layout for all pages
+   * (a job is never half CMYK, half RGB).
+   */
+  public static async generate(imageDataUrl: string | string[], preset: PrintPreset, title?: string): Promise<PrintPdfResult> {
+    const imageDataUrls = Array.isArray(imageDataUrl) ? imageDataUrl : [imageDataUrl];
+    const profileId = iccProfileEngine.getActiveProfile().id;
+    const rasters: CmykRaster[] = [];
+    let fallbackReason: string | undefined;
+    for (const url of imageDataUrls) {
+      const cmyk = await CmykConversionClient.convert(url, profileId);
+      if (!cmyk.ok) {
+        fallbackReason = cmyk.reason;
+        break;
+      }
+      rasters.push(cmyk.raster);
+    }
+
+    const result: PrintPdfResult = fallbackReason === undefined
       ? {
-          blob: new Blob([CmykPdfWriter.build({ preset, raster: cmyk.raster, title: title || `PrintMagic ${preset.id}` })], {
+          blob: new Blob([CmykPdfWriter.build({ preset, pages: rasters, title: title || `PrintMagic ${preset.id}` })], {
             type: 'application/pdf'
           }),
           colorMode: 'cmyk',
-          outputCondition: cmyk.raster.outputCondition,
-          tacMaxPercent: cmyk.raster.tacMaxPercent
+          outputCondition: rasters[0].outputCondition,
+          tacMaxPercent: Math.max(...rasters.map((r) => r.tacMaxPercent ?? 0))
         }
-      : { blob: this.buildPdf(imageDataUrl, preset).output('blob'), colorMode: 'rgb', fallbackReason: cmyk.reason };
-    if (!cmyk.ok) console.info('[PdfExporter] CMYK separation unavailable, exporting RGB:', cmyk.reason);
+      : { blob: this.buildPdf(imageDataUrls, preset).output('blob'), colorMode: 'rgb', fallbackReason };
+    if (fallbackReason !== undefined) console.info('[PdfExporter] CMYK separation unavailable, exporting RGB:', fallbackReason);
     this.lastResult = result;
     return result;
   }
 
-  private static buildPdf(imageDataUrl: string, preset: PrintPreset): jsPDF {
+  private static buildPdf(imageDataUrls: string[], preset: PrintPreset): jsPDF {
     const bleedMm = preset.bleedMm || 0;
     const trimWidthMm = preset.widthMm > 0 ? preset.widthMm : 210;
     const trimHeightMm = preset.heightMm > 0 ? preset.heightMm : 297;
@@ -100,102 +118,108 @@ export class PdfExporter {
     const contentWidth = trimWidthMm + bleedMm * 2;
     const contentHeight = trimHeightMm + bleedMm * 2;
 
-    // 0. Sticker: plain RGB white backing so transparent areas print as white. This is NOT a
-    //    white-ink spot plate (that one comes from the dieline tool as a separate file).
-    if (preset.id === 'sticker') {
-      pdf.setFillColor(255, 255, 255);
-      pdf.rect(contentX, contentY, contentWidth, contentHeight, 'F');
-    }
+    // One page per image (double-sided = [front, back]); every page gets the same bleed/mark layout.
+    imageDataUrls.forEach((imageDataUrl, pageIndex) => {
+      if (pageIndex > 0) pdf.addPage([pageTotalWidthMm, pageTotalHeightMm], orientation);
 
-    // 1. Draw Image
-    pdf.addImage(
-      imageDataUrl,
-      'PNG',
-      contentX,
-      contentY,
-      contentWidth,
-      contentHeight,
-      undefined,
-      'FAST'
-    );
-
-    // Trim box origin relative to page
-    const trimX = outerMarginMm + bleedMm;
-    const trimY = outerMarginMm + bleedMm;
-
-    // 2. Draw 0.1mm Vector Crop Marks
-    if (preset.cropMarks) {
-      pdf.setLineWidth(0.1); // 0.1mm standard line weight
-      pdf.setDrawColor(0, 0, 0); // Registration Black
-
-      const markLen = 6; // 6mm mark length
-      // 角線需從出血外緣再退 1.5mm，才不會畫進出血區的圖面上
-      const markOffset = bleedMm + 1.5;
-
-      // Top-Left Corner
-      pdf.line(trimX - markOffset - markLen, trimY, trimX - markOffset, trimY); // horizontal
-      pdf.line(trimX, trimY - markOffset - markLen, trimX, trimY - markOffset); // vertical
-
-      // Top-Right Corner
-      pdf.line(trimX + trimWidthMm + markOffset, trimY, trimX + trimWidthMm + markOffset + markLen, trimY);
-      pdf.line(trimX + trimWidthMm, trimY - markOffset - markLen, trimX + trimWidthMm, trimY - markOffset);
-
-      // Bottom-Left Corner
-      pdf.line(trimX - markOffset - markLen, trimY + trimHeightMm, trimX - markOffset, trimY + trimHeightMm);
-      pdf.line(trimX, trimY + trimHeightMm + markOffset, trimX, trimY + trimHeightMm + markOffset + markLen);
-
-      // Bottom-Right Corner
-      pdf.line(trimX + trimWidthMm + markOffset, trimY + trimHeightMm, trimX + trimWidthMm + markOffset + markLen, trimY + trimHeightMm);
-      pdf.line(trimX + trimWidthMm, trimY + trimHeightMm + markOffset, trimX + trimWidthMm, trimY + trimHeightMm + markOffset + markLen);
-    }
-
-    // 3. Draw Registration Targets (Crosshairs)
-    if (preset.registrationMarks) {
-      pdf.setLineWidth(0.1);
-      pdf.setDrawColor(0, 0, 0);
-
-      const targetPositions = [
-        { x: trimX + trimWidthMm / 2, y: outerMarginMm / 2 }, // Top center
-        { x: trimX + trimWidthMm / 2, y: pageTotalHeightMm - outerMarginMm / 2 }, // Bottom center
-        { x: outerMarginMm / 2, y: trimY + trimHeightMm / 2 }, // Left center
-        { x: pageTotalWidthMm - outerMarginMm / 2, y: trimY + trimHeightMm / 2 } // Right center
-      ];
-
-      for (const pos of targetPositions) {
-        pdf.circle(pos.x, pos.y, 2);
-        pdf.line(pos.x - 3.5, pos.y, pos.x + 3.5, pos.y);
-        pdf.line(pos.x, pos.y - 3.5, pos.x, pos.y + 3.5);
+      // 0. Sticker: plain RGB white backing so transparent areas print as white. This is NOT a
+      //    white-ink spot plate (that one comes from the dieline tool as a separate file).
+      if (preset.id === 'sticker') {
+        pdf.setFillColor(255, 255, 255);
+        pdf.rect(contentX, contentY, contentWidth, contentHeight, 'F');
       }
-    }
 
-    // 4. Draw CMYK Color Density Bars
-    if (preset.colorBars) {
-      const barY = outerMarginMm / 2 - 1.5;
-      const barSize = 3;
-      const colors = [
-        { name: 'C', r: 0, g: 174, b: 239 },
-        { name: 'M', r: 236, g: 0, b: 140 },
-        { name: 'Y', r: 255, g: 242, b: 0 },
-        { name: 'K', r: 35, g: 31, b: 32 },
-        { name: 'C50', r: 128, g: 215, b: 247 },
-        { name: 'M50', r: 246, g: 128, b: 198 },
-        { name: 'Y50', r: 255, g: 248, b: 128 },
-        { name: 'K50', r: 145, g: 143, b: 144 }
-      ];
+      // 1. Draw Image
+      pdf.addImage(
+        imageDataUrl,
+        'PNG',
+        contentX,
+        contentY,
+        contentWidth,
+        contentHeight,
+        undefined,
+        'FAST'
+      );
 
-      const startX = trimX + 5;
-      colors.forEach((c, idx) => {
-        pdf.setFillColor(c.r, c.g, c.b);
-        pdf.rect(startX + idx * (barSize + 0.5), barY, barSize, barSize, 'F');
-      });
-    }
+      // Trim box origin relative to page
+      const trimX = outerMarginMm + bleedMm;
+      const trimY = outerMarginMm + bleedMm;
 
-    // 5. Pre-press Metadata Slug
-    pdf.setFontSize(6);
-    pdf.setTextColor(100, 100, 100);
-    const dateStr = new Date().toISOString().split('T')[0];
-    const metaText = `PrintMagic v3.1 | ${preset.nameZh} (${trimWidthMm}×${trimHeightMm}mm) | Bleed: ${bleedMm}mm | ${preset.targetDpi} DPI | Date: ${dateStr}`;
-    pdf.text(metaText, trimX, pageTotalHeightMm - outerMarginMm / 2 + 2);
+      // 2. Draw 0.1mm Vector Crop Marks
+      if (preset.cropMarks) {
+        pdf.setLineWidth(0.1); // 0.1mm standard line weight
+        pdf.setDrawColor(0, 0, 0); // Registration Black
+
+        const markLen = 6; // 6mm mark length
+        // 角線需從出血外緣再退 1.5mm，才不會畫進出血區的圖面上
+        const markOffset = bleedMm + 1.5;
+
+        // Top-Left Corner
+        pdf.line(trimX - markOffset - markLen, trimY, trimX - markOffset, trimY); // horizontal
+        pdf.line(trimX, trimY - markOffset - markLen, trimX, trimY - markOffset); // vertical
+
+        // Top-Right Corner
+        pdf.line(trimX + trimWidthMm + markOffset, trimY, trimX + trimWidthMm + markOffset + markLen, trimY);
+        pdf.line(trimX + trimWidthMm, trimY - markOffset - markLen, trimX + trimWidthMm, trimY - markOffset);
+
+        // Bottom-Left Corner
+        pdf.line(trimX - markOffset - markLen, trimY + trimHeightMm, trimX - markOffset, trimY + trimHeightMm);
+        pdf.line(trimX, trimY + trimHeightMm + markOffset, trimX, trimY + trimHeightMm + markOffset + markLen);
+
+        // Bottom-Right Corner
+        pdf.line(trimX + trimWidthMm + markOffset, trimY + trimHeightMm, trimX + trimWidthMm + markOffset + markLen, trimY + trimHeightMm);
+        pdf.line(trimX + trimWidthMm, trimY + trimHeightMm + markOffset, trimX + trimWidthMm, trimY + trimHeightMm + markOffset + markLen);
+      }
+
+      // 3. Draw Registration Targets (Crosshairs)
+      if (preset.registrationMarks) {
+        pdf.setLineWidth(0.1);
+        pdf.setDrawColor(0, 0, 0);
+
+        const targetPositions = [
+          { x: trimX + trimWidthMm / 2, y: outerMarginMm / 2 }, // Top center
+          { x: trimX + trimWidthMm / 2, y: pageTotalHeightMm - outerMarginMm / 2 }, // Bottom center
+          { x: outerMarginMm / 2, y: trimY + trimHeightMm / 2 }, // Left center
+          { x: pageTotalWidthMm - outerMarginMm / 2, y: trimY + trimHeightMm / 2 } // Right center
+        ];
+
+        for (const pos of targetPositions) {
+          pdf.circle(pos.x, pos.y, 2);
+          pdf.line(pos.x - 3.5, pos.y, pos.x + 3.5, pos.y);
+          pdf.line(pos.x, pos.y - 3.5, pos.x, pos.y + 3.5);
+        }
+      }
+
+      // 4. Draw CMYK Color Density Bars
+      if (preset.colorBars) {
+        const barY = outerMarginMm / 2 - 1.5;
+        const barSize = 3;
+        const colors = [
+          { name: 'C', r: 0, g: 174, b: 239 },
+          { name: 'M', r: 236, g: 0, b: 140 },
+          { name: 'Y', r: 255, g: 242, b: 0 },
+          { name: 'K', r: 35, g: 31, b: 32 },
+          { name: 'C50', r: 128, g: 215, b: 247 },
+          { name: 'M50', r: 246, g: 128, b: 198 },
+          { name: 'Y50', r: 255, g: 248, b: 128 },
+          { name: 'K50', r: 145, g: 143, b: 144 }
+        ];
+
+        const startX = trimX + 5;
+        colors.forEach((c, idx) => {
+          pdf.setFillColor(c.r, c.g, c.b);
+          pdf.rect(startX + idx * (barSize + 0.5), barY, barSize, barSize, 'F');
+        });
+      }
+
+      // 5. Pre-press Metadata Slug
+      pdf.setFontSize(6);
+      pdf.setTextColor(100, 100, 100);
+      const dateStr = new Date().toISOString().split('T')[0];
+      // English preset name: jsPDF's built-in font has no CJK glyphs, so nameZh printed as mojibake.
+      const metaText = `PrintMagic v3.1 | ${preset.name} (${trimWidthMm}x${trimHeightMm}mm) | Bleed: ${bleedMm}mm | ${preset.targetDpi} DPI | Date: ${dateStr}`;
+      pdf.text(metaText, trimX, pageTotalHeightMm - outerMarginMm / 2 + 2);
+    });
 
     return pdf;
   }

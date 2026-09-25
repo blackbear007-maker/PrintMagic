@@ -1069,7 +1069,7 @@ class App {
       try {
         SoundEffects.shutterClick();
         // 小抄要照實寫檔案內容（2026-09-24 起）。2026-09-25 起 PDF 可能是 CMYK（分色服務可用時）或 RGB，
-        // 所以等 PDF 產生完、知道實際色彩模式之後才寫剪貼簿。雙面 PDF 仍是 RGB（尚未接分色）。
+        // 所以等 PDF 產生完、知道實際色彩模式之後才寫剪貼簿。
         const p = state.currentPreset;
         const copySpecSummary = async (colorNote: string): Promise<boolean> => {
           const text = `【送印規格小抄】${p.nameZh}（${p.widthMm}×${p.heightMm}mm）· ${p.targetDpi} DPI · ${p.bleedMm > 0 ? `出血 ${p.bleedMm}mm` : '無出血'} · ${colorNote}`;
@@ -1080,41 +1080,39 @@ class App {
             return false;
           }
         };
-        const rgbNote = '檔案為 RGB PDF，如需 CMYK 請協助轉檔';
 
-        if (ds.hasBack && ds.backDataUrl) {
-          Toast.info('📄 正在生成 2 頁標準【雙面合版 PDF】(Page 1 正面 + Page 2 背面)...');
-          const pdfBlob = await DoubleSidedManager.exportDoubleSidedPdf(
-            // 一律以目前畫面上的成品為正面（ds.frontDataUrl 不會跟著就地編輯/切換批次項目更新）
-            state.processedDataUrl,
-            ds.backDataUrl,
-            state.currentPreset
-          );
-          const url = URL.createObjectURL(pdfBlob);
-          const link = document.createElement('a');
-          link.download = `PrintMagic_DoubleSided_${state.currentPreset.id}_${Date.now()}.pdf`;
-          link.href = url;
-          document.body.appendChild(link);
-          link.click();
-          link.remove();
-          URL.revokeObjectURL(url);
-          const copied = await copySpecSummary(rgbNote);
-          Toast.success(`✓ 標準雙面 2-Page PDF 已成功輸出！${copied ? '已自動複製「送印溝通小抄」至剪貼簿！' : ''}`);
-          this.xiangAssistant?.say(XiaoxiangAssistant.LINES.exportPdfRgb, 8000);
-        } else {
-          Toast.info('📄 正在產生印刷用 PDF（含裁切標記與色條）...');
-          const result = await PdfExporter.export(state.processedDataUrl, state.currentPreset, undefined, state.cropAnchor);
-          const isCmyk = result.colorMode === 'cmyk';
-          const copied = await copySpecSummary(
-            isCmyk ? `檔案為 CMYK PDF（已依 ${result.outputCondition} 分色，請直接輸出、勿再轉檔）` : rgbNote
-          );
-          Toast.success(`✓ ${isCmyk ? 'CMYK' : 'RGB'} 印刷 PDF 已輸出！${copied ? '已自動複製「送印溝通小抄」至剪貼簿！' : ''}`);
-          // 下載後不再彈出「送印通關護照」視窗（簡易模式要一路無腦到底）；由小象說明色彩模式，不擋畫面。
-          this.xiangAssistant?.say(
-            isCmyk ? XiaoxiangAssistant.exportPdfCmykLine(result.outputCondition!) : XiaoxiangAssistant.LINES.exportPdfRgb,
-            8000
-          );
+        // 雙面合版（2026-09-25）：與單面同一套版面與分色，第 1 頁正面、第 2 頁背面。正面一律用目前畫面上
+        // 的成品（ds.frontDataUrl 不會跟著就地編輯/切換批次項目更新），它已含出血；背面範本或上傳圖只有
+        // 成品尺寸，先用同一個鏡像外推補出血，否則會被拉伸進出血框。舊的雙面 PDF 是成品尺寸、沒有出血與角線。
+        const isDoubleSided = ds.hasBack && !!ds.backDataUrl;
+        let pages: string | string[] = state.processedDataUrl;
+        if (isDoubleSided) {
+          const back = ds.backImageData && p.bleedMm > 0
+            ? BleedExpander.expandBleed(ds.backImageData, p, p.bleedMm).dataUrl
+            : ds.backDataUrl!;
+          pages = [state.processedDataUrl, back];
         }
+
+        Toast.info(isDoubleSided
+          ? '📄 正在產生 2 頁雙面合版 PDF（第 1 頁正面、第 2 頁背面）...'
+          : '📄 正在產生印刷用 PDF（含裁切標記與色條）...');
+        const result = await PdfExporter.export(
+          pages,
+          p,
+          isDoubleSided ? `PrintMagic_DoubleSided_${p.id}_${Date.now()}.pdf` : undefined,
+          state.cropAnchor
+        );
+        const isCmyk = result.colorMode === 'cmyk';
+        const copied = await copySpecSummary(
+          (isDoubleSided ? '雙面 2 頁 · ' : '') +
+            (isCmyk ? `檔案為 CMYK PDF（已依 ${result.outputCondition} 分色，請直接輸出、勿再轉檔）` : '檔案為 RGB PDF，如需 CMYK 請協助轉檔')
+        );
+        Toast.success(`✓ ${isCmyk ? 'CMYK' : 'RGB'} ${isDoubleSided ? '雙面 2 頁' : '印刷'} PDF 已輸出！${copied ? '已自動複製「送印溝通小抄」至剪貼簿！' : ''}`);
+        // 下載後不再彈出「送印通關護照」視窗（簡易模式要一路無腦到底）；由小象說明色彩模式，不擋畫面。
+        this.xiangAssistant?.say(
+          isCmyk ? XiaoxiangAssistant.exportPdfCmykLine(result.outputCondition!) : XiaoxiangAssistant.LINES.exportPdfRgb,
+          8000
+        );
       } catch (err: any) {
         Toast.error(`PDF 匯出失敗: ${err?.message || err}`);
       }

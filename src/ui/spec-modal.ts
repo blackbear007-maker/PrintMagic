@@ -86,7 +86,7 @@ export class SpecModal {
           </div>
           <div class="pm-spec-row">
             <span class="pm-spec-k">總墨量 TAC</span>
-            <span class="pm-spec-v">${inkAnalysis?.maxTotalInk || 300}% (已限制 ≤300% 防背印)</span>
+            <span class="pm-spec-v">${tacLine}</span>
           </div>
           <div class="pm-spec-row">
             <span class="pm-spec-k">建議印刷用紙</span>

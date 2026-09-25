@@ -27,7 +27,7 @@ describe('CmykPdfWriter', () => {
   const a4 = PRINT_PRESETS['poster-a4'];
 
   it('writes a PDF whose xref offsets point at every object', () => {
-    const bytes = CmykPdfWriter.build({ preset: a4, raster: raster() });
+    const bytes = CmykPdfWriter.build({ preset: a4, pages: [raster()] });
     const pdf = latin1(bytes);
     expect(pdf.startsWith('%PDF-1.3\n')).toBe(true);
     expect(pdf.trimEnd().endsWith('%%EOF')).toBe(true);
@@ -46,7 +46,7 @@ describe('CmykPdfWriter', () => {
 
   it('embeds the service samples untouched as a DeviceCMYK image', () => {
     const r = raster(5, 2);
-    const pdf = latin1(CmykPdfWriter.build({ preset: a4, raster: r }));
+    const pdf = latin1(CmykPdfWriter.build({ preset: a4, pages: [r] }));
     expect(pdf).toMatch(/\/Subtype \/Image \/Width 5 \/Height 2 \/ColorSpace \/DeviceCMYK \/BitsPerComponent 8 \/Filter \/FlateDecode/);
     const len = Number(pdf.match(/\/DeviceCMYK[^>]*\/Length (\d+)/)![1]);
     expect(len).toBe(r.flateData.length);
@@ -58,8 +58,8 @@ describe('CmykPdfWriter', () => {
   });
 
   it('names the printing condition without embedding a profile', () => {
-    const pdf = latin1(CmykPdfWriter.build({ preset: a4, raster: raster() }));
-    expect(pdf).toContain('/OutputIntents [5 0 R]');
+    const pdf = latin1(CmykPdfWriter.build({ preset: a4, pages: [raster()] }));
+    expect(pdf).toContain('/OutputIntents [3 0 R]');
     expect(pdf).toContain('/OutputConditionIdentifier (JC200103) /RegistryName (http://www.color.org)');
     expect(pdf).toContain('/OutputCondition (Japan Color 2001 Coated)');
     expect(pdf).not.toContain('/DestOutputProfile');
@@ -67,7 +67,7 @@ describe('CmykPdfWriter', () => {
   });
 
   it('sets MediaBox, BleedBox and TrimBox from the preset (A4, 3mm bleed, 12mm mark margin)', () => {
-    const pdf = latin1(CmykPdfWriter.build({ preset: a4, raster: raster() }));
+    const pdf = latin1(CmykPdfWriter.build({ preset: a4, pages: [raster()] }));
     const media = box(pdf, 'MediaBox');
     const bleed = box(pdf, 'BleedBox');
     const trim = box(pdf, 'TrimBox');
@@ -80,17 +80,30 @@ describe('CmykPdfWriter', () => {
   });
 
   it('draws marks in the registration separation and colour bars as CMYK solids and tints', () => {
-    const pdf = latin1(CmykPdfWriter.build({ preset: a4, raster: raster() }));
-    expect(pdf).toContain('/ColorSpace << /CS0 [/Separation /All /DeviceCMYK 7 0 R] >>');
+    const pdf = latin1(CmykPdfWriter.build({ preset: a4, pages: [raster()] }));
+    expect(pdf).toContain('/ColorSpace << /CS0 [/Separation /All /DeviceCMYK 4 0 R] >>');
     expect(pdf).toContain('/CS0 CS 1 SCN');
     for (const patch of ['1 0 0 0 k', '0 1 0 0 k', '0 0 1 0 k', '0 0 0 1 k', '0.5 0 0 0 k', '0 0 0 0.5 k']) {
       expect(pdf).toContain(patch);
     }
   });
 
+  it('writes one page per raster sharing the layout, each with its own image (double-sided)', () => {
+    const front = raster(4, 3);
+    const back = { ...raster(6, 2), flateData: new Uint8Array(deflateSync(new Uint8Array(6 * 2 * 4).fill(9))) };
+    const pdf = latin1(CmykPdfWriter.build({ preset: a4, pages: [front, back] }));
+    expect(pdf).toContain('/Kids [7 0 R 9 0 R] /Count 2');
+    expect(pdf).toContain('/XObject << /Im0 8 0 R >>');
+    expect(pdf).toContain('/XObject << /Im0 10 0 R >>');
+    expect(pdf).toMatch(/\/Width 4 \/Height 3 \/ColorSpace \/DeviceCMYK/);
+    expect(pdf).toMatch(/\/Width 6 \/Height 2 \/ColorSpace \/DeviceCMYK/);
+    expect(pdf.match(/\/Type \/Page /g)!.length).toBe(2);
+    expect(() => CmykPdfWriter.build({ preset: a4, pages: [front, { ...back, outputConditionIdentifier: 'FOGRA39' }] })).toThrow();
+  });
+
   it('omits the mark margin and marks for presets without them, and encodes non-ASCII titles', () => {
     const social = PRINT_PRESETS['social'];
-    const pdf = latin1(CmykPdfWriter.build({ preset: { ...social, cropMarks: false, registrationMarks: false, colorBars: false }, raster: raster(), title: '海報' }));
+    const pdf = latin1(CmykPdfWriter.build({ preset: { ...social, cropMarks: false, registrationMarks: false, colorBars: false }, pages: [raster()], title: '海報' }));
     expect(pdf).not.toContain('/CS0 CS');
     expect(pdf).not.toMatch(/ k \d/);
     expect(box(pdf, 'MediaBox')).toEqual(box(pdf, 'BleedBox'));

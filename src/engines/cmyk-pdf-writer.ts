@@ -20,7 +20,8 @@ export interface CmykRaster {
 
 export interface CmykPdfOptions {
   preset: PrintPreset;
-  raster: CmykRaster;
+  /** One raster per page, e.g. [front, back] for a double-sided job. All must share one printing condition. */
+  pages: CmykRaster[];
   title?: string;
   now?: Date;
 }
@@ -28,7 +29,7 @@ export interface CmykPdfOptions {
 const PT_PER_MM = 72 / 25.4;
 
 /**
- * Writes a one-page CMYK print PDF (2026-09-25) — jsPDF can only place RGB images, so this emits the
+ * Writes a CMYK print PDF (2026-09-25), one page per raster — jsPDF can only place RGB images, so this emits the
  * PDF 1.3 objects directly. Same page geometry as PdfExporter's RGB layout (artwork over trim + bleed,
  * crop marks, registration targets, colour bars), with:
  *   - the artwork as a DeviceCMYK image (the service's samples, not re-encoded);
@@ -41,7 +42,12 @@ const PT_PER_MM = 72 / 25.4;
  * PDF/X-1a's rules as far as this writer knows them, but the file has not been through a preflight tool.
  */
 export class CmykPdfWriter {
-  public static build({ preset, raster, title = 'PrintMagic print file', now = new Date() }: CmykPdfOptions): Uint8Array<ArrayBuffer> {
+  public static build({ preset, pages, title = 'PrintMagic print file', now = new Date() }: CmykPdfOptions): Uint8Array<ArrayBuffer> {
+    if (pages.length === 0) throw new Error('CmykPdfWriter: no pages');
+    const condition = pages[0];
+    if (pages.some((p) => p.outputConditionIdentifier !== condition.outputConditionIdentifier)) {
+      throw new Error('CmykPdfWriter: all pages must use the same printing condition');
+    }
     const bleedMm = preset.bleedMm || 0;
     const trimWmm = preset.widthMm > 0 ? preset.widthMm : 210;
     const trimHmm = preset.heightMm > 0 ? preset.heightMm : 297;
@@ -116,24 +122,31 @@ export class CmykPdfWriter {
       `[${n(X(x))} ${n(Y(y + h))} ${n(X(x + w))} ${n(Y(y))}]`;
     const date = pdfDate(now);
 
+    // Objects 1–6 are shared; each page adds a Page (7 + 2i) and its Image (8 + 2i). Every page uses the
+    // same layout, so they share one content stream whose /Im0 resolves to that page's own image.
+    const pageObj = (i: number) => 7 + 2 * i;
     const objects: (string | { dict: string; stream: Uint8Array })[] = [
-      /* 1 */ `<< /Type /Catalog /Pages 2 0 R /OutputIntents [5 0 R] >>`,
-      /* 2 */ `<< /Type /Pages /Kids [3 0 R] /Count 1 >>`,
-      /* 3 */ `<< /Type /Page /Parent 2 0 R /MediaBox ${mediaBox} /BleedBox ${box(outerMm, outerMm, contentWmm, contentHmm)} ` +
-        `/TrimBox ${box(trimXmm, trimYmm, trimWmm, trimHmm)} ` +
-        `/Resources << /XObject << /Im0 4 0 R >> /ColorSpace << /CS0 [/Separation /All /DeviceCMYK 7 0 R] >> >> /Contents 6 0 R >>`,
-      /* 4 */ {
-        dict: `<< /Type /XObject /Subtype /Image /Width ${raster.width} /Height ${raster.height} /ColorSpace /DeviceCMYK ` +
-          `/BitsPerComponent 8 /Filter /FlateDecode /Length ${raster.flateData.length} >>`,
-        stream: raster.flateData
-      },
-      /* 5 */ `<< /Type /OutputIntent /S /GTS_PDFX /OutputConditionIdentifier ${pdfString(raster.outputConditionIdentifier)} ` +
-        `/RegistryName (http://www.color.org) /OutputCondition ${pdfString(raster.outputCondition)} /Info ${pdfString(raster.outputCondition)} >>`,
-      /* 6 */ { dict: `<< /Length ${content.length} >>`, stream: content },
-      /* 7 */ `<< /FunctionType 2 /Domain [0 1] /C0 [0 0 0 0] /C1 [1 1 1 1] /N 1 >>`,
-      /* 8 */ `<< /Title ${pdfString(title)} /Creator (PrintMagic) /Producer (PrintMagic CMYK PDF writer) ` +
-        `/CreationDate (${date}) /ModDate (${date}) /Trapped /False >>`
+      /* 1 */ `<< /Type /Catalog /Pages 2 0 R /OutputIntents [3 0 R] >>`,
+      /* 2 */ `<< /Type /Pages /Kids [${pages.map((_, i) => `${pageObj(i)} 0 R`).join(' ')}] /Count ${pages.length} >>`,
+      /* 3 */ `<< /Type /OutputIntent /S /GTS_PDFX /OutputConditionIdentifier ${pdfString(condition.outputConditionIdentifier)} ` +
+        `/RegistryName (http://www.color.org) /OutputCondition ${pdfString(condition.outputCondition)} /Info ${pdfString(condition.outputCondition)} >>`,
+      /* 4 */ `<< /FunctionType 2 /Domain [0 1] /C0 [0 0 0 0] /C1 [1 1 1 1] /N 1 >>`,
+      /* 5 */ `<< /Title ${pdfString(title)} /Creator (PrintMagic) /Producer (PrintMagic CMYK PDF writer) ` +
+        `/CreationDate (${date}) /ModDate (${date}) /Trapped /False >>`,
+      /* 6 */ { dict: `<< /Length ${content.length} >>`, stream: content }
     ];
+    pages.forEach((raster, i) => {
+      objects.push(
+        `<< /Type /Page /Parent 2 0 R /MediaBox ${mediaBox} /BleedBox ${box(outerMm, outerMm, contentWmm, contentHmm)} ` +
+          `/TrimBox ${box(trimXmm, trimYmm, trimWmm, trimHmm)} ` +
+          `/Resources << /XObject << /Im0 ${pageObj(i) + 1} 0 R >> /ColorSpace << /CS0 [/Separation /All /DeviceCMYK 4 0 R] >> >> /Contents 6 0 R >>`,
+        {
+          dict: `<< /Type /XObject /Subtype /Image /Width ${raster.width} /Height ${raster.height} /ColorSpace /DeviceCMYK ` +
+            `/BitsPerComponent 8 /Filter /FlateDecode /Length ${raster.flateData.length} >>`,
+          stream: raster.flateData
+        }
+      );
+    });
 
     const chunks: Uint8Array[] = [];
     let offset = 0;
@@ -161,7 +174,7 @@ export class CmykPdfWriter {
     push(ascii(
       `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n` +
       offsets.map((o) => `${String(o).padStart(10, '0')} 00000 n \n`).join('') +
-      `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R /Info 8 0 R /ID [<${id}> <${id}>] >>\n` +
+      `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R /Info 5 0 R /ID [<${id}> <${id}>] >>\n` +
       `startxref\n${xrefOffset}\n%%EOF\n`
     ));
 

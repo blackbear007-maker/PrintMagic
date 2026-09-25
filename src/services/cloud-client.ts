@@ -84,18 +84,18 @@ export class CloudClient {
       },
       {
         id: 'iso-coated-v2-fogra39',
-        name: 'ISO Coated v2 (ECI) / FOGRA39',
+        name: 'Coated FOGRA39 (ISO 12647-2:2004)',
         region: '歐洲商業印刷與精裝藝術畫冊規範',
         standard: 'ISO 12647-2:2004',
-        maxTac: 300,
-        description: '歐洲 ISO 12647-2 國際印刷標準，嚴格限制總墨量 ≤300%，階調平衡平穩細緻。'
+        maxTac: 330,
+        description: '歐洲 ISO 12647-2 國際印刷標準（FOGRA39），總墨量上限 330%，階調平衡平穩細緻。'
       },
       {
         id: 'gracol-2006-coated',
-        name: 'GRACoL 2006 Coated1v2',
+        name: 'Coated GRACoL 2006 (ISO 12647-2:2004)',
         region: '北美商業平版印刷標準 (IDEAlliance G7 校正)',
-        standard: 'IDEAlliance GRACoL2006_Coated1v2',
-        maxTac: 320,
+        standard: 'CGATS TR 006 (ISO 12647-2:2004)',
+        maxTac: 340,
         description: '美洲外銷印件通用之 G7 灰色平衡印刷標準，階調高反差、色彩亮麗。'
       },
       {
@@ -103,7 +103,7 @@ export class CloudClient {
         name: 'Japan Color 2001 Uncoated',
         region: '非塗布紙 / 吸墨紙專用標準',
         standard: 'ISO 12647-2:2001 (Uncoated)',
-        maxTac: 260,
+        maxTac: 310,
         description: '針對吸墨量大、無塗布之美術紙設計，網點擴大率補償達 22%，防止深色死黑黏結。'
       }
     ];

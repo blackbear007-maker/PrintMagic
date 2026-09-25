@@ -1,4 +1,3 @@
-import { jsPDF } from 'jspdf';
 import type { PrintPreset } from '../types';
 
 export type ActiveSide = 'front' | 'back';
@@ -185,32 +184,5 @@ export class DoubleSidedManager {
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
     return { canvas, dataUrl, imageData };
-  }
-
-  /**
-   * Generates a 2-Page Standard Double-Sided PDF (Page 1 = Front, Page 2 = Back)
-   */
-  public static async exportDoubleSidedPdf(
-    frontDataUrl: string,
-    backDataUrl: string,
-    preset: PrintPreset
-  ): Promise<Blob> {
-    const isPortrait = preset.heightMm >= preset.widthMm;
-    const orientation = isPortrait ? 'portrait' : 'landscape';
-
-    const pdf = new jsPDF({
-      orientation,
-      unit: 'mm',
-      format: [preset.widthMm, preset.heightMm]
-    });
-
-    // Page 1: Front
-    pdf.addImage(frontDataUrl, 'PNG', 0, 0, preset.widthMm, preset.heightMm);
-
-    // Page 2: Back
-    pdf.addPage([preset.widthMm, preset.heightMm], orientation);
-    pdf.addImage(backDataUrl, 'PNG', 0, 0, preset.widthMm, preset.heightMm);
-
-    return pdf.output('blob');
   }
 }

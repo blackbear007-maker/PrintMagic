@@ -210,9 +210,9 @@ export class PipelineOrchestrator {
       // Step 3: Total Area Coverage (TAC) Clamp & Verification
       //
       // ⚠️ 2026-08-29 修正一個真實存在的問題：這裡原本不管使用者在「ICC 描述檔」下拉選單選了哪個
-      // 印刷標準，一律寫死用 300% 當總墨量上限——選擇「Japan Color 2001 Uncoated」（該標準宣稱上限
-      // 260%，針對容易死黑的美術紙設計）的使用者，實際上還是被放行到 300%，比描述檔自己宣稱的安全
-      // 上限多了 40 個百分點；選擇「Japan Color 2001 Coated」（該標準宣稱上限 350%）的使用者，
+      // 印刷標準，一律寫死用 300% 當總墨量上限——選擇「Japan Color 2001 Uncoated」（當時設定的上限
+      // 260%，針對容易死黑的美術紙設計；2026-09-25 依 Adobe 描述檔更正為 310%，見 icc-profiles.ts）的使用者，
+      // 實際上還是被放行到 300%；選擇「Japan Color 2001 Coated」（該標準宣稱上限 350%）的使用者，
       // 反而被限制得比描述檔容許的更嚴格。等於這個選單選了等於沒選，完全不影響實際壓墨結果。
       // 已改成讀取目前選取描述檔真正的 `maxTac`。
       if (opts.enableInkLimiting) {
