@@ -72,7 +72,7 @@ export class PipelineOrchestrator {
 
     store.setState({
       isProcessing: true,
-      processingStep: '1/4 正在分析原圖指標 (DPI、長寬比、溢墨與邊緣銳度)...'
+      processingStep: '1/4 正在分析原圖指標 (DPI、長寬比與邊緣銳度)...'
     });
 
     if (activeId) {

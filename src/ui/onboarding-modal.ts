@@ -44,10 +44,10 @@ export class OnboardingModal {
               </div>
               <div>
                 <h4 style="font-size: 0.96rem; font-weight: 700; color: var(--pm-text-primary); margin: 0 0 4px 0;">
-                  <img src="icons/shared/camera.webp" alt="" class="pm-icon-img" /> 選擇相片、拍照掃描或貼上剪貼簿
+                  <img src="icons/shared/camera.webp" alt="" class="pm-icon-img" /> 選擇相片或直接拖進畫面
                 </h4>
                 <p style="font-size: 0.8rem; color: var(--pm-text-secondary); margin: 0; line-height: 1.45;">
-                  直接將照片拖入畫面或用手機相機掃描匯入，點選<strong>「貼紙 / 海報 / 明信片 / 名片」</strong>自動適配印刷尺寸，並依版型加上出血。
+                  從相簿選圖或直接拖進畫面，系統依圖片比例自動挑選<strong>版型</strong>（可再手動切換），並依版型加上出血。
                 </p>
               </div>
             </div>
@@ -86,7 +86,7 @@ export class OnboardingModal {
 
         <div class="pm-modal-footer" style="justify-content: space-between;">
           <span style="font-size: 0.76rem; color: var(--pm-text-muted);">
-            💡 預設在本機處理，圖片不會上傳；需要 AI 服務時再切換到雲端高階功能
+            💡 預設使用自建雲端服務（AI 放大、CMYK 分色等），服務離線時自動改用本機演算法；不想上傳圖片請切到【本機】
           </span>
           <button class="pm-btn pm-btn-primary" id="btnStartNow" style="padding: 8px 24px;">
             開始創作 ➔

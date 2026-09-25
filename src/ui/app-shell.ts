@@ -24,7 +24,7 @@ export const APP_SHELL_HTML = `
         <button id="btnModeSimple" class="pm-mode-btn active" title="預設簡易模式：無腦一鍵搞定，最直觀的品質提升">
           <img src="icons/header/mode-simple.webp" alt="" class="pm-icon-img" /> 簡易
         </button>
-        <button id="btnModeAdvanced" class="pm-mode-btn" title="進階模式：展開全部 AI 魔法、製版、燙金工藝與 ICC 描述檔">
+        <button id="btnModeAdvanced" class="pm-mode-btn" title="進階模式：顯示處理開關、色彩描述檔與進階工具">
           <img src="icons/header/mode-advanced.webp" alt="" class="pm-icon-img" /> 進階
         </button>
       </div>
@@ -97,8 +97,8 @@ export const APP_SHELL_HTML = `
               <div style="display: flex; gap: 14px; padding: 14px; background: var(--pm-bg-secondary); border: 1px solid var(--pm-border-subtle); border-radius: 12px;">
                 <div style="width: 36px; height: 36px; border-radius: 10px; background: rgba(60, 30, 140, 0.1); color: var(--pm-accent-blue); display: flex; align-items: center; justify-content: center; font-size: 1.05rem; font-weight: 800; flex-shrink: 0;">1</div>
                 <div>
-                  <h5 style="font-size: 0.9rem; font-weight: 700; color: var(--pm-text-primary); margin: 0 0 4px 0;"><img src="icons/shared/camera.webp" alt="" class="pm-icon-img" /> 選擇相片、拍照掃描或貼上剪貼簿</h5>
-                  <p style="font-size: 0.78rem; color: var(--pm-text-secondary); margin: 0; line-height: 1.45;">直接將照片拖入畫面或用手機相機掃描匯入，點選「貼紙 / 海報 / 明信片 / 名片」自動適配印刷尺寸，並依版型加上出血。</p>
+                  <h5 style="font-size: 0.9rem; font-weight: 700; color: var(--pm-text-primary); margin: 0 0 4px 0;"><img src="icons/shared/camera.webp" alt="" class="pm-icon-img" /> 選擇相片或直接拖進畫面</h5>
+                  <p style="font-size: 0.78rem; color: var(--pm-text-secondary); margin: 0; line-height: 1.45;">從相簿選圖或直接拖進畫面，系統依圖片比例自動挑選版型（可再手動切換），並依版型加上出血。</p>
                 </div>
               </div>
               <div style="display: flex; gap: 14px; padding: 14px; background: var(--pm-bg-secondary); border: 1px solid var(--pm-border-subtle); border-radius: 12px;">
@@ -379,10 +379,6 @@ export const APP_SHELL_HTML = `
           <div class="pm-macos-dock pm-advanced-only" id="advancedExportRow">
             <div class="pm-dock-section">
               <span class="pm-dock-section-label"><img src="icons/shared/sparkle.webp" alt="" class="pm-icon-img" /> 智慧增強</span>
-              <button id="btnAiBleedOutpaint" class="pm-dock-btn" title="3mm 出血鏡像外擴延伸（鏡像外推 + 接縫混合，非生成式 AI），防止裁切切到主體頭部">
-                <img class="pm-dock-icon" src="icons/shared/picture.webp" alt="" />
-                <span class="pm-dock-name">補足出血</span>
-              </button>
               <button id="btnAiRemoveBg" class="pm-dock-btn" title="一鍵去背（雲端模式用自建 rembg 模型，本機模式用背景色距離演算法；背景單純時效果最好）">
                 <img class="pm-dock-icon" src="icons/shared/scissors.webp" alt="" />
                 <span class="pm-dock-name">髮絲去背</span>

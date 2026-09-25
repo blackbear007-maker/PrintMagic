@@ -20,7 +20,6 @@ import { Toast } from './ui/toast';
 import { SoundEffects } from './core/sound-effects';
 import { CmykEngine } from './core/cmyk-engine';
 import { getPresetById, detectBestPreset } from './core/presets';
-import { SampleArtworks } from './services/sample-artworks';
 import { DoubleSidedManager, type BackTemplateType } from './core/double-sided';
 import { iccProfileEngine, type IccProfileId } from './core/icc-profiles';
 import { ConveniencePrintModal } from './ui/convenience-print-modal';
@@ -96,8 +95,6 @@ class App {
   private btnModeSimple = document.getElementById('btnModeSimple');
   private btnModeAdvanced = document.getElementById('btnModeAdvanced');
   private btnNewArtwork = document.getElementById('btnNewArtwork')!;
-  private btnToggleSound = document.getElementById('btnToggleSound');
-  private soundIcon = document.getElementById('soundIcon');
   private mainPreviewImg = document.getElementById('mainPreviewImg') as HTMLImageElement;
   private canvasSheet = document.getElementById('canvasSheet')!;
   private compareSliderRoot = document.getElementById('compareSliderRoot')!;
@@ -135,7 +132,6 @@ class App {
   private lastPreviewSource: ImageData | null = null;
   // 手動套用文字疊加時的底圖（疊加前）與產出，用來避免重複疊印
   // 已補過出血的 processedImageData（避免重複外擴）
-  private bleedAppliedTo: ImageData | null = null;
 
   // User-uploaded CMYK ICC profile (session-only, in-memory) — see free-icc-client.ts
   private uploadedIccProfile: { bytes: ArrayBuffer; name: string } | null = null;
@@ -150,7 +146,6 @@ class App {
     );
     this.bindEvents();
     this.subscribeState();
-    this.updateSoundIcon();
     this.initServiceWorker();
     this.updatePresetButtonsUI(store.getState().currentPreset.id, null);
 
@@ -188,10 +183,6 @@ class App {
     } else if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
       navigator.serviceWorker
         .register('./sw.js')
-        .then(() => {
-          const offlineEl = document.getElementById('offlineStatusText');
-          if (offlineEl) offlineEl.textContent = '支援離線使用';
-        })
         .catch((err) => {
           console.log('SW registration skipped or error:', err);
         });
@@ -199,14 +190,10 @@ class App {
 
     // Monitor Online / Offline status
     window.addEventListener('offline', () => {
-      const offlineEl = document.getElementById('offlineStatusText');
-      if (offlineEl) offlineEl.textContent = '無網路 (離線極速運作中)';
       Toast.info('📱 目前處於離線狀態：本機放大與 PDF 輸出仍可使用，需要自建服務的功能會退回本機演算法');
     });
 
     window.addEventListener('online', () => {
-      const offlineEl = document.getElementById('offlineStatusText');
-      if (offlineEl) offlineEl.textContent = '在線';
       Toast.success('🌐 網路連線已恢復！');
     });
   }
@@ -324,13 +311,6 @@ class App {
       this.onboardingModal.open();
     });
 
-    // Sound Toggle
-    this.btnToggleSound?.addEventListener('click', () => {
-      const isMuted = SoundEffects.toggleMute();
-      this.updateSoundIcon();
-      Toast.info(isMuted ? '🔇 觸覺音效已靜音' : '🔊 觸覺音效已開啟');
-    });
-
     // Reset / New Artwork
     this.btnNewArtwork.addEventListener('click', () => {
       store.reset();
@@ -340,39 +320,6 @@ class App {
       this.loupe.setImageData(null);
       this.loupe.setEnabled(false);
       Toast.info('已重置畫布，請拖入新圖片');
-    });
-
-    // FTUX Sample Artwork Pills (1-Click Test for New Users)
-    document.querySelectorAll('.pm-sample-pill-btn').forEach((btn) => {
-      btn.addEventListener('click', async (e) => {
-        e.stopPropagation();
-        const el = btn as HTMLElement;
-        const sampleType = el.dataset.sample as 'anime' | 'cyberpunk' | 'card';
-        const presetId = el.dataset.preset as PrintPresetId | undefined;
-        if (!sampleType) return;
-
-        if (presetId) {
-          store.setPreset(presetId);
-        }
-
-        SoundEffects.paperDrop();
-        Toast.info('✨ 正在載入示範作品並啟動印刷分析...');
-        try {
-          const file = await SampleArtworks.loadSample(sampleType);
-          await this.dropZoneInstance.handleFiles([file]);
-        } catch (err: any) {
-          Toast.error(`示範作品載入失敗: ${err?.message || err}`);
-        }
-      });
-    });
-
-    // FTUX Coachmark Banner Dismiss
-    document.getElementById('btnDismissCoachmark')?.addEventListener('click', () => {
-      const coachmark = document.getElementById('coachmarkBanner');
-      if (coachmark) {
-        coachmark.style.display = 'none';
-      }
-      localStorage.setItem('pm_coachmark_dismissed', '1');
     });
 
     // Simple Mode Preset Capsule Dropdown Toggle
@@ -729,46 +676,6 @@ class App {
       }
     });
 
-    // 🖼️ AI 智慧 3mm 出血外擴延伸
-    document.getElementById('btnAiBleedOutpaint')?.addEventListener('click', () => {
-      const state = store.getState();
-      const imgData = state.processedImageData || state.originalImageData;
-      if (!imgData) {
-        Toast.error('請先上傳圖片');
-        return;
-      }
-
-      const bleedMm = state.currentPreset.bleedMm;
-      if (!(bleedMm > 0)) {
-        Toast.info('此尺寸不需要出血，無需外擴');
-        return;
-      }
-      if (state.pipelineOptions.enableBleedExpand) {
-        Toast.info(`已在自動處理流程中補齊 ${bleedMm}mm 出血，無需再次外擴（可在「專家管線自訂」關閉自動出血後手動套用）`);
-        return;
-      }
-      if (this.bleedAppliedTo && this.bleedAppliedTo === state.processedImageData) {
-        Toast.info(`已補過 ${bleedMm}mm 出血，不再重複外擴`);
-        return;
-      }
-
-      SoundEffects.laserScan();
-      Toast.info(`🖼️ 正在以鏡像外推＋接縫融合補齊 ${bleedMm}mm 邊界出血區...`);
-
-      const result = BleedExpander.expandBleed(imgData, state.currentPreset, bleedMm);
-      this.invalidatePreviewCaches();
-      store.setState({
-        processedImageData: result.imageData,
-        processedDataUrl: result.dataUrl,
-        processedWidth: result.width,
-        processedHeight: result.height
-      });
-      this.bleedAppliedTo = result.imageData;
-      this.mainPreviewImg.src = result.dataUrl;
-      SoundEffects.purityChime();
-      Toast.success(`✓ ${bleedMm}mm 出血已補齊（鏡像外推，非生成式 AI）`);
-    });
-
     // ✂️ 髮絲級 AI 模切貼紙去背（自建 rembg/u2netp 優先，離線時自動退回本機顏色距離去背）
     document.getElementById('btnAiRemoveBg')?.addEventListener('click', async () => {
       const state = store.getState();
@@ -1062,11 +969,13 @@ class App {
       setTimeout(() => flash.remove(), 420);
 
       store.setUiMode(mode);
+      // 2026-09-26: switching to simple mode used to force the local engine as a side effect, so a
+      // simple-mode PDF was CMYK on first load (cloud default) but RGB after visiting advanced mode.
+      // The engine switch is its own control; UI mode no longer touches it.
       if (mode === 'simple') {
-        store.setEngineMode('local');
-        Toast.info('⚡ 已切換為【簡易模式】：極簡純粹、手機專用、極速輸出！');
+        Toast.info('⚡ 已切換為【簡易模式】：只顯示分數和下載按鈕');
       } else {
-        Toast.info('🎛️ 已切換為【進階模式】：展開全部專業製版、工藝與管線工具！');
+        Toast.info('🎛️ 已切換為【進階模式】：顯示處理開關與進階工具');
       }
     };
 
@@ -1080,59 +989,10 @@ class App {
     document.getElementById('btnOpenTextInspect')?.addEventListener('click', () => {
       void this.openTextInspectionModal();
     });
-    document.getElementById('btnSimpleTextInspect')?.addEventListener('click', () => {
-      void this.openTextInspectionModal();
-    });
 
     // Simple Mode Action Buttons
     document.getElementById('btnSimpleExportPdf')?.addEventListener('click', () => {
       this.btnExportPdf.click();
-    });
-
-    // 📷 Camera Direct Capture (Document Scanner)
-    const cameraInput = document.getElementById('cameraInput') as HTMLInputElement | null;
-    // cameraInput 位於 #dropZone 內；程式化 click 會冒泡到 DropZone 並額外開啟一般相簿選擇器
-    cameraInput?.addEventListener('click', (e) => e.stopPropagation());
-    document.getElementById('btnPickCamera')?.addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (cameraInput) {
-        cameraInput.value = '';
-        cameraInput.click();
-      }
-    });
-    cameraInput?.addEventListener('change', (e: Event) => {
-      const target = e.target as HTMLInputElement;
-      if (target.files && target.files.length > 0) {
-        SoundEffects.shutterClick();
-        Toast.info('📷 正在以 300 DPI 增強處理相機拍攝之作品...');
-        void this.dropZoneInstance.handleFiles(Array.from(target.files));
-      }
-    });
-
-    // 📋 Clipboard Paste Button
-    document.getElementById('btnPasteClipboard')?.addEventListener('click', async (e) => {
-      e.stopPropagation();
-      try {
-        if (navigator.clipboard && navigator.clipboard.read) {
-          const clipboardItems = await navigator.clipboard.read();
-          const files: File[] = [];
-          for (const item of clipboardItems) {
-            const imageType = item.types.find((t) => t.startsWith('image/'));
-            if (imageType) {
-              const blob = await item.getType(imageType);
-              files.push(new File([blob], `pasted-${Date.now()}.png`, { type: imageType }));
-            }
-          }
-          if (files.length > 0) {
-            Toast.success('✓ 已從剪貼簿載入圖片！');
-            void this.dropZoneInstance.handleFiles(files);
-            return;
-          }
-        }
-        Toast.info('💡 直接把圖片拖進畫面，或用手機相機掃描匯入');
-      } catch {
-        Toast.info('💡 直接把圖片拖進畫面，或用手機相機掃描匯入');
-      }
     });
 
     // 📤 Native Web Share API (iOS AirDrop / LINE / Messenger / Files)
@@ -1225,13 +1085,6 @@ class App {
         }
       }
     });
-  }
-
-  private updateSoundIcon(): void {
-    const isMuted = SoundEffects.getIsMuted();
-    if (this.soundIcon) {
-      this.soundIcon.textContent = isMuted ? '🔇' : '🔊';
-    }
   }
 
   private subscribeState(): void {
@@ -1432,13 +1285,6 @@ class App {
       } else {
         promptAddBack.style.display = 'none';
       }
-    }
-
-    // Show First-Time Coachmark Banner if not previously dismissed
-    const isDismissed = localStorage.getItem('pm_coachmark_dismissed');
-    const coachmark = document.getElementById('coachmarkBanner');
-    if (coachmark && !isDismissed) {
-      coachmark.style.display = 'flex';
     }
 
     await this.pipeline.runOptimizationPipeline(firstItem.originalImageData);

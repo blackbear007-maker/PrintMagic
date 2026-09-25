@@ -352,14 +352,10 @@ export class DiagnosticCard {
       }
     });
 
-    // 2b. Export Multi-Format CTA (TIFF, PNG, JPG, SVG, ZIP)
+    // 2b. Export Multi-Format CTA (TIFF, PNG, JPG, ZIP)
     this.container.querySelectorAll('.btn-diag-open-export').forEach((btn) => {
       btn.addEventListener('click', () => {
-        if (this.onOpenExportCenterClick) {
-          this.onOpenExportCenterClick();
-        } else {
-          document.getElementById('btnExportAllFormats')?.click();
-        }
+        this.onOpenExportCenterClick?.();
       });
     });
 
