@@ -1,7 +1,7 @@
 # PrintMagic Studio 3.1 系統產品規格說明書 (System & Product SPEC)
 
 > **版本**：v3.1.0-Release  
-> **最後更新日期**：2026-09-24  
+> **最後更新日期**：2026-09-25  
 > **系統定位**：全自動商業印前修復與出機工作站 (AI Pre-Press Engine & Multi-Format Exporter)  
 > **核心哲學**：100% 自由開源商用架構 · 0 外部收費 API 依賴 · 新手無腦一鍵出機 · 商業合規舉證  
 
@@ -25,6 +25,8 @@
 > - **Service Worker**：`public/sw.js` 連頁面本身都快取優先，部署後使用者每次開啟都拿到上一版。頁面改為網路優先（離線才用快取）、快取版本號提升；開發模式不再註冊 SW。
 > - **文字區域定位**：見 §2.8。
 > - **介面**：簡易／進階模式改版，見 §4；移除 `PassportModal`（下載後彈窗）與獨立的 `PipelineMatrixModal`。
+
+> ⚠️ **印前評分修正（2026-09-25）**：`PrintScoreCalculator` 的修正後分數把放大後的像素數當成細節，小圖放大後解析度一律滿分；銳利度因子用 Sobel 梯度平均值，對模糊幾乎沒有反應，對所有圖都給 100；加上其他因子固定貢獻約 65 分，無法印刷的縮圖仍有 72 分。已改為依「細節 DPI」評分（原圖 DPI × 放大倍率，上限內插 1.5 倍／Real-ESRGAN 2 倍，經驗值）、銳利度改量主要輪廓的邊緣寬度（在原圖尺度量）、細節低於 140 DPI 時總分設上限。`AiUpscaleResult` 新增 `engine` 欄位，區分自建 Real-ESRGAN 與本機後備。進階模式比較明細的權重標示原本與程式不符（墨量標 15%、明暗標 5%，實際皆 10%），已修正。詳見 README「印前評分」一節與 `tests/print-score-honesty.test.ts`。
 
 品質評分（ARNIQA 移除、`PixelStatQualityAssessor` 併入 `PrintScoreCalculator`）與本機 OCR（`free-ocr-client.ts` 新增）另有專屬章節，見 §1.1 與 §2.8.1。
 
@@ -244,7 +246,7 @@
 - **`scene-classifier.ts`**：EXIF 特徵 + YCbCr 膚色模型 + Otsu 雙峰方差 + 飽和度/邊緣統計的決策樹分類器（純像素統計，非訓練分類模型）。
 - **`gradient-centroid-cropper.ts`**：梯度能量加權 + 中心偏向的焦點裁切估算（非物件偵測模型）。
 - **`dpi-calculator.ts`**：DPI 與放大倍率計算。
-- **`print-score.ts`**：依實際分析數據（DPI、墨量、對比等）加權計算的印前健檢分數（本機自我評分，非第三方驗證）。
+- **`print-score.ts`**：依實際分析數據（DPI、墨量、對比等）加權計算的印前健檢分數（本機自我評分，非第三方驗證）。解析度以「細節 DPI」評分（放大倍率只計入上限 1.5／2 倍），銳利度量主要輪廓邊緣寬度，細節低於 140 DPI 時總分設上限（2026-09-25，見文件開頭附註）。
 - **`svg-path-optimizer.ts`**：SVG 路徑精度裁剪與空白壓縮（非 SVGO 完整實作）。未被前端 UI 呼叫，但透過 `server/services/prepress-toolkit.ts` 接了真實的 `/api/prepress/optimize-svg` 後端端點（動態 import，非死碼）。
 - **`exif-metadata-sniffer.ts`**：對檔案前 16KB 做 ASCII 關鍵字子字串比對，辨識拍攝軟體/AI 生圖工具簽名（子字串比對會有誤判風險，例如圖片內容剛好包含品牌名稱文字；2026-08-28 移除文檔裡不成立的「100%」宣稱與虛構的「(MIT, 0 KB)」授權標籤）。
 - **`geo-distance.ts`**：Haversine 距離計算，用於鄰近印刷廠定位。
