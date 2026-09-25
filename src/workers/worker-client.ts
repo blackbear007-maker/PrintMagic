@@ -1,12 +1,10 @@
 import type {
   ImagePixelStats,
-  InkAnalysis,
   WorkerRequest,
   WorkerResponse
 } from '../types';
 import { LanczosResizer } from '../engines/lanczos';
 import { UnsharpMask } from '../core/unsharp-mask';
-import { InkLimiter } from '../core/ink-limiter';
 import { PrintScoreCalculator } from '../core/print-score';
 import { MoireDescreen } from '../core/moire-descreen';
 import { JpegDeblockingFilter } from '../core/jpeg-deblocking-filter';
@@ -147,21 +145,9 @@ export class WorkerClient {
         );
         return { imageData: sharpened };
       }
-      case 'clampInk': {
-        const clamped = InkLimiter.clampInk(imageData, extra.maxInk ?? 300);
-        return {
-          imageData: clamped.clampedImageData,
-          result: { modifiedPixels: clamped.modifiedPixels }
-        };
-      }
-      case 'generateHeatmap': {
-        const heatmap = InkLimiter.generateHeatmap(imageData, extra.maxInk ?? 300);
-        return { imageData: heatmap };
-      }
       case 'analyze': {
         const stats = PrintScoreCalculator.analyzePixels(imageData, { sharpnessLongSide: extra.sharpnessLongSide });
-        const inkAnalysis = InkLimiter.analyze(imageData);
-        return { stats, inkAnalysis };
+        return { stats };
       }
       case 'descreen': {
         const descreened = MoireDescreen.apply(imageData, {
@@ -197,27 +183,11 @@ export class WorkerClient {
     return res.imageData;
   }
 
-  public async clampInk(
-    imageData: ImageData,
-    maxInk = 300
-  ): Promise<{ imageData: ImageData; modifiedPixels: number }> {
-    const res = await this.postToWorker('clampInk', imageData, { maxInk });
-    return {
-      imageData: res.imageData,
-      modifiedPixels: res.result?.modifiedPixels || 0
-    };
-  }
-
-  public async generateHeatmap(imageData: ImageData, maxInk = 300): Promise<ImageData> {
-    const res = await this.postToWorker('generateHeatmap', imageData, { maxInk });
-    return res.imageData;
-  }
-
   /** `sharpnessLongSide`: measure edge width at this long side (pass the source's when analyzing an upscaled result). */
   public async analyze(
     imageData: ImageData,
     sharpnessLongSide?: number
-  ): Promise<{ stats: ImagePixelStats; inkAnalysis: InkAnalysis }> {
+  ): Promise<{ stats: ImagePixelStats }> {
     return this.postToWorker('analyze', imageData, { sharpnessLongSide });
   }
 

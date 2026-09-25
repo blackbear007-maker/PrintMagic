@@ -140,18 +140,6 @@ export class ExportModal {
               </div>
             </button>
 
-            <!-- 5. SVG Dieline -->
-            <button class="pm-export-choice-card" data-format="svg" style="background: #ffffff; border: 1.5px solid var(--pm-border-subtle); border-radius: 12px; padding: 14px; text-align: left; cursor: pointer; display: flex; flex-direction: column; gap: 6px; transition: all 0.2s ease;">
-              <div style="display: flex; justify-content: space-between; align-items: center;">
-                <img src="icons/shared/scissors.webp" alt="" class="pm-icon-img" />
-                <span style="font-size: 0.68rem; font-weight: 700; background: rgba(255,45,85,0.1); color: #ff2d55; padding: 2px 6px; border-radius: 4px;">激光刀模</span>
-              </div>
-              <div style="font-weight: 700; font-size: 0.92rem; color: var(--pm-text-primary);">向量刀模/白墨 SVG (.svg)</div>
-              <div style="font-size: 0.72rem; color: var(--pm-text-muted); line-height: 1.3;">
-                100% Magenta 專色裁切割字線與 0.2mm 內縮白墨打底層。
-              </div>
-            </button>
-
             <!-- 6. Full Production ZIP Bundle -->
             <button class="pm-export-choice-card" data-format="zip" style="background: linear-gradient(135deg, rgba(60,30,140,0.06) 0%, rgba(88,86,214,0.08) 100%); border: 1.5px solid var(--pm-accent-blue); border-radius: 12px; padding: 14px; text-align: left; cursor: pointer; display: flex; flex-direction: column; gap: 6px; transition: all 0.2s ease;">
               <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -160,7 +148,7 @@ export class ExportModal {
               </div>
               <div style="font-weight: 700; font-size: 0.92rem; color: var(--pm-accent-blue);">印刷廠出機全套包 (.zip)</div>
               <div style="font-size: 0.72rem; color: var(--pm-text-secondary); line-height: 1.3;">
-                內含 PDF + TIFF + PNG + JPG + 刀模 SVG + PrintPass 品質合格報告書！
+                內含 PDF + TIFF + PNG + JPG，以及一份本機檢查清單
               </div>
             </button>
           </div>

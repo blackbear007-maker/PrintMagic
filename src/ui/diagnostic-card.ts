@@ -1,6 +1,5 @@
 import type { AppState } from './state';
 import { renderPipelineSwitchList, bindPipelineSwitchList } from './pipeline-matrix-modal';
-import { iccProfileEngine } from '../core/icc-profiles';
 
 /**
  * PrintPass™ Pre-press Diagnostic Certificate Component
@@ -36,8 +35,6 @@ export class DiagnosticCard {
       originalScoreResult,
       dpiAnalysis,
       originalDpiAnalysis,
-      inkAnalysis,
-      originalInkAnalysis,
       currentPreset,
       uiMode,
       textInspectionResult,
@@ -78,17 +75,8 @@ export class DiagnosticCard {
       ? `${initDpi} ➔ ${finalDpi} DPI`
       : `${finalDpi} DPI`;
 
-    // TAC comparison text
-    const initTac = originalInkAnalysis ? originalInkAnalysis.maxTotalInk : (inkAnalysis ? inkAnalysis.maxTotalInk : 300);
-    const finalTac = inkAnalysis ? inkAnalysis.maxTotalInk : 300;
-    const tacCompText = initTac !== finalTac
-      ? `${initTac}% ➔ ${finalTac}%`
-      : `${finalTac}%`;
-
-    // 2026-09-24：進階模式可以逐項開關處理步驟，所以下面的說明文字一律依「實際開關狀態」與
-    // 「目前色彩描述檔上限」產生，不再寫死「已套用 USM 銳化」「TAC ≤ 300%」「CMYK 色階校正」——
-    // 那些字在使用者關掉對應開關後就會變成假的；而且輸出一直是 RGB，從沒做過 CMYK 色彩校正。
-    const maxTac = iccProfileEngine.getActiveProfile().maxTac;
+    // 2026-09-24：進階模式可以逐項開關處理步驟，所以下面的說明文字一律依「實際開關狀態」產生，不再寫死
+    // 「已套用 USM 銳化」這類字——使用者關掉對應開關後就會變成假的。
     const targetDpi = dpiAnalysis.targetDpi;
     const upscaled = finalDpi > initDpi;
     const detailDpi = scoreResult.effectiveDpi;
@@ -107,9 +95,6 @@ export class DiagnosticCard {
       : pipelineOptions.enableBleedExpand
         ? `四邊已鏡像延伸 <strong>${bleedMm}mm 出血</strong>，降低裁切偏差露白邊的風險`
         : `自動補出血已關閉：PDF 仍保留 ${bleedMm}mm 出血區，但圖片會被拉伸填滿，邊緣內容會被裁掉`;
-    const inkDesc = pipelineOptions.enableInkLimiting
-      ? `總墨量上限 <strong>${maxTac}%</strong>，目前最高 ${finalTac}%`
-      : `總墨量壓制已關閉，目前最高 <strong>${finalTac}%</strong>（上限 ${maxTac}%）`;
     const toneSteps = [
       pipelineOptions.enableSharpening ? 'USM 銳化' : '',
       pipelineOptions.enableShadowLift ? '暗部提亮' : '',
@@ -244,10 +229,6 @@ export class DiagnosticCard {
                 ${dpiCompText}
               </span>
             </div>
-            <div class="pm-spec-item">
-              <span class="pm-spec-label">總墨量 TAC</span>
-              <span class="pm-spec-val">${tacCompText}</span>
-            </div>
           </div>
 
           <!-- Text Inspection Banner -->
@@ -303,22 +284,6 @@ export class DiagnosticCard {
                 </div>
               </div>
 
-              <!-- Tile 3: Ink Safety -->
-              <div class="pm-safety-tile">
-                <div class="pm-safety-tile-top">
-                  <div class="pm-safety-tile-title">
-                    <span class="pm-safety-tile-icon"><img src="icons/shared/droplet.webp" alt="" class="pm-icon-img" /></span>
-                    <span class="pm-safety-tile-name">墨量防沾黏</span>
-                  </div>
-                  <span class="pm-safety-badge ${breakdown.inkSafety >= 80 ? 'pm-badge-pass' : 'pm-badge-warn'}">
-                    ${breakdown.inkSafety >= 80 ? '<img src="icons/shared/check.webp" alt="" class="pm-icon-img" /> 墨量安全' : '<img src="icons/shared/warning.webp" alt="" class="pm-icon-img" /> 墨量過高'} · ${breakdown.inkSafety}分
-                  </span>
-                </div>
-                <div class="pm-safety-tile-desc">
-                  ${inkDesc}
-                </div>
-              </div>
-
               <!-- Tile 4: Color & Tone -->
               <div class="pm-safety-tile">
                 <div class="pm-safety-tile-top">
@@ -358,13 +323,12 @@ export class DiagnosticCard {
             </button>
 
             <div class="pm-diag-accordion-content" style="display: ${this.isDetailsExpanded ? 'block' : 'none'};">
-              <!-- 7-Factor Weighted Indicator Comparison Table -->
+              <!-- Weighted factor comparison table -->
               <div class="pm-weighted-section">
                 <div class="pm-metrics-grid">
-                  ${this.renderWeightedRow('解析度適配', '35%', initialBreakdown.resolution, breakdown.resolution, `目標 ${targetDpi} DPI`)}
+                  ${this.renderWeightedRow('解析度適配', '40%', initialBreakdown.resolution, breakdown.resolution, `目標 ${targetDpi} DPI`)}
                   ${this.renderWeightedRow('長寬比契合', '15%', initialBreakdown.aspectRatio, breakdown.aspectRatio, `${bleedText}與安全框裁切保護`)}
-                  ${this.renderWeightedRow('總墨量安全', '10%', initialBreakdown.inkSafety, breakdown.inkSafety, `上限 ${maxTac}%，過高易背印沾黏`)}
-                  ${this.renderWeightedRow('微細邊緣銳度', '10%', initialBreakdown.sharpness, breakdown.sharpness, '邊緣與小字的清晰程度')}
+                  ${this.renderWeightedRow('微細邊緣銳度', '15%', initialBreakdown.sharpness, breakdown.sharpness, '邊緣與小字的清晰程度')}
                   ${this.renderWeightedRow('亮部與暗階', '10%', initialBreakdown.brightness, breakdown.brightness, '暗部是否會印得太黑')}
                   ${this.renderWeightedRow('色彩飽和度', '10%', initialBreakdown.saturation, breakdown.saturation, '色彩飽和程度')}
                   ${this.renderWeightedRow('反差與層次', '10%', initialBreakdown.contrast, breakdown.contrast, '明暗層次')}

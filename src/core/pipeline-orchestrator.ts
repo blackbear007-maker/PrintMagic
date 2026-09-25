@@ -7,7 +7,6 @@ import { Toast } from '../ui/toast';
 import { SoundEffects } from './sound-effects';
 import { DpiCalculator } from './dpi-calculator';
 import { PrintScoreCalculator, type ScoreUpscaleContext } from './print-score';
-import { iccProfileEngine } from './icc-profiles';
 import { AiUpscaleClient } from '../services/ai-upscale-client';
 import { PdfExporter } from '../engines/pdf-exporter';
 import { TextInspector } from './text-inspector';
@@ -30,10 +29,10 @@ import { NetworkGuard } from '../services/network-guard';
  * 只依賴 4 個真正需要的 UI 元件實例（透過建構子注入），其餘用到的都已經是模組層級的
  * 靜態單例（store／workerClient／iccProfileEngine 等），原封不動搬過來即可。
  *
- * `resetPreviewCaches` 是唯一的例外：原本開頭重設的 heatmapDataUrl／softProofDataUrl／
- * cvdPreviewDataUrl／cvdPreviewCachedType 其實是 App 自己的實例欄位（給熱度圖、軟打樣、
+ * `resetPreviewCaches` 是唯一的例外：原本開頭重設的 softProofDataUrl／
+ * cvdPreviewDataUrl／cvdPreviewCachedType 其實是 App 自己的實例欄位（給軟打樣、
  * 色盲模擬預覽做惰性快取用），不是 store 狀態，也不是這個管線類別該擁有的東西——它們被
- * App 的其他方法（切換熱度圖/軟打樣/CVD 預覽、切換 ICC 描述檔）直接讀寫。這裡用一個
+ * App 的其他方法（切換軟打樣/CVD 預覽、切換 ICC 描述檔）直接讀寫。這裡用一個
  * callback 讓 App 自己決定怎麼重設，管線本身不需要知道這些欄位的存在。
  */
 export class PipelineOrchestrator {
@@ -96,14 +95,13 @@ export class PipelineOrchestrator {
         srcImageData.height,
         preset
       );
-      const { stats: originalStats, inkAnalysis: originalInkAnalysis } = await workerClient.analyze(srcImageData);
-      const originalScoreResult = PrintScoreCalculator.calculate(originalStats, preset, originalInkAnalysis);
+      const { stats: originalStats } = await workerClient.analyze(srcImageData);
+      const originalScoreResult = PrintScoreCalculator.calculate(originalStats, preset);
       if (this.isStale(gen)) return this.abandonRun(activeId);
 
       store.setState({
         originalStats,
         originalDpiAnalysis,
-        originalInkAnalysis,
         originalScoreResult
       });
 
@@ -210,21 +208,8 @@ export class PipelineOrchestrator {
         processedImgData = ShadowLift.apply(processedImgData, 0.10);
       }
 
-      // Step 3: Total Area Coverage (TAC) Clamp & Verification
-      //
-      // ⚠️ 2026-08-29 修正一個真實存在的問題：這裡原本不管使用者在「ICC 描述檔」下拉選單選了哪個
-      // 印刷標準，一律寫死用 300% 當總墨量上限——選擇「Japan Color 2001 Uncoated」（當時設定的上限
-      // 260%，針對容易死黑的美術紙設計；2026-09-25 依 Adobe 描述檔更正為 310%，見 icc-profiles.ts）的使用者，
-      // 實際上還是被放行到 300%；選擇「Japan Color 2001 Coated」（該標準宣稱上限 350%）的使用者，
-      // 反而被限制得比描述檔容許的更嚴格。等於這個選單選了等於沒選，完全不影響實際壓墨結果。
-      // 已改成讀取目前選取描述檔真正的 `maxTac`。
-      if (opts.enableInkLimiting) {
-        const activeMaxTac = iccProfileEngine.getActiveProfile().maxTac;
-        setStep(`4/4 正在檢測並修正總墨量 TAC 限制 (${activeMaxTac}%)...`);
-        const clampResult = await workerClient.clampInk(processedImgData, activeMaxTac);
-        processedImgData = clampResult.imageData;
-        if (this.isStale(gen)) return this.abandonRun(activeId);
-      }
+      // (2026-09-26: the old Step 3 TAC clamp is gone — its RGB->CMYK model tops out at 200%, below every
+      // profile's limit, so it never changed a pixel. Real ink coverage comes from the CMYK separation.)
 
       // Step 3.5: User-Configured Vector Text Overlay (僅在用戶手動編輯或確認後套用，絕不自動覆蓋假浮水印文字)
       // 2026-08-28 修正：這個條件原本只檢查 getTextItems().length>0，代表使用者如果只加了 Logo、
@@ -272,7 +257,7 @@ export class PipelineOrchestrator {
       // Step 4: Post-Processing Comprehensive Diagnostic & Scientific Quality Evaluation
       // Sharpness is measured at the source's scale and resolution is capped by source detail, so an
       // upscale can't score itself as new detail (see print-score.ts, 2026-09-25).
-      const { stats, inkAnalysis } = await workerClient.analyze(
+      const { stats } = await workerClient.analyze(
         processedImgData,
         Math.max(srcImageData.width, srcImageData.height)
       );
@@ -282,7 +267,7 @@ export class PipelineOrchestrator {
         preset
       );
       if (this.isStale(gen)) return this.abandonRun(activeId);
-      const scoreResult = PrintScoreCalculator.calculate(stats, preset, inkAnalysis, {
+      const scoreResult = PrintScoreCalculator.calculate(stats, preset, {
         upscale: upscaleMethod
           ? { sourceWidth: srcImageData.width, sourceHeight: srcImageData.height, method: upscaleMethod }
           : undefined
@@ -319,7 +304,6 @@ export class PipelineOrchestrator {
         processedWidth: processedImgData.width,
         processedHeight: processedImgData.height,
         dpiAnalysis,
-        inkAnalysis,
         scoreResult,
         appliedScale,
         isProcessing: false,
@@ -334,13 +318,11 @@ export class PipelineOrchestrator {
         store.updateBatchItem(activeId, {
           originalScoreResult,
           originalDpiAnalysis,
-          originalInkAnalysis,
           processedDataUrl,
           processedImageData: processedImgData,
           processedWidth: processedImgData.width,
           processedHeight: processedImgData.height,
           dpiAnalysis,
-          inkAnalysis,
           scoreResult,
           appliedScale,
           stats,

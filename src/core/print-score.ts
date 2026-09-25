@@ -1,6 +1,5 @@
 import type {
   ImagePixelStats,
-  InkAnalysis,
   PrintPreset,
   PrintScoreResult,
   ScoreBreakdown
@@ -43,7 +42,6 @@ export class PrintScoreCalculator {
   public static calculate(
     stats: ImagePixelStats,
     preset: PrintPreset,
-    inkAnalysis?: InkAnalysis,
     context: { upscale?: ScoreUpscaleContext } = {}
   ): PrintScoreResult {
     const issues: string[] = [];
@@ -54,7 +52,7 @@ export class PrintScoreCalculator {
     const credit = upscale ? UPSCALE_DETAIL_CREDIT[upscale.method] : 1;
 
     // ─────────────────────────────────────────────────────────────
-    // 1. Resolution Score (Weight: 35%) — scored on detail, not on interpolated pixel count
+    // 1. Resolution Score (Weight: 40%) — scored on detail, not on interpolated pixel count
     // ─────────────────────────────────────────────────────────────
     const dpiAnalysis = DpiCalculator.analyze(stats.width, stats.height, preset);
     let resolutionScore = 100;
@@ -207,7 +205,7 @@ export class PrintScoreCalculator {
     }
 
     // ─────────────────────────────────────────────────────────────
-    // 6. Sharpness & Edge Definition Score (Weight: 10%)
+    // 6. Sharpness & Edge Definition Score (Weight: 15%)
     //
     // 2026-09-25：舊版用 Sobel 梯度平均值（edgeScore < 0.03）判斷，但梯度平均量到的是「畫面有多少明暗
     // 變化」，不是「邊緣清不清楚」：10 張範例圖加上 9×9 模糊後 edgeScore 幾乎不變（人像 0.400→0.400），
@@ -223,23 +221,6 @@ export class PrintScoreCalculator {
     }
 
     // ─────────────────────────────────────────────────────────────
-    // 7. TAC Ink Safety Score (Weight: 10%)
-    // ─────────────────────────────────────────────────────────────
-    let inkSafetyScore = 100;
-    if (!isDigitalPreset && inkAnalysis && inkAnalysis.hasOverflow) {
-      if (inkAnalysis.maxTotalInk > 340) {
-        inkSafetyScore = Math.max(60, 100 - (inkAnalysis.maxTotalInk - 300) * 1.0);
-        issues.push(`檢測到局部油墨總量達到 ${inkAnalysis.maxTotalInk}% (上限 300%)，可能造成乾燥困難與背印污損`);
-        recommendations.push('系統已自動啟用 TAC 墨量壓制保護');
-      } else {
-        inkSafetyScore = 90;
-        issues.push(`微量像素超過總墨量限制 (${inkAnalysis.maxTotalInk}%)`);
-      }
-    } else {
-      inkSafetyScore = 100;
-    }
-
-    // ─────────────────────────────────────────────────────────────
     // Weighted Overall Score Calculation
     // ─────────────────────────────────────────────────────────────
     const breakdown: ScoreBreakdown = {
@@ -248,27 +229,27 @@ export class PrintScoreCalculator {
       brightness: Math.round(brightnessScore),
       saturation: Math.round(saturationScore),
       contrast: Math.round(contrastScore),
-      sharpness: Math.round(sharpnessScore),
-      inkSafety: Math.round(inkSafetyScore)
+      sharpness: Math.round(sharpnessScore)
     };
 
+    // 2026-09-26：拿掉「TAC 墨量安全」一項（原 10%）。它的 RGB→CMYK 模型最高只到 200%，低於每個描述檔的
+    // 上限，這一項對任何圖都是 100，只是固定送 10 分。權重移給確實有在量的解析度（35→40%）與銳利度（10→15%）。
     const weightedScore = Math.round(
-      breakdown.resolution * 0.35 +
+      breakdown.resolution * 0.40 +
       breakdown.aspectRatio * 0.15 +
       breakdown.brightness * 0.10 +
       breakdown.saturation * 0.10 +
       breakdown.contrast * 0.10 +
-      breakdown.sharpness * 0.10 +
-      breakdown.inkSafety * 0.10
+      breakdown.sharpness * 0.15
     );
 
-    // 2026-09-25：加權平均會稀釋「印不出來」的解析度——其他 6 項幾乎都拿滿、固定貢獻約 65 分，64×96 的縮圖
-    // 送 A4 也有 72 分，只比 600×900 低幾分。細節低於 140 DPI（上面「嚴重不足」的級距）時，總分上限從 50
-    // 線性升到 86；86 正是 140 DPI、其他項全滿時的加權分數，所以分數在門檻處是連續的。
+    // 2026-09-25：加權平均會稀釋「印不出來」的解析度——其他項幾乎都拿滿，64×96 的縮圖送 A4 也有七十幾分，
+    // 只比 600×900 低幾分。細節低於 140 DPI（上面「嚴重不足」的級距）時，總分上限從 50 線性升到 84；84 正是
+    // 140 DPI（解析度 60 分）、其他項全滿時的加權分數，所以分數在門檻處是連續的。
     const SEVERE_DPI = 140;
     const resolutionLimited = effectiveDpi !== undefined && effectiveDpi < SEVERE_DPI;
     const cappedScore = resolutionLimited
-      ? Math.min(weightedScore, Math.round(50 + 36 * (effectiveDpi! / SEVERE_DPI)))
+      ? Math.min(weightedScore, Math.round(50 + 34 * (effectiveDpi! / SEVERE_DPI)))
       : weightedScore;
 
     const score = Math.max(0, Math.min(100, cappedScore));

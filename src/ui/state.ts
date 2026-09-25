@@ -6,7 +6,6 @@ import {
   type DpiAnalysis,
   type EngineMode,
   type ImagePixelStats,
-  type InkAnalysis,
   type PaperType,
   type PipelineOptions,
   DEFAULT_PIPELINE_OPTIONS,
@@ -28,7 +27,6 @@ export interface AppState {
   originalHeight: number;
   originalScoreResult: PrintScoreResult | null;
   originalDpiAnalysis: DpiAnalysis | null;
-  originalInkAnalysis: InkAnalysis | null;
 
   // Active Processed Output
   processedDataUrl: string | null;
@@ -39,7 +37,6 @@ export interface AppState {
 
   // Analysis & Verification
   dpiAnalysis: DpiAnalysis | null;
-  inkAnalysis: InkAnalysis | null;
   scoreResult: PrintScoreResult | null;
   textInspectionResult: TextInspectionResult | null;
 
@@ -64,7 +61,6 @@ export interface AppState {
   // Settings & Modes
   currentPreset: PrintPreset;
   selectedPaper: PaperType;
-  showHeatmap: boolean;
   showSoftProof: boolean;
   cvdPreviewType: CvdType | null;
   showSafeZone: boolean;
@@ -115,7 +111,6 @@ class StateStore {
     originalHeight: 0,
     originalScoreResult: null,
     originalDpiAnalysis: null,
-    originalInkAnalysis: null,
 
     processedDataUrl: null,
     processedImageData: null,
@@ -124,7 +119,6 @@ class StateStore {
     processedHeight: 0,
 
     dpiAnalysis: null,
-    inkAnalysis: null,
     scoreResult: null,
     textInspectionResult: null,
 
@@ -147,7 +141,6 @@ class StateStore {
 
     currentPreset: DEFAULT_PRESET,
     selectedPaper: 'glossy',
-    showHeatmap: false,
     showSoftProof: false,
     cvdPreviewType: null,
     showSafeZone: false,
@@ -158,10 +151,8 @@ class StateStore {
     pipelineOptions: {
       enableUpscale: true,
       enableSharpening: true,
-      enableInkLimiting: true,
       enableShadowLift: true,
       enableBleedExpand: true,
-      enableColorProofing: true,
       enableVectorOverlay: true,
       enableAntiBanding: true,
       enableDeshadow: false,
@@ -217,10 +208,6 @@ class StateStore {
   }
 
   // --- View Mode Toggles ---
-
-  public toggleHeatmap(): void {
-    this.setState({ showHeatmap: !this.state.showHeatmap });
-  }
 
   public toggleSoftProof(): void {
     this.setState({ showSoftProof: !this.state.showSoftProof });
@@ -345,13 +332,11 @@ class StateStore {
       originalHeight: item.originalHeight,
       originalScoreResult: item.originalScoreResult || null,
       originalDpiAnalysis: item.originalDpiAnalysis || null,
-      originalInkAnalysis: item.originalInkAnalysis || null,
       processedDataUrl: item.processedDataUrl || null,
       processedImageData: item.processedImageData || null,
       processedWidth: item.processedWidth || 0,
       processedHeight: item.processedHeight || 0,
       dpiAnalysis: item.dpiAnalysis || null,
-      inkAnalysis: item.inkAnalysis || null,
       scoreResult: item.scoreResult || null,
       appliedScale: item.appliedScale || 1,
       cropAnchor: item.cropOffset?.anchor || 'center',
@@ -398,18 +383,15 @@ class StateStore {
       originalHeight: 0,
       originalScoreResult: null,
       originalDpiAnalysis: null,
-      originalInkAnalysis: null,
       processedDataUrl: null,
       processedImageData: null,
       processedStats: null,
       processedWidth: 0,
       processedHeight: 0,
       dpiAnalysis: null,
-      inkAnalysis: null,
       scoreResult: null,
       batchItems: [],
       activeBatchId: null,
-      showHeatmap: false,
       showSoftProof: false,
       cvdPreviewType: null,
       isComparing: false,

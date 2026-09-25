@@ -5,7 +5,7 @@ import type { AppState } from '../ui/state';
 import { Toast } from '../ui/toast';
 import { SoundEffects } from '../core/sound-effects';
 
-export type ExportFormatType = 'pdf' | 'tiff' | 'png' | 'jpg' | 'svg' | 'zip';
+export type ExportFormatType = 'pdf' | 'tiff' | 'png' | 'jpg' | 'zip';
 
 export class MultiFormatExporter {
   /**
@@ -68,17 +68,8 @@ export class MultiFormatExporter {
         break;
       }
 
-      case 'svg': {
-        Toast.info('✂️ 正在生成 100% 洋紅印刷刀模 SVG 檔...');
-        const svgContent = this.generateCutlineSvg(state);
-        const svgBlob = new Blob([svgContent], { type: 'image/svg+xml;charset=utf-8' });
-        this.downloadBlob(svgBlob, `${baseName}_刀模層.svg`);
-        Toast.success('✓ 向量刀模 SVG 已成功下載！');
-        break;
-      }
-
       case 'zip': {
-        Toast.info('📦 正在打包印刷廠出機全套包 (PDF + TIFF + PNG + 刀模 + 報告)...');
+        Toast.info('📦 正在打包印刷廠出機全套包 (PDF + TIFF + PNG + JPG + 檢查清單)...');
         await this.exportFullZipBundle(state, baseName);
         Toast.success('✓ 印刷廠出機全套包 ZIP 已成功打包下載！');
         break;
@@ -117,41 +108,29 @@ export class MultiFormatExporter {
     folder.file(`${baseName}_print.pdf`, pdfResult.blob);
     const pdfIsCmyk = pdfResult.colorMode === 'cmyk';
 
-    // 4. SVG Dieline Layer
-    const svgContent = this.generateCutlineSvg(state);
-    folder.file(`${baseName}_刀模層_Magenta.svg`, svgContent);
-
     // 5. Pre-press Inspection Report (本機自動檢查清單，非第三方獨立驗證/合格證書)
     const preset = state.currentPreset;
     const nowStr = new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
-    const inkLimitApplied = state.pipelineOptions?.enableInkLimiting !== false;
-    const actualTac = state.inkAnalysis?.maxTotalInk;
-    const inkLine = inkLimitApplied
-      ? `油墨限制：${actualTac !== undefined ? `實測最高 ${actualTac}%` : '已啟用 TAC ≤ 300% 控墨'} (防背面沾黏安全控墨)`
-      : '油墨限制：本次匯出未啟用 TAC 控墨（可於管線設定開啟）';
     const reportText = `════════════════════════════════════════════════════════════════════════════
 📋 PrintMagic 商業印前出機檔案清單（本機自動檢查，非第三方獨立驗證）
 ════════════════════════════════════════════════════════════════════════════
 出機日期：${nowStr}
 成品規格：${preset.nameZh} (${preset.widthMm} × ${preset.heightMm} mm)
 含出血總尺寸：${preset.widthMm + preset.bleedMm * 2} × ${preset.heightMm + preset.bleedMm * 2} mm
-實體輸出解析度：300 DPI (視網膜印刷級)
-${inkLine}
+目標解析度：${preset.targetDpi} DPI
 ${pdfIsCmyk
   ? `色彩狀態：送印 PDF 為 CMYK（依 ${pdfResult.outputCondition} 分色，總墨量最高 ${pdfResult.tacMaxPercent}%；描述檔未嵌入，PDF 內以 OutputIntent 註明印刷條件）；TIFF/PNG/JPG 仍為 RGB`
   : '色彩狀態：RGB（分色服務本次無法使用，尚未做 CMYK 分色，印刷廠仍需依標準流程轉換）'}
 
 【全套包內容物明細】
-1. ${baseName}_300DPI.tif        -> 300 DPI 工業級無損 TIFF 點陣檔 (分色輸出首選)
+1. ${baseName}_300DPI.tif        -> 300 DPI 無損 TIFF 點陣檔（RGB）
 2. ${baseName}_300DPI.png        -> 300 DPI 高清透明通道 PNG (貼紙/立牌預覽)
 3. ${baseName}_300DPI.jpg        -> 300 DPI 高畫質 JPEG
 4. ${baseName}_print.pdf         -> 送印 PDF（${pdfIsCmyk ? 'CMYK' : 'RGB'}，含出血與印刷標記）
-5. ${baseName}_刀模層_Magenta.svg -> 100% 洋紅 2mm 向量割字激光刀模線
-6. Readme_印前檢驗報告.txt      -> 本檢查清單
+5. Readme_印前檢驗報告.txt      -> 本檢查清單
 
 【印刷廠師傅出機指引】
 • ${preset.bleedMm > 0 ? `成品規格含單邊 ${preset.bleedMm}mm 出血（見上方含出血總尺寸）` : '此規格無出血'}；點陣檔為處理後原圖，請直接以 100% 比例出機，切勿任意縮放。
-• 刀模線請套用 Spot Magenta (洋紅專色) 進行激光切割或鋼刀壓痕。
 ════════════════════════════════════════════════════════════════════════════`;
     folder.file('Readme_印前檢驗報告.txt', reportText);
 
@@ -166,27 +145,17 @@ ${pdfIsCmyk
     canvas.height = imageData.height;
     const ctx = canvas.getContext('2d')!;
 
-    // Fill white background for transparent pixels
+    // White background for transparent pixels. putImageData overwrites instead of compositing, so the
+    // pixels go through a second canvas and drawImage (2026-09-26: transparent areas came out black).
+    const src = document.createElement('canvas');
+    src.width = imageData.width;
+    src.height = imageData.height;
+    src.getContext('2d')!.putImageData(imageData, 0, 0);
     ctx.fillStyle = '#FFFFFF';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.putImageData(imageData, 0, 0);
+    ctx.drawImage(src, 0, 0);
 
     return canvas.toDataURL('image/jpeg', quality);
-  }
-
-  private static generateCutlineSvg(state: AppState): string {
-    const preset = state.currentPreset;
-    const totalW = preset.widthMm + preset.bleedMm * 2;
-    const totalH = preset.heightMm + preset.bleedMm * 2;
-    const bleed = preset.bleedMm;
-
-    return `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="${totalW}mm" height="${totalH}mm" viewBox="0 0 ${totalW} ${totalH}">
-  <!-- 100% Magenta 印刷裁切刀模線 -->
-  <rect x="${bleed}" y="${bleed}" width="${preset.widthMm}" height="${preset.heightMm}" fill="none" stroke="#FF00FF" stroke-width="0.25mm" stroke-dasharray="2,1" />
-  <!-- 外圍 ${bleed}mm 出血框 -->
-  <rect x="0" y="0" width="${totalW}" height="${totalH}" fill="none" stroke="#00FFFF" stroke-width="0.15mm" />
-</svg>`;
   }
 
   private static downloadDataUrl(dataUrl: string, filename: string): void {

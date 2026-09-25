@@ -1,6 +1,5 @@
 import type { AppState } from './state';
 import { Toast } from './toast';
-import { iccProfileEngine } from '../core/icc-profiles';
 import { PdfExporter } from '../engines/pdf-exporter';
 
 /**
@@ -20,15 +19,14 @@ export class SpecModal {
   }
 
   public open(state: AppState): void {
-    const { currentPreset, dpiAnalysis, inkAnalysis, pipelineOptions } = state;
-    const maxTac = iccProfileEngine.getActiveProfile().maxTac;
-    const tacNote = pipelineOptions.enableInkLimiting ? `上限 ${maxTac}%` : '未壓制總墨量';
-    // 依「上一次實際輸出的 PDF」說明色彩模式與墨量；還沒下載過、或上次退回 RGB，就照 RGB 說。
+    const { currentPreset, dpiAnalysis } = state;
+    // 依「上一次實際輸出的 PDF」說明色彩模式與墨量；還沒下載過、或上次退回 RGB，就照 RGB 說。墨量只有
+    // CMYK 分色時才有真實數字（2026-09-26 起不再顯示 RGB 估算模型的數字，它最高只到 200%）。
     const lastPdf = PdfExporter.lastResult;
     const isCmyk = lastPdf?.colorMode === 'cmyk';
     const tacLine = isCmyk && lastPdf?.tacMaxPercent !== undefined
       ? `最高 ${lastPdf.tacMaxPercent}%（${lastPdf.outputCondition} 分色實測）`
-      : `最高 ${inkAnalysis?.maxTotalInk ?? '—'}%（${tacNote}）`;
+      : null;
     const colorLine = isCmyk
       ? `CMYK（已依 ${lastPdf!.outputCondition} 分色，請直接輸出、勿再轉檔）`
       : 'RGB（如需 CMYK 請印刷廠協助轉檔）';
@@ -49,8 +47,8 @@ export class SpecModal {
 ■ 成品尺寸：${currentPreset.widthMm} × ${currentPreset.heightMm} mm
 ■ 含出血尺寸：${totalW} × ${totalH} mm (單邊 ${bleed}mm 出血)
 ■ 實體解析度：${dpiAnalysis?.currentDpi || currentPreset.targetDpi} DPI 實體渲染
-■ 總墨量 TAC：${tacLine}
-■ 色彩模式：${colorLine}
+${tacLine ? `■ 總墨量 TAC：${tacLine}
+` : ''}■ 色彩模式：${colorLine}
 ■ 裁切標記：內嵌 0.1mm 向量角線、色條與十字套準
 ■ 建議紙材：${paperName}
 ■ 檔案備註：已通過 PrintMagic 本機自動預檢（非第三方獨立驗證）`;
@@ -84,10 +82,10 @@ export class SpecModal {
             <span class="pm-spec-k">實體解析度</span>
             <span class="pm-spec-v">${dpiAnalysis?.currentDpi || 300} DPI (標準印刷級)</span>
           </div>
-          <div class="pm-spec-row">
+${tacLine ? `          <div class="pm-spec-row">
             <span class="pm-spec-k">總墨量 TAC</span>
             <span class="pm-spec-v">${tacLine}</span>
-          </div>
+          </div>` : ''}
           <div class="pm-spec-row">
             <span class="pm-spec-k">建議印刷用紙</span>
             <span class="pm-spec-v">${paperName}</span>

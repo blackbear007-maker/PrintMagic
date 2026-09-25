@@ -318,9 +318,6 @@ export const APP_SHELL_HTML = `
               <button id="btnToggleCvdPreview" class="pm-tool-btn" title="色盲/色覺辨識障礙預覽：模擬紅綠色盲(protanopia/deuteranopia)、藍黃色盲(tritanopia)使用者實際看到的顏色，檢查設計是否過度依賴顏色分辨（Machado 2009 生理模型）">
                 <img id="cvdPreviewIcon" src="icons/shared/rainbow-gamut.webp" alt="" class="pm-icon-img" /> <span id="cvdPreviewLabel">色盲預覽</span>
               </button>
-              <button id="btnToggleHeatmap" class="pm-tool-btn" title="檢視總墨量 (TAC) 超過目前色彩描述檔上限之溢墨區域">
-                <img src="icons/shared/palette.webp" alt="" class="pm-icon-img" /> 溢墨熱力
-              </button>
               <button id="btnFlipBack" class="pm-tool-btn" title="翻轉查看紙張背面規格標記">
                 <span>↻</span> 翻轉紙背
               </button>

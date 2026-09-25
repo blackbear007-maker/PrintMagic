@@ -57,8 +57,6 @@ export class XiaoxiangAssistant {
     softProofOff: '回到螢幕 RGB 鮮豔光色。',
     safeZoneOn: '開啟【出血線與安全框】。外圈是裁切出血保護，綠框以內重要文字保證切不到。',
     safeZoneOff: '關閉輔助框線，檢視純淨畫面。',
-    heatmapOn: '開啟【總墨量溢墨熱力圖】。超過目前色彩描述檔上限的地方會標出來，油墨太重的區域一目了然。',
-    heatmapOff: '關閉溢墨熱力圖。',
     loupeOn: '開啟【20x 玫瑰網點顯微鏡】。滑鼠移上去能看到實體印刷機的 CMYK 角度排列網點。',
     compareOn: '開啟【原圖對比】。左邊是原圖，右邊是放大補齊目標 DPI 後的細節，拉一下就知道差在哪。',
     imposition: '開啟【智慧拼模工具】。把同一張圖排滿一張 A4/A3 大紙，能排幾模看成品尺寸。',

@@ -72,14 +72,12 @@ export interface BatchItem {
   originalHeight: number;
   originalScoreResult?: PrintScoreResult;
   originalDpiAnalysis?: DpiAnalysis;
-  originalInkAnalysis?: InkAnalysis;
   processedDataUrl?: string;
   processedImageData?: ImageData;
   processedWidth?: number;
   processedHeight?: number;
   scoreResult?: PrintScoreResult;
   dpiAnalysis?: DpiAnalysis;
-  inkAnalysis?: InkAnalysis;
   stats?: ImagePixelStats;
   appliedScale?: number;
   status: 'idle' | 'processing' | 'done' | 'error';
@@ -120,15 +118,6 @@ export interface DpiAnalysis {
   message: string;
 }
 
-export interface InkAnalysis {
-  maxTotalInk: number; // percentage (0 - 400%)
-  averageTotalInk: number;
-  exceededPixelCount: number;
-  exceededRatio: number; // 0.0 - 1.0
-  hasOverflow: boolean;
-  limitThreshold: number; // e.g. 300%
-}
-
 export interface ImagePixelStats {
   avgLum: number;
   avgSat: number;
@@ -153,7 +142,6 @@ export interface ScoreBreakdown {
   saturation: number; // 0-100
   contrast: number; // 0-100
   sharpness: number; // 0-100
-  inkSafety: number; // 0-100
 }
 
 export interface PrintScoreResult {
@@ -170,10 +158,8 @@ export interface PrintScoreResult {
 export interface PipelineOptions {
   enableUpscale: boolean;       // 🔍 決定性放大演算法 (Lanczos-3)
   enableSharpening: boolean;    // ✨ USM 微米邊緣銳化補償
-  enableInkLimiting: boolean;   // 🎨 TAC 300% 總墨量強制壓制保護
   enableShadowLift: boolean;    // 🌓 暗部階調浮起與反差補償
   enableBleedExpand: boolean;   // 📐 3mm 智慧出血自動補足
-  enableColorProofing: boolean; // 🌈 CMYK 描述檔色域映射
   enableVectorOverlay: boolean; // 🔤 自動文字清晰防糊重構
   enableAntiBanding: boolean;   // 🌊 漸層防斷階與抗色階條紋平滑 (Auto)
   enableDeshadow: boolean;      // ☀️ 手機拍畫手機倒影與光照均勻化 (Auto)
@@ -183,38 +169,17 @@ export interface PipelineOptions {
 export const DEFAULT_PIPELINE_OPTIONS: PipelineOptions = {
   enableUpscale: true,
   enableSharpening: true,
-  enableInkLimiting: true,
   enableShadowLift: true,
   enableBleedExpand: true,
-  enableColorProofing: true,
   enableVectorOverlay: true,
   enableAntiBanding: true,
   enableDeshadow: false,
   enableAutoBgRemoval: true
 };
 
-export interface OptimizationOptions {
-  autoUpscale?: boolean;
-  applySharpening?: boolean;
-  clampInkLimit?: boolean;
-  maxTotalInk?: number;
-  targetScale?: number;
-}
-
-export interface ProcessedImageData {
-  dataUrl: string;
-  width: number;
-  height: number;
-  appliedScale: number;
-  stats: ImagePixelStats;
-  dpiAnalysis: DpiAnalysis;
-  inkAnalysis: InkAnalysis;
-  score: PrintScoreResult;
-}
-
 export interface WorkerRequest {
   id: string;
-  operation: 'lanczos' | 'unsharp' | 'analyze' | 'clampInk' | 'generateHeatmap' | 'descreen' | 'deblock';
+  operation: 'lanczos' | 'unsharp' | 'analyze' | 'descreen' | 'deblock';
   payload: {
     imageData: {
       width: number;
@@ -225,7 +190,6 @@ export interface WorkerRequest {
     amount?: number;
     radius?: number;
     threshold?: number;
-    maxInk?: number;
     middle?: number;
     sharpnessLongSide?: number;
   };

@@ -3,7 +3,7 @@ import { store } from '../src/ui/state';
 import { DiagnosticCard } from '../src/ui/diagnostic-card';
 import { PIPELINE_ITEMS } from '../src/ui/pipeline-matrix-modal';
 import { DEFAULT_PRESET, detectBestPreset, getPresetById } from '../src/core/presets';
-import type { DpiAnalysis, PrintScoreResult, InkAnalysis } from '../src/types';
+import type { DpiAnalysis, PrintScoreResult } from '../src/types';
 
 describe('UI Mode (Simple vs Advanced) & Diagnostic Rendering', () => {
   let mockStorage: Record<string, string> = {};
@@ -95,8 +95,7 @@ describe('UI Mode (Simple vs Advanced) & Diagnostic Rendering', () => {
         brightness: 90,
         saturation: 90,
         contrast: 90,
-        sharpness: 95,
-        inkSafety: 95
+        sharpness: 95
       },
       issues: [],
       recommendations: []
@@ -115,21 +114,11 @@ describe('UI Mode (Simple vs Advanced) & Diagnostic Rendering', () => {
       message: '解析度完美'
     };
 
-    const mockInk: InkAnalysis = {
-      maxTotalInk: 280,
-      averageTotalInk: 160,
-      exceededPixelCount: 0,
-      exceededRatio: 0,
-      hasOverflow: false,
-      limitThreshold: 300
-    };
-
     const state = {
       ...store.getState(),
       scoreResult: mockScore,
       originalScoreResult: { ...mockScore, score: 71 },
       dpiAnalysis: mockDpi,
-      inkAnalysis: mockInk,
       currentPreset: DEFAULT_PRESET,
       uiMode: 'simple' as const
     };
@@ -153,7 +142,9 @@ describe('UI Mode (Simple vs Advanced) & Diagnostic Rendering', () => {
     card.render({ ...state, uiMode: 'advanced' });
     const advHtml = dummyContainer.innerHTML;
     expect(advHtml).toContain('pm-panel-advanced');
-    expect(advHtml).toContain('總墨量 TAC');
+    expect(advHtml).toContain('實體解析度');
+    // The TAC pill/tile/switch are gone (2026-09-26): their model could never exceed 200%.
+    expect(advHtml).not.toContain('總墨量 TAC');
     for (const item of PIPELINE_ITEMS) {
       expect(advHtml).toContain(`class="pipeline-checkbox" data-key="${item.key}"`);
     }
@@ -161,16 +152,15 @@ describe('UI Mode (Simple vs Advanced) & Diagnostic Rendering', () => {
     // Advanced descriptions follow the real switch states instead of claiming every step ran.
     const allOn = dummyContainer.innerHTML;
     expect(allOn).toContain('USM 銳化');
-    expect(allOn).not.toContain('總墨量壓制已關閉');
+    expect(allOn).not.toContain('總墨量');
     expect(allOn).not.toContain('CMYK 色階校正');
     card.render({
       ...state,
       uiMode: 'advanced',
-      pipelineOptions: { ...state.pipelineOptions, enableSharpening: false, enableInkLimiting: false }
+      pipelineOptions: { ...state.pipelineOptions, enableSharpening: false }
     });
     const someOff = dummyContainer.innerHTML;
     expect(someOff).not.toContain('USM 銳化');
-    expect(someOff).toContain('總墨量壓制已關閉');
 
     dummyContainer.remove();
   });

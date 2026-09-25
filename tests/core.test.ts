@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { DpiCalculator } from '../src/core/dpi-calculator';
 import { PRINT_PRESETS } from '../src/core/presets';
-import { InkLimiter } from '../src/core/ink-limiter';
 import { CmykEngine } from '../src/core/cmyk-engine';
 import { UnsharpMask } from '../src/core/unsharp-mask';
 import { PrintScoreCalculator } from '../src/core/print-score';
@@ -68,58 +67,6 @@ describe('DpiCalculator', () => {
     const landscapeAnalysis = DpiCalculator.analyze(1600, 900, socialPreset);
     expect(landscapeAnalysis.targetWidthPx).toBe(1920);
     expect(landscapeAnalysis.targetHeightPx).toBe(1080);
-  });
-});
-
-describe('InkLimiter', () => {
-  // 2026-08-28: this whole describe block replaces a version that encoded the bug it should have
-  // caught — its old test asserted pure black (0,0,0) produces "400% TAC" as CORRECT/expected,
-  // when the real industry-standard TAC for pure K-only black is 100%. That 400% came from a real
-  // double-counting bug (naive CMY *plus* a separately-added K, instead of K replacing the shared
-  // gray component) — see the fix note in ink-limiter.ts. These tests assert the corrected math.
-
-  it('should NOT flag pure black as ink overflow under the corrected GCR-aware TAC formula', () => {
-    const data = new Uint8ClampedArray([
-      0, 0, 0, 255,   0, 0, 0, 255,
-      0, 0, 0, 255,   0, 0, 0, 255
-    ]);
-    const imgData = new ImageData(data, 2, 2);
-    const analysis = InkLimiter.analyze(imgData, 300);
-
-    // Real adaptive-GCR separation (see cmyk-engine.ts) keeps pure black well under 300% —
-    // nowhere near the old (buggy) 400% figure.
-    expect(analysis.hasOverflow).toBe(false);
-    expect(analysis.maxTotalInk).toBeLessThan(200);
-    expect(analysis.exceededPixelCount).toBe(0);
-  });
-
-  it('should still detect real overflow for a saturated, low-GCR color against a realistic threshold', () => {
-    // A fully saturated primary (pure red) has zero gray component, so GCR does nothing to it —
-    // its real TAC sits around 200% (0% C + 100% M + 100% Y + 0% K). A threshold well below that
-    // should still correctly flag it as over budget.
-    const data = new Uint8ClampedArray([
-      255, 0, 0, 255,   255, 0, 0, 255,
-      255, 0, 0, 255,   255, 0, 0, 255
-    ]);
-    const imgData = new ImageData(data, 2, 2);
-    const analysis = InkLimiter.analyze(imgData, 150);
-
-    expect(analysis.hasOverflow).toBe(true);
-    expect(analysis.maxTotalInk).toBeGreaterThan(150);
-    expect(analysis.exceededPixelCount).toBe(4);
-  });
-
-  it('should clamp excessive ink values to within threshold', () => {
-    const data = new Uint8ClampedArray([
-      255, 0, 0, 255,   255, 0, 60, 255,
-      0, 255, 0, 255,   0, 60, 255, 255
-    ]);
-    const imgData = new ImageData(data, 2, 2);
-    const clamped = InkLimiter.clampInk(imgData, 150);
-
-    const reAnalysis = InkLimiter.analyze(clamped.clampedImageData, 150);
-    expect(reAnalysis.maxTotalInk).toBeLessThanOrEqual(150);
-    expect(reAnalysis.exceededPixelCount).toBe(0);
   });
 });
 

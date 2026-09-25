@@ -1,6 +1,5 @@
 import { LanczosResizer } from '../engines/lanczos';
 import { UnsharpMask } from '../core/unsharp-mask';
-import { InkLimiter } from '../core/ink-limiter';
 import { PrintScoreCalculator } from '../core/print-score';
 import { MoireDescreen } from '../core/moire-descreen';
 import { JpegDeblockingFilter } from '../core/jpeg-deblocking-filter';
@@ -64,43 +63,6 @@ self.onmessage = (e: MessageEvent<WorkerRequest>) => {
         return;
       }
 
-      case 'clampInk': {
-        const maxInk = payload.maxInk ?? 300;
-        const imgObj = wrapImageData(srcData, srcWidth, srcHeight);
-        const clamped = InkLimiter.clampInk(imgObj, maxInk);
-
-        response = {
-          id,
-          success: true,
-          result: { modifiedPixels: clamped.modifiedPixels },
-          imageData: {
-            width: clamped.clampedImageData.width,
-            height: clamped.clampedImageData.height,
-            data: clamped.clampedImageData.data
-          }
-        };
-        self.postMessage(response, [clamped.clampedImageData.data.buffer]);
-        return;
-      }
-
-      case 'generateHeatmap': {
-        const maxInk = payload.maxInk ?? 300;
-        const imgObj = wrapImageData(srcData, srcWidth, srcHeight);
-        const heatmap = InkLimiter.generateHeatmap(imgObj, maxInk);
-
-        response = {
-          id,
-          success: true,
-          imageData: {
-            width: heatmap.width,
-            height: heatmap.height,
-            data: heatmap.data
-          }
-        };
-        self.postMessage(response, [heatmap.data.buffer]);
-        return;
-      }
-
       case 'descreen': {
         const imgObj = wrapImageData(srcData, srcWidth, srcHeight);
         const descreened = MoireDescreen.apply(imgObj, {
@@ -144,15 +106,11 @@ self.onmessage = (e: MessageEvent<WorkerRequest>) => {
       case 'analyze': {
         const imgObj = wrapImageData(srcData, srcWidth, srcHeight);
         const stats = PrintScoreCalculator.analyzePixels(imgObj, { sharpnessLongSide: payload.sharpnessLongSide });
-        const inkAnalysis = InkLimiter.analyze(imgObj);
 
         response = {
           id,
           success: true,
-          result: {
-            stats,
-            inkAnalysis
-          }
+          result: { stats }
         };
         self.postMessage(response);
         return;

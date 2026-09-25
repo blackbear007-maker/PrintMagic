@@ -17,10 +17,8 @@ describe('Automatic pre-press pipeline defaults and local steps', () => {
   it('enables the automatic pre-press steps by default and leaves deshadow opt-in', () => {
     expect(DEFAULT_PIPELINE_OPTIONS.enableUpscale).toBe(true);
     expect(DEFAULT_PIPELINE_OPTIONS.enableSharpening).toBe(true);
-    expect(DEFAULT_PIPELINE_OPTIONS.enableInkLimiting).toBe(true);
     expect(DEFAULT_PIPELINE_OPTIONS.enableShadowLift).toBe(true);
     expect(DEFAULT_PIPELINE_OPTIONS.enableBleedExpand).toBe(true);
-    expect(DEFAULT_PIPELINE_OPTIONS.enableColorProofing).toBe(true);
     expect(DEFAULT_PIPELINE_OPTIONS.enableVectorOverlay).toBe(true);
     expect(DEFAULT_PIPELINE_OPTIONS.enableAntiBanding).toBe(true);
     expect(DEFAULT_PIPELINE_OPTIONS.enableDeshadow).toBe(false);

@@ -45,14 +45,6 @@ export const PIPELINE_ITEMS: PipelineItemDef[] = [
     offHint: '關：維持原始明暗'
   },
   {
-    key: 'enableInkLimiting',
-    icon: '<img src="icons/shared/palette.webp" alt="" class="pm-icon-img" />',
-    title: '總墨量 TAC 上限壓制',
-    desc: '依目前選擇的印刷色彩描述檔上限，壓低暗部 CMYK 4 色油墨總和，避免油墨未乾拖花與背印污損。',
-    defaultHint: '開：限制總墨量',
-    offHint: '關：允許原始油墨直出'
-  },
-  {
     key: 'enableShadowLift',
     icon: '<img src="icons/shared/contrast.webp" alt="" class="pm-icon-img" />',
     title: '暗部階調浮起與動態反差補償',

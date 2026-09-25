@@ -62,7 +62,7 @@ function upscale(img: ImageData, scale: number): ImageData {
 
 function scoreAfterUpscale(src: ImageData, scale: number, method: 'ai' | 'interpolation', up = upscale(src, scale)) {
   const stats = PrintScoreCalculator.analyzePixels(up, { sharpnessLongSide: Math.max(src.width, src.height) });
-  return PrintScoreCalculator.calculate(stats, a4, undefined, {
+  return PrintScoreCalculator.calculate(stats, a4, {
     upscale: { sourceWidth: src.width, sourceHeight: src.height, method }
   });
 }

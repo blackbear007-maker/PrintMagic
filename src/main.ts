@@ -117,7 +117,6 @@ class App {
   private btnToggleCompare = document.getElementById('btnToggleCompare')!;
   private btnToggleLoupe = document.getElementById('btnToggleLoupe')!;
   private btnFlipBack = document.getElementById('btnFlipBack')!;
-  private btnToggleHeatmap = document.getElementById('btnToggleHeatmap')!;
   private btnToggleSoftProof = document.getElementById('btnToggleSoftProof')!;
   private btnToggleCvdPreview = document.getElementById('btnToggleCvdPreview')!;
   private cvdPreviewLabel = document.getElementById('cvdPreviewLabel')!;
@@ -137,7 +136,6 @@ class App {
   private paperButtons = document.querySelectorAll<HTMLButtonElement>('.pm-paper-btn[data-paper]');
 
   // Cache of view variations
-  private heatmapDataUrl: string | null = null;
   private softProofDataUrl: string | null = null;
   private cvdPreviewDataUrl: string | null = null;
   private cvdPreviewCachedType: CvdType | null = null;
@@ -169,9 +167,8 @@ class App {
     void NetworkGuard.checkHealth();
   }
 
-  /** 任何直接改寫 processedImageData 的操作都要呼叫，避免熱力圖/軟打樣/色盲預覽顯示編輯前的舊圖。 */
+  /** 任何直接改寫 processedImageData 的操作都要呼叫，避免軟打樣/色盲預覽顯示編輯前的舊圖。 */
   private invalidatePreviewCaches(): void {
-    this.heatmapDataUrl = null;
     this.softProofDataUrl = null;
     this.cvdPreviewDataUrl = null;
     this.cvdPreviewCachedType = null;
@@ -552,39 +549,6 @@ class App {
       Toast.info(isFlipped ? '↻ 已翻轉至紙張背面 (查看背面規格)' : '↻ 已翻回紙張正面');
     });
 
-    // Toggle TAC Heatmap
-    this.btnToggleHeatmap.addEventListener('click', async () => {
-      const state = store.getState();
-      if (!state.processedImageData) return;
-
-      SoundEffects.sliderTick();
-
-      if (!state.showHeatmap) {
-        if (!this.heatmapDataUrl) {
-          const src = state.processedImageData;
-          // Use the same active-ICC-profile TAC limit the actual ink-clamping step applies
-          // (see Step 3's honesty note), so the heatmap's warning threshold matches reality.
-          let heatmap: ImageData;
-          try {
-            heatmap = await workerClient.generateHeatmap(src, iccProfileEngine.getActiveProfile().maxTac);
-          } catch (err: any) {
-            Toast.error(`熱力圖產生失敗：${err?.message || '未知錯誤'}`);
-            return;
-          }
-          // 等待期間圖片已被換掉 → 丟棄過期結果
-          if (store.getState().processedImageData !== src) return;
-          this.heatmapDataUrl = this.imageDataToDataUrl(heatmap);
-        }
-      }
-      store.toggleHeatmap();
-      const updatedState = store.getState();
-      if (updatedState.showHeatmap) {
-        this.xiangAssistant?.say(XiaoxiangAssistant.LINES.heatmapOn, 5000);
-      } else {
-        this.xiangAssistant?.say(XiaoxiangAssistant.LINES.heatmapOff, 3000);
-      }
-    });
-
     // Toggle Soft Proof
     this.btnToggleSoftProof.addEventListener('click', async () => {
       const state = store.getState();
@@ -819,11 +783,8 @@ class App {
       if (iccId) {
         iccProfileEngine.setProfile(iccId);
         const active = iccProfileEngine.getActiveProfile();
-        // Invalidate any cached TAC heatmap — it was rendered against the previous profile's
-        // maxTac and would show a stale warning threshold otherwise.
-        this.heatmapDataUrl = null;
         SoundEffects.sliderTick();
-        Toast.info(`🎨 已切換印刷色彩描述檔：【${active.name}】(TAC ≤${active.maxTac}%)`);
+        Toast.info(`🎨 已切換印刷色彩描述檔：【${active.name}】`);
       }
     });
 
@@ -1387,9 +1348,7 @@ class App {
             state.originalScoreResult || undefined,
             state.scoreResult || undefined,
             state.originalDpiAnalysis || undefined,
-            state.dpiAnalysis || undefined,
-            state.originalInkAnalysis || undefined,
-            state.inkAnalysis || undefined
+            state.dpiAnalysis || undefined
           );
         }
       } else {
@@ -1405,9 +1364,7 @@ class App {
         this.invalidatePreviewCaches();
       }
       if (!state.isComparing && state.processedDataUrl) {
-        if (state.showHeatmap && this.heatmapDataUrl) {
-          this.mainPreviewImg.src = this.heatmapDataUrl;
-        } else if (state.showSoftProof && this.softProofDataUrl) {
+        if (state.showSoftProof && this.softProofDataUrl) {
           this.mainPreviewImg.src = this.softProofDataUrl;
         } else if (state.cvdPreviewType && this.cvdPreviewDataUrl) {
           this.mainPreviewImg.src = this.cvdPreviewDataUrl;
@@ -1420,7 +1377,6 @@ class App {
       }
 
       // 6. Button Active States
-      this.btnToggleHeatmap.classList.toggle('active', state.showHeatmap);
       this.btnToggleSoftProof.classList.toggle('active', state.showSoftProof);
       this.btnToggleCvdPreview.classList.toggle('active', !!state.cvdPreviewType);
       this.btnToggleSafeZone.classList.toggle('active', state.showSafeZone);
@@ -1515,9 +1471,8 @@ class App {
     const autoIcc: IccProfileId =
       autoPreset.category === 'art' || autoPreset.id === 'postcard' ? 'japan-color-2001-uncoated' : 'japan-color-2001-coated';
     if (iccSelect) iccSelect.value = autoIcc;
-    // 程式設定 .value 不會觸發 change，必須同步引擎，否則 TAC 限制仍用舊描述檔
+    // 程式設定 .value 不會觸發 change，必須同步引擎，否則 CMYK 分色仍用舊描述檔
     iccProfileEngine.setProfile(autoIcc);
-    this.heatmapDataUrl = null;
 
     // Auto-configure Double-Sided pairing only when exactly 2 images are uploaded together
     // (3 張以上視為一般批次，不自動綁背面)

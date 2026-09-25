@@ -1,5 +1,5 @@
 import { SoundEffects } from '../core/sound-effects';
-import type { DpiAnalysis, InkAnalysis, PrintScoreResult } from '../types';
+import type { DpiAnalysis, PrintScoreResult } from '../types';
 
 /**
  * 60fps Ultra-smooth Split-View Comparison Slider
@@ -140,26 +140,23 @@ export class CompareSlider {
     beforeScore?: PrintScoreResult,
     afterScore?: PrintScoreResult,
     beforeDpi?: DpiAnalysis,
-    afterDpi?: DpiAnalysis,
-    beforeInk?: InkAnalysis,
-    afterInk?: InkAnalysis
+    afterDpi?: DpiAnalysis
   ): void {
     this.beforeImg.src = beforeSrc;
     this.afterImg.src = afterSrc;
     this.setPosition(50);
-    this.updateAfterTag(afterDpi, afterInk);
+    this.updateAfterTag(afterDpi);
 
     if (beforeScore && afterScore) {
-      this.renderMetricsBreakdown(beforeScore, afterScore, beforeDpi, afterDpi, beforeInk, afterInk);
+      this.renderMetricsBreakdown(beforeScore, afterScore, beforeDpi, afterDpi);
     }
   }
 
-  /** 依實際分析值更新右側標籤，不寫死倍率 / DPI / TAC */
-  private updateAfterTag(afterDpi?: DpiAnalysis, afterInk?: InkAnalysis): void {
+  /** 依實際分析值更新右側標籤，不寫死倍率 / DPI */
+  private updateAfterTag(afterDpi?: DpiAnalysis): void {
     if (!this.afterTag) return;
     const parts: string[] = [];
     if (afterDpi) parts.push(`${afterDpi.currentDpi} DPI`);
-    if (afterInk) parts.push(`TAC ${afterInk.maxTotalInk}%`);
     const desc = this.afterTag.querySelector('.pm-tag-desc');
     if (desc) desc.textContent = parts.length ? parts.join(' / ') : '處理後';
     this.afterTag.title = parts.length ? `右側畫面：處理後結果（${parts.join('、')}）` : '右側畫面：處理後結果';
@@ -169,9 +166,7 @@ export class CompareSlider {
     beforeScore: PrintScoreResult,
     afterScore: PrintScoreResult,
     beforeDpi?: DpiAnalysis,
-    afterDpi?: DpiAnalysis,
-    beforeInk?: InkAnalysis,
-    afterInk?: InkAnalysis
+    afterDpi?: DpiAnalysis
   ): void {
     const bScore = Math.round(beforeScore.score);
     const aScore = Math.round(afterScore.score);
@@ -203,21 +198,11 @@ export class CompareSlider {
         id: 'resolution',
         icon: '<img src="icons/shared/magnifier.webp" alt="" class="pm-icon-img" />',
         name: '實體解析度',
-        weight: '35%',
+        weight: '40%',
         beforeVal: Math.round(b.resolution),
         afterVal: Math.round(a.resolution),
         beforeSub: beforeDpi ? `${beforeDpi.currentDpi} DPI` : '',
         afterSub: resolutionAfterSub
-      },
-      {
-        id: 'inkSafety',
-        icon: '<img src="icons/shared/palette.webp" alt="" class="pm-icon-img" />',
-        name: '安全墨量 TAC',
-        weight: '10%',
-        beforeVal: Math.round(b.inkSafety),
-        afterVal: Math.round(a.inkSafety),
-        beforeSub: beforeInk ? `${beforeInk.maxTotalInk}%` : '',
-        afterSub: afterInk ? `${afterInk.maxTotalInk}% ${afterInk.maxTotalInk <= afterInk.limitThreshold ? '安全' : `(超過 ${afterInk.limitThreshold}%)`}` : '—'
       },
       {
         id: 'aspectRatio',
@@ -233,7 +218,7 @@ export class CompareSlider {
         id: 'sharpness',
         icon: '<img src="icons/shared/sparkle.webp" alt="" class="pm-icon-img" />',
         name: '邊緣銳利度',
-        weight: '10%',
+        weight: '15%',
         beforeVal: Math.round(b.sharpness),
         afterVal: Math.round(a.sharpness),
         beforeSub: '原始細節',
