@@ -159,7 +159,7 @@ export class WorkerClient {
         return { imageData: heatmap };
       }
       case 'analyze': {
-        const stats = PrintScoreCalculator.analyzePixels(imageData);
+        const stats = PrintScoreCalculator.analyzePixels(imageData, { sharpnessLongSide: extra.sharpnessLongSide });
         const inkAnalysis = InkLimiter.analyze(imageData);
         return { stats, inkAnalysis };
       }
@@ -213,10 +213,12 @@ export class WorkerClient {
     return res.imageData;
   }
 
+  /** `sharpnessLongSide`: measure edge width at this long side (pass the source's when analyzing an upscaled result). */
   public async analyze(
-    imageData: ImageData
+    imageData: ImageData,
+    sharpnessLongSide?: number
   ): Promise<{ stats: ImagePixelStats; inkAnalysis: InkAnalysis }> {
-    return this.postToWorker('analyze', imageData);
+    return this.postToWorker('analyze', imageData, { sharpnessLongSide });
   }
 
   public async descreen(

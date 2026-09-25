@@ -94,8 +94,12 @@ export class DiagnosticCard {
     const maxTac = iccProfileEngine.getActiveProfile().maxTac;
     const targetDpi = dpiAnalysis.targetDpi;
     const upscaled = finalDpi > initDpi;
+    const detailDpi = scoreResult.effectiveDpi;
+    const detailNote = detailDpi !== undefined && detailDpi < finalDpi
+      ? `，但放大補不出原圖沒有的細節，清晰度約相當於 <strong>${detailDpi} DPI</strong>`
+      : '';
     const resolutionDesc = upscaled
-      ? `已放大到 <strong>${finalDpi} DPI</strong>（目標 ${targetDpi} DPI）`
+      ? `已放大到 <strong>${finalDpi} DPI</strong>（目標 ${targetDpi} DPI）${detailNote}`
       : !originalDpiAnalysis?.needsUpscale
         ? `原圖已有 <strong>${finalDpi} DPI</strong>，不需放大`
         : pipelineOptions.enableUpscale

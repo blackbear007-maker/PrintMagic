@@ -190,6 +190,13 @@ export class CompareSlider {
 
     const b = beforeScore.breakdown;
     const a = afterScore.breakdown;
+    // After an upscale the pixel DPI overstates detail; the score uses effectiveDpi (see print-score.ts).
+    const afterDetailDpi = afterScore.effectiveDpi ?? afterDpi?.currentDpi;
+    const resolutionAfterSub = !afterDpi || afterDetailDpi === undefined
+      ? '—'
+      : afterDetailDpi < afterDpi.currentDpi
+        ? `像素 ${afterDpi.currentDpi} DPI・細節約 ${afterDetailDpi} DPI ${afterDetailDpi >= afterDpi.targetDpi ? '(達標)' : '(未達標)'}`
+        : `${afterDpi.currentDpi} DPI ${afterDpi.currentDpi >= afterDpi.targetDpi ? '(達標)' : '(未達標)'}`;
 
     const metricsConfig = [
       {
@@ -200,13 +207,13 @@ export class CompareSlider {
         beforeVal: Math.round(b.resolution),
         afterVal: Math.round(a.resolution),
         beforeSub: beforeDpi ? `${beforeDpi.currentDpi} DPI` : '',
-        afterSub: afterDpi ? `${afterDpi.currentDpi} DPI ${afterDpi.currentDpi >= afterDpi.targetDpi ? '(達標)' : '(未達標)'}` : '—'
+        afterSub: resolutionAfterSub
       },
       {
         id: 'inkSafety',
         icon: '<img src="icons/shared/palette.webp" alt="" class="pm-icon-img" />',
         name: '安全墨量 TAC',
-        weight: '15%',
+        weight: '10%',
         beforeVal: Math.round(b.inkSafety),
         afterVal: Math.round(a.inkSafety),
         beforeSub: beforeInk ? `${beforeInk.maxTotalInk}%` : '',
@@ -256,7 +263,7 @@ export class CompareSlider {
         id: 'brightness',
         icon: '<img src="icons/header/guide.webp" alt="" class="pm-icon-img" />',
         name: '明暗分佈',
-        weight: '5%',
+        weight: '10%',
         beforeVal: Math.round(b.brightness),
         afterVal: Math.round(a.brightness),
         beforeSub: '原始亮度',

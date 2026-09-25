@@ -6,7 +6,7 @@ import type { VectorOverlayEngine } from './vector-overlay';
 import { Toast } from '../ui/toast';
 import { SoundEffects } from './sound-effects';
 import { DpiCalculator } from './dpi-calculator';
-import { PrintScoreCalculator } from './print-score';
+import { PrintScoreCalculator, type ScoreUpscaleContext } from './print-score';
 import { iccProfileEngine } from './icc-profiles';
 import { AiUpscaleClient } from '../services/ai-upscale-client';
 import { PdfExporter } from '../engines/pdf-exporter';
@@ -106,6 +106,8 @@ export class PipelineOrchestrator {
 
       let processedImgData = srcImageData;
       let appliedScale = 1;
+      // Which upscaler actually ran — the after-score caps resolution by source detail (see print-score.ts).
+      let upscaleMethod: ScoreUpscaleContext['method'] | null = null;
       const opts = state.pipelineOptions;
 
       const setStep = (processingStep: string) => {
@@ -128,6 +130,8 @@ export class PipelineOrchestrator {
 
           if (aiResult.success && aiResult.imageData) {
             processedImgData = aiResult.imageData;
+            // AiUpscaleClient reports success for its local edge-aware fallback too; only the server's model counts as 'ai'.
+            upscaleMethod = aiResult.engine === 'real-esrgan' ? 'ai' : 'interpolation';
             // The service may return less than the DPI-derived target (its own scale cap, or the
             // payload was downscaled before upload). Top up with Lanczos so the output really
             // reaches the target width instead of silently under-delivering.
@@ -140,12 +144,14 @@ export class PipelineOrchestrator {
             // Graceful automatic fallback to local Lanczos-3 pyramid engine (at the DPI-derived scale)
             setStep('2/4 正在啟用本機金字塔超解析度放大 (備援)...');
             processedImgData = await workerClient.lanczos(srcImageData, targetScale);
+            upscaleMethod = 'interpolation';
             if (!this.isStale(gen) && this.isAdvancedMode()) Toast.info('⚡ 雲端放大無法使用，已改用本機 Lanczos 金字塔放大');
           }
         } else {
           // Local engine only (no network call for upscaling)
           setStep('2/4 正在執行本機金字塔超解析度放大...');
           processedImgData = await workerClient.lanczos(srcImageData, targetScale);
+          upscaleMethod = 'interpolation';
         }
         if (this.isStale(gen)) return this.abandonRun(activeId);
         appliedScale = processedImgData.width / srcImageData.width;
@@ -261,14 +267,23 @@ export class PipelineOrchestrator {
       appliedScale = processedImgData.width / srcImageData.width;
 
       // Step 4: Post-Processing Comprehensive Diagnostic & Scientific Quality Evaluation
-      const { stats, inkAnalysis } = await workerClient.analyze(processedImgData);
+      // Sharpness is measured at the source's scale and resolution is capped by source detail, so an
+      // upscale can't score itself as new detail (see print-score.ts, 2026-09-25).
+      const { stats, inkAnalysis } = await workerClient.analyze(
+        processedImgData,
+        Math.max(srcImageData.width, srcImageData.height)
+      );
       const dpiAnalysis = DpiCalculator.analyze(
         processedImgData.width,
         processedImgData.height,
         preset
       );
       if (this.isStale(gen)) return this.abandonRun(activeId);
-      const scoreResult = PrintScoreCalculator.calculate(stats, preset, inkAnalysis);
+      const scoreResult = PrintScoreCalculator.calculate(stats, preset, inkAnalysis, {
+        upscale: upscaleMethod
+          ? { sourceWidth: srcImageData.width, sourceHeight: srcImageData.height, method: upscaleMethod }
+          : undefined
+      });
       const dominantPantones = PantoneMatcher.extractDominantSpotColors(processedImgData, 3);
       const barcodeReport = BarcodeVerifier.verifyImage(processedImgData, 300);
 

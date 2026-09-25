@@ -7,6 +7,34 @@ import type {
 } from '../types';
 import { DpiCalculator } from './dpi-calculator';
 
+/** How the pipeline enlarged the image before this score was taken (see UPSCALE_DETAIL_CREDIT). */
+export interface ScoreUpscaleContext {
+  sourceWidth: number;
+  sourceHeight: number;
+  /** 'ai' = the self-hosted Real-ESRGAN service answered; 'interpolation' = Lanczos / edge-aware local. */
+  method: 'ai' | 'interpolation';
+}
+
+/**
+ * 2026-09-25：放大後的像素數不等於細節。舊版「修正後」分數直接拿放大後的尺寸算 DPI，任何小圖放大後
+ * 解析度都拿滿分——128×192 的縮圖送 A4 從 72 分變 98 分，印出來卻是一片糊。現在改算「細節 DPI」：
+ * 原圖 DPI × 放大倍率，但倍率最多只算到下面的上限。
+ *
+ * 上限是經驗值，不是量測出來的光學數據：內插放大（Lanczos／邊緣感知 + USM）只是把原有像素畫得更平滑，
+ * 印出來比直接印低解析原圖好看，但一般認為超過約 1.5 倍就看不出差別；Real-ESRGAN 這類學習式模型
+ * 會補出合理的紋理，給到 2 倍。
+ */
+const UPSCALE_DETAIL_CREDIT: Record<ScoreUpscaleContext['method'], number> = {
+  interpolation: 1.5,
+  ai: 2
+};
+
+/**
+ * 銳利度的量測尺度上限（長邊像素）。大圖先縮到這個尺寸再量邊緣寬度：印在 A4 上看不出來的
+ * 1–2 px 柔化不該扣分，也讓 6000px 大圖的量測時間固定。
+ */
+export const SHARPNESS_MEASURE_MAX_LONG_SIDE = 1600;
+
 /**
  * Honest 7-Factor Print Readiness & Digital Publishing Scoring Algorithm (0 - 100)
  * Features Auto-Orientation, Shadow Lift Compensation, and Digital Screen Evaluation
@@ -15,43 +43,66 @@ export class PrintScoreCalculator {
   public static calculate(
     stats: ImagePixelStats,
     preset: PrintPreset,
-    inkAnalysis?: InkAnalysis
+    inkAnalysis?: InkAnalysis,
+    context: { upscale?: ScoreUpscaleContext } = {}
   ): PrintScoreResult {
     const issues: string[] = [];
     const recommendations: string[] = [];
 
     const isDigitalPreset = preset.id === 'social' || preset.widthMm <= 0 || preset.heightMm <= 0;
+    const upscale = context.upscale;
+    const credit = upscale ? UPSCALE_DETAIL_CREDIT[upscale.method] : 1;
 
     // ─────────────────────────────────────────────────────────────
-    // 1. Resolution Score (Weight: 35%)
+    // 1. Resolution Score (Weight: 35%) — scored on detail, not on interpolated pixel count
     // ─────────────────────────────────────────────────────────────
     const dpiAnalysis = DpiCalculator.analyze(stats.width, stats.height, preset);
     let resolutionScore = 100;
+    let effectiveDpi: number | undefined;
+    const upscaleNote = '放大只能讓邊緣平滑，補不出原圖沒有的細節';
+    const biggerSourceTip = '想印得更清楚：換一張更大的原圖，或改印較小的尺寸';
 
     if (isDigitalPreset) {
-      const minDim = Math.min(stats.width, stats.height);
+      const pixelMinDim = Math.min(stats.width, stats.height);
+      const minDim = upscale
+        ? Math.min(pixelMinDim, Math.round(Math.min(upscale.sourceWidth, upscale.sourceHeight) * credit))
+        : pixelMinDim;
       if (minDim >= 1080) {
         resolutionScore = 100;
       } else if (minDim >= 720) {
         resolutionScore = 85 + ((minDim - 720) / 360) * 15;
       } else {
         resolutionScore = Math.max(30, Math.round((minDim / 720) * 85));
-        issues.push(`社群發布尺寸偏小 (${stats.width}×${stats.height}px)，在視網膜螢幕上可能略有模糊`);
+        issues.push(
+          upscale
+            ? `原圖偏小 (${upscale.sourceWidth}×${upscale.sourceHeight}px)，${upscaleNote}，在高解析螢幕上仍可能略顯模糊`
+            : `社群發布尺寸偏小 (${stats.width}×${stats.height}px)，在視網膜螢幕上可能略有模糊`
+        );
       }
     } else {
-      if (dpiAnalysis.currentDpi >= 280) {
+      const pixelDpi = dpiAnalysis.currentDpi;
+      const sourceDpi = upscale
+        ? DpiCalculator.analyze(upscale.sourceWidth, upscale.sourceHeight, preset).currentDpi
+        : pixelDpi;
+      const dpi = Math.min(pixelDpi, Math.round(sourceDpi * credit));
+      effectiveDpi = dpi;
+      // Only say "upscaled but still soft" when the cap is what's holding the score down.
+      const cappedByDetail = upscale !== undefined && dpi < pixelDpi && dpi < 280;
+      const upscaledText = `原圖約 ${sourceDpi} DPI，放大後像素達 ${pixelDpi} DPI，但${upscaleNote}，清晰度約相當於 ${dpi} DPI`;
+
+      if (dpi >= 280) {
         resolutionScore = 100;
-      } else if (dpiAnalysis.currentDpi >= 200) {
-        resolutionScore = 85 + ((dpiAnalysis.currentDpi - 200) / 80) * 15;
-        issues.push(`解析度為 ${dpiAnalysis.currentDpi} DPI，達到商業基本標準 (推薦 300 DPI)`);
-      } else if (dpiAnalysis.currentDpi >= 140) {
-        resolutionScore = 60 + ((dpiAnalysis.currentDpi - 140) / 60) * 25;
-        issues.push(`解析度不足 (${dpiAnalysis.currentDpi} DPI)，實體輸出細部可能略有模糊`);
-        recommendations.push(`建議套用 ${dpiAnalysis.scaleFactor}x 無失真放大`);
+      } else if (dpi >= 200) {
+        resolutionScore = 85 + ((dpi - 200) / 80) * 15;
+        issues.push(cappedByDetail ? upscaledText : `解析度為 ${dpi} DPI，達到商業基本標準 (推薦 300 DPI)`);
+      } else if (dpi >= 140) {
+        resolutionScore = 60 + ((dpi - 140) / 60) * 25;
+        issues.push(cappedByDetail ? upscaledText : `解析度不足 (${dpi} DPI)，實體輸出細部可能略有模糊`);
+        recommendations.push(upscale ? biggerSourceTip : `建議套用 ${dpiAnalysis.scaleFactor}x 放大，讓印出來的邊緣較平滑`);
       } else {
-        resolutionScore = Math.max(20, (dpiAnalysis.currentDpi / 140) * 60);
-        issues.push(`解析度嚴重不足 (${dpiAnalysis.currentDpi} DPI)，印刷將出現明顯馬賽克鋸齒`);
-        recommendations.push(`強烈建議套用 ${dpiAnalysis.scaleFactor}x 超解析度放大`);
+        resolutionScore = Math.max(20, (dpi / 140) * 60);
+        issues.push(cappedByDetail ? upscaledText : `解析度嚴重不足 (${dpi} DPI)，印刷將出現明顯馬賽克鋸齒`);
+        recommendations.push(upscale ? biggerSourceTip : `強烈建議套用 ${dpiAnalysis.scaleFactor}x 放大，並盡量換用更大的原圖`);
       }
     }
 
@@ -157,12 +208,18 @@ export class PrintScoreCalculator {
 
     // ─────────────────────────────────────────────────────────────
     // 6. Sharpness & Edge Definition Score (Weight: 10%)
+    //
+    // 2026-09-25：舊版用 Sobel 梯度平均值（edgeScore < 0.03）判斷，但梯度平均量到的是「畫面有多少明暗
+    // 變化」，不是「邊緣清不清楚」：10 張範例圖加上 9×9 模糊後 edgeScore 幾乎不變（人像 0.400→0.400），
+    // 這一項對所有圖都給 100。改用 analyzePixels() 量的主要輪廓邊緣寬度：清晰約 1 px，3×3 模糊約 3 px，
+    // 5×5 約 5 px。邊緣太少量不出來（純漸層、平塗）就不扣分。
     // ─────────────────────────────────────────────────────────────
     let sharpnessScore = 100;
-    if (stats.edgeScore < 0.03) {
-      sharpnessScore = Math.max(55, Math.round((stats.edgeScore / 0.03) * 100));
-      issues.push('圖像細節線條邊緣偏軟，缺乏印刷所需的銳利度');
-      recommendations.push('系統已自動套用 Pre-press 細部銳化補償 (USM)');
+    const edgeWidth = stats.edgeWidthPx;
+    if (edgeWidth !== undefined && edgeWidth > 2.5) {
+      sharpnessScore = Math.max(55, Math.round(100 - ((edgeWidth - 2.5) / 3.5) * 45));
+      issues.push(`主要輪廓的邊緣約 ${edgeWidth.toFixed(1)} px 寬，畫面偏模糊（刻意的柔焦風格可忽略）`);
+      recommendations.push('銳化只能讓邊緣稍微俐落，救不回失焦或過度壓縮的細節；有更清楚的原圖請改用原圖');
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -205,7 +262,16 @@ export class PrintScoreCalculator {
       breakdown.inkSafety * 0.10
     );
 
-    const score = Math.max(0, Math.min(100, weightedScore));
+    // 2026-09-25：加權平均會稀釋「印不出來」的解析度——其他 6 項幾乎都拿滿、固定貢獻約 65 分，64×96 的縮圖
+    // 送 A4 也有 72 分，只比 600×900 低幾分。細節低於 140 DPI（上面「嚴重不足」的級距）時，總分上限從 50
+    // 線性升到 86；86 正是 140 DPI、其他項全滿時的加權分數，所以分數在門檻處是連續的。
+    const SEVERE_DPI = 140;
+    const resolutionLimited = effectiveDpi !== undefined && effectiveDpi < SEVERE_DPI;
+    const cappedScore = resolutionLimited
+      ? Math.min(weightedScore, Math.round(50 + 36 * (effectiveDpi! / SEVERE_DPI)))
+      : weightedScore;
+
+    const score = Math.max(0, Math.min(100, cappedScore));
 
     let verdict: string;
     let level: 'high' | 'mid' | 'low';
@@ -226,7 +292,9 @@ export class PrintScoreCalculator {
         : `△ 尚可 — 送印前建議先看過細節${issueNote}`;
     } else {
       level = 'low';
-      verdict = '⚠️ 需留意 — 請依據專家建議確認裁切或色域設定';
+      verdict = resolutionLimited
+        ? '⚠️ 需留意 — 原圖解析度不足，印出來會模糊或有鋸齒'
+        : '⚠️ 需留意 — 請依據專家建議確認裁切或色域設定';
     }
 
     return {
@@ -235,7 +303,8 @@ export class PrintScoreCalculator {
       level,
       breakdown,
       issues,
-      recommendations
+      recommendations,
+      effectiveDpi
     };
   }
 
@@ -246,7 +315,10 @@ export class PrintScoreCalculator {
    * 2. Histogram P5/P95 dynamic range spread (vs stdLum → true contrast measurement)
    * 3. Gamut overflow rate: % of sRGB pixels outside CMYK gamut (vs raw avgSat)
    */
-  public static analyzePixels(imageData: ImageData): ImagePixelStats {
+  public static analyzePixels(
+    imageData: ImageData,
+    options: { sharpnessLongSide?: number } = {}
+  ): ImagePixelStats {
     const { width, height, data } = imageData;
     const totalCount = width * height;
 
@@ -370,18 +442,82 @@ export class PrintScoreCalculator {
     const effectiveStdLum = stdLum * 0.7 + dynamicRangeSpread * 0.15;
     const edgeScore = edgeSampledCount > 0 ? edgeSum / edgeSampledCount : 0.04;
     const gamutOverflowRatio = sampledCount > 0 ? gamutOverflowCount / sampledCount : 0;
+    const longSide = Math.min(
+      options.sharpnessLongSide ?? SHARPNESS_MEASURE_MAX_LONG_SIDE,
+      SHARPNESS_MEASURE_MAX_LONG_SIDE
+    );
 
     return {
       avgLum,
       avgSat,
       stdLum: effectiveStdLum,
       edgeScore,
+      edgeWidthPx: this.measureEdgeWidth(imageData, longSide),
       transparentRatio: sampledCount > 0 ? transparent / sampledCount : 0,
       gamutOverflowRatio,
       dynamicRangeSpread,
       width,
       height
     };
+  }
+
+  /**
+   * Median width, in pixels, of the image's clear light/dark transitions, measured after box-downsampling
+   * so the long side is at most `maxLongSide` (callers pass the source's long side when scoring an upscaled
+   * result, so before and after are measured at the same scale). A sharp step is ~1 px wide; blur widens it.
+   *
+   * Along every other row and column: where luminance changes by at least 48 levels across a 9 px window,
+   * take the steepest 1 px step in that window (one per edge) and report span ÷ steepest step. Returns
+   * undefined when fewer than 100 such edges exist — smooth gradients and flat artwork carry no evidence.
+   */
+  private static measureEdgeWidth(imageData: ImageData, maxLongSide: number): number | undefined {
+    const { width, height, data } = imageData;
+    if (width < 16 || height < 16) return undefined;
+
+    const factor = Math.max(1, Math.max(width, height) / Math.max(16, maxLongSide));
+    const w = Math.max(1, Math.floor(width / factor));
+    const h = Math.max(1, Math.floor(height / factor));
+    const lum = new Float32Array(w * h);
+    const count = new Float32Array(w * h);
+    const colMap = new Int32Array(width);
+    for (let x = 0; x < width; x++) colMap[x] = Math.min(w - 1, Math.floor(x / factor));
+    for (let y = 0; y < height; y++) {
+      const rowBase = Math.min(h - 1, Math.floor(y / factor)) * w;
+      let i = y * width * 4;
+      for (let x = 0; x < width; x++, i += 4) {
+        const o = rowBase + colMap[x];
+        lum[o] += data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+        count[o]++;
+      }
+    }
+    for (let o = 0; o < lum.length; o++) lum[o] /= count[o] || 1;
+
+    const R = 4;
+    const MIN_SPAN = 48;
+    const widths: number[] = [];
+    const scanLine = (start: number, stride: number, n: number) => {
+      for (let t = R; t < n - R - 1; t++) {
+        const at = (k: number) => lum[start + k * stride];
+        const span = Math.abs(at(t + R) - at(t - R));
+        if (span < MIN_SPAN) continue;
+        const step = Math.abs(at(t + 1) - at(t));
+        if (step < 1) continue;
+        let steepest = true;
+        for (let k = t - R; k < t + R; k++) {
+          if (k !== t && Math.abs(at(k + 1) - at(k)) > step) {
+            steepest = false;
+            break;
+          }
+        }
+        if (steepest) widths.push(span / step);
+      }
+    };
+    for (let y = 0; y < h; y += 2) scanLine(y * w, 1, w);
+    for (let x = 0; x < w; x += 2) scanLine(x, w, h);
+
+    if (widths.length < 100) return undefined;
+    widths.sort((a, b) => a - b);
+    return widths[Math.floor(widths.length / 2)];
   }
 }
 

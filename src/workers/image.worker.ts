@@ -143,7 +143,7 @@ self.onmessage = (e: MessageEvent<WorkerRequest>) => {
 
       case 'analyze': {
         const imgObj = wrapImageData(srcData, srcWidth, srcHeight);
-        const stats = PrintScoreCalculator.analyzePixels(imgObj);
+        const stats = PrintScoreCalculator.analyzePixels(imgObj, { sharpnessLongSide: payload.sharpnessLongSide });
         const inkAnalysis = InkLimiter.analyze(imgObj);
 
         response = {

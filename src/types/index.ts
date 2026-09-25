@@ -134,6 +134,8 @@ export interface ImagePixelStats {
   avgSat: number;
   stdLum: number;
   edgeScore: number;
+  /** Median width (px) of clear edges at the measurement scale; undefined when the image has too few edges. */
+  edgeWidthPx?: number;
   transparentRatio: number;
   width: number;
   height: number;
@@ -161,6 +163,8 @@ export interface PrintScoreResult {
   breakdown: ScoreBreakdown;
   issues: string[];
   recommendations: string[];
+  /** DPI the resolution factor was scored on: the pixel DPI, capped by source detail after an upscale. Print presets only. */
+  effectiveDpi?: number;
 }
 
 export interface PipelineOptions {
@@ -223,6 +227,7 @@ export interface WorkerRequest {
     threshold?: number;
     maxInk?: number;
     middle?: number;
+    sharpnessLongSide?: number;
   };
 }
 

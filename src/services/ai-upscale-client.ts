@@ -60,13 +60,15 @@ export interface AiUpscaleResult {
   imageData?: ImageData;
   model?: string;
   scale?: number;
+  /** Which upscaler produced imageData: the self-hosted Real-ESRGAN model or the local edge-aware fallback. */
+  engine?: 'real-esrgan' | 'local';
   cached?: boolean;
   error?: string;
 }
 
 export class AiUpscaleClient {
   // Fast in-memory LRU Cache (max 20 processed images)
-  private static readonly resultCache = new Map<string, { dataUrl: string; imageData: ImageData; model: string; scale: number }>();
+  private static readonly resultCache = new Map<string, { dataUrl: string; imageData: ImageData; model: string; scale: number; engine?: AiUpscaleResult['engine'] }>();
 
   /**
    * Auto-picks the local-fallback preset from the image itself instead of asking the user to
@@ -152,6 +154,7 @@ export class AiUpscaleClient {
         imageData: cached.imageData,
         model: cached.model,
         scale: cached.scale,
+        engine: cached.engine,
         cached: true
       };
     }
@@ -174,7 +177,8 @@ export class AiUpscaleClient {
         dataUrl: sourceDataUrl,
         imageData: healedImgData,
         model: config.name,
-        scale: config.scale
+        scale: config.scale,
+        engine: 'local'
       };
 
       this.cacheResult(cacheKey, result);
@@ -230,7 +234,8 @@ export class AiUpscaleClient {
         dataUrl: data.dataUrl,
         imageData,
         model: 'Real-ESRGAN compact x4v3 (自建服務)',
-        scale
+        scale,
+        engine: 'real-esrgan'
       };
     } catch {
       return null;
@@ -265,7 +270,8 @@ export class AiUpscaleClient {
       dataUrl: result.dataUrl,
       imageData: result.imageData,
       model: result.model,
-      scale: result.scale
+      scale: result.scale,
+      engine: result.engine
     });
   }
 
