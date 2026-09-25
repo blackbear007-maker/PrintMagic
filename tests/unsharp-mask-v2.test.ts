@@ -16,22 +16,25 @@ describe('UnsharpMask v2 — Recursive Gaussian IIR + Lab Luminance Sharpening',
   }
 
   it('should sharpen a high-contrast edge while preserving flat zones', () => {
-    const w = 20;
-    const h = 20;
-    // Left half dark (10), right half light (200)
+    // 2026-09-26: the old version used a 10|200 edge and asserted <= 10 / >= 200, which the untouched
+    // input already satisfies — a no-op USM passed. Mid-tone step with headroom, pipeline settings.
+    const w = 24;
+    const h = 8;
     const src = makeTestImage(w, h, (i) => {
-      const x = i % w;
-      const v = x < w / 2 ? 10 : 200;
+      const v = i % w < w / 2 ? 60 : 180;
       return [v, v, v];
     });
 
-    const result = UnsharpMask.apply(src, 1.5, 1.0, 2);
+    const result = UnsharpMask.apply(src, 1.5, 1, 3);
+    const at = (x: number) => result.data[(4 * w + x) * 4];
 
-    // Edge pixels (columns 9, 10) should be pushed farther apart
-    const darkEdgeIdx = (5 * w + 9) * 4;
-    const lightEdgeIdx = (5 * w + 10) * 4;
-    expect(result.data[darkEdgeIdx]).toBeLessThanOrEqual(10);
-    expect(result.data[lightEdgeIdx]).toBeGreaterThanOrEqual(200);
+    // Overshoot on both sides of the edge (columns 11 | 12): the step gets steeper than the input.
+    expect(at(11)).toBeLessThan(60 - 20);
+    expect(at(12)).toBeGreaterThan(180 + 20);
+    expect(at(12) - at(11)).toBeGreaterThan(120 + 40);
+    // Flat areas away from the edge are left alone.
+    expect(at(2)).toBe(60);
+    expect(at(w - 3)).toBe(180);
   });
 
   it('should not shift hue on a saturated red region (Lab-based sharpening)', () => {

@@ -58,6 +58,9 @@ describe('AiUpscaleClient (self-hosted Real-ESRGAN / local edge-aware fallback)'
     expect(result.success).toBe(true);
     expect(result.scale).toBe(4);
     expect(result.model).toBe('4x 通用放大');
+    // The pipeline's score credits a local upscale as interpolation (1.5x), not as AI (2x) — it keys on this.
+    expect(result.engine).toBe('local');
+    expect(result.imageData!.width).toBe(2 * 4);
   });
 
   it('reports the real Real-ESRGAN scale relative to the original, not a fixed 4x, when the upload was downscaled', async () => {
@@ -110,7 +113,7 @@ describe('AiUpscaleClient (self-hosted Real-ESRGAN / local edge-aware fallback)'
     expect(result.success).toBe(true);
     expect(result.scale).toBe(4);
     expect(result.model).toContain('Real-ESRGAN');
-    expect(result.dataUrl).toBe('data:image/png;base64,realesrgan_output');
+    expect(result.engine).toBe('real-esrgan');
   });
 
   it('should skip the network entirely and go straight to local in local engine mode', async () => {

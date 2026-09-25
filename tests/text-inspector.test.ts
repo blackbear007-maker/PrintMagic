@@ -76,17 +76,17 @@ describe('TextInspector Engine', () => {
   });
 
   it('should detect fuzzy typos within Levenshtein distance of 1 or 2', () => {
-    const region = {
-      x: 80,
-      y: 120,
-      width: 180,
-      height: 36,
-      text: 'SUMMMER FESTIVAL',
-      edgeScore: 0.3
-    };
-    const result = TextInspector.verifyTextRegion(region, 3);
-    expect(result.isTypo).toBe(true);
-    expect(result.suggestion?.toUpperCase()).toContain('SUMMER');
+    // 2026-09-26: 'SUMMMER' is in the COMMON_TYPOS lookup table, so the old version never reached the
+    // Levenshtein path. These words are not in the table; the fix must come from the dictionary search.
+    for (const [text, fixed, reason] of [
+      ['FESTIVEL NIGHT', 'FESTIVAL NIGHT', '距離為 1'],
+      ['EXHIBITON HALL', 'EXHIBITION HALL', '距離為 1']
+    ]) {
+      const result = TextInspector.verifyTextRegion({ x: 80, y: 120, width: 180, height: 36, text, edgeScore: 0.3 }, 3);
+      expect(result.isTypo).toBe(true);
+      expect(result.suggestion).toBe(fixed);
+      expect(result.typoReason).toContain(reason);
+    }
   });
 
   it('should mark clean standard text as valid with no typos', () => {
@@ -104,41 +104,6 @@ describe('TextInspector Engine', () => {
     expect(result.confidence).toBeGreaterThan(0.7);
   });
 
-  it('should process synthetic ImageData and return full inspection result', async () => {
-    // Create dummy 400x300 ImageData with high contrast text-like bands
-    const width = 400;
-    const height = 300;
-    const data = new Uint8ClampedArray(width * height * 4);
-
-    // Background: light gray
-    for (let i = 0; i < data.length; i += 4) {
-      data[i] = 240;
-      data[i + 1] = 240;
-      data[i + 2] = 240;
-      data[i + 3] = 255;
-    }
-
-    // High contrast black text bar across y: 50-80
-    for (let y = 50; y < 80; y++) {
-      for (let x = 60; x < 340; x++) {
-        if ((x + y) % 4 === 0) {
-          const idx = (y * width + x) * 4;
-          data[idx] = 10;
-          data[idx + 1] = 10;
-          data[idx + 2] = 10;
-        }
-      }
-    }
-
-    const dummyImageData = { width, height, data } as ImageData;
-    const result = await TextInspector.inspectImage(dummyImageData);
-
-    expect(result).toBeDefined();
-    expect(result.executionTimeMs).toBeGreaterThanOrEqual(0);
-    expect(typeof result.summary).toBe('string');
-    expect(Array.isArray(result.regions)).toBe(true);
-  });
-
   it('should auto-detect and extract structured text layers without fake placeholder watermarks', async () => {
     // 380x228 light background business card (aspect ~1.66)
     const width = 380;
@@ -154,8 +119,9 @@ describe('TextInspector Engine', () => {
     const dummyCard = { width, height, data } as ImageData;
     const layers = await TextInspector.autoDetectTextLayers(dummyCard);
 
-    expect(Array.isArray(layers)).toBe(true);
-    expect(layers.every(l => l.isK100 === true)).toBe(true);
+    // A blank card has no text: no layers at all (the old `every(...)` check passed on an empty array
+    // and on any placeholder layer marked K100).
+    expect(layers).toEqual([]);
   });
 
   describe('Real OCR integration (mocked FreeOcrClient — confidence-gating glue logic)', () => {

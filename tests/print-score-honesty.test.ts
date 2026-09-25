@@ -60,8 +60,7 @@ function upscale(img: ImageData, scale: number): ImageData {
   return new ImageData(r.data as Uint8ClampedArray<ArrayBuffer>, r.width, r.height);
 }
 
-function scoreAfterUpscale(src: ImageData, scale: number, method: 'ai' | 'interpolation') {
-  const up = upscale(src, scale);
+function scoreAfterUpscale(src: ImageData, scale: number, method: 'ai' | 'interpolation', up = upscale(src, scale)) {
   const stats = PrintScoreCalculator.analyzePixels(up, { sharpnessLongSide: Math.max(src.width, src.height) });
   return PrintScoreCalculator.calculate(stats, a4, undefined, {
     upscale: { sourceWidth: src.width, sourceHeight: src.height, method }
@@ -69,29 +68,32 @@ function scoreAfterUpscale(src: ImageData, scale: number, method: 'ai' | 'interp
 }
 
 describe('PrintScoreCalculator — resolution is scored on detail, not interpolated pixels', () => {
+  // One small source + one 4x upscale shared by the next two tests (Lanczos on big images is slow).
+  const small = blocks(300, 424); // ≈ 36 DPI on A4
+  const smallUp = upscale(small, 4); // 1200×1696 ≈ 145 pixel DPI
+
   it('caps an upscaled result at source DPI × 1.5 for interpolation', () => {
-    const src = blocks(600, 848); // ≈ 72 DPI on A4
-    const srcDpi = DpiCalculator.analyze(src.width, src.height, a4).currentDpi;
-    const result = scoreAfterUpscale(src, 4, 'interpolation');
+    const srcDpi = DpiCalculator.analyze(small.width, small.height, a4).currentDpi;
+    const result = scoreAfterUpscale(small, 4, 'interpolation', smallUp);
 
     expect(result.effectiveDpi).toBe(Math.round(srcDpi * 1.5));
-    expect(result.breakdown.resolution).toBeLessThan(60);
+    expect(result.breakdown.resolution).toBeLessThan(40);
     expect(result.issues.some((t) => t.includes('補不出原圖沒有的細節'))).toBe(true);
     // Recommending yet another upscale after one was applied would be wrong advice.
     expect(result.recommendations.some((t) => t.includes('建議套用'))).toBe(false);
 
-    // The same pixels scored without the upscale context still read as full resolution, which is
+    // The same pixels scored without the upscale context read as their full pixel DPI, which is
     // exactly the old bug — the pipeline must pass the context.
-    const naive = PrintScoreCalculator.calculate(PrintScoreCalculator.analyzePixels(upscale(src, 4)), a4);
-    expect(naive.breakdown.resolution).toBe(100);
+    const naive = PrintScoreCalculator.calculate(PrintScoreCalculator.analyzePixels(smallUp), a4);
+    expect(naive.effectiveDpi).toBe(DpiCalculator.analyze(smallUp.width, smallUp.height, a4).currentDpi);
+    expect(naive.breakdown.resolution).toBeGreaterThan(result.breakdown.resolution + 20);
   });
 
   it('gives a learned (Real-ESRGAN) upscale more credit than interpolation, but not full credit', () => {
-    const src = blocks(600, 848);
-    const interp = scoreAfterUpscale(src, 4, 'interpolation');
-    const ai = scoreAfterUpscale(src, 4, 'ai');
+    const interp = scoreAfterUpscale(small, 4, 'interpolation', smallUp);
+    const ai = scoreAfterUpscale(small, 4, 'ai', smallUp);
     expect(ai.effectiveDpi!).toBeGreaterThan(interp.effectiveDpi!);
-    expect(ai.effectiveDpi!).toBeLessThan(300);
+    expect(ai.effectiveDpi!).toBeLessThan(smallUp.width / (210 / 25.4));
   });
 
   it('never lets an unusable thumbnail read as acceptable, before or after upscaling', () => {
@@ -158,11 +160,11 @@ describe('PrintScoreCalculator — sharpness measures edge width', () => {
 
   it('measures an upscaled result at the source scale, so the upscale itself is not scored as blur', () => {
     const src = blocks(500, 707);
-    const up = upscale(src, 4);
+    const up = upscale(src, 3);
     const atSource = PrintScoreCalculator.analyzePixels(up, { sharpnessLongSide: 707 }).edgeWidthPx!;
     const atPixels = PrintScoreCalculator.analyzePixels(up, { sharpnessLongSide: 99999 }).edgeWidthPx!;
     expect(atSource).toBeLessThan(2);
-    // Capped at SHARPNESS_MEASURE_MAX_LONG_SIDE (1600 < 2828), so still wider than at source scale.
+    // Capped at SHARPNESS_MEASURE_MAX_LONG_SIDE (1600 < 2121), so still wider than at source scale.
     expect(atPixels).toBeGreaterThan(atSource);
   });
 });

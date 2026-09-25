@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { store } from '../src/ui/state';
 import { DiagnosticCard } from '../src/ui/diagnostic-card';
 import { PIPELINE_ITEMS } from '../src/ui/pipeline-matrix-modal';
@@ -55,9 +55,16 @@ describe('UI Mode (Simple vs Advanced) & Diagnostic Rendering', () => {
     store.setUiMode('simple');
   });
 
-  it('should default to beginner-friendly simple mode', () => {
-    const state = store.getState();
-    expect(state.uiMode).toBe('simple');
+  it('should default to beginner-friendly simple mode on first load, and restore a saved choice', async () => {
+    // 2026-09-26: beforeEach sets 'simple', so asserting the shared store proved nothing. Load the
+    // state module fresh against empty / pre-filled storage instead.
+    localStorage.clear();
+    vi.resetModules();
+    expect((await import('../src/ui/state')).store.getState().uiMode).toBe('simple');
+
+    localStorage.setItem('printmagic_ui_mode', 'advanced');
+    vi.resetModules();
+    expect((await import('../src/ui/state')).store.getState().uiMode).toBe('advanced');
   });
 
   it('should switch between simple and advanced modes and persist', () => {
