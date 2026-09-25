@@ -1,4 +1,4 @@
-import { Router, type Request, type Response } from 'express';
+import express, { Router, type Request, type Response } from 'express';
 import { IccService } from '../services/icc-service.js';
 import { PdfxService } from '../services/pdfx-service.js';
 
@@ -162,6 +162,33 @@ apiRouter.post('/ai/icc-soft-proof', async (req: Request, res: Response) => {
     res.status(500).json({ success: false, error: err?.message || 'ICC soft-proof failed' });
   }
 });
+
+// 🖨️ Print CMYK separation (Adobe press profile, LittleCMS) — raw PNG in, zlib CMYK samples out.
+// Binary both ways: a 300 DPI A3 page as base64 JSON would blow past the global JSON body limit.
+apiRouter.post(
+  '/ai/cmyk',
+  express.raw({ type: 'image/png', limit: process.env.CMYK_BODY_LIMIT || '120mb' }),
+  async (req: Request, res: Response) => {
+    try {
+      const profileId = String(req.query.profile || '');
+      if (!Buffer.isBuffer(req.body) || req.body.length === 0 || !profileId) {
+        res.status(400).json({ success: false, error: 'POST the PNG bytes (Content-Type: image/png) with ?profile=<id>' });
+        return;
+      }
+      const { AiEngineService } = await import('../services/ai-engine-service.js');
+      const result = await AiEngineService.processToCmyk(req.body, profileId);
+      if (!result.success) {
+        res.status(result.status).json({ success: false, error: result.error });
+        return;
+      }
+      res.setHeader('Content-Type', 'application/octet-stream');
+      res.setHeader('X-Cmyk-Info', result.info);
+      res.send(result.data);
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'CMYK conversion failed' });
+    }
+  }
+);
 
 // 📐 VTracer Rust Vectorizer Microservice Proxy
 apiRouter.post('/vectorize', async (req: Request, res: Response) => {

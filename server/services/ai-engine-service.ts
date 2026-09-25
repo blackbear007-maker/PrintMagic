@@ -228,6 +228,36 @@ export class AiEngineService {
    * Verified with a real CMYK profile: soft-proofing measurably shifted colors and real per-pixel
    * TAC came out at sensible values — see docker/zero-dce/server.py's header comment.
    */
+  /**
+   * sRGB -> press CMYK via the zero-dce service's /icc/to-cmyk (docker/zero-dce/cmyk_convert.py).
+   * Returns the zlib-compressed CMYK samples untouched plus the service's JSON info header.
+   */
+  public static async processToCmyk(
+    png: Buffer,
+    profileId: string
+  ): Promise<{ success: true; data: Buffer; info: string } | { success: false; status: number; error: string }> {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 90000);
+    try {
+      const res = await fetch(`${this.BASE_URL}/icc/to-cmyk?profile=${encodeURIComponent(profileId)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'image/png' },
+        body: new Uint8Array(png),
+        signal: controller.signal
+      });
+      const info = res.headers.get('X-Cmyk-Info');
+      if (!res.ok || !info) {
+        const body = await res.json().catch(() => undefined);
+        return { success: false, status: res.status === 200 ? 502 : res.status, error: body?.error || `CMYK service returned ${res.status}` };
+      }
+      return { success: true, data: Buffer.from(await res.arrayBuffer()), info };
+    } catch (err: any) {
+      return { success: false, status: 503, error: `CMYK service unreachable: ${err?.message || err}` };
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
   public static async processIccSoftProof(
     imageDataUrl: string,
     iccProfileBase64: string

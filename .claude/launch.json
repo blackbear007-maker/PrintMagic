@@ -12,6 +12,12 @@
       "runtimeExecutable": "npx",
       "runtimeArgs": ["vite", "--port", "5317", "--strictPort", "--no-open"],
       "port": 5317
+    },
+    {
+      "name": "printmagic-api",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "server"],
+      "port": 3001
     }
   ]
 }

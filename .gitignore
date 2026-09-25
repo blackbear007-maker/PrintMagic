@@ -36,6 +36,10 @@ lerna-debug.log*
 docker/zero-dce/weights/*.pth
 !docker/zero-dce/weights/LOL_v2_real.pth
 
+# Adobe press ICC profiles: downloaded by docker/zero-dce/Dockerfile at build time, never committed
+# (see docker/zero-dce/cmyk_convert.py for why).
+docker/zero-dce/icc/
+
 # Python bytecode cache (produced by local py_compile/server runs while testing docker/zero-dce)
 __pycache__/
 *.pyc

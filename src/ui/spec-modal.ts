@@ -1,6 +1,7 @@
 import type { AppState } from './state';
 import { Toast } from './toast';
 import { iccProfileEngine } from '../core/icc-profiles';
+import { PdfExporter } from '../engines/pdf-exporter';
 
 /**
  * Zero-Friction Print Shop Specification Sheet Modal
@@ -22,6 +23,15 @@ export class SpecModal {
     const { currentPreset, dpiAnalysis, inkAnalysis, pipelineOptions } = state;
     const maxTac = iccProfileEngine.getActiveProfile().maxTac;
     const tacNote = pipelineOptions.enableInkLimiting ? `上限 ${maxTac}%` : '未壓制總墨量';
+    // 依「上一次實際輸出的 PDF」說明色彩模式與墨量；還沒下載過、或上次退回 RGB，就照 RGB 說。
+    const lastPdf = PdfExporter.lastResult;
+    const isCmyk = lastPdf?.colorMode === 'cmyk';
+    const tacLine = isCmyk && lastPdf?.tacMaxPercent !== undefined
+      ? `最高 ${lastPdf.tacMaxPercent}%（${lastPdf.outputCondition} 分色實測）`
+      : `最高 ${inkAnalysis?.maxTotalInk ?? '—'}%（${tacNote}）`;
+    const colorLine = isCmyk
+      ? `CMYK（已依 ${lastPdf!.outputCondition} 分色，請直接輸出、勿再轉檔）`
+      : 'RGB（如需 CMYK 請印刷廠協助轉檔）';
     const bleed = currentPreset.bleedMm;
     const totalW = currentPreset.widthMm + bleed * 2;
     const totalH = currentPreset.heightMm + bleed * 2;
@@ -39,13 +49,13 @@ export class SpecModal {
 ■ 成品尺寸：${currentPreset.widthMm} × ${currentPreset.heightMm} mm
 ■ 含出血尺寸：${totalW} × ${totalH} mm (單邊 ${bleed}mm 出血)
 ■ 實體解析度：${dpiAnalysis?.currentDpi || currentPreset.targetDpi} DPI 實體渲染
-■ 總墨量 TAC：最高 ${inkAnalysis?.maxTotalInk ?? '—'}%（${tacNote}）
-■ 色彩模式：RGB（如需 CMYK 請印刷廠協助轉檔）
+■ 總墨量 TAC：${tacLine}
+■ 色彩模式：${colorLine}
 ■ 裁切標記：內嵌 0.1mm 向量角線、色條與十字套準
 ■ 建議紙材：${paperName}
 ■ 檔案備註：已通過 PrintMagic 本機自動預檢（非第三方獨立驗證）`;
 
-    const bossMsgText = `老闆您好！我要印【${currentPreset.nameZh}】（成品淨尺寸 ${currentPreset.widthMm}×${currentPreset.heightMm} mm），紙材使用【${paperName}】。檔案為 RGB 印刷 PDF${bleed > 0 ? `，已內建 ${bleed}mm 出血` : '（無出血）'}，如需 CMYK 請協助轉檔，感謝您！`;
+    const bossMsgText = `老闆您好！我要印【${currentPreset.nameZh}】（成品淨尺寸 ${currentPreset.widthMm}×${currentPreset.heightMm} mm），紙材使用【${paperName}】。檔案為 ${isCmyk ? `CMYK 印刷 PDF（已依 ${lastPdf!.outputCondition} 分色）` : 'RGB 印刷 PDF'}${bleed > 0 ? `，已內建 ${bleed}mm 出血` : '（無出血）'}${isCmyk ? '，請直接輸出、不用再轉檔' : '，如需 CMYK 請協助轉檔'}，感謝您！`;
 
     this.modalEl.innerHTML = `
       <div class="pm-modal-dialog pm-spec-dialog" style="max-width: 580px;">

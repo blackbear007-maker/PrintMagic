@@ -1,25 +1,50 @@
 import { jsPDF } from 'jspdf';
 import type { CropAnchor, PrintPreset } from '../types';
+import { iccProfileEngine } from '../core/icc-profiles';
+import { CmykConversionClient } from '../services/cmyk-conversion-client';
+import { CmykPdfWriter } from './cmyk-pdf-writer';
+
+export interface PrintPdfResult {
+  blob: Blob;
+  colorMode: 'cmyk' | 'rgb';
+  /** CMYK only: the printing condition the separation targets, e.g. "Japan Color 2001 Coated". */
+  outputCondition?: string;
+  /** CMYK only: highest total ink coverage in the separation (%). */
+  tacMaxPercent?: number;
+  /** RGB only: why the CMYK path was not used. */
+  fallbackReason?: string;
+}
 
 /**
  * Commercial Print PDF Exporter
- * Generates RGB PDFs (not CMYK, not PDF/X) with precise 0.1mm vector crop marks, bleed, color bars,
- * and registration targets. Print shops still need to run their own standard pre-press conversion.
+ *
+ * 2026-09-25：先把成品送去自建分色服務轉成 CMYK（依色彩描述檔選單，Adobe 的印刷描述檔 + LittleCMS），
+ * 用 CmykPdfWriter 輸出 CMYK PDF；服務不可用時（本機模式、後端離線）才退回下面 buildPdf() 的 RGB 版面，
+ * 由印刷廠自行轉檔。兩種版面的出血、裁切標記、規矩線、色條位置相同。呼叫端要看回傳的 colorMode
+ * 決定怎麼跟使用者／印刷廠說明，不能再假設一律是 RGB 或 CMYK。
  */
 export class PdfExporter {
-  /**
-   * 下載 PDF；與 generatePdfBlob 共用同一份繪製邏輯（buildPdf），避免兩條路徑輸出不一致
-   */
+  /** The most recent PDF this exporter produced, so later copy (spec sheet) states what the shop actually got. */
+  public static lastResult: PrintPdfResult | null = null;
+
+  /** 產生並下載 PDF；與 generatePdfBlob 共用同一份流程（generate），避免兩條路徑輸出不一致 */
   public static async export(
     imageDataUrl: string,
     preset: PrintPreset,
     filename?: string,
     _cropAnchor: CropAnchor = 'center'
-  ): Promise<Blob> {
-    const pdf = this.buildPdf(imageDataUrl, preset);
+  ): Promise<PrintPdfResult> {
     const saveName = filename || `PrintMagic_${preset.id}_${Date.now()}.pdf`;
-    pdf.save(saveName);
-    return pdf.output('blob');
+    const result = await this.generate(imageDataUrl, preset, saveName.replace(/\.pdf$/i, ''));
+    const url = URL.createObjectURL(result.blob);
+    const link = document.createElement('a');
+    link.download = saveName;
+    link.href = url;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+    return result;
   }
 
   /**
@@ -30,7 +55,25 @@ export class PdfExporter {
     preset: PrintPreset,
     _cropAnchor: CropAnchor = 'center'
   ): Promise<Blob> {
-    return this.buildPdf(imageDataUrl, preset).output('blob');
+    return (await this.generate(imageDataUrl, preset)).blob;
+  }
+
+  /** CMYK when the separation service answers, otherwise the RGB layout. */
+  public static async generate(imageDataUrl: string, preset: PrintPreset, title?: string): Promise<PrintPdfResult> {
+    const cmyk = await CmykConversionClient.convert(imageDataUrl, iccProfileEngine.getActiveProfile().id);
+    const result: PrintPdfResult = cmyk.ok
+      ? {
+          blob: new Blob([CmykPdfWriter.build({ preset, raster: cmyk.raster, title: title || `PrintMagic ${preset.id}` })], {
+            type: 'application/pdf'
+          }),
+          colorMode: 'cmyk',
+          outputCondition: cmyk.raster.outputCondition,
+          tacMaxPercent: cmyk.raster.tacMaxPercent
+        }
+      : { blob: this.buildPdf(imageDataUrl, preset).output('blob'), colorMode: 'rgb', fallbackReason: cmyk.reason };
+    if (!cmyk.ok) console.info('[PdfExporter] CMYK separation unavailable, exporting RGB:', cmyk.reason);
+    this.lastResult = result;
+    return result;
   }
 
   private static buildPdf(imageDataUrl: string, preset: PrintPreset): jsPDF {

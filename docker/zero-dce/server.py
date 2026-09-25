@@ -96,6 +96,10 @@ Endpoints:
                        ImageCms/LittleCMS (MIT). Requires the caller to upload their own CMYK
                        .icc/.icm profile — this endpoint does not ship or assume any specific
                        press profile. 400 if no profile is provided.
+  POST /icc/to-cmyk?profile=<id> -> (added 2026-09-25) raw PNG body in, zlib-compressed 8-bit
+                       CMYK samples out (a ready PDF /FlateDecode stream), converted with one of
+                       the four Adobe press profiles downloaded at image build time — see
+                       cmyk_convert.py for the profile list, licensing note and TAC headers.
 
 An earlier version of this file also advertised /deshadow, /matting, /assess, /denoise, /deblur,
 /dewarp, /segment, and ~80 other endpoints under this same handler. None of those ran a model:
@@ -116,6 +120,7 @@ import json
 import cgi
 import base64
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from urllib.parse import urlparse, parse_qs
 
 import numpy as np
 import torch
@@ -123,6 +128,7 @@ from PIL import Image, ImageCms
 import torchvision.transforms as transforms
 import cv2
 from rembg import remove as rembg_remove, new_session as rembg_new_session
+import cmyk_convert
 
 PORT = int(os.environ.get('PORT', 8082))
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024
@@ -322,6 +328,11 @@ except Exception as e:
     print(f"[ICC] LittleCMS not available in this Pillow build — /icc/soft-proof will report unavailable. Error: {e}")
 
 
+# ─── Print CMYK separation (Adobe press profiles fetched at build time, see cmyk_convert.py) ───
+MAX_CMYK_UPLOAD_BYTES = 120 * 1024 * 1024
+cmyk_profiles_available = cmyk_convert.available_profiles() if icc_engine_available else []
+print(f"[CMYK] Press profiles available for /icc/to-cmyk: {cmyk_profiles_available or 'none'}")
+
 print("[PyTorch Vision Service] Ready on port", PORT)
 
 
@@ -357,6 +368,7 @@ class VisionHandler(BaseHTTPRequestHandler):
                     'matting': 'ready' if rembg_session is not None else 'unavailable',
                     'detectFace': 'ready' if yunet_detector is not None else 'unavailable',
                     'iccSoftProof': 'ready' if icc_engine_available else 'unavailable',
+                    'cmyk': cmyk_profiles_available,
                 }
             })
             return
@@ -407,11 +419,13 @@ class VisionHandler(BaseHTTPRequestHandler):
                 self._handle_detect_face(start_time)
             elif self.path == '/icc/soft-proof':
                 self._handle_icc_soft_proof(start_time)
+            elif urlparse(self.path).path == '/icc/to-cmyk':
+                self._handle_to_cmyk(start_time)
             else:
                 self._send_json(404, {
                     'error': f'No route for {self.path}. '
                              'Implemented: /enhance, /upscale, /inpaint, '
-                             '/matting, /detect-face, /icc/soft-proof.'
+                             '/matting, /detect-face, /icc/soft-proof, /icc/to-cmyk.'
                 })
         except ValueError as e:
             self._send_json(400, {'error': str(e)})
@@ -626,6 +640,33 @@ class VisionHandler(BaseHTTPRequestHandler):
             'profileName': f'{cmyk_profile.profile.model or "?"} / {cmyk_profile.profile.manufacturer or "?"}',
             'elapsed_ms': elapsed_ms
         })
+
+    def _handle_to_cmyk(self, start_time):
+        profile_id = parse_qs(urlparse(self.path).query).get('profile', [''])[0]
+        if profile_id not in cmyk_profiles_available:
+            self._send_json(503, {
+                'success': False,
+                'available': False,
+                'error': f'CMYK profile "{profile_id}" is not installed on this server',
+                'profiles': cmyk_profiles_available,
+            })
+            return
+        content_length = int(self.headers.get('Content-Length', 0))
+        if content_length <= 0:
+            raise ValueError('Empty body: POST the PNG bytes directly')
+        if content_length > MAX_CMYK_UPLOAD_BYTES:
+            raise ValueError(f'Payload too large (Max {MAX_CMYK_UPLOAD_BYTES // (1024 * 1024)}MB)')
+
+        data, info = cmyk_convert.convert_png_to_cmyk(self.rfile.read(content_length), profile_id)
+        info['elapsedMs'] = int((time.time() - start_time) * 1000)
+
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/octet-stream')
+        self.send_header('Content-Length', str(len(data)))
+        self.send_header('X-Cmyk-Info', json.dumps(info))
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.end_headers()
+        self.wfile.write(data)
 
     def _send_image_response(self, out_img, start_time):
         buffered = io.BytesIO()

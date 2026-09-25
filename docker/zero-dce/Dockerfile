@@ -100,6 +100,28 @@ RUN curl -fsSL -o weights/face_detection_yunet_2023mar.onnx \
 ENV U2NET_HOME=/app/.u2net
 RUN python -c "from rembg import new_session; new_session('u2netp')"
 
+# ─── Press CMYK profiles for /icc/to-cmyk (added 2026-09-25) ───────────────────────────────────
+# Adobe's published ICC profiles, fetched from adobe.com at build time — deliberately NOT committed
+# to git and never sent to the browser: the conversion runs here and the PDF only names the
+# printing condition (OutputConditionIdentifier), it does not embed the profile. Only the four
+# profiles the app's colour-profile menu offers are extracted; Adobe's EULA PDF is kept beside them.
+# The archive and every extracted file are checked against SHA-256s recorded 2026-09-25, so a
+# changed upstream file fails the build instead of silently changing the separation.
+RUN mkdir -p icc && curl -fsSL -o /tmp/adobe-icc.zip \
+    https://download.adobe.com/pub/adobe/iccprofiles/win/AdobeICCProfilesCS4Win_end-user.zip && \
+    echo "92043b7c3ca5a25a0f6975d0cdc57db60a67dcb9ebdfb15b16267311beb58f94  /tmp/adobe-icc.zip" | sha256sum -c - && \
+    python -c "import zipfile; z = zipfile.ZipFile('/tmp/adobe-icc.zip'); \
+[open('icc/' + n.rsplit('/', 1)[1], 'wb').write(z.read(n)) for n in z.namelist() \
+ if n.rsplit('/', 1)[-1] in ('JapanColor2001Coated.icc', 'JapanColor2001Uncoated.icc', \
+ 'CoatedFOGRA39.icc', 'CoatedGRACoL2006.icc', 'Color Profile EULA.pdf')]" && \
+    printf '%s\n' \
+      "842bd0543ab1ddd8fe1dd154a3752b461a1589eb39b37a28dee764a319d7b333  icc/JapanColor2001Coated.icc" \
+      "108472bd69acdf4ccca0b84c5d8d6be916107e4c1d9ca57ed27dd6137e9aa7c1  icc/JapanColor2001Uncoated.icc" \
+      "da2b9b593e27cba2563cbc8596071c5c8f2395d3dbb4434538bac2bc9d58ce77  icc/CoatedFOGRA39.icc" \
+      "81c0a00a8a5ae00c08a1f55f8efa618814762d8ef22df1b39d0e69c990d9f490  icc/CoatedGRACoL2006.icc" \
+      | sha256sum -c - && \
+    rm /tmp/adobe-icc.zip
+
 # ─── Weight files committed to git (LOL_v2_real.pth) — see docker/zero-dce/weights/README.md ──
 # The `weights/` directory is always present in git regardless (a tracked `.gitkeep`), so this
 # COPY never fails the build even if a weight file were ever missing — Docker's COPY only fails on
@@ -109,7 +131,7 @@ RUN python -c "from rembg import new_session; new_session('u2netp')"
 COPY weights/ ./weights/
 
 # Copy server code (weights/models already staged above)
-COPY server.py ./
+COPY server.py cmyk_convert.py ./
 
 # Non-root user (create before chown so weights/ is readable)
 RUN useradd -m -u 1001 zerodce && chown -R zerodce:zerodce /app

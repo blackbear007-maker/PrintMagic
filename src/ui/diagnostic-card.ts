@@ -118,7 +118,7 @@ export class DiagnosticCard {
       pipelineOptions.enableShadowLift ? '暗部提亮' : '',
       pipelineOptions.enableAntiBanding ? '漸層防斷階' : ''
     ].filter(Boolean);
-    const toneDesc = `${toneSteps.length > 0 ? `已套用 ${toneSteps.join('、')}` : '未套用銳化與階調調整'}。顏色仍為 RGB，CMYK 轉換由印刷廠處理`;
+    const toneDesc = `${toneSteps.length > 0 ? `已套用 ${toneSteps.join('、')}` : '未套用銳化與階調調整'}。下載 PDF 時會依所選色彩描述檔分色成 CMYK；分色服務無法使用時改輸出 RGB，由印刷廠轉檔`;
 
     // Delta badge
     const deltaBadge = deltaScore > 0

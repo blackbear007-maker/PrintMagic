@@ -113,8 +113,9 @@ export class MultiFormatExporter {
     folder.file(`${baseName}_300DPI.jpg`, jpgDataUrl.split(',')[1], { base64: true });
 
     // 3b. Print-ready PDF (含出血/角線，與 PDF 匯出同一份繪製邏輯)
-    const pdfBlob = await PdfExporter.generatePdfBlob(dataUrl, state.currentPreset);
-    folder.file(`${baseName}_print.pdf`, pdfBlob);
+    const pdfResult = await PdfExporter.generate(dataUrl, state.currentPreset, `${baseName}_print`);
+    folder.file(`${baseName}_print.pdf`, pdfResult.blob);
+    const pdfIsCmyk = pdfResult.colorMode === 'cmyk';
 
     // 4. SVG Dieline Layer
     const svgContent = this.generateCutlineSvg(state);
@@ -136,13 +137,15 @@ export class MultiFormatExporter {
 含出血總尺寸：${preset.widthMm + preset.bleedMm * 2} × ${preset.heightMm + preset.bleedMm * 2} mm
 實體輸出解析度：300 DPI (視網膜印刷級)
 ${inkLine}
-色彩狀態：RGB（尚未做 CMYK 分色，印刷廠仍需依標準流程轉換；Japan Color 2001 Coated / FOGRA39 僅供參考，非嵌入描述檔）
+${pdfIsCmyk
+  ? `色彩狀態：送印 PDF 為 CMYK（依 ${pdfResult.outputCondition} 分色，總墨量最高 ${pdfResult.tacMaxPercent}%；描述檔未嵌入，PDF 內以 OutputIntent 註明印刷條件）；TIFF/PNG/JPG 仍為 RGB`
+  : '色彩狀態：RGB（分色服務本次無法使用，尚未做 CMYK 分色，印刷廠仍需依標準流程轉換）'}
 
 【全套包內容物明細】
 1. ${baseName}_300DPI.tif        -> 300 DPI 工業級無損 TIFF 點陣檔 (分色輸出首選)
 2. ${baseName}_300DPI.png        -> 300 DPI 高清透明通道 PNG (貼紙/立牌預覽)
 3. ${baseName}_300DPI.jpg        -> 300 DPI 高畫質 JPEG
-4. ${baseName}_print.pdf         -> 送印 PDF（RGB，含出血與印刷標記）
+4. ${baseName}_print.pdf         -> 送印 PDF（${pdfIsCmyk ? 'CMYK' : 'RGB'}，含出血與印刷標記）
 5. ${baseName}_刀模層_Magenta.svg -> 100% 洋紅 2mm 向量割字激光刀模線
 6. Readme_印前檢驗報告.txt      -> 本檢查清單
 

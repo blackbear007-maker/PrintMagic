@@ -1068,13 +1068,19 @@ class App {
 
       try {
         SoundEffects.shutterClick();
-        // 2026-09-24 修正：這段原本寫「色彩：CMYK · 純黑向量銳化 · 零退件認證」，但輸出的 PDF 是 RGB——
-        // 使用者照貼給印刷廠，老闆就不會幫忙轉 CMYK。改成照實寫檔案內容。
+        // 小抄要照實寫檔案內容（2026-09-24 起）。2026-09-25 起 PDF 可能是 CMYK（分色服務可用時）或 RGB，
+        // 所以等 PDF 產生完、知道實際色彩模式之後才寫剪貼簿。雙面 PDF 仍是 RGB（尚未接分色）。
         const p = state.currentPreset;
-        const specSummary = `【送印規格小抄】${p.nameZh}（${p.widthMm}×${p.heightMm}mm）· ${p.targetDpi} DPI · ${p.bleedMm > 0 ? `出血 ${p.bleedMm}mm` : '無出血'} · 檔案為 RGB PDF，如需 CMYK 請協助轉檔`;
-        if (navigator.clipboard) {
-          void navigator.clipboard.writeText(specSummary).catch(() => {});
-        }
+        const copySpecSummary = async (colorNote: string): Promise<boolean> => {
+          const text = `【送印規格小抄】${p.nameZh}（${p.widthMm}×${p.heightMm}mm）· ${p.targetDpi} DPI · ${p.bleedMm > 0 ? `出血 ${p.bleedMm}mm` : '無出血'} · ${colorNote}`;
+          try {
+            await navigator.clipboard.writeText(text);
+            return true;
+          } catch {
+            return false;
+          }
+        };
+        const rgbNote = '檔案為 RGB PDF，如需 CMYK 請協助轉檔';
 
         if (ds.hasBack && ds.backDataUrl) {
           Toast.info('📄 正在生成 2 頁標準【雙面合版 PDF】(Page 1 正面 + Page 2 背面)...');
@@ -1092,16 +1098,23 @@ class App {
           link.click();
           link.remove();
           URL.revokeObjectURL(url);
-          Toast.success('✓ 標準雙面 2-Page PDF 已成功輸出！已自動複製「送印溝通小抄」至剪貼簿！');
+          const copied = await copySpecSummary(rgbNote);
+          Toast.success(`✓ 標準雙面 2-Page PDF 已成功輸出！${copied ? '已自動複製「送印溝通小抄」至剪貼簿！' : ''}`);
+          this.xiangAssistant?.say(XiaoxiangAssistant.LINES.exportPdfRgb, 8000);
         } else {
           Toast.info('📄 正在產生印刷用 PDF（含裁切標記與色條）...');
-          await PdfExporter.export(state.processedDataUrl, state.currentPreset, undefined, state.cropAnchor);
-          Toast.success('✓ 標準印刷 PDF 已成功輸出！已自動複製「送印溝通小抄」至剪貼簿！');
+          const result = await PdfExporter.export(state.processedDataUrl, state.currentPreset, undefined, state.cropAnchor);
+          const isCmyk = result.colorMode === 'cmyk';
+          const copied = await copySpecSummary(
+            isCmyk ? `檔案為 CMYK PDF（已依 ${result.outputCondition} 分色，請直接輸出、勿再轉檔）` : rgbNote
+          );
+          Toast.success(`✓ ${isCmyk ? 'CMYK' : 'RGB'} 印刷 PDF 已輸出！${copied ? '已自動複製「送印溝通小抄」至剪貼簿！' : ''}`);
+          // 下載後不再彈出「送印通關護照」視窗（簡易模式要一路無腦到底）；由小象說明色彩模式，不擋畫面。
+          this.xiangAssistant?.say(
+            isCmyk ? XiaoxiangAssistant.exportPdfCmykLine(result.outputCondition!) : XiaoxiangAssistant.LINES.exportPdfRgb,
+            8000
+          );
         }
-
-        // 下載後不再彈出「送印通關護照」視窗（簡易模式要一路無腦到底）；該提醒的只有一件事——
-        // 檔案是 RGB——由小象說，不擋畫面。
-        this.xiangAssistant?.say(XiaoxiangAssistant.LINES.exportPdf, 8000);
       } catch (err: any) {
         Toast.error(`PDF 匯出失敗: ${err?.message || err}`);
       }

@@ -100,7 +100,7 @@ export class ExportModal {
               </div>
               <div style="font-weight: 700; font-size: 0.92rem; color: var(--pm-text-primary);">標準印刷 PDF (.pdf)</div>
               <div style="font-size: 0.72rem; color: var(--pm-text-muted); line-height: 1.3;">
-                依規格內嵌出血、裁切標記與對位規矩線（RGB 內容，印刷廠仍需自行做 CMYK 分色）。
+                依規格內嵌出血、裁切標記與對位規矩線；分色服務可用時依色彩描述檔輸出 CMYK，否則輸出 RGB 並在小抄註明。
               </div>
             </button>
 

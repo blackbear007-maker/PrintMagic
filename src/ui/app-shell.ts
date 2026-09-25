@@ -105,7 +105,7 @@ export const APP_SHELL_HTML = `
                 <div style="width: 36px; height: 36px; border-radius: 10px; background: rgba(52, 199, 89, 0.1); color: var(--pm-status-success); display: flex; align-items: center; justify-content: center; font-size: 1.05rem; font-weight: 800; flex-shrink: 0;">2</div>
                 <div>
                   <h5 style="font-size: 0.9rem; font-weight: 700; color: var(--pm-text-primary); margin: 0 0 4px 0;"><img src="icons/shared/magnifier.webp" alt="" class="pm-icon-img" /> 自動放大補足 DPI 與 100 分印前健檢</h5>
-                  <p style="font-size: 0.78rem; color: var(--pm-text-secondary); margin: 0; line-height: 1.45;">系統依目標 DPI 自動放大、USM 銳化與 CMYK 墨量安全防護。看到懸浮膠囊亮起「100分 完美就緒」即可安心輸出！</p>
+                  <p style="font-size: 0.78rem; color: var(--pm-text-secondary); margin: 0; line-height: 1.45;">系統依目標 DPI 自動放大與 USM 銳化，並列出修正前後的分數。分數偏低時先看列出的問題，原圖太小就換一張更大的。</p>
                 </div>
               </div>
               <div style="display: flex; gap: 14px; padding: 14px; background: var(--pm-bg-secondary); border: 1px solid var(--pm-border-subtle); border-radius: 12px;">
@@ -475,7 +475,7 @@ export const APP_SHELL_HTML = `
                 <img class="pm-dock-icon" src="icons/shared/printer.webp" alt="" />
                 <span class="pm-dock-name">出機中心</span>
               </button>
-              <button id="btnExportPdf" class="pm-dock-btn" title="匯出含裁切十字與出血的印刷用 PDF（RGB，CMYK 轉換由印刷廠處理）">
+              <button id="btnExportPdf" class="pm-dock-btn" title="匯出含裁切十字與出血的印刷用 PDF（分色服務可用時為 CMYK，否則為 RGB，由印刷廠轉檔）">
                 <img class="pm-dock-icon" src="icons/shared/document-page.webp" alt="" />
                 <span class="pm-dock-name">標準 PDF</span>
               </button>

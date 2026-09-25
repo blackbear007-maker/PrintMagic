@@ -70,9 +70,14 @@ export class XiaoxiangAssistant {
     specCopy: '「傳給老闆一句話」複製好了。直接貼在 LINE 傳給印刷廠，你不用在那邊背出血和解析度數字。',
     objectEraser: '要修圖？用筆刷塗掉不要的雜物或路人，我幫你算底圖補回去。',
     textInspect: '文字檢測看過了。幫你檢查了有沒有怪異亂碼或 AI 偽字。',
-    exportPdf: 'PDF 輸出完成，角線、十字規矩線和色條都放好了。顏色還是 RGB，送印時跟老闆說一聲請他轉 CMYK。',
+    exportPdfRgb: 'PDF 輸出完成，角線、十字規矩線和色條都放好了。這次分色服務沒接上，顏色還是 RGB，送印時跟老闆說一聲請他轉 CMYK。',
     exportPng: '300 DPI 高清 PNG 已下載。拿去傳 LINE 或手機沖洗相片剛剛好。'
   };
+
+  /** After a CMYK PDF download (the condition comes from the separation service, e.g. "Japan Color 2001 Coated"). */
+  public static exportPdfCmykLine(outputCondition: string): string {
+    return `PDF 輸出完成，已經照 ${outputCondition} 分色成 CMYK，角線、十字規矩線和色條都放好了。跟老闆說檔案已經是 CMYK，直接印、不用再轉。`;
+  }
 
   constructor(containerId = 'xiangAssistantRoot') {
     let el = document.getElementById(containerId);
@@ -219,7 +224,7 @@ export class XiaoxiangAssistant {
       '「我爸開印刷廠三十年，最怕客人給 72 DPI 的圖說要印兩米海報。還好有我幫你先補到 300 DPI。」',
       '「單單上次環島也拍了一堆海邊照，叫我幫她印滿一張 A3，拿 250P 霧面印出來是真的挺好看。」',
       '「不要的東西用消除筆塗掉就好，底圖我幫你算。不用開 Photoshop 搞老半天。」',
-      '「送印直接丟我給你的 PDF 就好，出血十字色條全都有。記得跟老闆說一聲是 RGB 檔，請他轉 CMYK。」',
+      '「送印直接丟我給你的 PDF 就好，出血十字色條全都有。是 CMYK 還是 RGB，下載完我會跟你說。」',
       '「那就好。」',
       '「字體我有幫你看，AI 生的怪字或英文拼錯都幫你挑出來了。」'
     ];
