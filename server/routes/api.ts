@@ -1,6 +1,4 @@
 import express, { Router, type Request, type Response } from 'express';
-import { IccService } from '../services/icc-service.js';
-import { PdfxService } from '../services/pdfx-service.js';
 
 export const apiRouter = Router();
 
@@ -43,59 +41,8 @@ apiRouter.get('/health', async (_req: Request, res: Response) => {
     service: 'PrintMagic Industrial Cloud Engine',
     version: '3.1.0',
     uptimeSeconds: Math.floor(process.uptime()),
-    features: ['pdfx-1a', 'pdfx-4', 'icc-profiles', 'tac-validator'],
     services: await probeServices()
   });
-});
-
-// List ICC Profiles
-apiRouter.get('/icc-profiles', (_req: Request, res: Response) => {
-  const profiles = IccService.listProfiles();
-  res.json({
-    success: true,
-    profiles
-  });
-});
-
-// Pre-flight validation
-apiRouter.post('/preflight', (req: Request, res: Response) => {
-  const { maxTac = 300, profileId = 'japan-color-2001-coated' } = req.body;
-  const result = IccService.validateTacCompliance(maxTac, profileId);
-  res.json({
-    success: true,
-    result
-  });
-});
-
-// Export server-side pre-press PDF (RGB content; not a validated PDF/X file — see pdfx-service.ts)
-apiRouter.post('/export-pdfx', async (req: Request, res: Response) => {
-  try {
-    const { imageDataUrl, preset, iccProfileId, pdfStandard, artworkName } = req.body;
-
-    if (!imageDataUrl || !preset) {
-      res.status(400).json({ success: false, error: 'imageDataUrl and preset are required' });
-      return;
-    }
-
-    const { buffer, checksum, fileName, standard, iccName } = await PdfxService.generatePdfx({
-      imageDataUrl,
-      preset,
-      iccProfileId,
-      pdfStandard,
-      artworkName
-    });
-
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(fileName)}"`);
-    res.setHeader('X-PrintMagic-Checksum', checksum);
-    res.setHeader('X-PrintMagic-Standard', standard);
-    res.setHeader('X-PrintMagic-ICC', encodeURIComponent(iccName));
-
-    res.send(buffer);
-  } catch (err: any) {
-    console.error('PDF/X export error:', err);
-    res.status(500).json({ success: false, error: err?.message || 'Failed to generate PDF/X' });
-  }
 });
 
 // 🌙 Retinexformer Low-Light Enhancement (real trained weights, committed to git, see
@@ -275,73 +222,3 @@ apiRouter.post('/vectorize', async (req: Request, res: Response) => {
     });
   }
 });
-
-// 🏁 K100 Pure Black Vector Barcode / QR Generator Endpoint — ⚠️ not actually scannable, see
-// the honesty note in src/core/k100-barcode-generator.ts. Not called by any UI in this app.
-apiRouter.post('/prepress/k100-barcode', async (req: Request, res: Response) => {
-  try {
-    const { text, type = 'qr' } = req.body;
-    if (!text) {
-      res.status(400).json({ success: false, error: 'text is required' });
-      return;
-    }
-    const { PrepressToolkitService } = await import('../services/prepress-toolkit.js');
-    const svg = PrepressToolkitService.generateBarcode(text, type);
-    res.setHeader('Content-Type', 'image/svg+xml; charset=utf-8');
-    res.send(svg);
-  } catch (err: any) {
-    res.status(500).json({ success: false, error: err?.message || 'Barcode generation failed' });
-  }
-});
-
-// ⚡ SVGO Vector Path & Dieline Optimizer Endpoint
-apiRouter.post('/prepress/optimize-svg', async (req: Request, res: Response) => {
-  try {
-    const { svg, precision = 1 } = req.body;
-    if (!svg) {
-      res.status(400).json({ success: false, error: 'svg content is required' });
-      return;
-    }
-    const { PrepressToolkitService } = await import('../services/prepress-toolkit.js');
-    const result = PrepressToolkitService.optimizeSvg(svg, precision);
-    res.json({ success: true, ...result });
-  } catch (err: any) {
-    res.status(500).json({ success: false, error: err?.message || 'SVG optimization failed' });
-  }
-});
-
-// 📐 Gang-Run Imposition Layout Calculator Endpoint
-apiRouter.post('/prepress/imposition', async (req: Request, res: Response) => {
-  try {
-    const { itemWidthMm, itemHeightMm, sheetId = 'A3', cuttingGapMm = 3 } = req.body;
-    if (!itemWidthMm || !itemHeightMm) {
-      res.status(400).json({ success: false, error: 'itemWidthMm and itemHeightMm are required' });
-      return;
-    }
-    const { PrepressToolkitService } = await import('../services/prepress-toolkit.js');
-    const result = PrepressToolkitService.calculateImposition(Number(itemWidthMm), Number(itemHeightMm), sheetId, Number(cuttingGapMm));
-    res.json({ success: true, result });
-  } catch (err: any) {
-    res.status(500).json({ success: false, error: err?.message || 'Imposition calculation failed' });
-  }
-});
-
-// 🌈 Pantone Spot Color Matcher Endpoint
-apiRouter.post('/prepress/pantone-match', async (req: Request, res: Response) => {
-  try {
-    const { r, g, b } = req.body;
-    if (r === undefined || g === undefined || b === undefined) {
-      res.status(400).json({ success: false, error: 'r, g, b are required' });
-      return;
-    }
-    const { PrepressToolkitService } = await import('../services/prepress-toolkit.js');
-    const match = PrepressToolkitService.matchPantone(Number(r), Number(g), Number(b));
-    res.json({ success: true, match });
-  } catch (err: any) {
-    res.status(500).json({ success: false, error: err?.message || 'Pantone match failed' });
-  }
-});
-
-
-
-

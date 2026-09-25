@@ -24,7 +24,6 @@ export interface ZeroDceResult {
   meanLuminanceBefore: number;
   meanLuminanceAfter: number;
   shadowBoostFactor: number;
-  noiseAmplificationRatio: number;
 }
 
 export class ZeroDceEnhancer {
@@ -96,8 +95,7 @@ export class ZeroDceEnhancer {
       enhancedImageData: createImageData(outData, w, h),
       meanLuminanceBefore: Number(meanLumBefore.toFixed(1)),
       meanLuminanceAfter: Number(meanLumAfter.toFixed(1)),
-      shadowBoostFactor: Number(((meanLumAfter / (meanLumBefore || 1))).toFixed(2)),
-      noiseAmplificationRatio: 1.02 // Non-linear curve does not amplify high-frequency sensor noise
+      shadowBoostFactor: Number(((meanLumAfter / (meanLumBefore || 1))).toFixed(2))
     };
   }
 }

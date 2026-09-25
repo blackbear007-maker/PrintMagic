@@ -15,8 +15,6 @@ import { workerClient } from '../workers/worker-client';
 import { ShadowLift } from './shadow-lift';
 import { HandShadowBalancer } from './hand-shadow-balancer';
 import { AntiBandingFilter } from './anti-banding';
-import { PantoneMatcher } from './pantone-matcher';
-import { BarcodeVerifier } from './barcode-verifier';
 import { MoireRiskPredictor } from './moire-risk-predictor';
 import { SceneClassifier } from './scene-classifier';
 import { LineArtUpscaler } from './line-art-upscaler';
@@ -289,17 +287,6 @@ export class PipelineOrchestrator {
           ? { sourceWidth: srcImageData.width, sourceHeight: srcImageData.height, method: upscaleMethod }
           : undefined
       });
-      const dominantPantones = PantoneMatcher.extractDominantSpotColors(processedImgData, 3);
-      const barcodeReport = BarcodeVerifier.verifyImage(processedImgData, 300);
-
-      if (dominantPantones.length > 0) {
-        const pantoneSummary = dominantPantones.map((p) => `${p.pantone.code} (${p.pantone.name})`).join(' · ');
-        scoreResult.recommendations.push(`🌈 Pantone 專色配對：${pantoneSummary}`);
-      }
-      if (barcodeReport.hasBarcode && !barcodeReport.isLegible) {
-        scoreResult.issues.push(...barcodeReport.issues);
-        scoreResult.recommendations.push(...barcodeReport.recommendations);
-      }
 
       // Moiré risk preflight (見 src/core/moire-risk-predictor.ts) — wrapped locally so a failure
       // here can't abort the whole Step 4 diagnostic; this is a bonus check, not core safety math.

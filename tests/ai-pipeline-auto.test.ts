@@ -1,12 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { HandShadowBalancer } from '../src/core/hand-shadow-balancer';
-import { ObjectEraser } from '../src/core/object-eraser';
 import { DEFAULT_PIPELINE_OPTIONS } from '../src/types';
-import { PantoneMatcher } from '../src/core/pantone-matcher';
-import { BarcodeVerifier } from '../src/core/barcode-verifier';
-import { AntiBandingFilter } from '../src/core/anti-banding';
 
-describe('Unified PyTorch AI & Automated Pre-Press Pipeline (全自動啟用驗證)', () => {
+describe('Automatic pre-press pipeline defaults and local steps', () => {
   const createMockImageData = (w: number, h: number, r = 200, g = 200, b = 200, a = 255): ImageData => {
     const data = new Uint8ClampedArray(w * h * 4);
     for (let i = 0; i < data.length; i += 4) {
@@ -18,7 +14,7 @@ describe('Unified PyTorch AI & Automated Pre-Press Pipeline (全自動啟用驗�
     return { width: w, height: h, data, colorSpace: 'srgb' } as ImageData;
   };
 
-  it('should have all 9 pre-press optimizations enabled by default in DEFAULT_PIPELINE_OPTIONS', () => {
+  it('enables the automatic pre-press steps by default and leaves deshadow opt-in', () => {
     expect(DEFAULT_PIPELINE_OPTIONS.enableUpscale).toBe(true);
     expect(DEFAULT_PIPELINE_OPTIONS.enableSharpening).toBe(true);
     expect(DEFAULT_PIPELINE_OPTIONS.enableInkLimiting).toBe(true);
@@ -48,43 +44,5 @@ describe('Unified PyTorch AI & Automated Pre-Press Pipeline (全自動啟用驗�
     // Shadowed pixels should be brightened
     const shadowIdx = (30 * 60 + 10) * 4;
     expect(deshadowed.data[shadowIdx]).toBeGreaterThan(60);
-  });
-
-  it('should inpaint masked pixels using ObjectEraser', () => {
-    const src = createMockImageData(40, 40, 200, 200, 200);
-    const mask = createMockImageData(40, 40, 0, 0, 0, 0);
-
-    // Mask center 10x10 area
-    for (let y = 15; y < 25; y++) {
-      for (let x = 15; x < 25; x++) {
-        const idx = (y * 40 + x) * 4;
-        mask.data[idx] = 255;
-        mask.data[idx + 3] = 255;
-      }
-    }
-
-    const inpainted = ObjectEraser.inpaint(src, mask);
-    expect(inpainted.width).toBe(40);
-    expect(inpainted.height).toBe(40);
-  });
-
-  it('should perform full multi-stage automated prepress pass without errors', () => {
-    let img = createMockImageData(50, 50, 180, 50, 50);
-
-    // 1. Auto Deshadow
-    img = HandShadowBalancer.deshadow(img, 0.7);
-    expect(img).toBeDefined();
-
-    // 2. Auto Anti-Banding
-    img = AntiBandingFilter.apply(img, 0.65);
-    expect(img).toBeDefined();
-
-    // 3. Auto Pantone
-    const pantones = PantoneMatcher.extractDominantSpotColors(img, 2);
-    expect(pantones.length).toBeGreaterThan(0);
-
-    // 4. Auto Barcode Verify
-    const barcode = BarcodeVerifier.verifyImage(img, 300);
-    expect(typeof barcode.isLegible).toBe('boolean');
   });
 });

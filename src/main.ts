@@ -17,7 +17,7 @@ import { NearbyShopsModal } from './ui/nearby-shops-modal';
 import { DirectPrintModal } from './ui/direct-print-modal';
 import { BatchBar } from './ui/batch-bar';
 import { CropController } from './ui/crop-controller';
-import { CloudClient } from './services/cloud-client';
+import { NetworkGuard } from './services/network-guard';
 import { Toast } from './ui/toast';
 import { SoundEffects } from './core/sound-effects';
 import { CmykEngine } from './core/cmyk-engine';
@@ -170,7 +170,7 @@ class App {
     this.updatePresetButtonsUI(store.getState().currentPreset.id, null);
 
     // Check Cloud Backend status on startup (Advanced mode only)
-    void CloudClient.checkHealth();
+    void NetworkGuard.checkHealth();
   }
 
   /** 任何直接改寫 processedImageData 的操作都要呼叫，避免熱力圖/軟打樣/色盲預覽顯示編輯前的舊圖。 */
@@ -343,7 +343,7 @@ class App {
     document.getElementById('btnEngineCloud')?.addEventListener('click', async () => {
       if (store.getState().engineMode === 'cloud') return;
       SoundEffects.sliderTick();
-      const isOnline = await CloudClient.checkHealth();
+      const isOnline = await NetworkGuard.checkHealth();
       store.setEngineMode('cloud');
       if (isOnline) {
         Toast.success('⚡ 已切換至【雲端AI模式】：在線運行 (可使用自建向量化 / 低光提亮服務)');

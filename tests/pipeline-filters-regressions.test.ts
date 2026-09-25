@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { createImageData } from '../src/core/image-data-factory';
-import { SharpenDeblurFilter } from '../src/core/sharpen-deblur-filter';
 import { LineArtUpscaler } from '../src/core/line-art-upscaler';
 import { HandShadowBalancer } from '../src/core/hand-shadow-balancer';
 import { UnsharpMask } from '../src/core/unsharp-mask';
@@ -12,14 +11,6 @@ function solid(w: number, h: number, v: number, a = 255): ImageData {
 }
 
 describe('pipeline filter regressions', () => {
-  it('deblur keeps flat tone and writes every pixel (no transparent black border)', () => {
-    const out = SharpenDeblurFilter.deblur(solid(10, 10, 100));
-    for (let i = 0; i < out.data.length; i += 4) {
-      expect(Math.abs(out.data[i] - 100)).toBeLessThanOrEqual(1);
-      expect(out.data[i + 3]).toBe(255);
-    }
-  });
-
   it('line-art scale 1 preserves size and transparency', () => {
     const src = solid(8, 8, 200, 0);
     const out = LineArtUpscaler.upscaleAnime(src, 1);
