@@ -28,7 +28,7 @@
 
 > ⚠️ **印前評分修正（2026-09-25）**：`PrintScoreCalculator` 的修正後分數把放大後的像素數當成細節，小圖放大後解析度一律滿分；銳利度因子用 Sobel 梯度平均值，對模糊幾乎沒有反應，對所有圖都給 100；加上其他因子固定貢獻約 65 分，無法印刷的縮圖仍有 72 分。已改為依「細節 DPI」評分（原圖 DPI × 放大倍率，上限內插 1.5 倍／Real-ESRGAN 2 倍，經驗值）、銳利度改量主要輪廓的邊緣寬度（在原圖尺度量）、細節低於 140 DPI 時總分設上限。`AiUpscaleResult` 新增 `engine` 欄位，區分自建 Real-ESRGAN 與本機後備。進階模式比較明細的權重標示原本與程式不符（墨量標 15%、明暗標 5%，實際皆 10%），已修正。詳見 README「印前評分」一節與 `tests/print-score-honesty.test.ts`。
 
-> ⚠️ **CMYK 印刷 PDF（2026-09-25）**：下載 PDF 時改為先經自建服務 `POST /icc/to-cmyk`（`docker/zero-dce/cmyk_convert.py`）以 Adobe 公開的印刷描述檔（依色彩描述檔選單：Japan Color 2001 Coated／Uncoated、Coated FOGRA39、Coated GRACoL 2006；Docker 建置時從 adobe.com 下載並核對 SHA-256，不進 git、不送到瀏覽器）做真正的 ICC 分色，再由前端 `CmykPdfWriter`（`src/engines/cmyk-pdf-writer.ts`）輸出 DeviceCMYK 的 PDF 1.3：套準色裁切線／規矩線、CMYK 色條、BleedBox／TrimBox、以 ICC 註冊代號註明印刷條件的 OutputIntent（不嵌入描述檔）。服務不可用時退回原本的 RGB 版面，所有送印說明依實際輸出的色彩模式產生。未經 PDF/X preflight 驗證，不宣稱 PDF/X 相容；雙面合版 PDF 仍為 RGB。驗證數據見 README「CMYK 印刷 PDF」一節。
+> ⚠️ **CMYK 印刷 PDF（2026-09-25）**：下載 PDF 時改為先經自建服務 `POST /icc/to-cmyk`（`docker/zero-dce/cmyk_convert.py`）以 Adobe 公開的印刷描述檔（依色彩描述檔選單：Japan Color 2001 Coated／Uncoated、Coated FOGRA39、Coated GRACoL 2006；Docker 建置時從 adobe.com 下載並核對 SHA-256，不進 git、不送到瀏覽器）做真正的 ICC 分色，再由前端 `CmykPdfWriter`（`src/engines/cmyk-pdf-writer.ts`）輸出 DeviceCMYK 的 PDF 1.3：套準色裁切線／規矩線、CMYK 色條、BleedBox／TrimBox、以 ICC 註冊代號註明印刷條件的 OutputIntent（不嵌入描述檔）。服務不可用時退回原本的 RGB 版面，所有送印說明依實際輸出的色彩模式產生。未經 PDF/X preflight 驗證，不宣稱 PDF/X 相容。雙面合版 PDF 改用同一套版面與分色（背面先補出血）；色彩描述檔的墨量上限改用 Adobe 官方數值（Coated 350／Uncoated 310／FOGRA39 330／GRACoL 340%）。驗證數據見 README「CMYK 印刷 PDF」一節。
 
 品質評分（ARNIQA 移除、`PixelStatQualityAssessor` 併入 `PrintScoreCalculator`）與本機 OCR（`free-ocr-client.ts` 新增）另有專屬章節，見 §1.1 與 §2.8.1。
 

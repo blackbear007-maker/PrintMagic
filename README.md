@@ -102,7 +102,9 @@
 - **描述檔**：Adobe 公開發布的 Japan Color 2001 Coated／Uncoated、Coated FOGRA39、Coated GRACoL 2006，在 Docker 建置時從 adobe.com 下載並比對 SHA-256。不進 git、不送到瀏覽器；PDF 只用 OutputIntent 註明 ICC 註冊的印刷條件代號（`JC200103`／`JC200104`／`FOGRA39`／`CGATS TR 006`），不嵌入描述檔。Adobe 授權明文允許把描述檔「嵌入影像檔」散布；這裡連嵌入都沒有，描述檔只在我們的伺服器上使用。
 - **退回 RGB**：本機模式、後端離線、服務逾時時，輸出原本的 RGB 版面。送印小抄、小象提醒、規格小抄、ZIP 裡的檢查清單都依「實際輸出的是哪一種」寫，CMYK 時寫明「請直接輸出、勿再轉檔」。
 - **驗證**：四個描述檔的純黑分色與 Photoshop 同描述檔的數值一致（Japan Color 2001 Coated：C91 M87 Y89 K79，Photoshop 為 93/88/89/80），Coated 最高總墨量 346%（標準上限 350%）。在 app 裡實際下載明信片 CMYK PDF（約 6.5 秒、6.5 MB）；用 PyMuPDF 開檔無修復、無警告，影像為 DeviceCMYK，框線尺寸正確，算圖結果與原圖平均差 6.6–7.2（0–255）。結構測試：`tests/cmyk-pdf-writer.test.ts`。
-- **限制**：未經 PDF/X preflight 工具驗證，不宣稱 PDF/X-1a 相容；PDF 內不含文字（避免嵌入字型）；雙面合版 PDF 仍是 RGB；TIFF／PNG／JPG 仍是 RGB。App 裡 Japan Color 2001 Uncoated 的墨量上限設 260%，但 Adobe 該描述檔實際分色最高約 303%，兩者尚未對齊。要重新建置 Railway 上的 `zero-dce` 服務才會在線上生效。
+- **雙面合版**：與單面同一套版面與分色，第 1 頁正面、第 2 頁背面；背面範本或上傳圖先用同一個鏡像外推補出血。舊的雙面 PDF 是成品尺寸、沒有出血與角線。分色服務不可用時兩頁一起退回 RGB（同樣版面），不會一頁 CMYK、一頁 RGB。
+- **墨量上限**：色彩描述檔選單的上限改用 Adobe《Profile Information》各描述檔的 Max. total ink——Japan Color 2001 Coated 350%、Uncoated 310%、Coated FOGRA39 330%、Coated GRACoL 2006 340%；以 33³ 色 sRGB 網格實測分色最高值（345.9／304.7／327.1／332.9%）都在上限內。舊值（Uncoated 260、FOGRA39 300、GRACoL 320）低於實際分色。
+- **限制**：未經 PDF/X preflight 工具驗證，不宣稱 PDF/X-1a 相容；CMYK PDF 內不含文字（避免嵌入字型）；TIFF／PNG／JPG 仍是 RGB。要重新建置 Railway 上的 `zero-dce` 服務才會在線上生效。
 
 ---
 
