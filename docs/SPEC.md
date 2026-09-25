@@ -1,7 +1,7 @@
 # PrintMagic Studio 3.1 系統產品規格說明書 (System & Product SPEC)
 
 > **版本**：v3.1.0-Release  
-> **最後更新日期**：2026-09-25  
+> **最後更新日期**：2026-09-26  
 > **系統定位**：全自動商業印前修復與出機工作站 (AI Pre-Press Engine & Multi-Format Exporter)  
 > **核心哲學**：100% 自由開源商用架構 · 0 外部收費 API 依賴 · 新手無腦一鍵出機 · 商業合規舉證  
 
@@ -29,6 +29,16 @@
 > ⚠️ **印前評分修正（2026-09-25）**：`PrintScoreCalculator` 的修正後分數把放大後的像素數當成細節，小圖放大後解析度一律滿分；銳利度因子用 Sobel 梯度平均值，對模糊幾乎沒有反應，對所有圖都給 100；加上其他因子固定貢獻約 65 分，無法印刷的縮圖仍有 72 分。已改為依「細節 DPI」評分（原圖 DPI × 放大倍率，上限內插 1.5 倍／Real-ESRGAN 2 倍，經驗值）、銳利度改量主要輪廓的邊緣寬度（在原圖尺度量）、細節低於 140 DPI 時總分設上限。`AiUpscaleResult` 新增 `engine` 欄位，區分自建 Real-ESRGAN 與本機後備。進階模式比較明細的權重標示原本與程式不符（墨量標 15%、明暗標 5%，實際皆 10%），已修正。詳見 README「印前評分」一節與 `tests/print-score-honesty.test.ts`。
 
 > ⚠️ **CMYK 印刷 PDF（2026-09-25）**：下載 PDF 時改為先經自建服務 `POST /icc/to-cmyk`（`docker/zero-dce/cmyk_convert.py`）以 Adobe 公開的印刷描述檔（依色彩描述檔選單：Japan Color 2001 Coated／Uncoated、Coated FOGRA39、Coated GRACoL 2006；Docker 建置時從 adobe.com 下載並核對 SHA-256，不進 git、不送到瀏覽器）做真正的 ICC 分色，再由前端 `CmykPdfWriter`（`src/engines/cmyk-pdf-writer.ts`）輸出 DeviceCMYK 的 PDF 1.3：套準色裁切線／規矩線、CMYK 色條、BleedBox／TrimBox、以 ICC 註冊代號註明印刷條件的 OutputIntent（不嵌入描述檔）。服務不可用時退回原本的 RGB 版面，所有送印說明依實際輸出的色彩模式產生。未經 PDF/X preflight 驗證，不宣稱 PDF/X 相容。雙面合版 PDF 改用同一套版面與分色（背面先補出血）；色彩描述檔的墨量上限改用 Adobe 官方數值（Coated 350／Uncoated 310／FOGRA39 330／GRACoL 340%）。驗證數據見 README「CMYK 印刷 PDF」一節。
+
+> ⚠️ **審視與刪減（2026-09-26）**：逐一確認功能是否真的有作用。**本文件下方各節對以下已刪除模組的描述保留為歷史紀錄，不再代表現況。**
+>
+> - **刪除的前端模組**：`color-region-selector`、`contrast-stretch-filter`、`curved-page-flattener`、`edge-contour-detector`、`gradient-centroid-cropper`、`kurbo-geometry`、`perspective-rectifier`、`sharpen-deblur-filter`、`smoothing-denoise-filter`、`subscription-tier`、`text-zone-detector`、`edge-choke-matting`、`free-ai-matting-client`（以上無任何引用）；`imposition-calculator`、`k100-barcode-generator`、`svg-path-optimizer`、`pantone-matcher`、`barcode-verifier`、`ink-limiter`、`foil-simulator`、`vector-overlay`（+ modal）、`print-pricing`、`order-package`、`geo-distance`、`data/print-shops`、`sample-artworks`、`cloud-client`；UI：`direct-print-modal`、`nearby-shops-modal`。
+> - **刪除的後端接口**：`/icc-profiles`、`/preflight`、`/export-pdfx`、`/prepress/k100-barcode`、`/prepress/optimize-svg`、`/prepress/imposition`、`/prepress/pantone-match`（前端從未呼叫），以及 `icc-service`、`pdfx-service`、`prepress-toolkit`。
+> - **理由**：捏造資料（估價、印刷廠名單、超商價格、拼版「省 X%」、規範宣稱）；沒有作用（TAC 模型最高 200%，熱力圖／壓制／評分墨量項從未作用；燙金與紙材只是 CSS；條碼檢查與 Pantone 結果無人顯示；刀模 SVG 只是兩個矩形）；會弄壞輸出（文字防糊把未確認的 RGB 點陣字蓋進下次輸出）。
+> - **評分**：拿掉恆為 100 的墨量項，權重改為解析度 40%、長寬比 15%、明暗 10%、飽和 10%、對比 10%、銳利度 15%；細節 < 140 DPI 的總分上限改為 50→84（連續）。
+> - **輸出修正**：新增 `src/core/print-layout.ts`——頁面方向跟隨圖片、依焦點九宮格 cover 裁切（不再拉伸；橫式照片曾被壓進直式 A4）、出血外推依正確方向計算；預覽照印刷比例裁切並畫出真正的裁切線與安全區；JPG 透明處不再變黑；簡易模式不再強制本機引擎；貼紙自動去背預設關閉；背面分頁不再自動塞入範本、移除含假聯絡資訊的名片背面範本。
+> - **雲端模式**：`/api/health` 探測 zero-dce 與 vtracer（快取 30 秒），`NetworkGuard` 對離線服務直接走本機演算法。
+> - **測試**：刪除保證會過的 stress／benchmark 與只測已刪模組的套件；USM、邊緣感知放大、線稿放大、Lanczos、Zero-DCE 後備、放大引擎標記、錯字模糊比對、預設 UI 模式改為檢查真實輸出。287 個測試約 4 秒。
 
 品質評分（ARNIQA 移除、`PixelStatQualityAssessor` 併入 `PrintScoreCalculator`）與本機 OCR（`free-ocr-client.ts` 新增）另有專屬章節，見 §1.1 與 §2.8.1。
 
