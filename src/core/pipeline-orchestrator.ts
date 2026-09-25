@@ -211,7 +211,9 @@ export class PipelineOrchestrator {
       // Step 3.5, the "文字防糊" overlay, is gone too: it stamped RGB raster text — including unconfirmed
       // OCR placeholders — into the output on the next re-run even if the user never pressed 套用.)
 
-      // Step 3.6: Auto background removal for die-cut sticker presets (2026-09-19). Background
+      // Step 3.6: Auto background removal for die-cut sticker presets (2026-09-19; opt-in since 2026-09-26 —
+      // detectBestPreset picks the sticker preset for any near-square image up to 1200px, so with this on
+      // by default ordinary square photos had their background removed without the user asking). Background
       // removal is only safe to assume as a default for artwork that's explicitly going to be
       // die-cut around its subject — applying it to a poster/postcard/business-card photo would
       // destroy an intentional background, so this is gated on the preset, not a global default.

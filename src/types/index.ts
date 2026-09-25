@@ -162,7 +162,7 @@ export interface PipelineOptions {
   enableBleedExpand: boolean;   // 📐 3mm 智慧出血自動補足
   enableAntiBanding: boolean;   // 🌊 漸層防斷階與抗色階條紋平滑 (Auto)
   enableDeshadow: boolean;      // ☀️ 手機拍畫手機倒影與光照均勻化 (Auto)
-  enableAutoBgRemoval: boolean; // ✂️ 模切貼紙自動去背 (Auto，僅在貼紙類預設套用)
+  enableAutoBgRemoval: boolean; // ✂️ 模切貼紙自動去背（預設關閉，僅在貼紙類預設套用）
 }
 
 export const DEFAULT_PIPELINE_OPTIONS: PipelineOptions = {
@@ -172,7 +172,7 @@ export const DEFAULT_PIPELINE_OPTIONS: PipelineOptions = {
   enableBleedExpand: true,
   enableAntiBanding: true,
   enableDeshadow: false,
-  enableAutoBgRemoval: true
+  enableAutoBgRemoval: false
 };
 
 export interface WorkerRequest {

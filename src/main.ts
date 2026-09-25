@@ -236,7 +236,7 @@ class App {
 
     // 7. 3D Luxury Foil & Spot UV Simulator
 
-    // 7. 20x Halftone Loupe
+    // 7. 10x Halftone Loupe (simulated screen)
     this.loupe = new LoupeController('stageContainer');
 
     // 8. Laser Scanline
@@ -443,7 +443,7 @@ class App {
       this.btnToggleLoupe.classList.toggle('active', active);
       SoundEffects.sliderTick();
       if (active) {
-        Toast.info('🔍 20x 網點顯微放大鏡已啟動');
+        Toast.info('🔍 10x 網點放大鏡已啟動（網點示意）');
         this.xiangAssistant?.say(XiaoxiangAssistant.LINES.loupeOn, 5000);
       }
     });
@@ -599,21 +599,11 @@ class App {
     document.getElementById('btnSideBack')?.addEventListener('click', () => {
       const ds = this.doubleSidedManager.getState();
       if (!ds.hasBack) {
-        // Auto generate default back template if none exists.
-        // 2026-08-29 修正：這裡原本不管目前選的是哪個規格，一律寫死套用明信片公版——名片規格的使用者
-        // 切到背面分頁時，會拿到尺寸正確但版型錯誤的明信片背面（郵遞區號框、寄件框等），而不是名片
-        // 背面該有的公司/聯絡資訊版型。已改成跟「載入公版」按鈕（下面 btnLoadBackTemplate）同一套依
-        // 目前選取規格判斷版型的邏輯，兩個入口現在保持一致。
-        const state = store.getState();
-        const tmplType: BackTemplateType =
-          state.currentPreset.id === 'business-card' ? 'business_card_minimal' : 'postcard_standard';
-        const tmpl = DoubleSidedManager.generateBackTemplate(tmplType, state.currentPreset);
-        this.doubleSidedManager.setBackImage(tmpl.dataUrl, tmpl.imageData);
-        Toast.success(
-          tmplType === 'business_card_minimal'
-            ? '✨ 已為您自動載入標準名片背面公版！'
-            : '✨ 已為您自動載入標準明信片背面公版！'
-        );
+        // 2026-09-26: this used to insert a template here, which then printed as PDF page 2 just because
+        // the user looked at the back tab — for business cards with placeholder text and a fake phone
+        // number. Now the back stays empty until the user loads a template or uploads a back image.
+        Toast.info('還沒有背面：按「載入公版」，或一次上傳兩張圖（第二張當背面）');
+        return;
       }
 
       this.doubleSidedManager.setActiveSide('back');
@@ -630,8 +620,9 @@ class App {
 
     document.getElementById('btnLoadBackTemplate')?.addEventListener('click', () => {
       const state = store.getState();
-      const tmplType: BackTemplateType =
-        state.currentPreset.id === 'business-card' ? 'business_card_minimal' : 'postcard_standard';
+      // Business cards get a blank back: the old one printed "COMPANY NAME", example.com and a made-up
+      // phone number that could not be edited.
+      const tmplType: BackTemplateType = state.currentPreset.id === 'postcard' ? 'postcard_standard' : 'blank_white';
       const tmpl = DoubleSidedManager.generateBackTemplate(tmplType, state.currentPreset);
       this.doubleSidedManager.setBackImage(tmpl.dataUrl, tmpl.imageData);
       this.doubleSidedManager.setActiveSide('back');
@@ -644,8 +635,11 @@ class App {
 
     // Backside Quick Prompt Click
     document.getElementById('btnPromptAddBack')?.addEventListener('click', () => {
-      document.getElementById('btnSideBack')?.click();
-      this.xiangAssistant?.say('切換至【背面】。在背面分頁拖入單張圖片即會設為背面，或點【載入公版】直接使用設計好的背面！', 5000);
+      if (store.getState().currentPreset.id === 'postcard') {
+        document.getElementById('btnLoadBackTemplate')?.click();
+      } else {
+        Toast.info('名片背面請用自己的背面圖：和正面一起上傳兩張，第二張會當背面');
+      }
     });
 
     // ☀️ Opt-in phone-photo illumination flattening (HandShadowBalancer), default off
@@ -1292,8 +1286,9 @@ class App {
     // most categories (see the honesty note in scene-classifier.ts: only the super-resolution step for
     // anime/portrait/landscape is actually invoked later in the pipeline; nothing else here is auto-run).
     // Preset matching IS real; the named pipeline is a suggestion, so the wording now says so honestly.
-    this.xiangAssistant?.say(`🎯 偵測到為【${scene.categoryIcon} ${scene.categoryNameZh}${traitInfo}】！已為您自動匹配【${autoPreset.nameZh}】，建議搭配處理流程（${scene.recommendedPipeline.superResolutionModel}）！`, 7500);
-    Toast.success(`✨ 智慧辨識：【${scene.categoryIcon} ${scene.categoryNameZh}】· 已自動匹配專屬預設！`);
+    // The preset comes from detectBestPreset (aspect ratio only); the scene class only picks the upscale path.
+    this.xiangAssistant?.say(`🎯 看起來是【${scene.categoryIcon} ${scene.categoryNameZh}${traitInfo}】。依圖片比例先選了【${autoPreset.nameZh}】，不對的話上面可以換。`, 7500);
+    Toast.success(`✨ 依圖片比例選了【${autoPreset.nameZh}】`);
 
     // Show/hide backside quick prompt based on preset and batch count
     const promptAddBack = document.getElementById('btnPromptAddBack');

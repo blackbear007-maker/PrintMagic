@@ -16,7 +16,7 @@ export const PIPELINE_ITEMS: PipelineItemDef[] = [
     key: 'enableUpscale',
     icon: '<img src="icons/shared/magnifier.webp" alt="" class="pm-icon-img" />',
     title: '8x 金字塔超解析度放大',
-    desc: '將低解析原圖透過 Lanczos-3 或邊緣強化演算法放大至 300+ DPI 印刷標準（本機決定性演算法，非神經網路）。',
+    desc: '把低解析原圖放大到目標 DPI：雲端模式用自建 Real-ESRGAN 模型，本機或離線時用 Lanczos-3／邊緣強化演算法。放大補不出原圖沒有的細節，評分會照實反映。',
     defaultHint: '開：自動補足解析度',
     offHint: '關：維持原始像素尺寸'
   },
@@ -66,7 +66,7 @@ export const PIPELINE_ITEMS: PipelineItemDef[] = [
     key: 'enableAutoBgRemoval',
     icon: '<img src="icons/shared/scissors.webp" alt="" class="pm-icon-img" />',
     title: '模切貼紙自動去背',
-    desc: '僅在選用「模切貼紙」規格時，上傳後自動去背，省去手動點擊「髮絲去背」的步驟。其他規格（海報/名片/明信片等）不受影響，因為那些通常需要保留背景。',
+    desc: '開啟後，選用「模切貼紙」規格時上傳即自動去背。預設關閉：接近正方形、1200px 以下的圖會被自動歸到貼紙規格，一般照片不該被偷偷去背。',
     defaultHint: '開：貼紙自動去背',
     offHint: '關：需手動點擊去背'
   }

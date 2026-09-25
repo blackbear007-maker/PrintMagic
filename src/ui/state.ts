@@ -150,7 +150,7 @@ class StateStore {
       enableBleedExpand: true,
       enableAntiBanding: true,
       enableDeshadow: false,
-      enableAutoBgRemoval: true
+      enableAutoBgRemoval: false
     },
     manualEnhancementsApplied: { ...DEFAULT_MANUAL_ENHANCEMENTS }
   };

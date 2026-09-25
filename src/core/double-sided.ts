@@ -1,7 +1,7 @@
 import type { PrintPreset } from '../types';
 
 export type ActiveSide = 'front' | 'back';
-export type BackTemplateType = 'postcard_standard' | 'business_card_minimal' | 'blank_white';
+export type BackTemplateType = 'postcard_standard' | 'blank_white';
 
 export interface DoubleSidedState {
   hasBack: boolean;
@@ -134,50 +134,6 @@ export class DoubleSidedManager {
       ctx.font = 'bold 36px serif';
       ctx.textAlign = 'center';
       ctx.fillText('POST CARD', canvas.width / 2, 100);
-    } else if (type === 'business_card_minimal') {
-      // Minimalist Business Card Back Layout
-      ctx.fillStyle = '#1c1c1e';
-      ctx.font = 'bold 44px sans-serif';
-      ctx.textAlign = 'left';
-      ctx.fillText('COMPANY NAME / BRAND', 80, 140);
-
-      ctx.fillStyle = '#8e8e93';
-      ctx.font = '26px sans-serif';
-      ctx.fillText('Creative Studio · Digital Printing Solutions', 80, 190);
-
-      // Divider
-      ctx.strokeStyle = '#e5e5ea';
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.moveTo(80, 240);
-      ctx.lineTo(canvas.width - 80, 240);
-      ctx.stroke();
-
-      // Contact Details
-      ctx.fillStyle = '#3a3a3c';
-      ctx.font = '26px sans-serif';
-      ctx.fillText('🌐 https://example.com', 80, 320);
-      ctx.fillText('📧 contact@example.com', 80, 380);
-      ctx.fillText('📱 +886 912-345-678', 80, 440);
-
-      // QR Code Placement Indicator Box
-      const qrSize = 180;
-      const qrX = canvas.width - qrSize - 80;
-      const qrY = canvas.height - qrSize - 80;
-      ctx.strokeStyle = '#d1d1d6';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(qrX, qrY, qrSize, qrSize);
-
-      ctx.fillStyle = '#8e8e93';
-      ctx.font = 'bold 22px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('QR CODE', qrX + qrSize / 2, qrY + qrSize / 2 + 8);
-    } else {
-      // Blank White with subtle watermark in bleed margin
-      ctx.fillStyle = '#aeaeb2';
-      ctx.font = '22px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('— 背面空白 (Blank Page) —', canvas.width / 2, canvas.height / 2);
     }
 
     const dataUrl = canvas.toDataURL('image/png');

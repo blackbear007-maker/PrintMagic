@@ -31,6 +31,12 @@ export class SpecModal {
       ? `CMYK（已依 ${lastPdf!.outputCondition} 分色，請直接輸出、勿再轉檔）`
       : 'RGB（如需 CMYK 請印刷廠協助轉檔）';
     const bleed = currentPreset.bleedMm;
+    const markParts = [
+      currentPreset.cropMarks ? '0.1mm 角線' : '',
+      currentPreset.colorBars ? '色條' : '',
+      currentPreset.registrationMarks ? '十字規矩線' : ''
+    ].filter(Boolean);
+    const marksText = markParts.length > 0 ? `內嵌 ${markParts.join('、')}` : '此版型不加印刷標記';
     const totalW = currentPreset.widthMm + bleed * 2;
     const totalH = currentPreset.heightMm + bleed * 2;
 
@@ -49,7 +55,7 @@ export class SpecModal {
 ■ 實體解析度：${dpiAnalysis?.currentDpi || currentPreset.targetDpi} DPI 實體渲染
 ${tacLine ? `■ 總墨量 TAC：${tacLine}
 ` : ''}■ 色彩模式：${colorLine}
-■ 裁切標記：內嵌 0.1mm 向量角線、色條與十字套準
+■ 印刷標記：${marksText}
 ■ 建議紙材：${paperName}
 ■ 檔案備註：已通過 PrintMagic 本機自動預檢（非第三方獨立驗證）`;
 
@@ -80,7 +86,7 @@ ${tacLine ? `■ 總墨量 TAC：${tacLine}
           </div>
           <div class="pm-spec-row">
             <span class="pm-spec-k">實體解析度</span>
-            <span class="pm-spec-v">${dpiAnalysis?.currentDpi || 300} DPI (標準印刷級)</span>
+            <span class="pm-spec-v">${dpiAnalysis?.currentDpi || currentPreset.targetDpi} DPI</span>
           </div>
 ${tacLine ? `          <div class="pm-spec-row">
             <span class="pm-spec-k">總墨量 TAC</span>
@@ -92,7 +98,7 @@ ${tacLine ? `          <div class="pm-spec-row">
           </div>
           <div class="pm-spec-row">
             <span class="pm-spec-k">裁切與套準</span>
-            <span class="pm-spec-v">已內嵌 0.1mm 向量角線、色條、十字標記</span>
+            <span class="pm-spec-v">${marksText}</span>
           </div>
         </div>
 

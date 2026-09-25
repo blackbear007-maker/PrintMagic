@@ -231,14 +231,14 @@ export const APP_SHELL_HTML = `
               <button id="btnToggleCompare" class="pm-tool-btn" title="切換雙向滑桿對比檢視，一秒查看優化前後細節差異">
                 <img src="icons/shared/eye.webp" alt="" class="pm-icon-img" /> 原圖對比
               </button>
-              <button id="btnOpenObjectEraser" class="pm-tool-btn" style="background: rgba(255, 45, 85, 0.08); color: #d6204b; border-color: rgba(255, 45, 85, 0.25); font-weight: 600;" title="使用智慧塗抹消除筆移除相片中多餘的人物、浮水印、背景雜物或瑕疵（本機演算法，非生成式 AI）">
+              <button id="btnOpenObjectEraser" class="pm-tool-btn" style="background: rgba(255, 45, 85, 0.08); color: #d6204b; border-color: rgba(255, 45, 85, 0.25); font-weight: 600;" title="使用智慧塗抹消除筆移除相片中多餘的人物、浮水印、背景雜物或瑕疵（雲端模式用自建 LaMa 模型，本機模式用本機修補演算法）">
                 <img src="icons/shared/magic-wand.webp" alt="" class="pm-icon-img" /> 消除物件
               </button>
               <button id="btnOpenTextInspect" class="pm-tool-btn pm-advanced-only" style="background: rgba(52, 199, 89, 0.08); color: #248a3d; border-color: rgba(52, 199, 89, 0.25); font-weight: 600;" title="自動辨識圖中文字，檢查 AI 繪圖常見的英文拼寫錯誤與怪異亂碼">
                 <img src="icons/header/text-inspect.webp" alt="" class="pm-icon-img" /> 檢查文字
               </button>
-              <button id="btnToggleLoupe" class="pm-tool-btn pm-advanced-only" title="切換 20x CMYK 玫瑰網點顯微放大鏡">
-                <img src="icons/shared/magnifier.webp" alt="" class="pm-icon-img" /> 20x 網點
+              <button id="btnToggleLoupe" class="pm-tool-btn pm-advanced-only" title="切換 10x 網點放大鏡（模擬的網點示意，不是 PDF 的實際分色）">
+                <img src="icons/shared/magnifier.webp" alt="" class="pm-icon-img" /> 10x 網點
               </button>
             </div>
 
@@ -282,7 +282,7 @@ export const APP_SHELL_HTML = `
               <button id="btnToggleSafeZone" class="pm-tool-btn active" title="顯示裁切線與安全區（預覽已依印刷比例裁切）">
                 <img src="icons/shared/ruler-vector.webp" alt="" class="pm-icon-img" /> 出血框
               </button>
-              <button id="btnToggleSoftProof" class="pm-tool-btn" title="模擬 CMYK 實體印刷打樣色彩">
+              <button id="btnToggleSoftProof" class="pm-tool-btn" title="預覽 CMYK 印刷後的顏色（未上傳印刷廠 ICC 時為公式估算，與 PDF 的實際分色不同）">
                 <img src="icons/shared/printer.webp" alt="" class="pm-icon-img" /> 軟打樣
               </button>
               <button id="btnToggleCvdPreview" class="pm-tool-btn" title="色盲/色覺辨識障礙預覽：模擬紅綠色盲(protanopia/deuteranopia)、藍黃色盲(tritanopia)使用者實際看到的顏色，檢查設計是否過度依賴顏色分辨（Machado 2009 生理模型）">
@@ -293,7 +293,7 @@ export const APP_SHELL_HTML = `
               </button>
             </div>
 
-            <div class="pm-icc-profile-control" title="上傳您印刷廠提供的 CMYK ICC 描述檔（.icc/.icm），軟打樣將改用該描述檔透過自建服務進行真實色彩管理運算（LittleCMS）；未上傳時沿用內建的近似模擬。描述檔會隨圖片一併傳送至本專案自建的處理服務進行運算，不會轉存或用於其他用途；開啟「100% 本機模式」(Privacy Shield) 時，此功能會停用並自動改回近似模擬。">
+            <div class="pm-icc-profile-control" title="上傳您印刷廠提供的 CMYK ICC 描述檔（.icc/.icm），軟打樣將改用該描述檔透過自建服務進行真實色彩管理運算（LittleCMS）；未上傳時沿用內建的近似模擬。只影響螢幕上的軟打樣預覽，不影響下載的 PDF（PDF 依「色彩」選單分色）。描述檔會隨圖片一併傳送至本專案自建的處理服務，不會轉存或用於其他用途；本機模式下此功能停用。">
               <label for="iccProfileInput" class="pm-icc-upload-label pm-tool-btn">
                 <img src="icons/shared/folder-upload.webp" alt="" class="pm-icon-img" /> <span id="iccProfileStatus">上傳 ICC 描述檔（選用，真實色彩管理）</span>
               </label>

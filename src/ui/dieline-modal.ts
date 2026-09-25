@@ -73,7 +73,7 @@ export class DielineModal {
         <div class="pm-modal-header">
           <div class="pm-modal-title-group">
             <span class="pm-modal-title"><img src="icons/shared/scissors.webp" alt="" class="pm-icon-img" /> 智慧造型刀模 & 白墨專色層生成器</span>
-            <span class="pm-modal-subtitle">透明貼紙、雷射貼紙、壓克力專用：自動生成 0.2mm 內縮白墨防溢底層與 2mm 洋紅外擴向量刀模線</span>
+            <span class="pm-modal-subtitle">需要透明背景的圖：產生 0.2mm 內縮的白墨層與 2mm 外擴的刀模線（PNG 參考檔，不是向量路徑）</span>
           </div>
           <button class="pm-modal-close" id="btnDielineClose"><img src="icons/shared/close.webp" alt="" class="pm-icon-img" /></button>
         </div>
@@ -88,7 +88,7 @@ export class DielineModal {
               ⬜ 白墨專色層 (0.2mm 內縮防溢)
             </button>
             <button class="pm-tool-btn ${this.activeView === 'cut' ? 'active' : ''}" data-view="cut">
-              <img src="icons/shared/scissors.webp" alt="" class="pm-icon-img" /> 向量刀模線 (2mm 外擴洋紅)
+              <img src="icons/shared/scissors.webp" alt="" class="pm-icon-img" /> 刀模線 (2mm 外擴)
             </button>
             <button class="pm-tool-btn ${this.activeView === 'cmyk' ? 'active' : ''}" data-view="cmyk">
               <img src="icons/shared/palette.webp" alt="" class="pm-icon-img" /> CMYK 彩色印刷層
@@ -106,10 +106,10 @@ export class DielineModal {
               <div class="pm-summary-price-group">
                 <span class="pm-summary-currency">白墨與刀模</span>
                 <span class="pm-summary-amount">3</span>
-                <span class="pm-summary-tax">層分離式印刷封包</span>
+                <span class="pm-summary-tax">PNG 參考檔</span>
               </div>
               <div class="pm-summary-unit-price">
-                <img src="icons/shared/check.webp" alt="" class="pm-icon-img" /> 包含 100% 遮蔽率白墨層、0.2mm 內縮防溢白、100% Magenta 1pt 刀模路徑
+                <img src="icons/shared/check.webp" alt="" class="pm-icon-img" /> 白墨層與刀模線各一個 PNG；送印前請跟印刷廠確認需要的刀模格式（多數要向量檔）
               </div>
             </div>
 
@@ -118,7 +118,7 @@ export class DielineModal {
                 <img src="icons/shared/download.webp" alt="" class="pm-icon-img" /> 下載白墨專色層 (K100 PNG)
               </button>
               <button id="btnDownloadCutContourPng" class="pm-btn pm-btn-secondary pm-btn-md">
-                <img src="icons/shared/scissors.webp" alt="" class="pm-icon-img" /> 下載向量刀模線 (PNG)
+                <img src="icons/shared/scissors.webp" alt="" class="pm-icon-img" /> 下載刀模線 (PNG)
               </button>
             </div>
           </div>

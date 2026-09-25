@@ -126,7 +126,7 @@ export class CompareSlider {
 
             <!-- Bottom Note -->
             <div class="pm-cmp-card-footer">
-              <span id="cmpComplianceBadge"><img src="icons/shared/shield.webp" alt="" class="pm-icon-img" /> 檔案已符合本機印前檢查標準（尺寸/出血/DPI/墨量）</span>
+              <span id="cmpComplianceBadge"><img src="icons/shared/shield.webp" alt="" class="pm-icon-img" /> 本機檢查沒有發現問題（尺寸/出血/解析度）</span>
             </div>
           </div>
         </div>
@@ -178,7 +178,7 @@ export class CompareSlider {
     this.scoreDeltaEl.className = `pm-cmp-delta-pill ${delta > 0 ? 'pm-delta-up' : ''}`;
 
     if (afterScore.issues.length === 0) {
-      this.complianceBadgeEl.innerHTML = '<img src="icons/shared/shield.webp" alt="" class="pm-icon-img" /> 檔案已符合本機印前檢查標準（尺寸/出血/DPI/墨量）';
+      this.complianceBadgeEl.innerHTML = '<img src="icons/shared/shield.webp" alt="" class="pm-icon-img" /> 本機檢查沒有發現問題（尺寸/出血/解析度）';
     } else {
       this.complianceBadgeEl.innerHTML = `<img src="icons/shared/warning.webp" alt="" class="pm-icon-img" /> 仍有 ${afterScore.issues.length} 項待改善：${afterScore.issues[0]}`;
     }

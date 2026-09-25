@@ -105,8 +105,7 @@ export class ExportModal {
               </div>
               <div style="font-weight: 700; font-size: 0.92rem; color: var(--pm-text-primary);">工業級無損 TIFF (.tif)</div>
               <div style="font-size: 0.72rem; color: var(--pm-text-muted); line-height: 1.3;">
-                300 DPI 無壓縮點陣檔，無失真、分色清晰，傳統製版與大圖輸出必備。
-              </div>
+                300 DPI 無損點陣檔（RGB，不含出血與裁切標記）</div>
             </button>
 
             <!-- 3. High-Res PNG -->
