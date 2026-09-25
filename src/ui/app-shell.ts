@@ -41,6 +41,11 @@ export const APP_SHELL_HTML = `
           </button>
         </div>
 
+        <!-- Sound on/off (both modes): actions play short UI sounds; the choice is remembered (SoundEffects). -->
+        <button id="btnToggleSound" class="pm-tool-btn" style="padding: 6px 8px; min-width: 32px;" title="音效開關" aria-label="音效開關" aria-pressed="false">
+          <span id="soundIcon" aria-hidden="true">🔊</span>
+        </button>
+
         <!-- Consolidated Settings: everything below collapses behind one gear icon (Advanced Only) -->
         <button id="btnOpenHeaderSettings" class="pm-tool-btn pm-advanced-only" style="padding: 6px 8px;" title="更多設定：文字檢查、管線自訂、新手指南">
           <img src="icons/header/mode-advanced.webp" alt="" class="pm-icon-img" />

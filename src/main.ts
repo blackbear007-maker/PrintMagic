@@ -344,6 +344,22 @@ class App {
       }
     });
 
+    // Sound on/off (2026-09-26: sounds played with no way to turn them off — the old toggle's element was gone)
+    const btnToggleSound = document.getElementById('btnToggleSound');
+    const renderSoundButton = () => {
+      const muted = SoundEffects.getIsMuted();
+      const icon = document.getElementById('soundIcon');
+      if (icon) icon.textContent = muted ? '🔇' : '🔊';
+      btnToggleSound?.setAttribute('aria-pressed', String(muted));
+      btnToggleSound?.setAttribute('title', muted ? '音效已關閉（點一下開啟）' : '音效開啟中（點一下關閉）');
+    };
+    renderSoundButton();
+    btnToggleSound?.addEventListener('click', () => {
+      const muted = SoundEffects.toggleMute();
+      renderSoundButton();
+      Toast.info(muted ? '🔇 音效已關閉' : '🔊 音效已開啟');
+    });
+
     // Header Settings Gear: opens a tabbed modal collapsing 檢查文字/放大/管線自訂/新手指南/螢幕校準
     const headerSettingsModal = document.getElementById('headerSettingsModal');
     const openHeaderSettings = () => {
