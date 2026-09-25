@@ -12,7 +12,9 @@ import {
   type PrintPresetId,
   type PrintScoreResult,
   type TextInspectionResult,
-  type UiMode
+  type UiMode,
+  type SourceEdits,
+  NO_SOURCE_EDITS
 } from '../types';
 import { DEFAULT_PRESET, getPresetById } from '../core/presets';
 import type { CvdType } from '../core/color-blindness-simulator';
@@ -72,6 +74,9 @@ export interface AppState {
   // see pipeline-orchestrator.ts's step 3.6/3.7 comment for why these 4 stay opt-in). Tracked so
   // the export modal can remind the user they exist instead of silently going unmentioned.
   manualEnhancementsApplied: ManualEnhancementFlags;
+
+  /** The active image's manual edits (mirrors its BatchItem.sourceEdits); replayed by the pipeline. */
+  sourceEdits: SourceEdits;
 }
 
 export interface ManualEnhancementFlags {
@@ -152,7 +157,8 @@ class StateStore {
       enableDeshadow: false,
       enableAutoBgRemoval: false
     },
-    manualEnhancementsApplied: { ...DEFAULT_MANUAL_ENHANCEMENTS }
+    manualEnhancementsApplied: { ...DEFAULT_MANUAL_ENHANCEMENTS },
+    sourceEdits: { ...NO_SOURCE_EDITS }
   };
 
   private listeners: Set<Listener> = new Set();
@@ -274,7 +280,8 @@ class StateStore {
     this.setState({
       batchItems: newItems,
       activeBatchId: activeId,
-      manualEnhancementsApplied: { ...DEFAULT_MANUAL_ENHANCEMENTS }
+      manualEnhancementsApplied: { ...DEFAULT_MANUAL_ENHANCEMENTS },
+      sourceEdits: { ...(items[0]?.sourceEdits ?? NO_SOURCE_EDITS) }
     });
   }
 
@@ -334,8 +341,24 @@ class StateStore {
       textInspectionResult: null,
       originalStats: null,
       processedStats: null,
-      manualEnhancementsApplied: { ...DEFAULT_MANUAL_ENHANCEMENTS }
+      manualEnhancementsApplied: {
+        ...DEFAULT_MANUAL_ENHANCEMENTS,
+        descreen: !!item.sourceEdits?.descreen,
+        jpegDeblock: !!item.sourceEdits?.deblock
+      },
+      sourceEdits: { ...(item.sourceEdits ?? NO_SOURCE_EDITS) }
     });
+  }
+
+  /** Switch one manual edit for the active image (and its batch item); the caller re-runs the pipeline. */
+  public setSourceEdit(key: keyof SourceEdits, on: boolean): SourceEdits {
+    const sourceEdits = { ...this.state.sourceEdits, [key]: on };
+    const flags = { ...this.state.manualEnhancementsApplied };
+    if (key === 'descreen') flags.descreen = on;
+    if (key === 'deblock') flags.jpegDeblock = on;
+    this.setState({ sourceEdits, manualEnhancementsApplied: flags });
+    if (this.state.activeBatchId) this.updateBatchItem(this.state.activeBatchId, { sourceEdits });
+    return sourceEdits;
   }
 
   public setPipelineOption(key: keyof PipelineOptions, value: boolean): void {
@@ -389,7 +412,9 @@ class StateStore {
       processingStep: '',
       appliedScale: 1,
       cropAnchor: 'center',
-      textInspectionResult: null
+      textInspectionResult: null,
+      manualEnhancementsApplied: { ...DEFAULT_MANUAL_ENHANCEMENTS },
+      sourceEdits: { ...NO_SOURCE_EDITS }
     });
   }
 }

@@ -21,6 +21,8 @@ import { FreeLowlightClient } from '../services/free-lowlight-client';
 import { FreeMattingClient } from '../services/free-matting-client';
 import { BleedExpander } from './bleed-expander';
 import { NetworkGuard } from '../services/network-guard';
+import { autoCropIdPhoto } from './id-photo-auto-crop';
+import type { PrintPreset, SourceEdits } from '../types';
 
 /**
  * 2026-08-30 抽出自 main.ts 的 `App` 類別：main.ts 身兼「26 個獨立 UI 元件的組裝根」
@@ -113,17 +115,29 @@ export class PipelineOrchestrator {
         if (!this.isStale(gen)) store.setState({ processingStep });
       };
 
+      // Step 0.5 (2026-09-26): the user's source-level edits (去區塊 → 去網紋) and the 證件照 crop,
+      // replayed from the untouched original on every run (cached per source image), so a re-run or a
+      // batch switch no longer drops them. The "before" score above stays on the original as uploaded.
+      const source = await this.applySourceStage(srcImageData, state.sourceEdits, preset, setStep);
+      if (this.isStale(gen)) return this.abandonRun(activeId);
+      const workSrc = source.image;
+      const workDpiAnalysis =
+        workSrc === srcImageData ? originalDpiAnalysis : DpiCalculator.analyze(workSrc.width, workSrc.height, preset);
+      processedImgData = workSrc;
+
       // Step 1: Super-Resolution Upscaling (cloud edge-enhance vs local Lanczos pyramid, scale from DPI analysis)
-      if (opts.enableUpscale && originalDpiAnalysis.needsUpscale && originalDpiAnalysis.scaleFactor > 1) {
-        const targetScale = originalDpiAnalysis.scaleFactor;
+      if (opts.enableUpscale && workDpiAnalysis.needsUpscale && workDpiAnalysis.scaleFactor > 1) {
+        const targetScale = workDpiAnalysis.scaleFactor;
 
         const isCloudAiAllowed = state.engineMode === 'cloud';
 
         if (isCloudAiAllowed) {
-          const srcDataUrl = state.originalDataUrl || this.imageDataToDataUrl(srcImageData);
+          // The edited source must be what gets uploaded (state.originalDataUrl is the untouched upload).
+          const srcDataUrl =
+            workSrc === srcImageData && state.originalDataUrl ? state.originalDataUrl : this.imageDataToDataUrl(workSrc);
 
           setStep('2/4 正在執行邊緣強化放大演算法...');
-          const autoModel = AiUpscaleClient.autoSelectModel(srcImageData, targetScale);
+          const autoModel = AiUpscaleClient.autoSelectModel(workSrc, targetScale);
           const aiResult = await AiUpscaleClient.upscale(srcDataUrl, autoModel);
           if (this.isStale(gen)) return this.abandonRun(activeId);
 
@@ -134,7 +148,7 @@ export class PipelineOrchestrator {
             // The service may return less than the DPI-derived target (its own scale cap, or the
             // payload was downscaled before upload). Top up with Lanczos so the output really
             // reaches the target width instead of silently under-delivering.
-            const targetWidth = Math.round(srcImageData.width * targetScale);
+            const targetWidth = Math.round(workSrc.width * targetScale);
             if (processedImgData.width < targetWidth) {
               setStep('2/4 正在以 Lanczos 補足放大倍率...');
               processedImgData = await workerClient.lanczos(processedImgData, targetWidth / processedImgData.width);
@@ -142,18 +156,18 @@ export class PipelineOrchestrator {
           } else {
             // Graceful automatic fallback to local Lanczos-3 pyramid engine (at the DPI-derived scale)
             setStep('2/4 正在啟用本機金字塔超解析度放大 (備援)...');
-            processedImgData = await workerClient.lanczos(srcImageData, targetScale);
+            processedImgData = await workerClient.lanczos(workSrc, targetScale);
             upscaleMethod = 'interpolation';
             if (!this.isStale(gen) && this.isAdvancedMode()) Toast.info('⚡ 雲端放大無法使用，已改用本機 Lanczos 金字塔放大');
           }
         } else {
           // Local engine only (no network call for upscaling)
           setStep('2/4 正在執行本機金字塔超解析度放大...');
-          processedImgData = await workerClient.lanczos(srcImageData, targetScale);
+          processedImgData = await workerClient.lanczos(workSrc, targetScale);
           upscaleMethod = 'interpolation';
         }
         if (this.isStale(gen)) return this.abandonRun(activeId);
-        appliedScale = processedImgData.width / srcImageData.width;
+        appliedScale = processedImgData.width / workSrc.width;
         if (isCloudAiAllowed && this.isAdvancedMode()) {
           Toast.success(`⚡ 放大完成（實際 ${Number(appliedScale.toFixed(2))}x）`);
         }
@@ -169,7 +183,7 @@ export class PipelineOrchestrator {
           if (Math.max(processedImgData.width, processedImgData.height) * 2 <= MAX_SAFE_DIM) {
             const res = EdgeAwareUpscaler.upscale(processedImgData, 2, scene.category === 'portrait' ? 0.4 : 0.6);
             processedImgData = res.upscaledImageData;
-            appliedScale = processedImgData.width / srcImageData.width;
+            appliedScale = processedImgData.width / workSrc.width;
           }
         }
 
@@ -180,7 +194,7 @@ export class PipelineOrchestrator {
           processedImgData = lowlightResult.imageData;
           if (this.isStale(gen)) return this.abandonRun(activeId);
         }
-        appliedScale = processedImgData.width / srcImageData.width;
+        appliedScale = processedImgData.width / workSrc.width;
       }
 
       // Step 1.5: Auto Deshadow & Illumination Field Normalization (手機拍照光照均勻化)
@@ -217,7 +231,7 @@ export class PipelineOrchestrator {
       // removal is only safe to assume as a default for artwork that's explicitly going to be
       // die-cut around its subject — applying it to a poster/postcard/business-card photo would
       // destroy an intentional background, so this is gated on the preset, not a global default.
-      if (opts.enableAutoBgRemoval && preset.id === 'sticker') {
+      if (state.sourceEdits.removeBg || (opts.enableAutoBgRemoval && preset.id === 'sticker')) {
         setStep('3/4 正在自動去背（模切貼紙預設）...');
         const mattingResult = await FreeMattingClient.removeBackground(processedImgData);
         processedImgData = mattingResult.imageData;
@@ -237,14 +251,14 @@ export class PipelineOrchestrator {
 
       // Bleed outpaint (and, for stickers, background removal) both change canvas dimensions —
       // recompute so the DPI/scale figures shown to the user reflect the final delivered pixels.
-      appliedScale = processedImgData.width / srcImageData.width;
+      appliedScale = processedImgData.width / workSrc.width;
 
       // Step 4: Post-Processing Comprehensive Diagnostic & Scientific Quality Evaluation
       // Sharpness is measured at the source's scale and resolution is capped by source detail, so an
       // upscale can't score itself as new detail (see print-score.ts, 2026-09-25).
       const { stats } = await workerClient.analyze(
         processedImgData,
-        Math.max(srcImageData.width, srcImageData.height)
+        Math.max(workSrc.width, workSrc.height)
       );
       const dpiAnalysis = DpiCalculator.analyze(
         processedImgData.width,
@@ -254,7 +268,7 @@ export class PipelineOrchestrator {
       if (this.isStale(gen)) return this.abandonRun(activeId);
       const scoreResult = PrintScoreCalculator.calculate(stats, preset, {
         upscale: upscaleMethod
-          ? { sourceWidth: srcImageData.width, sourceHeight: srcImageData.height, method: upscaleMethod }
+          ? { sourceWidth: workSrc.width, sourceHeight: workSrc.height, method: upscaleMethod }
           : undefined
       });
 
@@ -320,6 +334,11 @@ export class PipelineOrchestrator {
       const delta = scoreResult.score - originalScoreResult.score;
       const deltaStr = delta > 0 ? ` (+${delta}分提升)` : '';
       Toast.success(`✓ 印刷優化完成！原圖 ${originalScoreResult.score}分 ➔ 優化後 ${scoreResult.score}分${deltaStr}`);
+      source.notices.forEach((n) => Toast.info(n));
+      if (source.idPhoto) {
+        Toast.success(source.idPhoto.message);
+        source.idPhoto.warnings.forEach((w) => Toast.info(w));
+      }
 
       // Auto-trigger background AI Text Inspection on the final processed pixels, so the boxes it
       // returns are in the same coordinate space as the processed preview they're drawn on.
@@ -341,6 +360,64 @@ export class PipelineOrchestrator {
       }
       Toast.error(`處理失敗: ${err?.message || err}`);
     }
+  }
+
+  /** Source-stage results per input image (WeakMap: dropped with the image). */
+  private sourceStageCache = new WeakMap<ImageData, Map<string, unknown>>();
+
+  private async cached<T>(input: ImageData, key: string, compute: () => Promise<T>): Promise<T> {
+    let entry = this.sourceStageCache.get(input);
+    if (!entry) {
+      entry = new Map();
+      this.sourceStageCache.set(input, entry);
+    }
+    if (!entry.has(key)) entry.set(key, await compute());
+    return entry.get(key) as T;
+  }
+
+  /**
+   * Applies the image's manual source edits and, for the 2 吋證件照 preset, the face-based crop. Each step
+   * is cached on its input, so switching a pipeline option or preset does not redo a 20 s FFT or a face
+   * detection. A failing edit is skipped with a notice instead of failing the whole run.
+   */
+  private async applySourceStage(
+    src: ImageData,
+    edits: SourceEdits,
+    preset: PrintPreset,
+    setStep: (step: string) => void
+  ): Promise<{ image: ImageData; notices: string[]; idPhoto?: Awaited<ReturnType<typeof autoCropIdPhoto>> }> {
+    let image = src;
+    const notices: string[] = [];
+    if (edits.deblock) {
+      setStep('1/4 正在修復 JPEG 壓縮區塊痕跡...');
+      try {
+        const input = image;
+        image = await this.cached(input, 'deblock', () => workerClient.deblock(input));
+      } catch (err: any) {
+        notices.push(`去區塊失敗，這次先略過：${err?.message || err}`);
+      }
+    }
+    if (edits.descreen) {
+      setStep('1/4 正在去除網紋（FFT 頻域濾波，大圖可能需要數秒）...');
+      try {
+        const input = image;
+        image = await this.cached(input, 'descreen', () => workerClient.descreen(input));
+      } catch (err: any) {
+        notices.push(`去網紋失敗，這次先略過：${err?.message || err}`);
+      }
+    }
+    let idPhoto: Awaited<ReturnType<typeof autoCropIdPhoto>> | undefined;
+    if (preset.id === 'id-photo') {
+      setStep('1/4 正在偵測人臉並裁成證件照比例...');
+      try {
+        const input = image;
+        idPhoto = await this.cached(input, `id-photo:${preset.widthMm}x${preset.heightMm}`, () => autoCropIdPhoto(input, preset));
+        image = idPhoto.image;
+      } catch (err: any) {
+        notices.push(`證件照自動裁切失敗：${err?.message || err}`);
+      }
+    }
+    return { image, notices, idPhoto };
   }
 
   /** A superseded run leaves the store to the newer run; just un-stick its own batch item. */

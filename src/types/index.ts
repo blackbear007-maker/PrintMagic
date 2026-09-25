@@ -62,6 +62,20 @@ export interface ScreenCalibration {
   isCalibrated: boolean;
 }
 
+/**
+ * Manual edits the user switched on for one image (2026-09-26). The pipeline replays them on every run
+ * from the untouched original — they used to live only in processedImageData and vanished on the next
+ * re-run or batch switch. 去區塊/去網紋 run on the source before upscaling (where the 8×8 JPEG grid and
+ * the halftone screen still exist); 去背 runs after upscaling, before bleed (cloud upscaling drops alpha).
+ */
+export interface SourceEdits {
+  deblock: boolean;
+  descreen: boolean;
+  removeBg: boolean;
+}
+
+export const NO_SOURCE_EDITS: SourceEdits = { deblock: false, descreen: false, removeBg: false };
+
 export interface BatchItem {
   id: string;
   name: string;
@@ -83,6 +97,7 @@ export interface BatchItem {
   status: 'idle' | 'processing' | 'done' | 'error';
   errorMessage?: string;
   cropOffset?: CropOffset;
+  sourceEdits?: SourceEdits;
 }
 
 export interface PrintPreset {

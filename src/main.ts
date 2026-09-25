@@ -34,23 +34,19 @@ import { TextInspector } from './core/text-inspector';
 import { ObjectEraserModal } from './ui/object-eraser-modal';
 import { BleedExpander } from './core/bleed-expander';
 import { trimForImage } from './core/print-layout';
-import { FreeMattingClient } from './services/free-matting-client';
-import { FreeFaceDetectClient, type DetectedFace } from './services/free-face-detect-client';
-import { FaceSafetyChecker } from './core/face-safety-checker';
 import { FreeIccClient } from './services/free-icc-client';
-import { IdPhotoCropper } from './core/id-photo-cropper';
 import { AiVectorizer } from './core/ai-vectorizer';
 import { FreeVectorizeClient } from './services/free-vectorize-client';
 import { PdfExporter } from './engines/pdf-exporter';
 import { VectorTracer } from './engines/vector-tracer';
-import { workerClient } from './workers/worker-client';
 import { ColorBlindnessSimulator, type CvdType } from './core/color-blindness-simulator';
 import { CanvasZoomController } from './ui/canvas-zoom';
 import { WebShareService } from './services/web-share';
 import { XiaoxiangAssistant } from './ui/xiaoxiang-assistant';
 import { SceneClassifier } from './core/scene-classifier';
 import { PipelineOrchestrator } from './core/pipeline-orchestrator';
-import type { BatchItem, PrintPresetId } from './types';
+import type { BatchItem, PrintPresetId, SourceEdits } from './types';
+import { MAX_DESCREEN_INPUT_PIXELS } from './core/moire-descreen';
 
 /** Icon asset id (public/icons/shared/<id>.webp) per print preset, for the preset pill/tabs. */
 const PRESET_ICON_IDS: Record<string, string> = {
@@ -250,11 +246,14 @@ class App {
     this.dielineModal = new DielineModal();
     this.textInspectionModal = new TextInspectionModal();
     this.objectEraserModal = new ObjectEraserModal((newImageData, newDataUrl) => {
-      // Replace original with the erased image and re-run optimization pipeline
+      // Replace original with the erased image and re-run optimization pipeline. The batch item gets it
+      // too (2026-09-26): otherwise switching items and back, or 批次全優化, restored the un-erased image.
       store.setState({
         originalImageData: newImageData,
         originalDataUrl: newDataUrl
       });
+      const activeId = store.getState().activeBatchId;
+      if (activeId) store.updateBatchItem(activeId, { originalImageData: newImageData, originalDataUrl: newDataUrl });
       this.pipeline.runOptimizationPipeline(newImageData);
     });
     this.onboardingModal = new OnboardingModal();
@@ -427,13 +426,9 @@ class App {
           // Re-run pipeline for new physical dimensions
           const state = store.getState();
           if (state.originalImageData) {
+            // 2 吋證件照的抓臉裁切在管線的原圖階段做（pipeline-orchestrator applySourceStage），
+            // 每次重跑都會重新套用，不再只在點這個按鈕時做一次。
             await this.pipeline.runOptimizationPipeline(state.originalImageData);
-
-            // 🪪 2 吋證件照：自動用 YuNet 抓臉置中裁切成 35×45mm 比例（真實像素裁切，
-            // 不是只改 CSS 預覽的九宮格錨點——輸出的 PDF 才會真的反映這個裁切）
-            if (presetId === 'id-photo' && store.getState().currentPreset.id === 'id-photo') {
-              await this.applyIdPhotoCrop();
-            }
           }
         }
       });
@@ -687,33 +682,10 @@ class App {
       }
     });
 
-    // ✂️ 髮絲級 AI 模切貼紙去背（自建 rembg/u2netp 優先，離線時自動退回本機顏色距離去背）
-    document.getElementById('btnAiRemoveBg')?.addEventListener('click', async () => {
-      const state = store.getState();
-      const imgData = state.processedImageData || state.originalImageData;
-      if (!imgData) {
-        Toast.error('請先上傳圖片');
-        return;
-      }
-
-      SoundEffects.laserScan();
-      Toast.info('✂️ 正在進行去背處理...');
-
-      const result = await FreeMattingClient.removeBackground(imgData);
-      const cur = store.getState();
-      if ((cur.processedImageData || cur.originalImageData) !== imgData) return;
-      this.invalidatePreviewCaches();
-      store.setState({
-        processedImageData: result.imageData,
-        processedDataUrl: result.dataUrl
-      });
-      this.mainPreviewImg.src = result.dataUrl;
-      SoundEffects.purityChime();
-      Toast.success(
-        result.isCloud
-          ? '✓ 髮絲級去背完成！可直接點擊【🏷️ 造型刀模 & 白墨】一鍵生成透明貼紙製版檔！'
-          : '✓ 去背完成（本機演算法，背景須為單一色塊效果較佳）'
-      );
+    // ✂️ 去背（自建 rembg/u2netp 優先，離線時自動退回本機顏色距離去背）。2026-09-26 起記在這張圖的
+    // 處理紀錄裡，由管線在放大後、補出血前套用，重跑或切換批次都不會掉；再按一次取消。
+    document.getElementById('btnAiRemoveBg')?.addEventListener('click', () => {
+      void this.toggleSourceEdit('removeBg', '去背');
     });
 
     // ✒️ AI 點陣轉真向量 SVG 貝茲曲線檔 (VTracer Rust / 本機三次貝茲曲線雙通道)
@@ -771,68 +743,18 @@ class App {
       this.xiangAssistant?.say(XiaoxiangAssistant.LINES.dieline, 5000);
     });
 
-    // 🌀 去網紋摩爾紋（本機 FFT 陷波濾波，非 AI，見 src/core/moire-descreen.ts）
-    document.getElementById('btnDescreen')?.addEventListener('click', async () => {
-      const state = store.getState();
-      const imgData = state.processedImageData || state.originalImageData;
-      if (!imgData) {
-        Toast.error('請先上傳圖片');
+    // 🌀 去網紋（本機 FFT 陷波濾波）與 🧩 JPEG 去區塊：2026-09-26 起改在原圖上做（放大前，JPEG 8×8 格線
+    // 與網點還在原位），記在這張圖的處理紀錄裡，每次重跑由管線重新套用（有快取）；再按一次取消。
+    document.getElementById('btnDescreen')?.addEventListener('click', () => {
+      const src = store.getState().originalImageData;
+      if (src && !store.getState().sourceEdits.descreen && src.width * src.height > MAX_DESCREEN_INPUT_PIXELS) {
+        Toast.error(`去網紋只能處理 ${(MAX_DESCREEN_INPUT_PIXELS / 1e6).toFixed(0)} 百萬像素以下的原圖（這張 ${((src.width * src.height) / 1e6).toFixed(1)} 百萬像素）`);
         return;
       }
-
-      SoundEffects.laserScan();
-      Toast.info('🌀 正在執行去網紋運算（FFT 頻域濾波，大圖可能需要數秒）...');
-
-      try {
-        const result = await workerClient.descreen(imgData);
-        // 等待期間已換圖 → 丟棄過期結果
-        const cur = store.getState();
-        if ((cur.processedImageData || cur.originalImageData) !== imgData) return;
-        const resultUrl = this.imageDataToDataUrl(result);
-        this.invalidatePreviewCaches();
-        store.setState({
-          processedImageData: result,
-          processedDataUrl: resultUrl
-        });
-        this.mainPreviewImg.src = resultUrl;
-        this.markManualEnhancementApplied('descreen');
-        SoundEffects.purityChime();
-        Toast.success('✓ 去網紋完成（本機 FFT 陷波濾波）。若原圖沒有明顯網紋/摩爾紋，效果可能不明顯。');
-      } catch (err: any) {
-        Toast.error(`去網紋失敗：${err?.message || '未知錯誤'}`);
-      }
+      void this.toggleSourceEdit('descreen', '去網紋');
     });
-
-    // 🧩 JPEG 去區塊（偵測 8x8 壓縮網格邊界痕跡並局部平滑，見 src/core/jpeg-deblocking-filter.ts）
-    document.getElementById('btnJpegDeblock')?.addEventListener('click', async () => {
-      const state = store.getState();
-      const imgData = state.processedImageData || state.originalImageData;
-      if (!imgData) {
-        Toast.error('請先上傳圖片');
-        return;
-      }
-
-      SoundEffects.laserScan();
-      Toast.info('🧩 正在偵測並修復 JPEG 壓縮區塊痕跡...');
-
-      try {
-        const result = await workerClient.deblock(imgData);
-        // 等待期間已換圖 → 丟棄過期結果
-        const cur = store.getState();
-        if ((cur.processedImageData || cur.originalImageData) !== imgData) return;
-        const resultUrl = this.imageDataToDataUrl(result);
-        this.invalidatePreviewCaches();
-        store.setState({
-          processedImageData: result,
-          processedDataUrl: resultUrl
-        });
-        this.mainPreviewImg.src = resultUrl;
-        this.markManualEnhancementApplied('jpegDeblock');
-        SoundEffects.purityChime();
-        Toast.success('✓ 去區塊完成。若原圖沒有明顯 JPEG 壓縮網格痕跡，效果可能不明顯。');
-      } catch (err: any) {
-        Toast.error(`去區塊失敗：${err?.message || '未知錯誤'}`);
-      }
+    document.getElementById('btnJpegDeblock')?.addEventListener('click', () => {
+      void this.toggleSourceEdit('deblock', '去區塊');
     });
 
     // Open Convenience Store Cloud Print Modal (7-11 & FamilyMart)
@@ -1346,99 +1268,18 @@ class App {
     }
   }
 
-  /**
-   * 🪪 2 吋證件照自動裁切：優先用自建 YuNet 抓臉位置，估算置中裁切（見
-   * src/core/id-photo-cropper.ts 的誠實附註——這是估算起點，不是官方合規保證，使用者仍須
-   * 自行對照官方範例圖）。YuNet 離線或沒偵測到臉時，退回單純置中裁切（一樣是真實像素裁切，
-   * 不是拉伸變形）。有偵測到臉時，會先用雙眼連線角度自動水平校正（頭歪一點也能拉正），裁切完
-   * 再對成品四角取樣做背景合規啟發式檢查（不是官方驗證，只是抓明顯的偏色/不均勻/太暗）。
-   */
-  private async applyIdPhotoCrop(): Promise<void> {
+  /** Switch a manual edit for the active image, then re-run so the pipeline applies (or drops) it. */
+  private async toggleSourceEdit(key: keyof SourceEdits, label: string): Promise<void> {
     const state = store.getState();
-    const imgData = state.processedImageData || state.originalImageData;
-    if (!imgData) return;
-
-    Toast.info('🪪 正在偵測人臉並自動置中裁切為證件照比例...');
-    try {
-      const faceResult = await FreeFaceDetectClient.detect(imgData);
-      let crop: { x: number; y: number; width: number; height: number } | undefined;
-      let sourceForCrop = imgData;
-      let leveledFace: DetectedFace | undefined;
-      let message: string;
-
-      if (faceResult.available && faceResult.faces.length > 0) {
-        let bestFace = faceResult.faces.reduce((a, b) => (a.confidence >= b.confidence ? a : b));
-
-        const leveled = IdPhotoCropper.levelFace(imgData, bestFace);
-        sourceForCrop = leveled.imageData;
-        bestFace = leveled.face;
-        leveledFace = bestFace;
-
-        const suggestion = IdPhotoCropper.computeCrop(bestFace, sourceForCrop.width, sourceForCrop.height);
-        if (suggestion) {
-          crop = suggestion.crop;
-          const rotateNote = leveled.angleDegrees !== 0
-            ? `已自動水平校正 ${Math.abs(leveled.angleDegrees).toFixed(1)}°。`
-            : '';
-          message = `✓ 已用 YuNet 自動抓臉置中裁切（估算頭部佔比 ${suggestion.estimatedHeadRatioPercent}%）。${rotateNote}${suggestion.note}`;
-        }
-      }
-
-      if (!crop) {
-        sourceForCrop = imgData;
-        crop = IdPhotoCropper.computeCenterCrop(imgData.width, imgData.height);
-        message = '⚠️ 未偵測到人臉，已改用置中裁切（35×45mm 比例）。建議用九宮格「✨ AI 建議」再微調焦點，送印前務必對照官方範例圖確認。';
-      }
-
-      const cropped = IdPhotoCropper.applyCrop(sourceForCrop, crop);
-      const dataUrl = this.imageDataToDataUrl(cropped);
-
-      // 偵測期間已換圖或換規格 → 丟棄
-      const cur = store.getState();
-      if ((cur.processedImageData || cur.originalImageData) !== imgData || cur.currentPreset.id !== 'id-photo') return;
-      this.invalidatePreviewCaches();
-      store.setState({ processedImageData: cropped, processedDataUrl: dataUrl });
-      this.mainPreviewImg.src = dataUrl;
-      Toast.success(message!);
-      // 📇 Batch-print discoverability hint: the existing A4/A3 imposition modal (btnOpenImposition)
-      // already handles this correctly today — it reads the active preset's real widthMm/heightMm
-      // (35×45mm here) and repeat-tiles it with real crop marks, so no new engine work was needed,
-      // just pointing users at it (verified: 28 copies fit on A4, 56 on A3 — see
-      // imposition-engine.test.ts).
-      this.xiangAssistant?.say(XiaoxiangAssistant.LINES.idPhotoBatchHint, 6000);
-
-      const bgCheck = IdPhotoCropper.checkBackgroundCompliance(cropped);
-      if (!bgCheck.compliant && bgCheck.warning) {
-        Toast.info(bgCheck.warning);
-      }
-
-      // ⚠️ Sanity check: computeCrop() aims to keep the head well clear of the frame edges, but a
-      // face very near the source image's own border can still force the crop to clamp tighter
-      // than intended (see face-safety-checker.ts). Reuses the same leveled face box computed
-      // above rather than re-running levelFace() a second time.
-      if (leveledFace && crop) {
-        const preset = state.currentPreset;
-        // 以裁切後影像的實際像素密度換算（裁切結果對應整張 preset.widthMm），而非假設已達目標 DPI
-        const pxPerMm = preset.widthMm > 0 ? cropped.width / preset.widthMm : preset.targetDpi / 25.4;
-        const safeMarginPx = (preset.safeMarginMm || 5) * pxPerMm;
-        const faceInCropSpace: DetectedFace = {
-          box: {
-            x: leveledFace.box.x - crop.x,
-            y: leveledFace.box.y - crop.y,
-            width: leveledFace.box.width,
-            height: leveledFace.box.height
-          },
-          landmarks: leveledFace.landmarks,
-          confidence: leveledFace.confidence
-        };
-        const marginCheck = FaceSafetyChecker.checkFaceMargin(faceInCropSpace, cropped.width, cropped.height, safeMarginPx);
-        if (marginCheck.atRisk && marginCheck.warning) {
-          Toast.info(marginCheck.warning);
-        }
-      }
-    } catch (err: any) {
-      Toast.error(`證件照自動裁切失敗：${err?.message || '未知錯誤'}`);
+    if (!state.originalImageData) {
+      Toast.error('請先上傳圖片');
+      return;
     }
+    const on = !state.sourceEdits[key];
+    store.setSourceEdit(key, on);
+    SoundEffects.laserScan();
+    Toast.info(on ? `已加入【${label}】，正在重新處理…（再按一次可取消）` : `已取消【${label}】，正在重新處理…`);
+    await this.pipeline.runOptimizationPipeline(state.originalImageData);
   }
 
   private imageDataToDataUrl(imageData: ImageData): string {
