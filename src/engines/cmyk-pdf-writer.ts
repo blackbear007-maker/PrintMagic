@@ -1,4 +1,5 @@
-import type { PrintPreset } from '../types';
+import type { CropAnchor, PrintPreset } from '../types';
+import { coverFit, trimForImage } from '../core/print-layout';
 
 /**
  * A CMYK raster produced by the self-hosted separation service (docker/zero-dce/cmyk_convert.py).
@@ -22,6 +23,8 @@ export interface CmykPdfOptions {
   preset: PrintPreset;
   /** One raster per page, e.g. [front, back] for a double-sided job. All must share one printing condition. */
   pages: CmykRaster[];
+  /** Which part of the image stays when its ratio differs from trim + bleed (焦點九宮格). */
+  anchor?: CropAnchor;
   title?: string;
   now?: Date;
 }
@@ -42,15 +45,89 @@ const PT_PER_MM = 72 / 25.4;
  * PDF/X-1a's rules as far as this writer knows them, but the file has not been through a preflight tool.
  */
 export class CmykPdfWriter {
-  public static build({ preset, pages, title = 'PrintMagic print file', now = new Date() }: CmykPdfOptions): Uint8Array<ArrayBuffer> {
+  public static build({ preset, pages, anchor = 'center', title = 'PrintMagic print file', now = new Date() }: CmykPdfOptions): Uint8Array<ArrayBuffer> {
     if (pages.length === 0) throw new Error('CmykPdfWriter: no pages');
     const condition = pages[0];
     if (pages.some((p) => p.outputConditionIdentifier !== condition.outputConditionIdentifier)) {
       throw new Error('CmykPdfWriter: all pages must use the same printing condition');
     }
-    const bleedMm = preset.bleedMm || 0;
-    const trimWmm = preset.widthMm > 0 ? preset.widthMm : 210;
-    const trimHmm = preset.heightMm > 0 ? preset.heightMm : 297;
+    const date = pdfDate(now);
+
+    // Objects 1-5 are shared; each page adds its Page (6 + 3i), Image (7 + 3i) and Content (8 + 3i).
+    // Each page is laid out from its own raster: trim turned to the image's orientation, image scaled
+    // to cover trim + bleed and clipped there (2026-09-26 - it used to be stretched; see print-layout.ts).
+    const pageObj = (i: number) => 6 + 3 * i;
+    const objects: (string | { dict: string; stream: Uint8Array })[] = [
+      /* 1 */ `<< /Type /Catalog /Pages 2 0 R /OutputIntents [3 0 R] >>`,
+      /* 2 */ `<< /Type /Pages /Kids [${pages.map((_, i) => `${pageObj(i)} 0 R`).join(' ')}] /Count ${pages.length} >>`,
+      /* 3 */ `<< /Type /OutputIntent /S /GTS_PDFX /OutputConditionIdentifier ${pdfString(condition.outputConditionIdentifier)} ` +
+        `/RegistryName (http://www.color.org) /OutputCondition ${pdfString(condition.outputCondition)} /Info ${pdfString(condition.outputCondition)} >>`,
+      /* 4 */ `<< /FunctionType 2 /Domain [0 1] /C0 [0 0 0 0] /C1 [1 1 1 1] /N 1 >>`,
+      /* 5 */ `<< /Title ${pdfString(title)} /Creator (PrintMagic) /Producer (PrintMagic CMYK PDF writer) ` +
+        `/CreationDate (${date}) /ModDate (${date}) /Trapped /False >>`
+    ];
+    pages.forEach((raster, i) => {
+      const layout = this.layoutPage(preset, raster, anchor);
+      objects.push(
+        `<< /Type /Page /Parent 2 0 R /MediaBox ${layout.mediaBox} /BleedBox ${layout.bleedBox} /TrimBox ${layout.trimBox} ` +
+          `/Resources << /XObject << /Im0 ${pageObj(i) + 1} 0 R >> /ColorSpace << /CS0 [/Separation /All /DeviceCMYK 4 0 R] >> >> ` +
+          `/Contents ${pageObj(i) + 2} 0 R >>`,
+        {
+          dict: `<< /Type /XObject /Subtype /Image /Width ${raster.width} /Height ${raster.height} /ColorSpace /DeviceCMYK ` +
+            `/BitsPerComponent 8 /Filter /FlateDecode /Length ${raster.flateData.length} >>`,
+          stream: raster.flateData
+        },
+        { dict: `<< /Length ${layout.content.length} >>`, stream: layout.content }
+      );
+    });
+
+    const chunks: Uint8Array[] = [];
+    let offset = 0;
+    const push = (bytes: Uint8Array) => {
+      chunks.push(bytes);
+      offset += bytes.length;
+    };
+    push(ascii('%PDF-1.3\n'));
+    push(new Uint8Array([0x25, 0xe2, 0xe3, 0xcf, 0xd3, 0x0a])); // binary marker comment
+
+    const offsets: number[] = [];
+    objects.forEach((obj, i) => {
+      offsets.push(offset);
+      if (typeof obj === 'string') {
+        push(ascii(`${i + 1} 0 obj\n${obj}\nendobj\n`));
+      } else {
+        push(ascii(`${i + 1} 0 obj\n${obj.dict}\nstream\n`));
+        push(obj.stream);
+        push(ascii('\nendstream\nendobj\n'));
+      }
+    });
+
+    const xrefOffset = offset;
+    const id = randomHex(16);
+    push(ascii(
+      `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n` +
+      offsets.map((o) => `${String(o).padStart(10, '0')} 00000 n \n`).join('') +
+      `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R /Info 5 0 R /ID [<${id}> <${id}>] >>\n` +
+      `startxref\n${xrefOffset}\n%%EOF\n`
+    ));
+
+    const out = new Uint8Array(offset);
+    let p = 0;
+    for (const c of chunks) {
+      out.set(c, p);
+      p += c.length;
+    }
+    return out;
+  }
+  private static layoutPage(
+    preset: PrintPreset,
+    raster: CmykRaster,
+    anchor: CropAnchor
+  ): { content: Uint8Array<ArrayBuffer>; mediaBox: string; bleedBox: string; trimBox: string } {
+    const trim = trimForImage(preset, raster.width, raster.height);
+    const bleedMm = trim.bleedMm;
+    const trimWmm = trim.widthMm;
+    const trimHmm = trim.heightMm;
     const outerMm = preset.cropMarks ? 12 : 0;
     const pageWmm = trimWmm + (bleedMm + outerMm) * 2;
     const pageHmm = trimHmm + (bleedMm + outerMm) * 2;
@@ -64,8 +141,12 @@ export class CmykPdfWriter {
     const X = (mm: number) => mm * PT_PER_MM;
     const Y = (mmFromTop: number) => (pageHmm - mmFromTop) * PT_PER_MM;
 
+    const img = coverFit(contentWmm, contentHmm, raster.width, raster.height, anchor);
     const ops: string[] = [];
-    ops.push(`q ${n(X(contentWmm))} 0 0 ${n(X(contentHmm))} ${n(X(outerMm))} ${n(Y(outerMm + contentHmm))} cm /Im0 Do Q`);
+    ops.push(
+      `q ${n(X(outerMm))} ${n(Y(outerMm + contentHmm))} ${n(X(contentWmm))} ${n(X(contentHmm))} re W n ` +
+        `${n(X(img.width))} 0 0 ${n(X(img.height))} ${n(X(outerMm + img.x))} ${n(Y(outerMm + img.y + img.height))} cm /Im0 Do Q`
+    );
 
     if (preset.cropMarks || preset.registrationMarks) {
       ops.push(`q /CS0 CS 1 SCN ${n(0.1 * PT_PER_MM)} w`);
@@ -116,75 +197,14 @@ export class CmykPdfWriter {
       });
     }
 
-    const content = ascii(ops.join('\n') + '\n');
-    const mediaBox = `[0 0 ${n(X(pageWmm))} ${n(X(pageHmm))}]`;
     const box = (x: number, y: number, w: number, h: number) =>
       `[${n(X(x))} ${n(Y(y + h))} ${n(X(x + w))} ${n(Y(y))}]`;
-    const date = pdfDate(now);
-
-    // Objects 1–6 are shared; each page adds a Page (7 + 2i) and its Image (8 + 2i). Every page uses the
-    // same layout, so they share one content stream whose /Im0 resolves to that page's own image.
-    const pageObj = (i: number) => 7 + 2 * i;
-    const objects: (string | { dict: string; stream: Uint8Array })[] = [
-      /* 1 */ `<< /Type /Catalog /Pages 2 0 R /OutputIntents [3 0 R] >>`,
-      /* 2 */ `<< /Type /Pages /Kids [${pages.map((_, i) => `${pageObj(i)} 0 R`).join(' ')}] /Count ${pages.length} >>`,
-      /* 3 */ `<< /Type /OutputIntent /S /GTS_PDFX /OutputConditionIdentifier ${pdfString(condition.outputConditionIdentifier)} ` +
-        `/RegistryName (http://www.color.org) /OutputCondition ${pdfString(condition.outputCondition)} /Info ${pdfString(condition.outputCondition)} >>`,
-      /* 4 */ `<< /FunctionType 2 /Domain [0 1] /C0 [0 0 0 0] /C1 [1 1 1 1] /N 1 >>`,
-      /* 5 */ `<< /Title ${pdfString(title)} /Creator (PrintMagic) /Producer (PrintMagic CMYK PDF writer) ` +
-        `/CreationDate (${date}) /ModDate (${date}) /Trapped /False >>`,
-      /* 6 */ { dict: `<< /Length ${content.length} >>`, stream: content }
-    ];
-    pages.forEach((raster, i) => {
-      objects.push(
-        `<< /Type /Page /Parent 2 0 R /MediaBox ${mediaBox} /BleedBox ${box(outerMm, outerMm, contentWmm, contentHmm)} ` +
-          `/TrimBox ${box(trimXmm, trimYmm, trimWmm, trimHmm)} ` +
-          `/Resources << /XObject << /Im0 ${pageObj(i) + 1} 0 R >> /ColorSpace << /CS0 [/Separation /All /DeviceCMYK 4 0 R] >> >> /Contents 6 0 R >>`,
-        {
-          dict: `<< /Type /XObject /Subtype /Image /Width ${raster.width} /Height ${raster.height} /ColorSpace /DeviceCMYK ` +
-            `/BitsPerComponent 8 /Filter /FlateDecode /Length ${raster.flateData.length} >>`,
-          stream: raster.flateData
-        }
-      );
-    });
-
-    const chunks: Uint8Array[] = [];
-    let offset = 0;
-    const push = (bytes: Uint8Array) => {
-      chunks.push(bytes);
-      offset += bytes.length;
+    return {
+      content: ascii(ops.join('\n') + '\n'),
+      mediaBox: `[0 0 ${n(X(pageWmm))} ${n(X(pageHmm))}]`,
+      bleedBox: box(outerMm, outerMm, contentWmm, contentHmm),
+      trimBox: box(trimXmm, trimYmm, trimWmm, trimHmm)
     };
-    push(ascii('%PDF-1.3\n'));
-    push(new Uint8Array([0x25, 0xe2, 0xe3, 0xcf, 0xd3, 0x0a])); // binary marker comment
-
-    const offsets: number[] = [];
-    objects.forEach((obj, i) => {
-      offsets.push(offset);
-      if (typeof obj === 'string') {
-        push(ascii(`${i + 1} 0 obj\n${obj}\nendobj\n`));
-      } else {
-        push(ascii(`${i + 1} 0 obj\n${obj.dict}\nstream\n`));
-        push(obj.stream);
-        push(ascii('\nendstream\nendobj\n'));
-      }
-    });
-
-    const xrefOffset = offset;
-    const id = randomHex(16);
-    push(ascii(
-      `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n` +
-      offsets.map((o) => `${String(o).padStart(10, '0')} 00000 n \n`).join('') +
-      `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R /Info 5 0 R /ID [<${id}> <${id}>] >>\n` +
-      `startxref\n${xrefOffset}\n%%EOF\n`
-    ));
-
-    const out = new Uint8Array(offset);
-    let p = 0;
-    for (const c of chunks) {
-      out.set(c, p);
-      p += c.length;
-    }
-    return out;
   }
 }
 

@@ -33,6 +33,7 @@ import { TextInspectionModal } from './ui/text-inspection-modal';
 import { TextInspector } from './core/text-inspector';
 import { ObjectEraserModal } from './ui/object-eraser-modal';
 import { BleedExpander } from './core/bleed-expander';
+import { trimForImage } from './core/print-layout';
 import { FreeMattingClient } from './services/free-matting-client';
 import { FreeFaceDetectClient, type DetectedFace } from './services/free-face-detect-client';
 import { FaceSafetyChecker } from './core/face-safety-checker';
@@ -1160,27 +1161,44 @@ class App {
         this.mainPreviewImg.src = state.originalDataUrl;
       }
 
+      // 5b. Show the preview at the printed ratio (trim + bleed, in the image's orientation) and crop
+      // it the way the PDF does — cover, positioned by the 焦點九宮格 anchor (crop-controller sets
+      // object-position). It used to show the whole image while the PDF stretched it.
+      const layoutW = state.processedWidth || state.originalImageData?.width || 0;
+      const layoutH = state.processedHeight || state.originalImageData?.height || 0;
+      const trim = layoutW && layoutH ? trimForImage(state.currentPreset, layoutW, layoutH) : null;
+      if (trim && state.currentPreset.widthMm > 0) {
+        this.mainPreviewImg.style.aspectRatio = `${trim.widthMm + trim.bleedMm * 2} / ${trim.heightMm + trim.bleedMm * 2}`;
+        this.mainPreviewImg.style.objectFit = 'cover';
+      } else {
+        this.mainPreviewImg.style.aspectRatio = '';
+        this.mainPreviewImg.style.objectFit = '';
+      }
+
       // 6. Button Active States
       this.btnToggleSoftProof.classList.toggle('active', state.showSoftProof);
       this.btnToggleCvdPreview.classList.toggle('active', !!state.cvdPreviewType);
       this.btnToggleSafeZone.classList.toggle('active', state.showSafeZone);
       this.btnFlipBack.classList.toggle('active', this.paper3D.getIsFlipped());
 
-      // 8. Bleed & Safe Frame Overlays
-      if (state.showSafeZone && state.currentPreset.widthMm > 0) {
+      // 8. Trim line & safe area overlays. The preview box is trim + bleed (5b), so the trim line sits
+      // one bleed width inside its edge and the safe area another safeMarginMm inside that. (Before
+      // 2026-09-26 the "3mm 出血框" was drawn on the image's outer edge — no trim line at all — and
+      // the safe area was measured from the bleed edge, not the trim.)
+      if (state.showSafeZone && trim && state.currentPreset.widthMm > 0) {
         this.bleedFrame.style.display = 'block';
         this.safeFrame.style.display = 'block';
 
-        const safeMargin = state.currentPreset.safeMarginMm || 5;
-        const totalW = state.currentPreset.widthMm + state.currentPreset.bleedMm * 2;
-        const totalH = state.currentPreset.heightMm + state.currentPreset.bleedMm * 2;
-        const padXPercent = (safeMargin / totalW) * 100;
-        const padYPercent = (safeMargin / totalH) * 100;
-
-        this.safeFrame.style.top = `${padYPercent}%`;
-        this.safeFrame.style.left = `${padXPercent}%`;
-        this.safeFrame.style.right = `${padXPercent}%`;
-        this.safeFrame.style.bottom = `${padYPercent}%`;
+        const totalW = trim.widthMm + trim.bleedMm * 2;
+        const totalH = trim.heightMm + trim.bleedMm * 2;
+        const inset = (el: HTMLElement, mm: number) => {
+          el.style.top = el.style.bottom = `${(mm / totalH) * 100}%`;
+          el.style.left = el.style.right = `${(mm / totalW) * 100}%`;
+        };
+        inset(this.bleedFrame, trim.bleedMm);
+        inset(this.safeFrame, trim.bleedMm + (state.currentPreset.safeMarginMm || 5));
+        const badge = this.bleedFrame.querySelector('.pm-frame-badge');
+        if (badge) badge.textContent = trim.bleedMm > 0 ? `裁切線（外側 ${trim.bleedMm}mm 為出血）` : '裁切線';
       } else {
         this.bleedFrame.style.display = 'none';
         this.safeFrame.style.display = 'none';

@@ -3,6 +3,7 @@ import type { CropAnchor, PrintPreset } from '../types';
 import { iccProfileEngine } from '../core/icc-profiles';
 import { CmykConversionClient } from '../services/cmyk-conversion-client';
 import { CmykPdfWriter, type CmykRaster } from './cmyk-pdf-writer';
+import { coverFit, trimForImage } from '../core/print-layout';
 
 export interface PrintPdfResult {
   blob: Blob;
@@ -35,10 +36,10 @@ export class PdfExporter {
     imageDataUrl: string | string[],
     preset: PrintPreset,
     filename?: string,
-    _cropAnchor: CropAnchor = 'center'
+    cropAnchor: CropAnchor = 'center'
   ): Promise<PrintPdfResult> {
     const saveName = filename || `PrintMagic_${preset.id}_${Date.now()}.pdf`;
-    const result = await this.generate(imageDataUrl, preset, saveName.replace(/\.pdf$/i, ''));
+    const result = await this.generate(imageDataUrl, preset, saveName.replace(/\.pdf$/i, ''), cropAnchor);
     const url = URL.createObjectURL(result.blob);
     const link = document.createElement('a');
     link.download = saveName;
@@ -56,16 +57,21 @@ export class PdfExporter {
   public static async generatePdfBlob(
     imageDataUrl: string,
     preset: PrintPreset,
-    _cropAnchor: CropAnchor = 'center'
+    cropAnchor: CropAnchor = 'center'
   ): Promise<Blob> {
-    return (await this.generate(imageDataUrl, preset)).blob;
+    return (await this.generate(imageDataUrl, preset, undefined, cropAnchor)).blob;
   }
 
   /**
    * CMYK when the separation service answers for every page, otherwise the RGB layout for all pages
    * (a job is never half CMYK, half RGB).
    */
-  public static async generate(imageDataUrl: string | string[], preset: PrintPreset, title?: string): Promise<PrintPdfResult> {
+  public static async generate(
+    imageDataUrl: string | string[],
+    preset: PrintPreset,
+    title?: string,
+    cropAnchor: CropAnchor = 'center'
+  ): Promise<PrintPdfResult> {
     const imageDataUrls = Array.isArray(imageDataUrl) ? imageDataUrl : [imageDataUrl];
     const profileId = iccProfileEngine.getActiveProfile().id;
     const rasters: CmykRaster[] = [];
@@ -81,46 +87,58 @@ export class PdfExporter {
 
     const result: PrintPdfResult = fallbackReason === undefined
       ? {
-          blob: new Blob([CmykPdfWriter.build({ preset, pages: rasters, title: title || `PrintMagic ${preset.id}` })], {
+          blob: new Blob([CmykPdfWriter.build({ preset, pages: rasters, anchor: cropAnchor, title: title || `PrintMagic ${preset.id}` })], {
             type: 'application/pdf'
           }),
           colorMode: 'cmyk',
           outputCondition: rasters[0].outputCondition,
           tacMaxPercent: Math.max(...rasters.map((r) => r.tacMaxPercent ?? 0))
         }
-      : { blob: this.buildPdf(imageDataUrls, preset).output('blob'), colorMode: 'rgb', fallbackReason };
+      : { blob: this.buildPdf(imageDataUrls, preset, cropAnchor).output('blob'), colorMode: 'rgb', fallbackReason };
     if (fallbackReason !== undefined) console.info('[PdfExporter] CMYK separation unavailable, exporting RGB:', fallbackReason);
     this.lastResult = result;
     return result;
   }
 
-  private static buildPdf(imageDataUrls: string[], preset: PrintPreset): jsPDF {
-    const bleedMm = preset.bleedMm || 0;
-    const trimWidthMm = preset.widthMm > 0 ? preset.widthMm : 210;
-    const trimHeightMm = preset.heightMm > 0 ? preset.heightMm : 297;
-
-    // Outer margin around bleed to hold crop marks and color bars
-    const outerMarginMm = preset.cropMarks ? 12 : 0;
-    const pageTotalWidthMm = trimWidthMm + (bleedMm + outerMarginMm) * 2;
-    const pageTotalHeightMm = trimHeightMm + (bleedMm + outerMarginMm) * 2;
-
-    const orientation = trimWidthMm > trimHeightMm ? 'landscape' : 'portrait';
+  private static buildPdf(imageDataUrls: string[], preset: PrintPreset, cropAnchor: CropAnchor): jsPDF {
+    // Each page is laid out from its own image (print-layout.ts, 2026-09-26): trim turned to the
+    // image's orientation, image scaled to cover trim + bleed and clipped — it used to be stretched
+    // into the preset's fixed orientation. Image sizes are read first because jsPDF fixes the first
+    // page's format at construction.
+    const probe = new jsPDF();
+    const pages = imageDataUrls.map((imageDataUrl) => {
+      const { width, height } = probe.getImageProperties(imageDataUrl);
+      const trim = trimForImage(preset, width, height);
+      const outerMarginMm = preset.cropMarks ? 12 : 0;
+      return {
+        imageDataUrl,
+        width,
+        height,
+        bleedMm: trim.bleedMm,
+        trimWidthMm: trim.widthMm,
+        trimHeightMm: trim.heightMm,
+        outerMarginMm,
+        pageTotalWidthMm: trim.widthMm + (trim.bleedMm + outerMarginMm) * 2,
+        pageTotalHeightMm: trim.heightMm + (trim.bleedMm + outerMarginMm) * 2
+      };
+    });
+    const orientationOf = (p: (typeof pages)[number]) => (p.pageTotalWidthMm > p.pageTotalHeightMm ? 'landscape' : 'portrait');
 
     const pdf = new jsPDF({
-      orientation,
+      orientation: orientationOf(pages[0]),
       unit: 'mm',
-      format: [pageTotalWidthMm, pageTotalHeightMm]
+      format: [pages[0].pageTotalWidthMm, pages[0].pageTotalHeightMm]
     });
 
-    // Content placement coordinates (includes bleed)
-    const contentX = outerMarginMm;
-    const contentY = outerMarginMm;
-    const contentWidth = trimWidthMm + bleedMm * 2;
-    const contentHeight = trimHeightMm + bleedMm * 2;
+    pages.forEach((page, pageIndex) => {
+      const { imageDataUrl, bleedMm, trimWidthMm, trimHeightMm, outerMarginMm, pageTotalWidthMm, pageTotalHeightMm } = page;
+      if (pageIndex > 0) pdf.addPage([pageTotalWidthMm, pageTotalHeightMm], orientationOf(page));
 
-    // One page per image (double-sided = [front, back]); every page gets the same bleed/mark layout.
-    imageDataUrls.forEach((imageDataUrl, pageIndex) => {
-      if (pageIndex > 0) pdf.addPage([pageTotalWidthMm, pageTotalHeightMm], orientation);
+      // Content placement coordinates (includes bleed)
+      const contentX = outerMarginMm;
+      const contentY = outerMarginMm;
+      const contentWidth = trimWidthMm + bleedMm * 2;
+      const contentHeight = trimHeightMm + bleedMm * 2;
 
       // 0. Sticker: plain RGB white backing so transparent areas print as white. This is NOT a
       //    white-ink spot plate (that one comes from the dieline tool as a separate file).
@@ -129,17 +147,23 @@ export class PdfExporter {
         pdf.rect(contentX, contentY, contentWidth, contentHeight, 'F');
       }
 
-      // 1. Draw Image
+      // 1. Draw Image — scaled to cover trim + bleed without distortion, clipped to it
+      const fit = coverFit(contentWidth, contentHeight, page.width, page.height, cropAnchor);
+      pdf.saveGraphicsState();
+      pdf.rect(contentX, contentY, contentWidth, contentHeight, null);
+      pdf.clip();
+      pdf.discardPath();
       pdf.addImage(
         imageDataUrl,
         'PNG',
-        contentX,
-        contentY,
-        contentWidth,
-        contentHeight,
+        contentX + fit.x,
+        contentY + fit.y,
+        fit.width,
+        fit.height,
         undefined,
         'FAST'
       );
+      pdf.restoreGraphicsState();
 
       // Trim box origin relative to page
       const trimX = outerMarginMm + bleedMm;

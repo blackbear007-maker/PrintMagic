@@ -41,7 +41,7 @@ export class MultiFormatExporter {
     switch (format) {
       case 'pdf': {
         Toast.info('📄 正在壓製 300 DPI 標準印刷 PDF...');
-        await PdfExporter.export(dataUrl, state.currentPreset, `${baseName}.pdf`);
+        await PdfExporter.export(dataUrl, state.currentPreset, `${baseName}.pdf`, state.cropAnchor);
         Toast.success('✓ 300 DPI 標準印刷 PDF 已成功下載！');
         break;
       }
@@ -104,7 +104,7 @@ export class MultiFormatExporter {
     folder.file(`${baseName}_300DPI.jpg`, jpgDataUrl.split(',')[1], { base64: true });
 
     // 3b. Print-ready PDF (含出血/角線，與 PDF 匯出同一份繪製邏輯)
-    const pdfResult = await PdfExporter.generate(dataUrl, state.currentPreset, `${baseName}_print`);
+    const pdfResult = await PdfExporter.generate(dataUrl, state.currentPreset, `${baseName}_print`, state.cropAnchor);
     folder.file(`${baseName}_print.pdf`, pdfResult.blob);
     const pdfIsCmyk = pdfResult.colorMode === 'cmyk';
 

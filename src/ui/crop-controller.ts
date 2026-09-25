@@ -173,27 +173,18 @@ export class CropController {
         btn.classList.toggle('active', btn.dataset.anchor === state.cropAnchor);
       });
 
-      // Apply dynamic visual focal shift on preview image based on anchor
+      // The preview is shown cover-cropped at the print ratio (main.ts 5b); object-position picks
+      // the same part of the image that PdfExporter / CmykPdfWriter keep for this anchor.
       if (state.cropAnchor === 'top') {
         this.previewImgEl.style.objectPosition = 'center top';
-        this.previewImgEl.style.transformOrigin = 'center top';
-        this.previewImgEl.style.transform = 'translateY(12px)';
       } else if (state.cropAnchor === 'bottom') {
         this.previewImgEl.style.objectPosition = 'center bottom';
-        this.previewImgEl.style.transformOrigin = 'center bottom';
-        this.previewImgEl.style.transform = 'translateY(-12px)';
       } else if (state.cropAnchor === 'left') {
         this.previewImgEl.style.objectPosition = 'left center';
-        this.previewImgEl.style.transformOrigin = 'left center';
-        this.previewImgEl.style.transform = 'translateX(12px)';
       } else if (state.cropAnchor === 'right') {
         this.previewImgEl.style.objectPosition = 'right center';
-        this.previewImgEl.style.transformOrigin = 'right center';
-        this.previewImgEl.style.transform = 'translateX(-12px)';
       } else {
         this.previewImgEl.style.objectPosition = 'center center';
-        this.previewImgEl.style.transformOrigin = 'center center';
-        this.previewImgEl.style.transform = 'translate(0, 0)';
       }
     });
   }

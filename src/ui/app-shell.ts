@@ -279,7 +279,7 @@ export const APP_SHELL_HTML = `
             </label>
 
             <div class="pm-toggle-group pm-toggle-group-pro">
-              <button id="btnToggleSafeZone" class="pm-tool-btn active" title="顯示 3mm 出血線與安全裁切框">
+              <button id="btnToggleSafeZone" class="pm-tool-btn active" title="顯示裁切線與安全區（預覽已依印刷比例裁切）">
                 <img src="icons/shared/ruler-vector.webp" alt="" class="pm-icon-img" /> 出血框
               </button>
               <button id="btnToggleSoftProof" class="pm-tool-btn" title="模擬 CMYK 實體印刷打樣色彩">
@@ -338,7 +338,7 @@ export const APP_SHELL_HTML = `
             <img id="mainPreviewImg" src="" alt="預覽圖" />
             <!-- Bleed & Safe Frames -->
             <div class="pm-bleed-frame" id="bleedFrame" style="display: none;">
-              <span class="pm-frame-badge pm-frame-badge-bleed">3mm 出血框</span>
+              <span class="pm-frame-badge pm-frame-badge-bleed">裁切線</span>
             </div>
             <div class="pm-safe-frame" id="safeFrame" style="display: none;">
               <span class="pm-frame-badge pm-frame-badge-safe">安全區 (文字請放此框內)</span>

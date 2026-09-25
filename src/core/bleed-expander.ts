@@ -1,4 +1,5 @@
 import type { PrintPreset } from '../types';
+import { trimForImage } from './print-layout';
 
 /**
  * 🖼️ 3mm 印刷出血外擴延伸引擎 v3（鏡像外推 + 接縫混合，非生成式模型）
@@ -27,8 +28,11 @@ export class BleedExpander {
     const srcW = srcImageData.width;
     const srcH = srcImageData.height;
 
-    const bleedPxX = Math.max(16, Math.round((srcW / (preset.widthMm || 210)) * bleedMarginMm));
-    const bleedPxY = Math.max(16, Math.round((srcH / (preset.heightMm || 297)) * bleedMarginMm));
+    // mm-per-pixel from the trim in the image's own orientation (print-layout.ts): with the preset's
+    // fixed orientation, a landscape image on a portrait preset got bands sized for the wrong axis.
+    const trim = trimForImage(preset, srcW, srcH);
+    const bleedPxX = Math.max(16, Math.round((srcW / trim.widthMm) * bleedMarginMm));
+    const bleedPxY = Math.max(16, Math.round((srcH / trim.heightMm) * bleedMarginMm));
 
     const outW = srcW + bleedPxX * 2;
     const outH = srcH + bleedPxY * 2;

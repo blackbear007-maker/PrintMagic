@@ -22,6 +22,9 @@ function raster(width = 4, height = 3): CmykRaster {
 const latin1 = (bytes: Uint8Array) => Buffer.from(bytes).toString('latin1');
 const box = (pdf: string, name: string) =>
   pdf.match(new RegExp(`/${name} \\[([^\\]]+)\\]`))![1].split(' ').map(Number);
+/** [clipX, clipY, clipW, clipH, imageW, imageH, imageX, imageY] from `q x y w h re W n a 0 0 d e f cm /Im0 Do Q`. */
+const placement = (pdf: string) =>
+  pdf.match(/q (\S+) (\S+) (\S+) (\S+) re W n (\S+) 0 0 (\S+) (\S+) (\S+) cm \/Im0 Do Q/)!.slice(1).map(Number);
 
 describe('CmykPdfWriter', () => {
   const a4 = PRINT_PRESETS['poster-a4'];
@@ -67,7 +70,7 @@ describe('CmykPdfWriter', () => {
   });
 
   it('sets MediaBox, BleedBox and TrimBox from the preset (A4, 3mm bleed, 12mm mark margin)', () => {
-    const pdf = latin1(CmykPdfWriter.build({ preset: a4, pages: [raster()] }));
+    const pdf = latin1(CmykPdfWriter.build({ preset: a4, pages: [raster(3, 4)] }));
     const media = box(pdf, 'MediaBox');
     const bleed = box(pdf, 'BleedBox');
     const trim = box(pdf, 'TrimBox');
@@ -92,13 +95,45 @@ describe('CmykPdfWriter', () => {
     const front = raster(4, 3);
     const back = { ...raster(6, 2), flateData: new Uint8Array(deflateSync(new Uint8Array(6 * 2 * 4).fill(9))) };
     const pdf = latin1(CmykPdfWriter.build({ preset: a4, pages: [front, back] }));
-    expect(pdf).toContain('/Kids [7 0 R 9 0 R] /Count 2');
-    expect(pdf).toContain('/XObject << /Im0 8 0 R >>');
+    expect(pdf).toContain('/Kids [6 0 R 9 0 R] /Count 2');
+    expect(pdf).toContain('/XObject << /Im0 7 0 R >>');
     expect(pdf).toContain('/XObject << /Im0 10 0 R >>');
+    expect(pdf).toContain('/Contents 8 0 R');
+    expect(pdf).toContain('/Contents 11 0 R');
     expect(pdf).toMatch(/\/Width 4 \/Height 3 \/ColorSpace \/DeviceCMYK/);
     expect(pdf).toMatch(/\/Width 6 \/Height 2 \/ColorSpace \/DeviceCMYK/);
     expect(pdf.match(/\/Type \/Page /g)!.length).toBe(2);
     expect(() => CmykPdfWriter.build({ preset: a4, pages: [front, { ...back, outputConditionIdentifier: 'FOGRA39' }] })).toThrow();
+  });
+
+  it('turns the page to the image orientation and covers trim + bleed without stretching', () => {
+    // 2026-09-26: a landscape image on the portrait A4 preset used to be stretched into a portrait page.
+    const landscape = { ...raster(4000, 3000), flateData: raster().flateData };
+    const pdf = latin1(CmykPdfWriter.build({ preset: a4, pages: [landscape] }));
+    const media = box(pdf, 'MediaBox');
+    expect(media[2]).toBeGreaterThan(media[3]);
+    const trim = box(pdf, 'TrimBox');
+    expect(trim[2] - trim[0]).toBeCloseTo(297 * PT, 2);
+
+    // Clipped to the bleed box, and the image matrix keeps the raster's own 4:3 ratio.
+    const bleed = box(pdf, 'BleedBox');
+    const [cx, cy, cw, ch, a, d] = placement(pdf);
+    expect(cx).toBeCloseTo(bleed[0], 2);
+    expect(cy).toBeCloseTo(bleed[1], 2);
+    expect(cw).toBeCloseTo(bleed[2] - bleed[0], 2);
+    expect(ch).toBeCloseTo(bleed[3] - bleed[1], 2);
+    expect(a / d).toBeCloseTo(4000 / 3000, 3);
+    expect(a).toBeGreaterThanOrEqual(cw - 0.01);
+    expect(d).toBeGreaterThanOrEqual(ch - 0.01);
+  });
+
+  it('keeps the anchored part of an image whose ratio differs from the page', () => {
+    const wide = { ...raster(6000, 3000), flateData: raster().flateData }; // 2:1 on landscape A4 (~1.4:1)
+    const left = latin1(CmykPdfWriter.build({ preset: a4, pages: [wide], anchor: 'left' }));
+    const right = latin1(CmykPdfWriter.build({ preset: a4, pages: [wide], anchor: 'right' }));
+    const bleedLeft = box(left, 'BleedBox')[0];
+    expect(placement(left)[6]).toBeCloseTo(bleedLeft, 2); // image's left edge on the left bleed edge
+    expect(placement(right)[6]).toBeLessThan(bleedLeft - 10); // shifted left: the right side is kept
   });
 
   it('omits the mark margin and marks for presets without them, and encodes non-ASCII titles', () => {
