@@ -13,18 +13,67 @@
  */
 import { store } from '../ui/state';
 
+/** 'vision' = the zero-dce container behind /api/ai/*; 'vectorize' = vtracer behind /api/vectorize. */
+export type RemoteService = 'vision' | 'vectorize';
+
 export class NetworkGuard {
+  private static healthCheck: Promise<boolean> | null = null;
+
   /**
    * Single gate for every client that would send user image data to a self-hosted `/api/*`
    * service. False in 本機基本功能 (engineMode === 'local') — callers must use their local
-   * fallback and never upload. True in 雲端高階功能 (try the service, fall back if unreachable).
+   * fallback and never upload. In 雲端高階功能 it is also false for a service the last /api/health
+   * probe reported down (2026-09-26): the image goes straight to the local algorithm instead of
+   * being uploaded to a dead service and falling back after the error. Not probed yet = try it.
    */
-  public static isRemoteAllowed(): boolean {
+  public static isRemoteAllowed(service: RemoteService = 'vision'): boolean {
     try {
-      return store.getState().engineMode === 'cloud';
+      const state = store.getState();
+      return state.engineMode === 'cloud' && state.remoteServices?.[service] !== false;
     } catch {
       return false;
     }
+  }
+
+  /**
+   * GET /api/health and record which services answered (cloudStatus is 'online' when the site
+   * backend and the vision service both do). Concurrent callers share one request.
+   */
+  public static checkHealth(): Promise<boolean> {
+    if (this.healthCheck) return this.healthCheck;
+    this.healthCheck = (async () => {
+      store.setState({ cloudStatus: 'checking' });
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 4000);
+      try {
+        const res = await fetch('/api/health', { signal: controller.signal });
+        const isJson = (res.headers.get('content-type') || '').includes('application/json');
+        const body = res.ok && isJson ? await res.json() : null;
+        const services = body?.services && typeof body.services.vision === 'boolean' ? body.services : null;
+        // An older backend without `services` is treated as up, as before.
+        const online = !!body && services?.vision !== false;
+        store.setState({
+          cloudStatus: online ? 'online' : 'offline',
+          remoteServices: body ? services : { vision: false, vectorize: false },
+          remoteCheckedAt: Date.now()
+        });
+        return online;
+      } catch {
+        store.setState({ cloudStatus: 'offline', remoteServices: { vision: false, vectorize: false }, remoteCheckedAt: Date.now() });
+        return false;
+      } finally {
+        clearTimeout(timer);
+        this.healthCheck = null;
+      }
+    })();
+    return this.healthCheck;
+  }
+
+  /** Re-probe before a remote-eligible step when the last probe is older than `maxAgeMs` (cloud mode only). */
+  public static async refreshServiceStatus(maxAgeMs = 60000): Promise<void> {
+    const state = store.getState();
+    if (state.engineMode !== 'cloud' || Date.now() - state.remoteCheckedAt < maxAgeMs) return;
+    await this.checkHealth();
   }
 
   /**

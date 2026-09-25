@@ -1,5 +1,6 @@
 import { AiVectorizer } from '../core/ai-vectorizer';
 import { NetworkGuard } from './network-guard';
+import { store } from '../ui/state';
 
 /**
  * 📐 Vectorizer Client (self-hosted VTracer / local Bézier splines fallback)
@@ -47,13 +48,16 @@ export class FreeVectorizeClient {
       return { svg: cached, isCloud: true, engineName: '快取向量引擎' };
     }
 
-    // 1. Privacy Shield: skip the self-hosted service entirely, never send the image anywhere
-    if (!NetworkGuard.isRemoteAllowed()) {
+    // 1. Local mode, or vtracer reported down: skip the self-hosted service, never send the image anywhere
+    await NetworkGuard.refreshServiceStatus();
+    if (!NetworkGuard.isRemoteAllowed('vectorize')) {
       const svg = AiVectorizer.traceToSvg(imageData, colorsCount, smoothTolerance);
       return {
         svg,
         isCloud: false,
-        engineName: '本機三次貝茲曲線引擎 (100% 本機模式)'
+        engineName: store.getState().engineMode === 'local'
+          ? '本機三次貝茲曲線引擎 (100% 本機模式)'
+          : '本機三次貝茲曲線引擎 (向量化服務離線)'
       };
     }
 

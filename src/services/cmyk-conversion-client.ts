@@ -1,4 +1,5 @@
 import { NetworkGuard } from './network-guard';
+import { store } from '../ui/state';
 import type { CmykRaster } from '../engines/cmyk-pdf-writer';
 
 export type CmykConversionResult =
@@ -19,8 +20,12 @@ export type CmykConversionResult =
  */
 export class CmykConversionClient {
   public static async convert(imageDataUrl: string, profileId: string): Promise<CmykConversionResult> {
+    await NetworkGuard.refreshServiceStatus();
     if (!NetworkGuard.isRemoteAllowed()) {
-      return { ok: false, reason: '本機模式不上傳圖片，CMYK 分色需要雲端服務' };
+      return {
+        ok: false,
+        reason: store.getState().engineMode === 'local' ? '本機模式不上傳圖片，CMYK 分色需要雲端服務' : '分色服務目前離線'
+      };
     }
 
     const controller = new AbortController();

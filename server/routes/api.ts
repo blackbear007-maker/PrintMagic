@@ -4,14 +4,47 @@ import { PdfxService } from '../services/pdfx-service.js';
 
 export const apiRouter = Router();
 
+const VISION_URL = process.env.ZERO_DCE_URL || process.env.AI_ENGINE_URL || 'http://127.0.0.1:8082';
+const VTRACER_URL = process.env.VTRACER_URL || 'http://localhost:8080';
+
+// 2026-09-26: /health also says whether the services behind /api/ai/* (zero-dce) and /api/vectorize
+// (vtracer) answer. This process serves the site itself, so "Node is up" said nothing about them, and
+// every image was uploaded to a dead service first and fell back to the local algorithm only after
+// the error. Probes are shared for 30s and give up after 1.5s.
+const SERVICE_PROBE_TTL_MS = 30000;
+let serviceProbe: { at: number; result: Promise<{ vision: boolean; vectorize: boolean }> } | null = null;
+
+async function probe(baseUrl: string): Promise<boolean> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 1500);
+  try {
+    return (await fetch(`${baseUrl}/health`, { signal: controller.signal })).ok;
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function probeServices(): Promise<{ vision: boolean; vectorize: boolean }> {
+  if (!serviceProbe || Date.now() - serviceProbe.at > SERVICE_PROBE_TTL_MS) {
+    serviceProbe = {
+      at: Date.now(),
+      result: Promise.all([probe(VISION_URL), probe(VTRACER_URL)]).then(([vision, vectorize]) => ({ vision, vectorize }))
+    };
+  }
+  return serviceProbe.result;
+}
+
 // Health Check
-apiRouter.get('/health', (_req: Request, res: Response) => {
+apiRouter.get('/health', async (_req: Request, res: Response) => {
   res.json({
     status: 'ok',
     service: 'PrintMagic Industrial Cloud Engine',
     version: '3.1.0',
     uptimeSeconds: Math.floor(process.uptime()),
-    features: ['pdfx-1a', 'pdfx-4', 'icc-profiles', 'tac-validator']
+    features: ['pdfx-1a', 'pdfx-4', 'icc-profiles', 'tac-validator'],
+    services: await probeServices()
   });
 });
 
@@ -199,7 +232,7 @@ apiRouter.post('/vectorize', async (req: Request, res: Response) => {
       return;
     }
 
-    const vtracerUrl = process.env.VTRACER_URL || 'http://localhost:8080';
+    const vtracerUrl = VTRACER_URL;
     const base64Data = imageDataUrl.replace(/^data:image\/\w+;base64,/, '');
     const buffer = Buffer.from(base64Data, 'base64');
 

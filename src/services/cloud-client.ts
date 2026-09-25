@@ -1,4 +1,5 @@
 import { store } from '../ui/state';
+import { NetworkGuard } from './network-guard';
 import { Toast } from '../ui/toast';
 import { PdfExporter } from '../engines/pdf-exporter';
 import type { PrintPreset } from '../types';
@@ -25,35 +26,10 @@ export class CloudClient {
     ((import.meta as unknown as { env?: Record<string, string | undefined> }).env?.VITE_CLOUD_API_BASE) ?? '/api';
 
   /**
-   * Check if industrial cloud backend is alive
+   * Check if the self-hosted backend (and the services behind it) is alive — see NetworkGuard.checkHealth.
    */
   public static async checkHealth(): Promise<boolean> {
-    try {
-      store.setState({ cloudStatus: 'checking' });
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2500);
-
-      let res: Response;
-      try {
-        res = await fetch(`${this.baseUrl}/health`, {
-          signal: controller.signal
-        });
-      } finally {
-        clearTimeout(timeoutId);
-      }
-
-      // 同源 /api 在沒有後端的靜態部署或 Vite dev 會被 SPA fallback 回 200 的 index.html，必須確認真的是 JSON。
-      const isJson = (res.headers.get('content-type') || '').includes('application/json');
-      if (res.ok && isJson) {
-        store.setState({ cloudStatus: 'online' });
-        return true;
-      }
-      store.setState({ cloudStatus: 'offline' });
-      return false;
-    } catch {
-      store.setState({ cloudStatus: 'offline' });
-      return false;
-    }
+    return NetworkGuard.checkHealth();
   }
 
   /**

@@ -57,6 +57,9 @@ export interface AppState {
   // Hybrid Dual-Engine Architecture
   engineMode: EngineMode;
   cloudStatus: CloudHealthStatus;
+  /** Which self-hosted services answered the last /api/health probe; null = not checked yet (try them). */
+  remoteServices: { vision: boolean; vectorize: boolean } | null;
+  remoteCheckedAt: number;
 
   // Settings & Modes
   currentPreset: PrintPreset;
@@ -139,6 +142,8 @@ class StateStore {
 
     engineMode: 'cloud', // 2026-09-20：預設改用雲端AI模式，使用者可隨時切回本機隱私模式
     cloudStatus: 'offline',
+    remoteServices: null,
+    remoteCheckedAt: 0,
 
     currentPreset: DEFAULT_PRESET,
     selectedPaper: 'glossy',

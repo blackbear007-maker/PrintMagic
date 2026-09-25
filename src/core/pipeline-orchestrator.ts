@@ -24,6 +24,7 @@ import { EdgeAwareUpscaler } from './edge-aware-upscaler';
 import { FreeLowlightClient } from '../services/free-lowlight-client';
 import { FreeMattingClient } from '../services/free-matting-client';
 import { BleedExpander } from './bleed-expander';
+import { NetworkGuard } from '../services/network-guard';
 
 /**
  * 2026-08-30 抽出自 main.ts 的 `App` 類別：main.ts 身兼「26 個獨立 UI 元件的組裝根」
@@ -86,6 +87,10 @@ export class PipelineOrchestrator {
     try {
       // Trigger Cinematic Laser Scanline
       void this.laserScan.triggerScan();
+
+      // Know which self-hosted services are up before any step tries one (probe is reused for 60s).
+      await NetworkGuard.refreshServiceStatus();
+      if (this.isStale(gen)) return this.abandonRun(activeId);
 
       // Step 0: Pre-Processing Diagnostic Evaluation
       const originalDpiAnalysis = DpiCalculator.analyze(

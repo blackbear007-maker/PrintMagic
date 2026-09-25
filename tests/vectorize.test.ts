@@ -6,8 +6,9 @@ describe('FreeVectorizeClient (VTracer Rust 微服務與本機三次貝茲曲線
   let storeMock: Record<string, string> = {};
 
   beforeEach(() => {
-    // 遠端服務只在自建服務模式啟用（本機模式不上傳圖片）
-    store.setState({ engineMode: 'cloud' });
+    // 遠端服務只在自建服務模式啟用（本機模式不上傳圖片），且 /api/health 最近一次回報 vtracer 在線
+    // （2026-09-26 起回報離線的服務會直接跳過）。
+    store.setState({ engineMode: 'cloud', remoteServices: { vision: true, vectorize: true }, remoteCheckedAt: Date.now() });
     vi.restoreAllMocks();
     storeMock = {};
 
