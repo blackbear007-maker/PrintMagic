@@ -90,7 +90,7 @@ export class ImpositionModal {
         <div class="pm-modal-header">
           <div class="pm-modal-title-group">
             <span class="pm-modal-title"><img src="icons/shared/puzzle.webp" alt="" class="pm-icon-img" /> 智慧自動拼模引擎 (A4 / A3 拼版)</span>
-            <span class="pm-modal-subtitle">將名片、貼紙、明信片或證件照自動排列鋪滿一張紙，印一張抵多張，現省高達 ${this.layout.costSavingsPercent}% 印刷費！</span>
+            <span class="pm-modal-subtitle">將名片、貼紙、明信片或證件照自動排列鋪滿一張紙，一張排 ${this.layout.totalCells} 模。</span>
           </div>
           <button class="pm-modal-close" id="btnImpositionClose"><img src="icons/shared/close.webp" alt="" class="pm-icon-img" /></button>
         </div>
@@ -135,7 +135,7 @@ export class ImpositionModal {
                 <span class="pm-summary-tax">模 (${this.layout.cols} 列 × ${this.layout.rows} 行)</span>
               </div>
               <div class="pm-summary-unit-price">
-                <img src="icons/shared/check.webp" alt="" class="pm-icon-img" /> 包含 0.1mm 裁切十字線與 3mm 安全間距 · 印刷成本立省 <strong>${this.layout.costSavingsPercent}%</strong>！
+                <img src="icons/shared/check.webp" alt="" class="pm-icon-img" /> 包含 0.1mm 裁切十字線與 3mm 安全間距
               </div>
             </div>
 

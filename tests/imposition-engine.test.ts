@@ -8,13 +8,11 @@ describe('ImpositionEngine (Gang-Run Imposition for A4/A3)', () => {
     expect(layout.sheetWidthMm).toBe(210);
     expect(layout.sheetHeightMm).toBe(297);
     expect(layout.totalCells).toBeGreaterThanOrEqual(8);
-    expect(layout.costSavingsPercent).toBeGreaterThanOrEqual(70);
   });
 
   it('should calculate optimal layout for 50x50mm stickers on A4', () => {
     const layout = ImpositionEngine.calculateLayout(50, 50, 'A4');
     expect(layout.totalCells).toBeGreaterThanOrEqual(15);
-    expect(layout.costSavingsPercent).toBeGreaterThan(80);
   });
 
   it('does not pick a rotated layout that overflows the sheet (100x250mm on A4)', () => {
@@ -31,7 +29,6 @@ describe('ImpositionEngine (Gang-Run Imposition for A4/A3)', () => {
     const layout = ImpositionEngine.calculateLayout(148, 100, 'A3');
     expect(layout.sheetPreset).toBe('A3');
     expect(layout.totalCells).toBe(4);
-    expect(layout.costSavingsPercent).toBe(75);
   });
 
   // 2026-08-27: confirms the existing gang-run engine (built for business cards/stickers) also
@@ -43,7 +40,6 @@ describe('ImpositionEngine (Gang-Run Imposition for A4/A3)', () => {
     expect(layout.cols).toBeGreaterThan(0);
     expect(layout.rows).toBeGreaterThan(0);
     expect(layout.totalCells).toBe(28);
-    expect(layout.costSavingsPercent).toBeGreaterThan(80);
     // 28 cells only beats the 25-cell non-rotated layout via the rotated packing path — this is
     // exactly the real-world case that exposed the "swapped dimensions but never actually rotates
     // the drawn image" bug (2026-08-29), since it's the default ID-photo/A4 combination.

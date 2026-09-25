@@ -25,9 +25,7 @@ export interface ConveniencePrintSpec {
   heightMm: number;
   widthPx300Dpi: number;
   heightPx300Dpi: number;
-  priceNTD: number;
   nonPrintableMarginMm: number;
-  description: string;
   recommendedFor: string;
   uploadUrl: string;
 }
@@ -42,9 +40,7 @@ export const CONVENIENCE_STORE_SPECS: ConveniencePrintSpec[] = [
     heightMm: 152.4,
     widthPx300Dpi: 1200,
     heightPx300Dpi: 1800,
-    priceNTD: 6,
     nonPrintableMarginMm: 2,
-    description: '日本進口高磅數相紙，光澤亮麗，不易褪色。適合明信片、照片、卡片。',
     recommendedFor: '個人收藏、同人明信片、拍立得風格卡片',
     uploadUrl: 'https://www.ibon.com.tw/print_browse.aspx'
   },
@@ -57,9 +53,7 @@ export const CONVENIENCE_STORE_SPECS: ConveniencePrintSpec[] = [
     heightMm: 297,
     widthPx300Dpi: 2480,
     heightPx300Dpi: 3508,
-    priceNTD: 15,
     nonPrintableMarginMm: 4,
-    description: '160g 厚磅雪銅紙，紙面平滑微霧，顯色細膩，厚度適中不軟塌。',
     recommendedFor: '插畫海報、作品集封面、展覽小海報',
     uploadUrl: 'https://www.ibon.com.tw/print_browse.aspx'
   },
@@ -72,9 +66,7 @@ export const CONVENIENCE_STORE_SPECS: ConveniencePrintSpec[] = [
     heightMm: 297,
     widthPx300Dpi: 2480,
     heightPx300Dpi: 3508,
-    priceNTD: 10,
     nonPrintableMarginMm: 5,
-    description: '標準 70g 影印紙全彩輸出，經濟實惠。',
     recommendedFor: '初稿試印、文件、傳單草稿',
     uploadUrl: 'https://www.ibon.com.tw/print_browse.aspx'
   },
@@ -87,9 +79,7 @@ export const CONVENIENCE_STORE_SPECS: ConveniencePrintSpec[] = [
     heightMm: 152.4,
     widthPx300Dpi: 1200,
     heightPx300Dpi: 1800,
-    priceNTD: 20,
     nonPrintableMarginMm: 2,
-    description: '背膠撕開即可黏貼的相片貼紙，色彩鮮明，抗刮耐磨。',
     recommendedFor: '手帳裝飾、行李箱貼紙、同人模切貼紙',
     uploadUrl: 'https://famiport.family.com.tw/'
   },
@@ -102,9 +92,7 @@ export const CONVENIENCE_STORE_SPECS: ConveniencePrintSpec[] = [
     heightMm: 152.4,
     widthPx300Dpi: 1200,
     heightPx300Dpi: 1800,
-    priceNTD: 6,
     nonPrintableMarginMm: 2,
-    description: '高畫質亮面寫真相紙，隨印隨拿。',
     recommendedFor: '紀念明信片、拍立得照片',
     uploadUrl: 'https://famiport.family.com.tw/'
   },
@@ -117,9 +105,7 @@ export const CONVENIENCE_STORE_SPECS: ConveniencePrintSpec[] = [
     heightMm: 297,
     widthPx300Dpi: 2480,
     heightPx300Dpi: 3508,
-    priceNTD: 15,
     nonPrintableMarginMm: 4,
-    description: '高磅數厚卡紙彩色輸出，紙質挺拔，質感絕佳。',
     recommendedFor: '個人畫作輸出、精緻 A4 海報',
     uploadUrl: 'https://famiport.family.com.tw/'
   }

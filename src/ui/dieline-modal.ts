@@ -109,7 +109,7 @@ export class DielineModal {
                 <span class="pm-summary-tax">層分離式印刷封包</span>
               </div>
               <div class="pm-summary-unit-price">
-                <img src="icons/shared/check.webp" alt="" class="pm-icon-img" /> 包含 100% 遮蔽率白墨層、0.2mm 內縮防溢白、100% Magenta 1pt 刀模路徑 · 符合健豪/卡之屋透明模切規範
+                <img src="icons/shared/check.webp" alt="" class="pm-icon-img" /> 包含 100% 遮蔽率白墨層、0.2mm 內縮防溢白、100% Magenta 1pt 刀模路徑
               </div>
             </div>
 

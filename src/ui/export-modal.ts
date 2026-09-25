@@ -82,7 +82,7 @@ export class ExportModal {
             <div>
               <h3 class="pm-modal-title">商業印刷多格式出機中心</h3>
               <p style="font-size: 0.78rem; color: var(--pm-text-muted); margin: 2px 0 0 0;">
-                符合各大印刷廠（健豪、卡之屋、經典、藍格）與大圖輸出之規範
+                一次下載各種格式的印刷檔
               </p>
             </div>
           </div>

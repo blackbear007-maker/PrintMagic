@@ -10,7 +10,6 @@ describe('ConvenienceStoreEngine (7-11 ibon & FamilyMart FamiPort)', () => {
     expect(spec.store).toBe('7-11');
     expect(spec.widthMm).toBe(101.6);
     expect(spec.heightMm).toBe(152.4);
-    expect(spec.priceNTD).toBe(6);
     expect(spec.nonPrintableMarginMm).toBe(2);
     expect(spec.uploadUrl).toContain('ibon.com.tw');
   });
@@ -20,13 +19,11 @@ describe('ConvenienceStoreEngine (7-11 ibon & FamilyMart FamiPort)', () => {
     expect(spec).toBeDefined();
     expect(spec.widthMm).toBe(210);
     expect(spec.heightMm).toBe(297);
-    expect(spec.priceNTD).toBe(15);
   });
 
   it('should define accurate specs for FamilyMart 4x6 sticker paper', () => {
     const spec = CONVENIENCE_STORE_SPECS.find((s) => s.id === 'fami-sticker-4x6')!;
     expect(spec).toBeDefined();
     expect(spec.store).toBe('familymart');
-    expect(spec.priceNTD).toBe(20);
   });
 });

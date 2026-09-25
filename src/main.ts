@@ -13,8 +13,6 @@ import { LoupeController } from './ui/loupe';
 import { LaserScanController } from './ui/laser-scan';
 import { MockupModal } from './ui/mockup-modal';
 import { SpecModal } from './ui/spec-modal';
-import { NearbyShopsModal } from './ui/nearby-shops-modal';
-import { DirectPrintModal } from './ui/direct-print-modal';
 import { BatchBar } from './ui/batch-bar';
 import { CropController } from './ui/crop-controller';
 import { NetworkGuard } from './services/network-guard';
@@ -84,8 +82,6 @@ class App {
   public laserScan!: LaserScanController;
   public mockupModal!: MockupModal;
   public specModal!: SpecModal;
-  public shopsModal!: NearbyShopsModal;
-  public directPrintModal!: DirectPrintModal;
   public convPrintModal!: ConveniencePrintModal;
   public impositionModal!: ImpositionModal;
   public dielineModal!: DielineModal;
@@ -237,9 +233,6 @@ class App {
     this.diagnosticCard = new DiagnosticCard(
       'diagnosticCardRoot',
       () => {
-        this.directPrintModal.open();
-      },
-      () => {
         this.btnExportPdf.click();
       },
       () => {
@@ -277,8 +270,6 @@ class App {
     // 9. Modals
     this.mockupModal = new MockupModal();
     this.specModal = new SpecModal();
-    this.shopsModal = new NearbyShopsModal();
-    this.directPrintModal = new DirectPrintModal(() => this.shopsModal.open());
     this.convPrintModal = new ConveniencePrintModal();
     this.impositionModal = new ImpositionModal();
     this.dielineModal = new DielineModal();

@@ -24,7 +24,7 @@ export const ICC_PROFILE_SPECS: IccProfileSpec[] = [
   {
     id: 'japan-color-2001-coated',
     name: 'Japan Color 2001 Coated',
-    regionZh: '台灣 / 日本 合版印刷標準 (健豪、卡之屋推薦)',
+    regionZh: '台灣 / 日本 合版印刷常用標準',
     paperTypeZh: '超光銅版紙、塗布亮面紙',
     maxTac: 350,
     dotGainPercent: 14,

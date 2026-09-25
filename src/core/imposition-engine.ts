@@ -15,7 +15,6 @@ export interface ImpositionLayout {
   cellHeightPx: number;
   gapMm: number;
   marginMm: number;
-  costSavingsPercent: number;
   /** True when the grid packs more items by rotating each item 90° — generateImpositionCanvas()
    *  must actually rotate the drawn image to match, not just swap the cell's width/height labels. */
   isRotated: boolean;
@@ -72,10 +71,6 @@ export class ImpositionEngine {
     // totalCells === 0 代表尺寸超出可印範圍（兩個方向都放不下），呼叫端應提示而非出圖
     const totalCells = cols * rows;
 
-    // Calculate cost savings compared to printing single separate copies
-    // e.g. 8 items on 1 sheet -> ~75% cost savings
-    const costSavingsPercent = totalCells > 1 ? Math.min(85, Math.round(((totalCells - 1) / totalCells) * 100)) : 0;
-
     const dpi = 300;
     const mmToPx = (mm: number) => Math.round((mm / 25.4) * dpi);
 
@@ -94,7 +89,6 @@ export class ImpositionEngine {
       cellHeightPx: mmToPx(cellH),
       gapMm,
       marginMm,
-      costSavingsPercent,
       isRotated
     };
   }
@@ -126,7 +120,8 @@ export class ImpositionEngine {
     ctx.fillStyle = '#6e6e73';
     ctx.font = 'bold 24px sans-serif';
     ctx.fillText(
-      `PrintMagic Studio — 智慧拼模版型 [${layout.sheetPreset} / ${layout.totalCells} 模] · 300 DPI 印刷標準 · 預估節省 ${layout.costSavingsPercent}% 成本`,
+      // 2026-09-26: this header used to print "預估節省 X% 成本" onto the sheet — X was just (n-1)/n, not a price.
+      `PrintMagic — 拼版 [${layout.sheetPreset} / ${layout.totalCells} 模] · 300 DPI`,
       50,
       50
     );

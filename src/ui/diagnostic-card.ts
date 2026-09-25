@@ -8,7 +8,6 @@ import { iccProfileEngine } from '../core/icc-profiles';
  */
 export class DiagnosticCard {
   private container: HTMLElement;
-  private onDirectPrintClick?: () => void;
   private onExportPdfClick?: () => void;
   private onOpenTextInspectorClick?: () => void;
   private onOpenExportCenterClick?: () => void;
@@ -17,7 +16,6 @@ export class DiagnosticCard {
 
   constructor(
     containerId: string,
-    onDirectPrintClick?: () => void,
     onExportPdfClick?: () => void,
     onPipelineOptionsChange?: () => void,
     onOpenTextInspectorClick?: () => void,
@@ -26,7 +24,6 @@ export class DiagnosticCard {
     const el = document.getElementById(containerId);
     if (!el) throw new Error(`Diagnostic card #${containerId} not found`);
     this.container = el;
-    this.onDirectPrintClick = onDirectPrintClick;
     this.onExportPdfClick = onExportPdfClick;
     this.onOpenTextInspectorClick = onOpenTextInspectorClick;
     this.onOpenExportCenterClick = onOpenExportCenterClick;
@@ -261,11 +258,6 @@ export class DiagnosticCard {
             <button class="pm-btn pm-btn-primary pm-btn-lg btn-diag-export-pdf" style="width: 100%; font-weight: 700; box-shadow: 0 4px 14px rgba(60, 30, 140, 0.35);" title="下載含裁切十字、色條與出血之標準印刷 PDF">
               <span><img src="icons/shared/document-page.webp" alt="" class="pm-icon-img" /></span> 下載印刷 PDF${bleedMm > 0 ? ' (含出血)' : ''}
             </button>
-            <!-- 2026-08-29 補上：見 Simple 模式樣板同段落註解，DirectPrintModal 入口按鈕原本兩種
-                 模式都沒有渲染，這裡補上。 -->
-            <button class="pm-btn pm-btn-artisan pm-btn-lg btn-diag-direct-print" style="width: 100%; margin-top: 8px; font-weight: 700;" title="估算台灣 4 間合版印刷廠的參考價格（合成估算，非即時報價），並打包送印工單 ZIP">
-              <span><img src="icons/shared/factory.webp" alt="" class="pm-icon-img" /></span> 送印估價與比價
-            </button>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px;">
               <button class="pm-btn pm-btn-secondary pm-btn-md btn-diag-export-png" title="下載 300 DPI 高解析度 PNG 影像檔">
                 <span><img src="icons/shared/download.webp" alt="" class="pm-icon-img" /></span> 下載高清 PNG
@@ -389,13 +381,6 @@ export class DiagnosticCard {
   }
 
   private bindEvents(state: AppState): void {
-    // 1. Direct Print CTA
-    this.container.querySelector('.btn-diag-direct-print')?.addEventListener('click', () => {
-      if (this.onDirectPrintClick) {
-        this.onDirectPrintClick();
-      }
-    });
-
     // 2. Export PDF CTA
     this.container.querySelector('.btn-diag-export-pdf')?.addEventListener('click', () => {
       if (this.onExportPdfClick) {

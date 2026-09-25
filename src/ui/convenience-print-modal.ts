@@ -69,10 +69,10 @@ export class ConveniencePrintModal {
     const storeTabsHtml = `
       <div class="pm-conv-store-tabs">
         <button class="pm-conv-store-btn ${this.selectedStore === '7-11' ? 'active store-711' : ''}" data-store="7-11">
-          <img src="icons/shared/store.webp" alt="" class="pm-icon-img" /> 7-ELEVEN ibon (全國 6,800+ 門市)
+          <img src="icons/shared/store.webp" alt="" class="pm-icon-img" /> 7-ELEVEN ibon
         </button>
         <button class="pm-conv-store-btn ${this.selectedStore === 'familymart' ? 'active store-fami' : ''}" data-store="familymart">
-          <img src="icons/shared/store.webp" alt="" class="pm-icon-img" /> 全家 FamiPort (全國 4,200+ 門市)
+          <img src="icons/shared/store.webp" alt="" class="pm-icon-img" /> 全家 FamiPort
         </button>
       </div>
     `;
@@ -84,13 +84,9 @@ export class ConveniencePrintModal {
           <div class="pm-conv-spec-card ${isSelected ? 'active' : ''}" data-spec="${spec.id}">
             <div class="pm-conv-card-header">
               <span class="pm-conv-paper-title">${spec.paperType}</span>
-              <span class="pm-conv-price-tag">NT$ ${spec.priceNTD} / 張</span>
             </div>
             <div class="pm-conv-size-text">
               <img src="icons/shared/ruler-vector.webp" alt="" class="pm-icon-img" /> 實體尺寸：${spec.widthMm} × ${spec.heightMm} mm (300 DPI)
-            </div>
-            <div class="pm-conv-desc-text">
-              ${spec.description}
             </div>
             <div class="pm-conv-rec-tag">
               💡 推薦：${spec.recommendedFor}
@@ -105,7 +101,7 @@ export class ConveniencePrintModal {
         <div class="pm-modal-header">
           <div class="pm-modal-title-group">
             <span class="pm-modal-title"><img src="icons/shared/store.webp" alt="" class="pm-icon-img" /> 超商列印檔案產生器</span>
-            <span class="pm-modal-subtitle">自動符合超商列印規範，產生專屬 300 DPI 實體出機檔</span>
+            <span class="pm-modal-subtitle">依超商機台的紙張尺寸，產生 300 DPI 列印檔</span>
           </div>
           <button class="pm-modal-close" id="btnConvClose"><img src="icons/shared/close.webp" alt="" class="pm-icon-img" /></button>
         </div>
@@ -122,11 +118,8 @@ export class ConveniencePrintModal {
 
           <!-- Summary & Download Direct Print File -->
           <div class="pm-conv-summary-box" style="margin-top: 14px;">
-            <div class="pm-summary-left">
-              <div class="pm-summary-price-row">
-                <span class="pm-summary-total-label">實體單張費用：</span>
-                <span class="pm-summary-total-price">NT$ ${currentSpec.priceNTD}</span>
-              </div>
+            <div class="pm-summary-left" style="font-size: 0.78rem; color: var(--pm-text-muted);">
+              價格依超商機台顯示為準
             </div>
 
             <div class="pm-summary-right-actions">
@@ -211,7 +204,7 @@ export class ConveniencePrintModal {
 
       try {
         SoundEffects.shutterClick();
-        Toast.info(`🔄 正在為您生成符合 ${currentSpec.storeName} 規範之 300 DPI 檔案...`);
+        Toast.info(`🔄 正在產生 ${currentSpec.storeName} 尺寸的 300 DPI 檔案...`);
 
         const blob = await ConvenienceStoreEngine.generatePrintBlob(imgData, currentSpec);
         const url = URL.createObjectURL(blob);

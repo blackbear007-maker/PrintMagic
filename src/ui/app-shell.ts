@@ -412,15 +412,15 @@ export const APP_SHELL_HTML = `
           <div class="pm-macos-dock pm-advanced-only" id="advancedExportRow">
             <div class="pm-dock-section">
               <span class="pm-dock-section-label"><img src="icons/shared/sparkle.webp" alt="" class="pm-icon-img" /> 智慧增強</span>
-              <button id="btnAiBleedOutpaint" class="pm-dock-btn" title="3mm 出血鏡像外擴延伸（鏡像外推 + 接縫混合，非生成式 AI），防止裁切切到主體頭部 (測試版免費開放)">
+              <button id="btnAiBleedOutpaint" class="pm-dock-btn" title="3mm 出血鏡像外擴延伸（鏡像外推 + 接縫混合，非生成式 AI），防止裁切切到主體頭部">
                 <img class="pm-dock-icon" src="icons/shared/picture.webp" alt="" />
                 <span class="pm-dock-name">補足出血</span>
               </button>
-              <button id="btnAiRemoveBg" class="pm-dock-btn" title="髮絲級一鍵精準去背（本機色彩距離去背演算法），自動銜接白墨與刀模線 (測試版免費開放)">
+              <button id="btnAiRemoveBg" class="pm-dock-btn" title="一鍵去背（雲端模式用自建 rembg 模型，本機模式用背景色距離演算法；背景單純時效果最好）">
                 <img class="pm-dock-icon" src="icons/shared/scissors.webp" alt="" />
                 <span class="pm-dock-name">髮絲去背</span>
               </button>
-              <button id="btnAiVectorizer" class="pm-dock-btn" title="點陣轉真向量 SVG 貝茲曲線檔（自建 VTracer 服務，離線時退回本機貝茲曲線描邊），無限放大無鋸齒 (測試版免費開放)">
+              <button id="btnAiVectorizer" class="pm-dock-btn" title="點陣轉真向量 SVG 貝茲曲線檔（自建 VTracer 服務，離線時退回本機貝茲曲線描邊），無限放大無鋸齒">
                 <img class="pm-dock-icon" src="icons/shared/pen-nib.webp" alt="" />
                 <span class="pm-dock-name">轉真向量</span>
               </button>
@@ -446,7 +446,7 @@ export const APP_SHELL_HTML = `
                 <img class="pm-dock-icon" src="icons/shared/store.webp" alt="" />
                 <span class="pm-dock-name">超商列印檔</span>
               </button>
-              <button id="btnOpenImposition" class="pm-dock-btn" title="一張 A4/A3 自動拼入 8~24 模，現省 70% 費用">
+              <button id="btnOpenImposition" class="pm-dock-btn" title="把同一張圖自動排滿一張 A4/A3，模數依成品尺寸而定">
                 <img class="pm-dock-icon" src="icons/shared/puzzle.webp" alt="" />
                 <span class="pm-dock-name">智慧拼模</span>
               </button>
