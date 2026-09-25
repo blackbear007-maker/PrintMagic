@@ -38,7 +38,17 @@
 > - **評分**：拿掉恆為 100 的墨量項，權重改為解析度 40%、長寬比 15%、明暗 10%、飽和 10%、對比 10%、銳利度 15%；細節 < 140 DPI 的總分上限改為 50→84（連續）。
 > - **輸出修正**：新增 `src/core/print-layout.ts`——頁面方向跟隨圖片、依焦點九宮格 cover 裁切（不再拉伸；橫式照片曾被壓進直式 A4）、出血外推依正確方向計算；預覽照印刷比例裁切並畫出真正的裁切線與安全區；JPG 透明處不再變黑；簡易模式不再強制本機引擎；貼紙自動去背預設關閉；背面分頁不再自動塞入範本、移除含假聯絡資訊的名片背面範本。
 > - **雲端模式**：`/api/health` 探測 zero-dce 與 vtracer（快取 30 秒），`NetworkGuard` 對離線服務直接走本機演算法。
-> - **測試**：刪除保證會過的 stress／benchmark 與只測已刪模組的套件；USM、邊緣感知放大、線稿放大、Lanczos、Zero-DCE 後備、放大引擎標記、錯字模糊比對、預設 UI 模式改為檢查真實輸出。287 個測試約 4 秒。
+> - **測試**：刪除保證會過的 stress／benchmark 與只測已刪模組的套件；USM、邊緣感知放大、線稿放大、Lanczos、Zero-DCE 後備、放大引擎標記、錯字模糊比對、預設 UI 模式改為檢查真實輸出。新增 `tests/pipeline-orchestrator.integration.test.ts`，第一個端到端測試 `runOptimizationPipeline` 的案例，使用 `tests/helpers/soft-canvas.ts` 軟體畫布。291 個測試約 6 秒。
+> - **手動工具持久化**：`SourceEdits`（`src/types/index.ts`；`BatchItem.sourceEdits`／`store.setSourceEdit`）由 `PipelineOrchestrator.applySourceStage` 從原圖重放，結果以 WeakMap 快取。
+>   - 去區塊、去網紋、證件照抓臉裁切（`src/core/id-photo-auto-crop.ts`）在放大前執行。
+>   - 去背在第 3.6 步執行，也就是放大後、補出血前。
+>   - 「前」分數仍依原始上傳圖計算。
+> - **音效開關**：頁首新增 `btnToggleSound`，呼叫 `SoundEffects.toggleMute`，設定存在 localStorage `printmagic_muted`。
+> - **已知未修**：
+>   - 暗光增強的觸發條件（場景特徵含「暗／曝光／黑」）只會命中文件類的「高反差黑白文字」。
+>   - `dpiAnalysis` 的像素 DPI 包含出血。
+>   - 消除物件沒有復原功能。
+>   - 背面圖不經優化流程。
 
 品質評分（ARNIQA 移除、`PixelStatQualityAssessor` 併入 `PrintScoreCalculator`）與本機 OCR（`free-ocr-client.ts` 新增）另有專屬章節，見 §1.1 與 §2.8.1。
 
