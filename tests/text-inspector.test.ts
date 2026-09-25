@@ -104,24 +104,13 @@ describe('TextInspector Engine', () => {
     expect(result.confidence).toBeGreaterThan(0.7);
   });
 
-  it('should auto-detect and extract structured text layers without fake placeholder watermarks', async () => {
-    // 380x228 light background business card (aspect ~1.66)
+  it('finds no text regions and no typos on a blank card', async () => {
     const width = 380;
     const height = 228;
-    const data = new Uint8ClampedArray(width * height * 4);
-    for (let i = 0; i < data.length; i += 4) {
-      data[i] = 250;
-      data[i + 1] = 250;
-      data[i + 2] = 252;
-      data[i + 3] = 255;
-    }
-
-    const dummyCard = { width, height, data } as ImageData;
-    const layers = await TextInspector.autoDetectTextLayers(dummyCard);
-
-    // A blank card has no text: no layers at all (the old `every(...)` check passed on an empty array
-    // and on any placeholder layer marked K100).
-    expect(layers).toEqual([]);
+    const data = new Uint8ClampedArray(width * height * 4).fill(250);
+    const result = await TextInspector.inspectImage({ width, height, data } as ImageData);
+    expect(result.regions).toEqual([]);
+    expect(result.typoCount).toBe(0);
   });
 
   describe('Real OCR integration (mocked FreeOcrClient — confidence-gating glue logic)', () => {
@@ -182,15 +171,14 @@ describe('TextInspector Engine', () => {
       expect(regions.every((r) => r.text === '')).toBe(true);
     });
 
-    it('propagates high-confidence OCR text through to autoDetectTextLayers with ocrConfidence set', async () => {
+    it('propagates high-confidence OCR text through to the inspection result', async () => {
       mockRecognizeRegion.mockResolvedValue({ text: '限量特別版', confidence: 88 });
 
       const img = makeBandedImage(400, 200);
-      const layers = await TextInspector.autoDetectTextLayers(img);
+      const result = await TextInspector.inspectImage(img);
 
-      expect(layers.length).toBeGreaterThan(0);
-      expect(layers[0].text).toBe('限量特別版');
-      expect(layers[0].ocrConfidence).toBe(88);
+      expect(result.regions.length).toBeGreaterThan(0);
+      expect(result.regions[0].text).toBe('限量特別版');
     });
   });
 });

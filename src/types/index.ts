@@ -160,7 +160,6 @@ export interface PipelineOptions {
   enableSharpening: boolean;    // ✨ USM 微米邊緣銳化補償
   enableShadowLift: boolean;    // 🌓 暗部階調浮起與反差補償
   enableBleedExpand: boolean;   // 📐 3mm 智慧出血自動補足
-  enableVectorOverlay: boolean; // 🔤 自動文字清晰防糊重構
   enableAntiBanding: boolean;   // 🌊 漸層防斷階與抗色階條紋平滑 (Auto)
   enableDeshadow: boolean;      // ☀️ 手機拍畫手機倒影與光照均勻化 (Auto)
   enableAutoBgRemoval: boolean; // ✂️ 模切貼紙自動去背 (Auto，僅在貼紙類預設套用)
@@ -171,7 +170,6 @@ export const DEFAULT_PIPELINE_OPTIONS: PipelineOptions = {
   enableSharpening: true,
   enableShadowLift: true,
   enableBleedExpand: true,
-  enableVectorOverlay: true,
   enableAntiBanding: true,
   enableDeshadow: false,
   enableAutoBgRemoval: true

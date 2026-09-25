@@ -6,7 +6,6 @@ import {
   type DpiAnalysis,
   type EngineMode,
   type ImagePixelStats,
-  type PaperType,
   type PipelineOptions,
   DEFAULT_PIPELINE_OPTIONS,
   type PrintPreset,
@@ -60,7 +59,6 @@ export interface AppState {
 
   // Settings & Modes
   currentPreset: PrintPreset;
-  selectedPaper: PaperType;
   showSoftProof: boolean;
   cvdPreviewType: CvdType | null;
   showSafeZone: boolean;
@@ -80,14 +78,12 @@ export interface ManualEnhancementFlags {
   descreen: boolean;
   jpegDeblock: boolean;
   vectorize: boolean;
-  textOverlay: boolean;
 }
 
 export const DEFAULT_MANUAL_ENHANCEMENTS: ManualEnhancementFlags = {
   descreen: false,
   jpegDeblock: false,
-  vectorize: false,
-  textOverlay: false
+  vectorize: false
 };
 
 type Listener = (state: AppState) => void;
@@ -140,7 +136,6 @@ class StateStore {
     remoteCheckedAt: 0,
 
     currentPreset: DEFAULT_PRESET,
-    selectedPaper: 'glossy',
     showSoftProof: false,
     cvdPreviewType: null,
     showSafeZone: false,
@@ -153,7 +148,6 @@ class StateStore {
       enableSharpening: true,
       enableShadowLift: true,
       enableBleedExpand: true,
-      enableVectorOverlay: true,
       enableAntiBanding: true,
       enableDeshadow: false,
       enableAutoBgRemoval: true
@@ -201,10 +195,6 @@ class StateStore {
   public setPreset(presetId: PrintPresetId): void {
     const preset = getPresetById(presetId);
     this.setState({ currentPreset: preset });
-  }
-
-  public setPaper(paper: PaperType): void {
-    this.setState({ selectedPaper: paper });
   }
 
   // --- View Mode Toggles ---

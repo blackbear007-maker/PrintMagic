@@ -2,7 +2,6 @@ import { store } from '../ui/state';
 import type { LaserScanController } from '../ui/laser-scan';
 import type { XiaoxiangAssistant } from '../ui/xiaoxiang-assistant';
 import type { DoubleSidedManager } from './double-sided';
-import type { VectorOverlayEngine } from './vector-overlay';
 import { Toast } from '../ui/toast';
 import { SoundEffects } from './sound-effects';
 import { DpiCalculator } from './dpi-calculator';
@@ -38,7 +37,6 @@ import { NetworkGuard } from '../services/network-guard';
 export class PipelineOrchestrator {
   constructor(
     private laserScan: LaserScanController,
-    private vectorOverlayEngine: VectorOverlayEngine,
     private doubleSidedManager: DoubleSidedManager,
     private xiangAssistant: XiaoxiangAssistant,
     private resetPreviewCaches: () => void
@@ -209,24 +207,9 @@ export class PipelineOrchestrator {
       }
 
       // (2026-09-26: the old Step 3 TAC clamp is gone — its RGB->CMYK model tops out at 200%, below every
-      // profile's limit, so it never changed a pixel. Real ink coverage comes from the CMYK separation.)
-
-      // Step 3.5: User-Configured Vector Text Overlay (僅在用戶手動編輯或確認後套用，絕不自動覆蓋假浮水印文字)
-      // 2026-08-28 修正：這個條件原本只檢查 getTextItems().length>0，代表使用者如果只加了 Logo、
-      // 沒加任何文字項目，這整段（包含 Logo 繪製）會被整個跳過，Logo 永遠不會出現在送印檔案裡。
-      if (
-        opts.enableVectorOverlay === true &&
-        (this.vectorOverlayEngine.getTextItems().length > 0 || this.vectorOverlayEngine.getLogoItems().length > 0)
-      ) {
-        const canvas = document.createElement('canvas');
-        canvas.width = processedImgData.width;
-        canvas.height = processedImgData.height;
-        const ctx = canvas.getContext('2d')!;
-        ctx.putImageData(processedImgData, 0, 0);
-        await this.vectorOverlayEngine.renderOverlay(ctx, canvas.width, canvas.height);
-        processedImgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        if (this.isStale(gen)) return this.abandonRun(activeId);
-      }
+      // profile's limit, so it never changed a pixel. Real ink coverage comes from the CMYK separation.
+      // Step 3.5, the "文字防糊" overlay, is gone too: it stamped RGB raster text — including unconfirmed
+      // OCR placeholders — into the output on the next re-run even if the user never pressed 套用.)
 
       // Step 3.6: Auto background removal for die-cut sticker presets (2026-09-19). Background
       // removal is only safe to assume as a default for artwork that's explicitly going to be
@@ -379,9 +362,9 @@ export class PipelineOrchestrator {
       if (this.isStale(gen)) return;
       store.setTextInspectionResult(inspectResult);
       if (inspectResult.typoCount > 0 && this.isAdvancedMode()) {
-        this.xiangAssistant?.say(`⚠️ AI 文字檢查：發現 ${inspectResult.typoCount} 處文字疑似拼寫或邊緣發虛，點擊【🔤 文字清晰】可一鍵自動修復！`, 6000);
+        this.xiangAssistant?.say(`⚠️ AI 文字檢查：發現 ${inspectResult.typoCount} 處文字疑似拼寫或邊緣發虛，點【檢查文字】看是哪幾處。`, 6000);
         setTimeout(() => {
-          Toast.info(`📝 發現 ${inspectResult.typoCount} 處文字需注意，點擊【🔤 文字清晰防糊】可一鍵修復！`);
+          Toast.info(`📝 發現 ${inspectResult.typoCount} 處文字需注意，點【檢查文字】看是哪幾處。`);
         }, 1500);
       }
     } catch (err) {

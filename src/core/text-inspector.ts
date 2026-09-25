@@ -27,21 +27,6 @@ import { FreeOcrClient, OCR_MIN_TRUSTED_CONFIDENCE } from '../services/free-ocr-
  *   line of defense on top of OCR's own confidence gate, not dead code
  * - Pre-press text sharpness & edge definition check
  */
-export interface AutoDetectedTextItem {
-  text: string;
-  xPercent: number; // 0 to 100
-  yPercent: number; // 0 to 100
-  fontSizePx: number;
-  fontFamily: string;
-  isK100: boolean;
-  color: string;
-  isOverprint: boolean;
-  confidence?: number;
-  /** Real OCR confidence (0-100) when `text` was filled in by FreeOcrClient; undefined when OCR
-   *  found nothing trustworthy and `text` is the manual-entry placeholder instead. */
-  ocrConfidence?: number;
-}
-
 export class TextInspector {
   // Built-in high frequency poster / advertising / AI vocabulary dictionary
   private static readonly COMMON_DICTIONARY: Set<string> = new Set([
@@ -97,46 +82,6 @@ export class TextInspector {
     'neonn': 'neon',
     'tokiyo': 'tokyo'
   };
-
-  /**
-   * Auto Text-Region Detector for the Vector Overlay Tool
-   *
-   * Finds where text probably is (via contrast/edge heuristics), attempts real OCR on each region
-   * (FreeOcrClient), and returns one editable overlay item per detected region, positioned and
-   * sized to match. When OCR reads a region with enough confidence, `text` is pre-filled with the
-   * real recognized string; otherwise it falls back to an honest, obviously-a-placeholder string.
-   * Either way the caller (vector-overlay-modal.ts) still requires human review before applying —
-   * OCR can misread real text, especially on stylized poster fonts or chi_tra, so a recognized
-   * string is a starting point to confirm/correct, never auto-applied as final print output.
-   */
-  public static async autoDetectTextLayers(imageData: ImageData): Promise<AutoDetectedTextItem[]> {
-    const { width, height } = imageData;
-
-    const regions = await this.detectTextRegions(imageData);
-    if (regions.length === 0) {
-      return [];
-    }
-
-    return regions.map((r) => {
-      const relX = Math.round((r.x / width) * 100);
-      const relY = Math.round(((r.y + r.height * 0.5) / height) * 100);
-      const fontSize = Math.max(18, Math.min(64, Math.round(r.height * 0.75)));
-      const detectedText = r.text.trim();
-      return {
-        text: detectedText.length > 0 ? detectedText : '（點此輸入文字）',
-        xPercent: Math.max(5, Math.min(90, relX)),
-        yPercent: Math.max(5, Math.min(95, relY)),
-        fontSizePx: fontSize,
-        fontFamily: 'sans-serif',
-        isK100: true,
-        color: '#000000',
-        isOverprint: true,
-        // Region-detection strength, not OCR confidence — separate signal, see ocrConfidence
-        confidence: Math.min(0.95, Math.max(0.6, 0.6 + r.edgeScore * 0.1)),
-        ocrConfidence: detectedText.length > 0 ? r.ocrConfidence : undefined
-      };
-    });
-  }
 
   /**
    * Main entry point to inspect text in image
@@ -235,7 +180,7 @@ export class TextInspector {
     //
     // ⚠️ 2026-08-29 修正：這個迴圈原本沒有逾時保護——若 Tesseract worker 卡住（例如某台
     // 裝置上 WASM 初始化異常、worker 當掉但 promise 既不 resolve 也不 reject），
-    // detectTextRegions() 會被永遠卡住，連帶讓呼叫它的 autoDetectTextLayers()/inspectImage()
+    // detectTextRegions() 會被永遠卡住，連帶讓呼叫它的 inspectImage()
     // （進而是「一鍵掃描文字區域」按鈕與整個文字檢查彈窗）永遠停在讀取中，沒有任何辦法恢復。
     // 這裡替每個候選區塊的 OCR 呼叫加上逾時：超時就視同「OCR 讀不出可信文字」（跟信心不足
     // 是同一種 fallback），繼續處理下一個區塊，讓整個流程的最壞情況時間有上限

@@ -8,18 +8,11 @@ import { SoundEffects } from '../core/sound-effects';
  */
 export class TextInspectionModal {
   private overlay: HTMLElement;
-  private onFixWithVectorOverlay?: (suggestedText: string) => void;
-  private onAutoFixAll?: () => void;
   private currentResult: TextInspectionResult | null = null;
   private currentImageDataUrl: string | null = null;
   private selectedRegionId: string | null = null;
 
-  constructor(
-    onFixWithVectorOverlay?: (suggestedText: string) => void,
-    onAutoFixAll?: () => void
-  ) {
-    this.onFixWithVectorOverlay = onFixWithVectorOverlay;
-    this.onAutoFixAll = onAutoFixAll;
+  constructor() {
     this.overlay = document.createElement('div');
     this.overlay.className = 'pm-modal-overlay pm-text-inspect-overlay';
     this.overlay.style.display = 'none';
@@ -61,14 +54,12 @@ export class TextInspectionModal {
     if (!this.currentResult) return;
     const { regions, totalWords, typoCount, summary, executionTimeMs } = this.currentResult;
 
-    // typoCount can only ever be > 0 in the rare case a detected region's placeholder text happens
-    // to match a local typo rule — it does not mean "checked N regions' real spelling and found
-    // issues." This tool doesn't read text content, so a green badge here means "not checked,"
-    // not "verified correct." Worded accordingly rather than claiming a clean spelling check.
+    // Text is read by local OCR (free-ocr-client) and checked against a small list of common English
+    // typos plus a dictionary — a clean result means "nothing on that list matched", not "verified".
     const statusBadgeClass = typoCount > 0 ? 'pm-badge-warning' : 'pm-badge-success';
     const statusBadgeText = typoCount > 0
       ? `<img src="icons/shared/warning.webp" alt="" class="pm-icon-img" /> 發現 ${typoCount} 處需注意`
-      : '<img src="icons/shared/info.webp" alt="" class="pm-icon-img" /> 未讀取文字內容（僅偵測位置）';
+      : '<img src="icons/shared/info.webp" alt="" class="pm-icon-img" /> 未比對到常見錯字';
 
     this.overlay.innerHTML = `
       <div class="pm-modal pm-modal-lg pm-text-inspect-modal" role="dialog" aria-modal="true">
@@ -77,9 +68,9 @@ export class TextInspectionModal {
           <div style="display: flex; align-items: center; gap: 10px;">
             <div class="pm-modal-icon-badge" style="background: rgba(60, 30, 140, 0.1); color: var(--pm-accent-blue);"><img src="icons/header/text-inspect.webp" alt="" class="pm-icon-img" /></div>
             <div>
-              <h2 class="pm-modal-title">AI 智慧文字辨識與錯字檢查</h2>
+              <h2 class="pm-modal-title">文字辨識與錯字檢查</h2>
               <p class="pm-modal-desc">
-                自動辨識圖中文字，檢查 AI 繪圖常見的英文拼寫錯誤、無意義亂碼、重複字母與邊緣模糊問題
+                找出圖中的文字位置，用本機 OCR 讀出內容，再比對常見英文拼錯與字典；中文與專有名詞請自行確認
               </p>
             </div>
           </div>
@@ -127,7 +118,7 @@ export class TextInspectionModal {
               ? `<div class="pm-empty-text-state">
                    <div style="font-size: 2rem; margin-bottom: 8px;"><img src="icons/shared/sparkle.webp" alt="" class="pm-icon-img" style="width: 32px; height: 30px;" /></div>
                    <div style="font-weight: 700; color: var(--pm-text-primary);">未偵測到明顯文字</div>
-                   <div style="font-size: 0.8rem; color: var(--pm-text-tertiary); margin-top: 4px;">本圖為純插畫/無字視覺，無錯字風險，可安心送印！</div>
+                   <div style="font-size: 0.8rem; color: var(--pm-text-tertiary); margin-top: 4px;">偵測不到文字不代表圖上沒有字（直書、很淡或很小的字可能漏掉），送印前仍請自己看過一次。</div>
                  </div>`
               : regions.map(reg => this.renderRegionCard(reg)).join('')
             }
@@ -137,16 +128,10 @@ export class TextInspectionModal {
         <!-- Footer -->
         <div class="pm-modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
           <div style="font-size: 0.78rem; color: var(--pm-text-secondary); display: flex; align-items: center; gap: 6px;">
-            <span>💡 印刷防糊小秘訣：點擊「一鍵掃描文字區域」可自動找出文字位置並轉為 K100 向量字——系統不會讀取文字內容，掃描後仍需你逐一確認/輸入實際文字！</span>
+            <span>💡 錯字檢查只比對一份常見英文錯字表與字典，抓不到的錯字仍可能存在。</span>
           </div>
           <div style="display: flex; gap: 10px;">
             <button class="pm-btn pm-btn-ghost" id="btnCancelTextInspect">關閉</button>
-            <button class="pm-btn pm-btn-artisan pm-btn-md" id="btnAutoFixAllK100" style="font-weight: 700;">
-              <img src="icons/header/upscale-local.webp" alt="" class="pm-icon-img" /> 一鍵掃描文字區域 (需再確認內容)
-            </button>
-            <button class="pm-btn pm-btn-secondary" id="btnInspectFixWithK100">
-              <img src="icons/shared/pen-nib.webp" alt="" class="pm-icon-img" /> 開啟圖層編輯器 ➔
-            </button>
           </div>
         </div>
       </div>
@@ -210,9 +195,6 @@ export class TextInspectionModal {
                 <button class="pm-btn pm-btn-xs pm-btn-ghost btn-copy-suggest" data-text="${this.escapeHtml(reg.suggestion)}" title="複製建議文字">
                   <img src="icons/shared/clipboard.webp" alt="" class="pm-icon-img" /> 複製
                 </button>
-                <button class="pm-btn pm-btn-xs pm-btn-primary btn-apply-k100-single" data-text="${this.escapeHtml(reg.suggestion)}" title="直接載入 K100 純黑文字覆蓋此字">
-                  <img src="icons/shared/pen-nib.webp" alt="" class="pm-icon-img" /> 向量修復
-                </button>
               </div>
             </div>
           </div>
@@ -225,38 +207,6 @@ export class TextInspectionModal {
     // Close buttons
     this.overlay.querySelector('#btnCloseTextInspect')?.addEventListener('click', () => this.close());
     this.overlay.querySelector('#btnCancelTextInspect')?.addEventListener('click', () => this.close());
-
-    // Auto Fix All with K100 (Zero-click automation)
-    this.overlay.querySelector('#btnAutoFixAllK100')?.addEventListener('click', () => {
-      this.close();
-      if (this.onAutoFixAll) {
-        this.onAutoFixAll();
-      } else if (this.onFixWithVectorOverlay) {
-        this.onFixWithVectorOverlay('');
-      }
-    });
-
-    // Fix with K100 (Open editor)
-    this.overlay.querySelector('#btnInspectFixWithK100')?.addEventListener('click', () => {
-      const typoWithSuggestion = this.currentResult?.regions.find(r => r.suggestion);
-      const defaultText = typoWithSuggestion?.suggestion || this.currentResult?.regions[0]?.text || 'PrintMagic';
-      this.close();
-      if (this.onFixWithVectorOverlay) {
-        this.onFixWithVectorOverlay(defaultText);
-      }
-    });
-
-    // Single fix with K100
-    this.overlay.querySelectorAll<HTMLButtonElement>('.btn-apply-k100-single').forEach((btn) => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const text = btn.dataset.text || '';
-        this.close();
-        if (this.onFixWithVectorOverlay) {
-          this.onFixWithVectorOverlay(text);
-        }
-      });
-    });
 
     // Copy suggestion
     this.overlay.querySelectorAll<HTMLButtonElement>('.btn-copy-suggest').forEach((btn) => {

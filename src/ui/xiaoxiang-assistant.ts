@@ -33,7 +33,7 @@ export class XiaoxiangAssistant {
     ready: '搞定了！要套哪些處理，卡片上的開關自己切，切一下我馬上重跑一次。弄好就下載 PDF。',
     // 簡易模式不講改了什麼，只提醒進階模式在哪（原本是評分卡下方的一行小字）。
     readySimple: '搞定了！直接下載 PDF 就能送印。想自己決定要套用哪些處理、或要別的格式，切到上面的【進階】，我一項一項攤開給你挑。',
-    simpleMode: '切到【簡易模式】了。無腦直出，該有的 DPI 補齊放大、依版型出血與文字防糊我都在背景做好了。',
+    simpleMode: '切到【簡易模式】了。無腦直出，該有的 DPI 補齊放大、依版型出血我都在背景做好了。',
     advancedMode: '切到【進階模式】了。專業製版、紙材、ICC 軟打樣和燙金工藝都在上面，想調什麼自己開。',
     localEngine: '100% 離線本機模式，照片完全不連網，商業作品放心用。',
     cloudEngine: '自建服務引擎連線中，支援自建向量化 / 低光提亮服務。',
@@ -44,15 +44,6 @@ export class XiaoxiangAssistant {
     // PDF 裡只有一塊 RGB 白底，不是白墨專色版，也沒有刀模線——這兩層要到【刀模白墨】另外產生。
     sticker: '【模切貼紙】模式。要印透明貼紙的話，記得去【刀模白墨】做白墨層和刀模線，另外交給印刷廠；一般 PDF 裡沒有這兩層。',
     social: '【社群高畫質】模式。純數位輸出不加出血，顏色維持鮮豔。',
-    paperGlossy: '選了超光銅版紙？亮面鮮豔反光佳，印高彩度海報與動漫插畫選這個就對了。',
-    paperMatte: '選了雙面啞粉？霧面細緻不反光，拿來印畫冊跟藝術明信片最乾淨。',
-    paperLinen: '細格萊妮紙，十字布紋手感特別好，文創名片跟日系插畫很搭。',
-    paperCotton: '象牙棉卡，吸墨自然溫潤，手繪水彩跟版畫選這個很有味道。',
-    foilGold: '亮金燙金效果開了，晃一下螢幕能看反光。這只是預覽，PDF 裡沒有燙金版，真要燙金得請印刷廠另外做。',
-    foilRoseGold: '玫瑰金燙箔開了。帶粉色的奢華金屬光澤，文創品牌和紀念卡片特別高級。',
-    foilSilver: '亮銀冷箔開了。科技俐落感，金屬線條非常乾淨。',
-    foilSpotUv: '立體局部光 (Spot UV) 開了。晶瑩剔透的水晶凸起光澤，摸起來很有立體手感。',
-    foilHolo: '雷射全息七彩箔開了。轉動角度有彩虹霓虹光譜，做動漫周邊最吸睛。',
     softProofOn: '開啟【CMYK 軟打樣】了。這就是實體四色油墨印出來的真實感，暗部會稍微沉穩一點。',
     softProofOff: '回到螢幕 RGB 鮮豔光色。',
     safeZoneOn: '開啟【出血線與安全框】。外圈是裁切出血保護，綠框以內重要文字保證切不到。',
@@ -62,7 +53,6 @@ export class XiaoxiangAssistant {
     imposition: '開啟【智慧拼模工具】。把同一張圖排滿一張 A4/A3 大紙，能排幾模看成品尺寸。',
     idPhotoBatchHint: '證件照裁好了。要洗一整批的話，上面「🧩 智慧拼模」按鈕可以自動把這張排滿整張 A4/A3，一次印好幾十張，不用一張一張分開印。',
     dieline: '開啟【貼紙刀模與白墨產生器】。透明貼紙如果沒打白墨會透光，我已經幫你做好 0.2mm 內縮白墨與洋紅刀模線。',
-    vectorOverlay: '開啟【文字清晰防糊】。小字若用彩色混印容易發虛，轉成純黑向量字輸出，字字針尖般銳利。',
     mockup: '開啟【展覽情境模擬】。套進美術館畫框和北歐書桌，宣傳照直接拿去發 IG 或小紅書。',
     convPrint: '超商專用圖準備好了，尺寸已經照機台規格排好。用官方雲端上傳頁面拿取件碼，或存到隨身碟插機台列印。',
     specCopy: '「傳給老闆一句話」複製好了。直接貼在 LINE 傳給印刷廠，你不用在那邊背出血和解析度數字。',
@@ -232,7 +222,6 @@ export class XiaoxiangAssistant {
 
   private subscribeState(): void {
     let prevPreset = store.getState().currentPreset.id;
-    let prevPaper = store.getState().selectedPaper;
     let prevMode = store.getState().uiMode;
     let prevProcessing = false;
     let prevHasImage = false;
@@ -273,17 +262,6 @@ export class XiaoxiangAssistant {
         else if (state.currentPreset.id === 'sticker') line = XiaoxiangAssistant.LINES.sticker;
         else if (state.currentPreset.id === 'social') line = XiaoxiangAssistant.LINES.social;
         this.say(line, 5000);
-      }
-
-      // 4. Paper change
-      if (state.selectedPaper !== prevPaper) {
-        prevPaper = state.selectedPaper;
-        let line = '';
-        if (state.selectedPaper === 'glossy') line = XiaoxiangAssistant.LINES.paperGlossy;
-        else if (state.selectedPaper === 'matte') line = XiaoxiangAssistant.LINES.paperMatte;
-        else if (state.selectedPaper === 'linen') line = XiaoxiangAssistant.LINES.paperLinen;
-        else if (state.selectedPaper === 'cotton') line = XiaoxiangAssistant.LINES.paperCotton;
-        if (line) this.say(line, 5000);
       }
 
       // 5. UI Mode change

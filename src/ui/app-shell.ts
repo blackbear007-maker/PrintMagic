@@ -237,9 +237,6 @@ export const APP_SHELL_HTML = `
               <button id="btnOpenTextInspect" class="pm-tool-btn pm-advanced-only" style="background: rgba(52, 199, 89, 0.08); color: #248a3d; border-color: rgba(52, 199, 89, 0.25); font-weight: 600;" title="自動辨識圖中文字，檢查 AI 繪圖常見的英文拼寫錯誤與怪異亂碼">
                 <img src="icons/header/text-inspect.webp" alt="" class="pm-icon-img" /> 檢查文字
               </button>
-              <button id="btnOpenVectorOverlayTop" class="pm-tool-btn pm-advanced-only" style="background: rgba(60, 30, 140, 0.08); color: var(--pm-accent-blue); border-color: rgba(60, 30, 140, 0.25); font-weight: 600;" title="將圖片中模糊的小字轉為純黑清晰字，印刷絕對銳利不糊邊">
-                <img src="icons/shared/pen-nib.webp" alt="" class="pm-icon-img" /> 文字清晰
-              </button>
               <button id="btnToggleLoupe" class="pm-tool-btn pm-advanced-only" title="切換 20x CMYK 玫瑰網點顯微放大鏡">
                 <img src="icons/shared/magnifier.webp" alt="" class="pm-icon-img" /> 20x 網點
               </button>
@@ -258,25 +255,9 @@ export const APP_SHELL_HTML = `
               </button>
             </div>
 
-            <!-- Paper Material Selector (Advanced Only) -->
-            <div class="pm-paper-selector pm-advanced-only">
-              <span class="pm-paper-label">紙材：</span>
-              <button class="pm-paper-btn active pm-paper-glossy-pill" data-paper="glossy" title="超光銅版：亮面鮮豔反光佳，適合全彩海報與高彩度插畫">
-                超光銅版 <span class="pm-paper-sub">亮面鮮豔</span>
-              </button>
-              <button class="pm-paper-btn pm-paper-matte-pill" data-paper="matte" title="雙面啞粉：霧面細緻不反光，適合藝術明信片與展覽畫冊">
-                雙面啞粉 <span class="pm-paper-sub">霧面高雅</span>
-              </button>
-              <button class="pm-paper-btn pm-paper-linen-pill" data-paper="linen" title="細格萊妮：十字布紋手感豐富，特別適合文創名片與日系手作">
-                細格萊妮 <span class="pm-paper-sub">十字布紋</span>
-              </button>
-              <button class="pm-paper-btn pm-paper-cotton-pill" data-paper="cotton" title="象牙棉卡：溫潤吸墨自然紙感，適合紀念卡片與版畫插圖">
-                象牙棉卡 <span class="pm-paper-sub">溫潤手感</span>
-              </button>
-            </div>
           </div>
 
-          <!-- Pro Tools & Smart Crop & 3D Foil Craft & ICC (Advanced Only) -->
+          <!-- Pro Tools & Smart Crop & ICC (Advanced Only) -->
           <div class="pm-view-toolbar-secondary pm-advanced-only">
             <div id="cropToolbarRoot"></div>
 
@@ -296,17 +277,6 @@ export const APP_SHELL_HTML = `
               <input type="checkbox" id="chkEnableDeshadow" />
               <span style="font-size: 0.72rem; font-weight: 600; color: var(--pm-text-primary);"><img src="icons/shared/sun.webp" alt="" class="pm-icon-img" /> 手機翻拍光照均勻化</span>
             </label>
-
-            <!-- 3D Luxury Foil & Spot UV Craft Selector -->
-            <div class="pm-foil-selector">
-              <span class="pm-paper-label">工藝：</span>
-              <button class="pm-foil-btn active" data-foil="none" title="標準印刷：四色 CMYK">標準</button>
-              <button class="pm-foil-btn pm-foil-gold-pill" data-foil="gold" title="經典奢華亮金燙金模擬 (移動滑鼠/傾斜手機反光)"><img src="icons/shared/sparkle.webp" alt="" class="pm-icon-img" /> 亮金</button>
-              <button class="pm-foil-btn pm-foil-rosegold-pill" data-foil="rose-gold" title="名媛奢華玫瑰金模擬"><img src="icons/shared/gem-facet.webp" alt="" class="pm-icon-img" /> 玫瑰金</button>
-              <button class="pm-foil-btn pm-foil-silver-pill" data-foil="silver" title="未來科技亮銀箔模擬"><img src="icons/header/upscale-local.webp" alt="" class="pm-icon-img" /> 亮銀</button>
-              <button class="pm-foil-btn pm-foil-uv-pill" data-foil="spot-uv" title="透明水晶立體局部光 (Spot UV)"><img src="icons/shared/droplet.webp" alt="" class="pm-icon-img" /> 局部光</button>
-              <button class="pm-foil-btn pm-foil-holo-pill" data-foil="holographic" title="雷射七彩全息光譜"><img src="icons/shared/rainbow-gamut.webp" alt="" class="pm-icon-img" /> 雷射</button>
-            </div>
 
             <div class="pm-toggle-group pm-toggle-group-pro">
               <button id="btnToggleSafeZone" class="pm-tool-btn active" title="顯示 3mm 出血線與安全裁切框">
@@ -420,10 +390,6 @@ export const APP_SHELL_HTML = `
               <button id="btnAiVectorizer" class="pm-dock-btn" title="點陣轉真向量 SVG 貝茲曲線檔（自建 VTracer 服務，離線時退回本機貝茲曲線描邊），無限放大無鋸齒">
                 <img class="pm-dock-icon" src="icons/shared/pen-nib.webp" alt="" />
                 <span class="pm-dock-name">轉真向量</span>
-              </button>
-              <button id="btnOpenVectorOverlay" class="pm-dock-btn" title="文字防糊保護：將彩色混墨小字轉為 K100 單色純黑向量字，保證針尖般銳利">
-                <img class="pm-dock-icon" src="icons/shared/pen-nib.webp" alt="" />
-                <span class="pm-dock-name">文字防糊</span>
               </button>
               <button id="btnDescreen" class="pm-dock-btn" title="去網紋摩爾紋：FFT 頻域陷波濾波（本機決定性演算法，非 AI），適合翻拍印刷品/掃描文件產生的網點干涉紋。運算量較高，大圖可能需要數秒；一般照片不建議套用（可能誤刪細節）">
                 <img class="pm-dock-icon" src="icons/shared/spiral-descreen.webp" alt="" />

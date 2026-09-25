@@ -55,13 +55,6 @@ export class ExportModal {
       label: '轉真向量',
       hint: '線稿/貼紙轉成無限放大不糊邊的 SVG',
       buttonId: 'btnAiVectorizer'
-    },
-    {
-      key: 'textOverlay',
-      icon: 'icons/shared/pen-nib.webp',
-      label: '文字防糊',
-      hint: '小字轉為純黑向量字，印刷絕對銳利',
-      buttonId: 'btnOpenVectorOverlay'
     }
   ];
 

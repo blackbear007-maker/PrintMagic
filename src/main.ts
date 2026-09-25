@@ -21,14 +21,11 @@ import { SoundEffects } from './core/sound-effects';
 import { CmykEngine } from './core/cmyk-engine';
 import { getPresetById, detectBestPreset } from './core/presets';
 import { SampleArtworks } from './services/sample-artworks';
-import { FoilSimulator, type FoilEffectType } from './core/foil-simulator';
 import { DoubleSidedManager, type BackTemplateType } from './core/double-sided';
-import { VectorOverlayEngine } from './core/vector-overlay';
 import { iccProfileEngine, type IccProfileId } from './core/icc-profiles';
 import { ConveniencePrintModal } from './ui/convenience-print-modal';
 import { ImpositionModal } from './ui/imposition-modal';
 import { DielineModal } from './ui/dieline-modal';
-import { VectorOverlayModal } from './ui/vector-overlay-modal';
 import { OnboardingModal } from './ui/onboarding-modal';
 import { renderPipelineSwitchList, bindPipelineSwitchList } from './ui/pipeline-matrix-modal';
 import { ExportModal } from './ui/export-modal';
@@ -53,7 +50,7 @@ import { WebShareService } from './services/web-share';
 import { XiaoxiangAssistant } from './ui/xiaoxiang-assistant';
 import { SceneClassifier } from './core/scene-classifier';
 import { PipelineOrchestrator } from './core/pipeline-orchestrator';
-import type { BatchItem, PaperType, PrintPresetId } from './types';
+import type { BatchItem, PrintPresetId } from './types';
 
 /** Icon asset id (public/icons/shared/<id>.webp) per print preset, for the preset pill/tabs. */
 const PRESET_ICON_IDS: Record<string, string> = {
@@ -75,9 +72,7 @@ class App {
   public paper3D!: Paper3DController;
   public canvasZoom!: CanvasZoomController;
   public xiangAssistant!: XiaoxiangAssistant;
-  public foilSimulator!: FoilSimulator;
   public doubleSidedManager = new DoubleSidedManager();
-  public vectorOverlayEngine = new VectorOverlayEngine();
   public loupe!: LoupeController;
   public laserScan!: LaserScanController;
   public mockupModal!: MockupModal;
@@ -85,7 +80,6 @@ class App {
   public convPrintModal!: ConveniencePrintModal;
   public impositionModal!: ImpositionModal;
   public dielineModal!: DielineModal;
-  public vectorOverlayModal!: VectorOverlayModal;
   public textInspectionModal!: TextInspectionModal;
   public objectEraserModal!: ObjectEraserModal;
   public onboardingModal!: OnboardingModal;
@@ -133,7 +127,6 @@ class App {
 
   // Preset & Paper buttons
   private presetButtons = document.querySelectorAll<HTMLButtonElement>('.pm-preset-btn');
-  private paperButtons = document.querySelectorAll<HTMLButtonElement>('.pm-paper-btn[data-paper]');
 
   // Cache of view variations
   private softProofDataUrl: string | null = null;
@@ -141,7 +134,6 @@ class App {
   private cvdPreviewCachedType: CvdType | null = null;
   private lastPreviewSource: ImageData | null = null;
   // 手動套用文字疊加時的底圖（疊加前）與產出，用來避免重複疊印
-  private overlayBase: { base: ImageData; output: ImageData } | null = null;
   // 已補過出血的 processedImageData（避免重複外擴）
   private bleedAppliedTo: ImageData | null = null;
 
@@ -152,7 +144,6 @@ class App {
     this.initUIComponents();
     this.pipeline = new PipelineOrchestrator(
       this.laserScan,
-      this.vectorOverlayEngine,
       this.doubleSidedManager,
       this.xiangAssistant,
       () => this.invalidatePreviewCaches()
@@ -256,7 +247,6 @@ class App {
     this.canvasZoom = new CanvasZoomController('stageContainer', 'canvasSheet', 'mainPreviewImg');
 
     // 7. 3D Luxury Foil & Spot UV Simulator
-    this.foilSimulator = new FoilSimulator('stageContainer', 'canvasSheet');
 
     // 7. 20x Halftone Loupe
     this.loupe = new LoupeController('stageContainer');
@@ -270,18 +260,7 @@ class App {
     this.convPrintModal = new ConveniencePrintModal();
     this.impositionModal = new ImpositionModal();
     this.dielineModal = new DielineModal();
-    this.vectorOverlayModal = new VectorOverlayModal(this.vectorOverlayEngine, () => {
-      this.markManualEnhancementApplied('textOverlay');
-      void this.renderVectorOverlayOnCanvas();
-    });
-    this.textInspectionModal = new TextInspectionModal(
-      (suggestedText) => {
-        this.vectorOverlayModal.open(suggestedText);
-      },
-      () => {
-        this.vectorOverlayModal.autoDetectFromCurrentState(true);
-      }
-    );
+    this.textInspectionModal = new TextInspectionModal();
     this.objectEraserModal = new ObjectEraserModal((newImageData, newDataUrl) => {
       // Replace original with the erased image and re-run optimization pipeline
       store.setState({
@@ -356,9 +335,8 @@ class App {
     this.btnNewArtwork.addEventListener('click', () => {
       store.reset();
       this.invalidatePreviewCaches();
-      // 雙面背面與文字疊加屬於上一張作品，不能帶進下一張
+      // 雙面背面屬於上一張作品，不能帶進下一張
       this.doubleSidedManager.clearBackImage();
-      this.vectorOverlayEngine.clear();
       this.loupe.setImageData(null);
       this.loupe.setEnabled(false);
       Toast.info('已重置畫布，請拖入新圖片');
@@ -493,24 +471,6 @@ class App {
               await this.applyIdPhotoCrop();
             }
           }
-        }
-      });
-    });
-
-    // Paper Material Selection
-    this.paperButtons.forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const paper = btn.dataset.paper as PaperType;
-        if (paper) {
-          store.setPaper(paper);
-          this.updatePaperButtonsUI(paper);
-          const stage = document.getElementById('stageContainer');
-          if (stage) {
-            stage.classList.remove('pm-paper-glossy', 'pm-paper-matte', 'pm-paper-linen', 'pm-paper-cotton');
-            stage.classList.add(`pm-paper-${paper}`);
-          }
-          SoundEffects.sliderTick();
-          Toast.info(`已切換實體紙材模擬：${btn.textContent}`);
         }
       });
     });
@@ -672,25 +632,6 @@ class App {
       }
       this.specModal.open(state);
       this.xiangAssistant?.say(XiaoxiangAssistant.LINES.specCopy, 5000);
-    });
-
-    // 3D Luxury Foil & Spot UV Craft Selection
-    document.querySelectorAll('.pm-foil-btn').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const foilType = (btn as HTMLElement).dataset.foil as FoilEffectType;
-        if (foilType) {
-          this.foilSimulator.setFoil(foilType);
-          document.querySelectorAll('.pm-foil-btn').forEach((b) => {
-            b.classList.toggle('active', (b as HTMLElement).dataset.foil === foilType);
-          });
-          SoundEffects.sliderTick();
-          if (foilType === 'gold') this.xiangAssistant?.say(XiaoxiangAssistant.LINES.foilGold, 5000);
-          else if (foilType === 'rose-gold') this.xiangAssistant?.say(XiaoxiangAssistant.LINES.foilRoseGold, 5000);
-          else if (foilType === 'silver') this.xiangAssistant?.say(XiaoxiangAssistant.LINES.foilSilver, 5000);
-          else if (foilType === 'spot-uv') this.xiangAssistant?.say(XiaoxiangAssistant.LINES.foilSpotUv, 5000);
-          else if (foilType === 'holographic') this.xiangAssistant?.say(XiaoxiangAssistant.LINES.foilHolo, 5000);
-        }
-      });
     });
 
     // Double-Sided Linking Controls (Front / Back)
@@ -911,16 +852,6 @@ class App {
       this.dielineModal.open();
       this.xiangAssistant?.say(XiaoxiangAssistant.LINES.dieline, 5000);
     });
-
-    // Open Text Clarity & Vector Overlay Modal (Simple & Advanced Modes)
-    const openVectorOverlayModal = () => {
-      this.vectorOverlayModal.open();
-      this.xiangAssistant?.say('開啟【文字防糊清晰化】。AI 自動幫你把小字轉為純黑銳利字，印刷保證字字清晰見骨！', 5000);
-    };
-
-    document.getElementById('btnOpenVectorOverlay')?.addEventListener('click', openVectorOverlayModal);
-    document.getElementById('btnOpenVectorOverlayTop')?.addEventListener('click', openVectorOverlayModal);
-    document.getElementById('btnSimpleVectorOverlay')?.addEventListener('click', openVectorOverlayModal);
 
     // 🌀 去網紋摩爾紋（本機 FFT 陷波濾波，非 AI，見 src/core/moire-descreen.ts）
     document.getElementById('btnDescreen')?.addEventListener('click', async () => {
@@ -1540,50 +1471,6 @@ class App {
     }
   }
 
-  private async renderVectorOverlayOnCanvas(): Promise<void> {
-    const state = store.getState();
-    // 管線 Step 3.5 會套用目前的文字/Logo 疊加：從原圖重跑，確保只蓋「目前這一份」，
-    // 刪除或修改過的舊文字不會殘留、也不會重複疊印。
-    if (state.originalImageData && state.pipelineOptions.enableVectorOverlay) {
-      const presetId = state.currentPreset.id;
-      await this.pipeline.runOptimizationPipeline(state.originalImageData);
-      if (presetId === 'id-photo' && store.getState().currentPreset.id === 'id-photo') {
-        await this.applyIdPhotoCrop();
-      }
-      return;
-    }
-
-    // 管線未啟用疊加：畫在「疊加前」的底圖上，而不是已蓋過舊文字的成品上
-    const current = state.processedImageData || state.originalImageData;
-    if (!current) return;
-    const baseImgData =
-      this.overlayBase && this.overlayBase.output === current ? this.overlayBase.base : current;
-
-    const canvas = document.createElement('canvas');
-    canvas.width = baseImgData.width;
-    canvas.height = baseImgData.height;
-    const ctx = canvas.getContext('2d')!;
-    ctx.putImageData(baseImgData, 0, 0);
-
-    // Draw Vector Overlay Elements
-    await this.vectorOverlayEngine.renderOverlay(ctx, canvas.width, canvas.height);
-
-    const updatedDataUrl = canvas.toDataURL('image/png');
-    const updatedImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-
-    this.overlayBase = { base: baseImgData, output: updatedImageData };
-    this.invalidatePreviewCaches();
-    store.setState({
-      processedDataUrl: updatedDataUrl,
-      processedImageData: updatedImageData
-    });
-
-    if (this.doubleSidedManager.getState().activeSide === 'front') {
-      this.doubleSidedManager.setFrontImage(updatedDataUrl, updatedImageData);
-      this.mainPreviewImg.src = updatedDataUrl;
-    }
-  }
-
   /**
    * 🪪 2 吋證件照自動裁切：優先用自建 YuNet 抓臉位置，估算置中裁切（見
    * src/core/id-photo-cropper.ts 的誠實附註——這是估算起點，不是官方合規保證，使用者仍須
@@ -1733,12 +1620,6 @@ class App {
         this.presetAutoBadge.innerHTML = '<img src="icons/shared/palette.webp" alt="" class="pm-icon-img" /> 手動選擇';
       }
     }
-  }
-
-  private updatePaperButtonsUI(activePaper: string): void {
-    this.paperButtons.forEach((btn) => {
-      btn.classList.toggle('active', btn.dataset.paper === activePaper);
-    });
   }
 
   private updateCanvasScorePill(state: AppState): void {

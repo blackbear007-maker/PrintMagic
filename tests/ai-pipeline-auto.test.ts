@@ -19,7 +19,6 @@ describe('Automatic pre-press pipeline defaults and local steps', () => {
     expect(DEFAULT_PIPELINE_OPTIONS.enableSharpening).toBe(true);
     expect(DEFAULT_PIPELINE_OPTIONS.enableShadowLift).toBe(true);
     expect(DEFAULT_PIPELINE_OPTIONS.enableBleedExpand).toBe(true);
-    expect(DEFAULT_PIPELINE_OPTIONS.enableVectorOverlay).toBe(true);
     expect(DEFAULT_PIPELINE_OPTIONS.enableAntiBanding).toBe(true);
     expect(DEFAULT_PIPELINE_OPTIONS.enableDeshadow).toBe(false);
   });
