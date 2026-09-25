@@ -28,6 +28,8 @@
 
 > ⚠️ **印前評分修正（2026-09-25）**：`PrintScoreCalculator` 的修正後分數把放大後的像素數當成細節，小圖放大後解析度一律滿分；銳利度因子用 Sobel 梯度平均值，對模糊幾乎沒有反應，對所有圖都給 100；加上其他因子固定貢獻約 65 分，無法印刷的縮圖仍有 72 分。已改為依「細節 DPI」評分（原圖 DPI × 放大倍率，上限內插 1.5 倍／Real-ESRGAN 2 倍，經驗值）、銳利度改量主要輪廓的邊緣寬度（在原圖尺度量）、細節低於 140 DPI 時總分設上限。`AiUpscaleResult` 新增 `engine` 欄位，區分自建 Real-ESRGAN 與本機後備。進階模式比較明細的權重標示原本與程式不符（墨量標 15%、明暗標 5%，實際皆 10%），已修正。詳見 README「印前評分」一節與 `tests/print-score-honesty.test.ts`。
 
+> ⚠️ **CMYK 印刷 PDF（2026-09-25）**：下載 PDF 時改為先經自建服務 `POST /icc/to-cmyk`（`docker/zero-dce/cmyk_convert.py`）以 Adobe 公開的印刷描述檔（依色彩描述檔選單：Japan Color 2001 Coated／Uncoated、Coated FOGRA39、Coated GRACoL 2006；Docker 建置時從 adobe.com 下載並核對 SHA-256，不進 git、不送到瀏覽器）做真正的 ICC 分色，再由前端 `CmykPdfWriter`（`src/engines/cmyk-pdf-writer.ts`）輸出 DeviceCMYK 的 PDF 1.3：套準色裁切線／規矩線、CMYK 色條、BleedBox／TrimBox、以 ICC 註冊代號註明印刷條件的 OutputIntent（不嵌入描述檔）。服務不可用時退回原本的 RGB 版面，所有送印說明依實際輸出的色彩模式產生。未經 PDF/X preflight 驗證，不宣稱 PDF/X 相容；雙面合版 PDF 仍為 RGB。驗證數據見 README「CMYK 印刷 PDF」一節。
+
 品質評分（ARNIQA 移除、`PixelStatQualityAssessor` 併入 `PrintScoreCalculator`）與本機 OCR（`free-ocr-client.ts` 新增）另有專屬章節，見 §1.1 與 §2.8.1。
 
 > ⚠️ **誠實性附註（2026-08-30）——一功能完整實作卻無法被使用者觸及，直到本次才發現**：使用者要求對「未觸及模組」「邊緣情境」「UI 互動層」全面稽核後，逐一修正 15 項真實 bug（3 個核心演算法方向錯誤——`bleed-expander.ts` 接縫混合公式方向顛倒、`imposition-engine.ts` 旋轉版位只換算尺寸沒真的旋轉畫布、`dpi-calculator.ts` 社群預設寫死正方形目標尺寸；11 項 UI 互動層 bug——重複綁定監聽器（`dropzone.ts`／`paper-3d.ts`／`export-modal.ts`）、未追蹤的延遲關閉計時器導致快速重開被誤關（`mockup-modal.ts`／`nearby-shops-modal.ts`／`ruler-calibration.ts`／`spec-modal.ts`／`direct-print-modal.ts`）、GPS 定位與去背請求缺乏重入防護、`loupe.ts` 的 CSS class 對不到任何樣式規則（放大鏡完全無樣式）且徽章宣稱「20x」實際是 10x、`laser-scan.ts` 批次處理時動畫互相打斷、雙指縮放放開一指後單指平移失效、校準滑桿上限低於 Retina 220 PPI 預設所需值、文字檢查彈窗在瀏覽器快取圖片時讀到錯誤縮放比例；4 項防禦性修正——OCR 掃描無逾時保護、透視校正的退化四邊形檢查被 NaN 繞過、向量化演算法的 `maxDist=0` 會造成真正的無窮迴圈、`ImageData` 工廠函式對 0/負值寬高沒有驗證，遮蔽了測試環境與正式環境的行為差異）。過程中額外發現一項比上述任何一項都更根本的問題：
@@ -218,6 +220,7 @@
 - **`src/services/free-icc-client.ts`** + **自建服務 `docker/zero-dce/` 的 `POST /icc/soft-proof`**：真正的 ICC 描述檔色彩轉換，透過 Pillow 的 `ImageCms` 模組（已內建 LittleCMS 2.16，`requirements.txt` 無需新增套件）。
 - **需要使用者自行上傳 CMYK 描述檔**（`.icc`/`.icm`，自己印刷廠提供的那份）——本專案刻意不內建/散布任何具名描述檔（FOGRA39／Japan Color 2001／GRACoL 等）。查證發現：即使是 ICC 官方自己的描述檔登錄庫，其收錄的 FOGRA 描述檔條款仍寫明「未經書面同意不得散布、出售或更改」；freieFarbe.de 本身並未代管描述檔案（只連結至別處）；basICColor 聲稱的「免費授權」因 colormanagement.org 回應 403 兩次而無法查證，故未採信。這是與 `icc-profiles.ts`（僅供 TAC 門檻參考）架構上不同、完全獨立的能力。
 - **已驗證**（真實 CMYK 描述檔，透過已安裝於本機 Windows 的一份描述檔暫時測試，未複製進本專案）：`ImageCms.buildProofTransform()` 產生的軟打樣色彩位移可測量（測試漸層平均 RGB 差異 19.83），`ImageCms.buildTransform()` 轉出的真實 CMYK 值算出的逐像素總墨量合理（最高 212.2%、平均 135.6%）；並以真實 HTTP 請求對實際的 `server.py`（未修改、原始檔案）驗證：成功路徑、缺少描述檔的 400、上傳非 CMYK 描述檔的 400 拒絕，皆如預期運作。
+- **`POST /icc/to-cmyk`（2026-09-25 新增）**：印刷 PDF 用的正式分色（不是軟打樣）。使用 Docker 建置時從 adobe.com 下載的 4 個 Adobe 印刷描述檔（對應色彩描述檔選單），描述檔只存在服務端、不散布；回傳 zlib 壓縮的 8-bit CMYK 樣本（直接就是 PDF 的 /FlateDecode 串流）與實測總墨量。上方「刻意不內建具名描述檔」的原則仍適用於「送到使用者端」：描述檔不進 git、不送到瀏覽器、不嵌入輸出的 PDF。
 - 使用者未上傳描述檔、或此服務離線時，軟打樣功能會退回既有的 `CmykEngine.simulatePrintProof()` 近似模擬——兩者不等價，UI 會誠實標示目前用的是哪一種。
 
 #### 2.7.2 色盲/色覺辨識障礙模擬（2026-08-28 新增，已接上 UI）
@@ -287,7 +290,7 @@
    - 擬人化白話引導與即時反饋；頭像為 `public/xiaoxiang/` 下的 5 種表情（含眨眼）去背插圖，首頁時與上傳區左緣對齊。
 4. **超商列印檔案產生器與送印小抄**：
    - 一鍵下載符合 7-11 ibon / 全家規格的 300 DPI 列印檔；取件碼需透過超商官方網站/App 取得（本工具不接超商訂單系統，過去曾用 `Math.random()` 產生假取件碼與不可掃描的假 QR，已於 2026-08-25 移除）。
-   - 下載 PDF 時自動複製送印規格小抄至剪貼簿（便於 LINE 給印刷廠），內容照實註明檔案為 RGB、請印刷廠轉 CMYK；下載後不再彈出「送印通關護照」視窗，改由小象提醒。
+   - 下載 PDF 時自動複製送印規格小抄至剪貼簿（便於 LINE 給印刷廠），內容照實註明檔案是 CMYK（已依哪個印刷條件分色、請勿再轉檔）或 RGB（請印刷廠轉 CMYK）；下載後不再彈出「送印通關護照」視窗，改由小象提醒。
 
 ---
 
@@ -295,7 +298,7 @@
 
 原生支援印刷廠與製版要求的 6 大標準格式：
 
-1. **📄 標準印刷 PDF (300 DPI)**：依版型出血、向量角線裁切標記（2026-09-18 修正：裁切線改畫在出血區外，不再壓到圖上）、色條、來源圖片 SHA-256 內容雜湊。⚠️ **不是通過驗證的 PDF/X-1a / ISO 15930 檔案**——沒有 OutputIntent、沒有嵌入 ICC 描述檔，圖片內容仍是 RGB（未做 CMYK 分色）。印刷廠仍須自行執行標準 CMYK 轉換流程，見 `server/services/pdfx-service.ts` 內的誠實性註解。真正的 PDF/X-1a 合規（OutputIntent + 嵌入 ICC + CMYK 內容）是尚待完成的功能缺口，不是現況。⚠️ **另一個真實限制（2026-08-27 查證發現）**：`PdfExporter.export()` 目前是把整張來源圖直接拉伸（`pdf.addImage`）填滿目標版面尺寸，`cropAnchor` 參數雖然存在但完全沒被使用（`_cropAnchor` 加底線前綴）——也就是說 `CropController` 的九宮格焦點目前**只會改變預覽畫面的 CSS `object-position`，不會影響真正匯出的 PDF**，來源圖跟目標長寬比不同時，匯出結果其實是被拉伸變形，不是裁切。這是既有缺口，本次（2026-08-27）新增的「2 吋證件照」功能因為需要精準裁切，改用真正對 `ImageData` 做像素裁切（`IdPhotoCropper.applyCrop`）來繞開這個問題，但這只解決了證件照這一個預設，其餘預設（A4海報、名片、貼紙等）目前仍然是拉伸行為，尚未修復。
+1. **📄 標準印刷 PDF (300 DPI)**：依版型出血、向量角線裁切標記（2026-09-18 修正：裁切線改畫在出血區外，不再壓到圖上）、色條、來源圖片 SHA-256 內容雜湊。2026-09-25 起分色服務可用時內容為 CMYK（見文件開頭附註），含 OutputIntent（以 ICC 註冊代號註明印刷條件，不嵌入描述檔）；服務不可用時仍為 RGB，由印刷廠轉檔。⚠️ **不是通過驗證的 PDF/X-1a / ISO 15930 檔案**——未經 preflight 工具驗證，不宣稱相容。`server/services/pdfx-service.ts` 的伺服器端 PDF 仍是 RGB，介面上沒有呼叫它。⚠️ **另一個真實限制（2026-08-27 查證發現）**：`PdfExporter.export()` 目前是把整張來源圖直接拉伸（`pdf.addImage`）填滿目標版面尺寸，`cropAnchor` 參數雖然存在但完全沒被使用（`_cropAnchor` 加底線前綴）——也就是說 `CropController` 的九宮格焦點目前**只會改變預覽畫面的 CSS `object-position`，不會影響真正匯出的 PDF**，來源圖跟目標長寬比不同時，匯出結果其實是被拉伸變形，不是裁切。這是既有缺口，本次（2026-08-27）新增的「2 吋證件照」功能因為需要精準裁切，改用真正對 `ImageData` 做像素裁切（`IdPhotoCropper.applyCrop`）來繞開這個問題，但這只解決了證件照這一個預設，其餘預設（A4海報、名片、貼紙等）目前仍然是拉伸行為，尚未修復。
    同一天（2026-08-27）另外替 `IdPhotoCropper` 加了三項延伸能力，全部是純幾何/像素統計，沒有新增模型呼叫：(a) `levelFace()`——用 YuNet 早就回傳、但先前完全沒用到的雙眼特徵點座標，算出眼線傾角並自動旋轉校正頭部歪斜（<0.5° 略過不轉、>15° 視為偵測異常同樣略過不轉）；(b) `checkBackgroundCompliance()`——對裁切成品四角取樣做亮度/中性色/均勻度啟發式檢查，抓「背景明顯不是白色」這種明顯問題，非官方驗證；(c) `FaceSafetyChecker.checkFaceMargin()`（新檔案 `src/core/face-safety-checker.ts`）——檢查偵測到的臉框離裁切成品邊緣是否小於預設的安全邊界，同時掛在證件照流程與既有的「✨ AI 建議」smartcrop 流程上（`SmartCropClient.suggestCrop()` 現在也會回傳原始 `faces` 陣列供這個檢查使用，不需要重新呼叫一次偵測）。另外，證件照裁切完成後會用小象提示既有的「🧩 智慧拼模」功能（A4/A3 拼版引擎）可以直接拿來排版整批證件照——這個引擎本來就是動態讀取目前選中預設的 `widthMm`/`heightMm`，35×45mm 的證件照不需要任何新的排版邏輯就能正確運作（已驗證：A4 可排 28 張、A3 可排 56 張，見 `imposition-engine.test.ts`），純粹是把既有能力接上這個使用情境。
 2. **🖨️ 工業級無損 TIFF (.tif 300 DPI)**：Tag 282/283 內嵌 300DPI 點陣檔，無失真分色首選。
 3. **📥 高清透明 PNG (.png 300 DPI)**：保留 8-bit Alpha 透明通道，貼紙/立牌預覽。
